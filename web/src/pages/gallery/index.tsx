@@ -158,7 +158,6 @@ export default function GalleryPage() {
                 <PageHeader
                     title="灵感画廊"
                     description="精选 AI 创作提示词与高画质镜头样例，一键复用至自由画布。"
-                    meta={<span className="gallery-badge">{total} 条资产</span>}
                 />
 
                 <div className="skills-browse-bar gallery-browse-bar">
