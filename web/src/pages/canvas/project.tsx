@@ -721,6 +721,24 @@ function InfiniteCanvasPage() {
         setNodes((nodes) => [...nodes, node]);
     }, [getCanvasCenter, linkedProjectQuery.data?.project, projectLoaded, setNodes]);
 
+    // 从画廊接收 draft node：创建对应类型节点并预填提示词
+    useEffect(() => {
+        if (!projectLoaded) return;
+        const raw = sessionStorage.getItem("canvas_draft_node");
+        if (!raw) return;
+        sessionStorage.removeItem("canvas_draft_node");
+        try {
+            const draft = JSON.parse(raw) as { type: string; prompt: string };
+            const nodeType = draft.type === "video" ? CanvasNodeType.Video : CanvasNodeType.Image;
+            const node = createCanvasNode(nodeType, getCanvasCenter(), {
+                prompt: draft.prompt,
+                status: "idle" as const,
+            });
+            node.title = draft.type === "video" ? "画廊视频素材" : "画廊图片素材";
+            setNodes((nodes) => [...nodes, node]);
+        } catch { /* ignore malformed data */ }
+    }, [createCanvasNode, getCanvasCenter, projectLoaded, setNodes]);
+
     const {
         assetPickerOpen,
         closeUploadModal,

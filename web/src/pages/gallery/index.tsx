@@ -112,19 +112,21 @@ export default function GalleryPage() {
         void loadItems(true);
     }, [mediaType, selectedModel, debouncedKeyword]);
 
-    // 复制 Prompt 动作
-    const handleCopy = (text: string, id: number, label = "提示词") => {
+    // 复制 Prompt 动作（默认优先复制中文）
+    const handleCopy = (item: GalleryPromptItem, id: number, preferZh = true) => {
+        const text = preferZh ? (item.prompt_zh || item.prompt) : (item.prompt || item.prompt_zh);
         if (!text) return;
+        const label = preferZh ? (item.prompt_zh ? "中文提示词" : "英文提示词") : (item.prompt ? "英文提示词" : "中文提示词");
         void navigator.clipboard.writeText(text);
         void message.success(`已复制${label}`);
         void recordGalleryPromptCopy(id);
     };
 
-    // 发送到自由画布
+    // 发送到自由画布（创建对应类型节点并预填提示词）
     const handleSendToCanvas = (item: GalleryPromptItem) => {
-        // 跳转到自由画布并在临时状态或 URL query 中携带提示词
-        const promptToUse = item.prompt || item.prompt_zh;
-        sessionStorage.setItem("canvas_draft_prompt", promptToUse);
+        const nodeType = item.media_type === "video" ? "video" : "image";
+        const prompt = item.prompt_zh || item.prompt || "";
+        sessionStorage.setItem("canvas_draft_node", JSON.stringify({ type: nodeType, prompt }));
         message.success("提示词已就绪，正在打开画布...");
         navigate("/canvas");
     };
@@ -137,56 +139,58 @@ export default function GalleryPage() {
 
     return (
         <WorkspacePage className="library-page gallery-library-page" grid>
-            <PageHeader
-                title="灵感画廊"
-                description="精选 AI 创作提示词与高画质镜头样例，一键复用至自由画布。"
-                meta={<span className="gallery-badge">{total} 条资产</span>}
-            />
+            <div className="gallery-sticky-header">
+                <PageHeader
+                    title="灵感画廊"
+                    description="精选 AI 创作提示词与高画质镜头样例，一键复用至自由画布。"
+                    meta={<span className="gallery-badge">{total} 条资产</span>}
+                />
 
-            <div className="skills-browse-bar gallery-browse-bar">
-                {/* 仿照技能库风格的模型 Tabs 导航 */}
-                <div className="skills-navigation">
-                    <div className="skills-tabs" ref={tabsRef} role="tablist" aria-label="模型分类">
-                        <span className="skills-tabs-indicator" ref={indicatorRef} aria-hidden="true" />
-                        {modelTabs.map((tab) => {
-                            const active = selectedModel === tab.value;
-                            return (
-                                <button
-                                    key={tab.value}
-                                    type="button"
-                                    role="tab"
-                                    tabIndex={active ? 0 : -1}
-                                    aria-selected={active}
-                                    className={`skills-tab${active ? " is-active" : ""}`}
-                                    onClick={() => setSelectedModel(tab.value)}
-                                >
-                                    <Box className="size-4" />
-                                    <span>{tab.label}</span>
-                                    {tab.count !== undefined ? <span className="skills-tab-count">{tab.count}</span> : null}
-                                </button>
-                            );
-                        })}
+                <div className="skills-browse-bar gallery-browse-bar">
+                    {/* 仿照技能库风格的模型 Tabs 导航 */}
+                    <div className="skills-navigation">
+                        <div className="skills-tabs" ref={tabsRef} role="tablist" aria-label="模型分类">
+                            <span className="skills-tabs-indicator" ref={indicatorRef} aria-hidden="true" />
+                            {modelTabs.map((tab) => {
+                                const active = selectedModel === tab.value;
+                                return (
+                                    <button
+                                        key={tab.value}
+                                        type="button"
+                                        role="tab"
+                                        tabIndex={active ? 0 : -1}
+                                        aria-selected={active}
+                                        className={`skills-tab${active ? " is-active" : ""}`}
+                                        onClick={() => setSelectedModel(tab.value)}
+                                    >
+                                        <Box className="size-4" />
+                                        <span>{tab.label}</span>
+                                        {tab.count !== undefined ? <span className="skills-tab-count">{tab.count}</span> : null}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
 
-                {/* 搜索与媒体类型过滤工具条 */}
-                <CollectionToolbar active={Boolean(keyword.trim() || mediaType !== "all" || selectedModel !== "all")} onReset={() => { setKeyword(""); setMediaType("all"); setSelectedModel("all"); }}>
-                    <Input
-                        className="min-w-0 sm:!w-64"
-                        prefix={<Search className="size-4 text-foreground/38" />}
-                        value={keyword}
-                        allowClear
-                        placeholder="搜索画面、风格、提示词..."
-                        onChange={(e) => setKeyword(e.target.value)}
-                    />
-                    <Select
-                        aria-label="媒体类型"
-                        className="w-28"
-                        value={mediaType}
-                        options={mediaTypeOptions}
-                        onChange={(val) => setMediaType(val)}
-                    />
-                </CollectionToolbar>
+                    {/* 搜索与媒体类型过滤工具条 */}
+                    <CollectionToolbar active={Boolean(keyword.trim() || mediaType !== "all" || selectedModel !== "all")} onReset={() => { setKeyword(""); setMediaType("all"); setSelectedModel("all"); }}>
+                        <Input
+                            className="min-w-0 sm:!w-64"
+                            prefix={<Search className="size-4 text-foreground/38" />}
+                            value={keyword}
+                            allowClear
+                            placeholder="搜索画面、风格、提示词..."
+                            onChange={(e) => setKeyword(e.target.value)}
+                        />
+                        <Select
+                            aria-label="媒体类型"
+                            className="w-28"
+                            value={mediaType}
+                            options={mediaTypeOptions}
+                            onChange={(val) => setMediaType(val)}
+                        />
+                    </CollectionToolbar>
+                </div>
             </div>
 
             {/* 瀑布流主体 */}
@@ -234,9 +238,9 @@ export default function GalleryPage() {
                                 <Button
                                     size="small"
                                     icon={<Copy className="size-3.5" />}
-                                    onClick={() => handleCopy(item.prompt || item.prompt_zh, item.id, "英文提示词")}
+                                    onClick={() => handleCopy(item, item.id)}
                                 >
-                                    复制 Prompt
+                                    复制提示词
                                 </Button>
                             </div>
                         </div>
@@ -340,7 +344,7 @@ export default function GalleryPage() {
                                         size="small"
                                         type="link"
                                         icon={<Copy className="size-3.5" />}
-                                        onClick={() => handleCopy(detailItem.prompt, detailItem.id, "英文提示词")}
+                                        onClick={() => handleCopy(detailItem, detailItem.id, false)}
                                     >
                                         复制英文
                                     </Button>
@@ -357,7 +361,7 @@ export default function GalleryPage() {
                                         size="small"
                                         type="link"
                                         icon={<Copy className="size-3.5" />}
-                                        onClick={() => handleCopy(detailItem.prompt_zh, detailItem.id, "中文提示词")}
+                                        onClick={() => handleCopy(detailItem, detailItem.id)}
                                     >
                                         复制中文
                                     </Button>
