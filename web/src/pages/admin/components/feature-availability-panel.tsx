@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { App, Button, Skeleton } from "antd";
 import { Switch } from "@/pages/admin/ui/controls";
-import { AlertTriangle, Clapperboard, Coins, ListChecks, MonitorCog, PlugZap, RadioTower, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertTriangle, Clapperboard, Coins, Images, ListChecks, MonitorCog, PlugZap, RadioTower, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { getAdminFeatureAvailability, updateAdminFeatureAvailability } from "@/services/api/auth";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
 import { AdminStatusBadge } from "./admin-ui";
 
-type FeatureKey = "shortDramaEnabled" | "taskCenterEnabled" | "creditsEnabled" | "customChannelsEnabled" | "frontendModelsEnabled" | "pluginCenterEnabled" | "systemPluginsVisibleToUsers";
+type FeatureKey = "shortDramaEnabled" | "taskCenterEnabled" | "creditsEnabled" | "customChannelsEnabled" | "frontendModelsEnabled" | "pluginCenterEnabled" | "systemPluginsVisibleToUsers" | "galleryEnabled";
 type FeatureRow = {
     key: FeatureKey;
     title: string;
@@ -17,9 +17,15 @@ type FeatureRow = {
     dependsOn?: FeatureKey;
 };
 
-const editableFeatureKeys: FeatureKey[] = ["shortDramaEnabled", "taskCenterEnabled", "creditsEnabled", "customChannelsEnabled", "frontendModelsEnabled", "pluginCenterEnabled", "systemPluginsVisibleToUsers"];
+const editableFeatureKeys: FeatureKey[] = ["shortDramaEnabled", "taskCenterEnabled", "creditsEnabled", "customChannelsEnabled", "frontendModelsEnabled", "pluginCenterEnabled", "systemPluginsVisibleToUsers", "galleryEnabled"];
 
 const workspaceFeatureRows: FeatureRow[] = [
+    {
+        key: "galleryEnabled",
+        title: "灵感画廊",
+        description: "开放灵感画廊与精选提示词瀑布流展示入口。",
+        icon: <Images className="size-4" aria-hidden="true" />,
+    },
     {
         key: "shortDramaEnabled",
         title: "短剧创作",
@@ -245,7 +251,7 @@ export default function FeatureAvailabilityPanel() {
                     title="1. 用户工作台入口"
                     description="先决定普通用户能进入哪些核心工作区"
                     icon={<MonitorCog className="size-4" aria-hidden="true" />}
-                    status={<AdminStatusBadge label={`${enabledWorkspaceFeatures}/4 开放`} tone={enabledWorkspaceFeatures === 4 ? "success" : "neutral"} />}
+                    status={<AdminStatusBadge label={`${enabledWorkspaceFeatures}/${workspaceFeatureRows.length} 开放`} tone={enabledWorkspaceFeatures === workspaceFeatureRows.length ? "success" : "neutral"} />}
                 >
                     {workspaceFeatureRows.map((row) => (
                         <FeatureSettingRow key={row.key} row={row} saved={savedFeatures} draft={draftFeatures} saving={saving} onChange={requestFeatureChange} />
@@ -342,7 +348,7 @@ function FeatureSourceRow({ row, saved, draft, saving, onChange }: { row: Featur
 
 function effectiveFeatureValue(features: FeatureAvailability, key: FeatureKey) {
     if (key === "systemPluginsVisibleToUsers") return features.pluginCenterEnabled && features.systemPluginsVisibleToUsers;
-    return features[key];
+    return Boolean(features[key]);
 }
 
 function toEditablePayload(features: FeatureAvailability) {
@@ -354,6 +360,7 @@ function toEditablePayload(features: FeatureAvailability) {
         frontendModelsEnabled: features.frontendModelsEnabled,
         pluginCenterEnabled: features.pluginCenterEnabled,
         systemPluginsVisibleToUsers: features.systemPluginsVisibleToUsers,
+        galleryEnabled: features.galleryEnabled ?? true,
     };
 }
 
@@ -365,17 +372,21 @@ function parseFeatureAvailability(value: unknown): FeatureAvailability {
     if (!value || typeof value !== "object") throw new Error("功能开放配置响应格式无效");
     const record = value as Record<string, unknown>;
     for (const key of editableFeatureKeys) {
-        if (typeof record[key] !== "boolean") throw new Error("功能开放配置响应缺少有效开关状态");
+        if (typeof record[key] !== "boolean") {
+            // 旧版本配置缺少新字段时按默认开放处理，避免页面白屏
+            continue;
+        }
     }
     return {
-        welcomeEnabled: record.welcomeEnabled as boolean,
-        shortDramaEnabled: record.shortDramaEnabled as boolean,
-        taskCenterEnabled: record.taskCenterEnabled as boolean,
-        creditsEnabled: record.creditsEnabled as boolean,
-        customChannelsEnabled: record.customChannelsEnabled as boolean,
-        frontendModelsEnabled: record.frontendModelsEnabled as boolean,
-        pluginCenterEnabled: record.pluginCenterEnabled as boolean,
-        systemPluginsVisibleToUsers: record.systemPluginsVisibleToUsers as boolean,
+        welcomeEnabled: Boolean(record.welcomeEnabled),
+        shortDramaEnabled: Boolean(record.shortDramaEnabled),
+        taskCenterEnabled: Boolean(record.taskCenterEnabled),
+        creditsEnabled: Boolean(record.creditsEnabled),
+        customChannelsEnabled: Boolean(record.customChannelsEnabled),
+        frontendModelsEnabled: Boolean(record.frontendModelsEnabled),
+        pluginCenterEnabled: Boolean(record.pluginCenterEnabled),
+        systemPluginsVisibleToUsers: Boolean(record.systemPluginsVisibleToUsers),
+        galleryEnabled: typeof record.galleryEnabled === "boolean" ? record.galleryEnabled : true,
         configured: typeof record.configured === "boolean" ? record.configured : undefined,
         updatedBy: typeof record.updatedBy === "string" ? record.updatedBy : undefined,
         updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : undefined,

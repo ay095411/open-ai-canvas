@@ -13,6 +13,7 @@ const CreditOperationsPanel = lazy(() => import("./components/credit-operations-
 const AccessSettingsPanel = lazy(() => import("./components/access-settings-panel"));
 const EmailSettingsPanel = lazy(() => import("./components/email-settings-panel"));
 const FeatureAvailabilityPanel = lazy(() => import("./components/feature-availability-panel"));
+const AdminGalleryPanel = lazy(() => import("./components/admin-gallery-panel"));
 const StorageResourcesPanel = lazy(() => import("./components/storage-resources-panel"));
 const AgentLessonsPanel = lazy(() => import("./components/agent-lessons-panel"));
 
@@ -118,6 +119,14 @@ export function FeatureAvailabilityPage() {
     return (
         <AdminPageFrame title="功能开放" description="按用户使用路径控制工作台、插件与模型能力" scroll>
             <FeatureAvailabilityPanel />
+        </AdminPageFrame>
+    );
+}
+
+export function AdminGalleryPage() {
+    return (
+        <AdminPageFrame title="灵感画廊" description="维护画廊条目上下架，并导入提示词数据" scroll>
+            <AdminGalleryPanel />
         </AdminPageFrame>
     );
 }
