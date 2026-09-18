@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"infinite-canvas/backend/internal/gallery"
 	"infinite-canvas/backend/internal/model"
 
 	"gorm.io/gorm"
@@ -100,6 +101,7 @@ func Models() []any {
 		&model.TaskTextDelta{},
 		&model.TaskLog{},
 		&model.Result{},
+		&gallery.GalleryPrompt{},
 	}
 }
 

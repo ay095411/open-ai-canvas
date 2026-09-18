@@ -12,6 +12,7 @@ import (
 
 	"infinite-canvas/backend/internal/auth"
 	"infinite-canvas/backend/internal/canvas"
+	"infinite-canvas/backend/internal/gallery"
 	"infinite-canvas/backend/internal/kernel"
 	"infinite-canvas/backend/internal/model"
 	"infinite-canvas/backend/internal/payment"
@@ -70,6 +71,7 @@ type Service struct {
 	prompts                  *prompts.Service
 	auth                     *auth.Service
 	canvas                   *canvas.Service
+	gallery                  *gallery.Service
 }
 
 const taskWorkerConcurrency = 3
@@ -120,7 +122,15 @@ func newService(repo *repository.Repository, dataDir string) *Service {
 	service.auth = auth.New(service.repo, authHost{svc: service}, nil)
 	service.canvas = canvas.New(service.repo, canvasHost{svc: service})
 	service.platform = platform.New(service.repo, coordinator, platformHost{svc: service})
+	galleryRepo := gallery.NewRepository(service.repo.DB())
+	service.gallery = gallery.NewService(galleryRepo)
+	_ = service.gallery.EnsureMigrated()
+	go service.gallery.InitDefaultDataIfEmpty()
 	return service
+}
+
+func (s *Service) Gallery() *gallery.Service {
+	return s.gallery
 }
 
 func (s *Service) taskBilling() *taskBillingCoordinator {
