@@ -1,0 +1,326 @@
+.gallery-library-page > div {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.gallery-badge {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    background: var(--user-surface-muted, rgba(125, 125, 125, 0.12));
+    color: var(--user-ink-muted, var(--muted-foreground));
+    border: 1px solid var(--user-border, transparent);
+}
+
+.gallery-browse-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+/* 瀑布流 Masonry 布局 (CSS Columns) */
+.gallery-masonry-grid {
+    column-count: 5;
+    column-gap: 20px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1700px) {
+    .gallery-masonry-grid {
+        column-count: 4;
+    }
+}
+
+@media (max-width: 1280px) {
+    .gallery-masonry-grid {
+        column-count: 3;
+    }
+}
+
+@media (max-width: 860px) {
+    .gallery-masonry-grid {
+        column-count: 2;
+    }
+}
+
+@media (max-width: 540px) {
+    .gallery-masonry-grid {
+        column-count: 1;
+    }
+}
+
+.gallery-card {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--user-surface, var(--card));
+    border: 1px solid var(--user-border, rgba(125, 125, 125, 0.15));
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+    border-color: color-mix(in srgb, var(--user-ink) 25%, transparent);
+}
+
+.dark .gallery-card:hover {
+    box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.gallery-card-media {
+    position: relative;
+    width: 100%;
+    cursor: pointer;
+    overflow: hidden;
+    background: var(--user-surface-muted, rgba(125, 125, 125, 0.08));
+}
+
+.gallery-card-media img,
+.gallery-card-media video {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gallery-card:hover .gallery-card-media img,
+.gallery-card:hover .gallery-card-media video {
+    transform: scale(1.03);
+}
+
+.gallery-card-type-tag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 2;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.gallery-card-hover-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 12px 12px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 65%, transparent 100%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 3;
+}
+
+.gallery-card:hover .gallery-card-hover-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.gallery-card-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.gallery-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--user-ink, var(--foreground));
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+}
+
+.gallery-card-desc {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--user-ink-muted, var(--muted-foreground));
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+}
+
+.gallery-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--user-border, rgba(125, 125, 125, 0.12));
+    font-size: 11px;
+    color: var(--user-ink-soft, var(--muted-foreground));
+}
+
+.gallery-model-tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 7px;
+    background: var(--user-surface-muted, rgba(125, 125, 125, 0.1));
+    border-radius: 4px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--user-ink-muted, var(--foreground));
+}
+
+/* 详情居中弹窗暗黑与流式排版 */
+.gallery-detail-modal .ant-modal-content {
+    background: var(--user-surface, var(--card)) !important;
+    color: var(--user-ink, var(--foreground)) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--user-border, rgba(125, 125, 125, 0.18)) !important;
+    padding: 24px !important;
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.gallery-detail-modal .ant-modal-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--user-border, rgba(125, 125, 125, 0.12)) !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 16px !important;
+}
+
+.gallery-detail-modal .ant-modal-title {
+    color: var(--user-ink, var(--foreground)) !important;
+    font-size: 17px !important;
+    font-weight: 650 !important;
+}
+
+.gallery-detail-modal .ant-modal-close {
+    color: var(--user-ink-muted, var(--muted-foreground)) !important;
+    top: 20px !important;
+}
+
+.gallery-detail-modal-body {
+    max-height: 72vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-right: 4px;
+    scrollbar-width: thin;
+}
+
+.gallery-preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.gallery-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.gallery-detail-media-wrap {
+    width: 100%;
+    min-height: 240px;
+    max-height: 520px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--user-border, rgba(125, 125, 125, 0.15));
+}
+
+.gallery-detail-media-wrap img,
+.gallery-detail-media-wrap video {
+    max-width: 100%;
+    max-height: 520px;
+    object-fit: contain;
+}
+
+.gallery-prompt-box {
+    border-radius: 10px;
+    background: var(--user-surface-muted, rgba(125, 125, 125, 0.08));
+    padding: 16px;
+    border: 1px solid var(--user-border, rgba(125, 125, 125, 0.15));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gallery-prompt-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--user-ink, var(--foreground));
+}
+
+.gallery-prompt-text {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--user-ink, var(--foreground));
+    white-space: pre-wrap;
+    max-height: 240px;
+    overflow-y: auto;
+    font-family: var(--font-mono, monospace);
+    margin: 0;
+    background: transparent;
+    border: 0;
+    scrollbar-width: thin;
+}
+
+.gallery-detail-meta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    font-size: 13px;
+    border-top: 1px solid var(--user-border, rgba(125, 125, 125, 0.15));
+    color: var(--user-ink-muted, var(--muted-foreground));
+}
+
+.gallery-detail-meta-item strong {
+    color: var(--user-ink, var(--foreground));
+    margin-right: 4px;
+}
+
+.gallery-detail-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    background: var(--user-surface-muted, rgba(125, 125, 125, 0.1));
+    color: var(--user-ink-muted, var(--foreground));
+    border: 1px solid var(--user-border, transparent);
+}
