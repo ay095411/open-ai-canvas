@@ -40,6 +40,20 @@ export default function GalleryPage() {
     // 滑动指示条
     const tabsRef = useRef<HTMLDivElement>(null);
     const indicatorRef = useRef<HTMLSpanElement>(null);
+    const stickyRef = useRef<HTMLDivElement>(null);
+    const [isStuck, setIsStuck] = useState(false);
+
+    // 监听滚动判断是否吸顶
+    useEffect(() => {
+        const el = stickyRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsStuck(!entry.isIntersecting),
+            { threshold: 0, rootMargin: "-1px 0px 0px 0px" },
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
 
     // 格式化模型列表供 Tab 切换罗列
     const modelTabs = useMemo(() => {
@@ -139,7 +153,7 @@ export default function GalleryPage() {
 
     return (
         <WorkspacePage className="library-page gallery-library-page" grid>
-            <div className="gallery-sticky-header">
+            <div className={`gallery-sticky-header${isStuck ? " is-stuck" : ""}`} ref={stickyRef}>
                 <PageHeader
                     title="灵感画廊"
                     description="精选 AI 创作提示词与高画质镜头样例，一键复用至自由画布。"

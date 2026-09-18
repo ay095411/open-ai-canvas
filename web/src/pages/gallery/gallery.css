@@ -15,11 +15,14 @@
     background: var(--user-surface, var(--card));
     padding-top: 0;
     margin-bottom: 0;
-    transition: box-shadow 0.2s ease;
+    transition: box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .gallery-sticky-header.is-stuck {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    background: color-mix(in srgb, var(--user-surface, var(--card)) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .gallery-badge {
