@@ -12,13 +12,21 @@
     -webkit-backdrop-filter: blur(12px);
 }
 
-.gallery-sticky-header.is-stuck .gallery-browse-bar {
-    border-color: transparent;
-    background: transparent;
+.gallery-sticky-header.is-stuck .gallery-browse-bar,
+.gallery-sticky-header.is-stuck .skills-browse-bar {
+    background: transparent !important;
+    border-color: transparent !important;
 }
 
-.gallery-sticky-header.is-stuck .gallery-browse-bar .skills-tabs {
-    background: color-mix(in srgb, var(--foreground) 4%, transparent);
+.gallery-sticky-header.is-stuck .skills-tabs,
+.gallery-sticky-header.is-stuck .skills-tabs[role="tablist"] {
+    background: color-mix(in srgb, var(--foreground) 4%, transparent) !important;
+}
+
+.gallery-sticky-header.is-stuck .collection-toolbar,
+.gallery-sticky-header.is-stuck .ant-input-affix-wrapper,
+.gallery-sticky-header.is-stuck .ant-select-selector {
+    background: color-mix(in srgb, var(--foreground) 4%, transparent) !important;
 }
 
 .gallery-badge {
