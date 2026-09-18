@@ -57,7 +57,8 @@ export default function GalleryPage() {
 
     // 格式化模型列表供 Tab 切换罗列
     const modelTabs = useMemo(() => {
-        const list = [{ label: "全部模型", value: "all", count: total }];
+        const allCount = facets?.total ?? total;
+        const list = [{ label: "全部模型", value: "all", count: allCount }];
         if (facets?.by_model) {
             for (const [m, count] of Object.entries(facets.by_model)) {
                 list.push({ label: m, value: m, count });
