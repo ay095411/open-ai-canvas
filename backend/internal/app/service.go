@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -124,13 +125,24 @@ func newService(repo *repository.Repository, dataDir string) *Service {
 	service.platform = platform.New(service.repo, coordinator, platformHost{svc: service})
 	galleryRepo := gallery.NewRepository(service.repo.DB())
 	service.gallery = gallery.NewService(galleryRepo)
-	_ = service.gallery.EnsureMigrated()
-	go service.gallery.InitDefaultDataIfEmpty()
 	return service
 }
 
 func (s *Service) Gallery() *gallery.Service {
 	return s.gallery
+}
+
+// PrepareGallery 在启动阶段迁移画廊表并播种内置数据。
+// 构造函数只做装配、不访问数据库：在那里起后台 goroutine 会与调用方共用同一个连接池，
+// 在 :memory: SQLite 下会把后续查询挤到新的空库连接上，产生 no such table 的假失败。
+func (s *Service) PrepareGallery() {
+	if s.gallery == nil {
+		return
+	}
+	if err := s.gallery.EnsureMigrated(); err != nil {
+		log.Printf("[gallery] 迁移画廊表失败: %v", err)
+	}
+	s.gallery.InitDefaultDataIfEmpty()
 }
 
 func (s *Service) taskBilling() *taskBillingCoordinator {

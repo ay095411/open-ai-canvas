@@ -124,6 +124,8 @@ func run(ctx context.Context) error {
 		return err
 	}
 	httpServer := &http.Server{Handler: r, ReadHeaderTimeout: 10 * time.Second}
+	// 画廊表迁移与内置数据播种在启动阶段显式执行，构造函数不再访问数据库。
+	svc.PrepareGallery()
 	svc.StartWorker()
 	// 启动后回填存量视频的播放副本转码（幂等，无待处理项即退出）。
 	go svc.BackfillPlaybackTranscodes()
