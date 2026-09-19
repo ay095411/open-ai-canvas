@@ -30,7 +30,9 @@ docs/content/docs/overview/*
 !docs/content/docs/overview/creative-agent-design.mdx
 .env*
 !.env.example
-data/
+# 只忽略后端运行时数据目录；不要写成未锚定的 data/，那会连带忽略
+# backend/internal/gallery/data/ 里的 go:embed 种子数据。
+/backend/data/
 .local/
 /.local/docker-compose.postgres.yml
 coverage/
