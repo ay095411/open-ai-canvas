@@ -1,7 +1,8 @@
-import { forwardRef, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ClipboardEvent, DragEvent, KeyboardEvent, MouseEvent, PointerEvent, TextareaHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { renderToStaticMarkup } from "react-dom/server";
+import { useReducedMotion } from "motion/react";
 import { ArrowLeft, Brush, Camera, Clapperboard, ChevronRight, Clock, Contrast, FastForward, FileText, Folder, Globe2, Grid2x2, Grid3x3, Image as ImageIcon, Music2, Package, Pencil, Palette, PersonStanding, Rewind, ScanFace, Search, SlidersHorizontal, Sparkles, Sun, UserRound, Video, Workflow } from "lucide-react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -49,6 +50,11 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "val
     activeDropReferenceId?: string | null;
     onReferenceFilesDrop?: (reference: CanvasResourceReference, files: File[]) => void;
     autoLinkEnabled?: boolean;
+    /**
+     * 逐字呈现占位文案的打字机效果。原生 placeholder 无法逐字刷新、且各浏览器垂直对齐规则不一致，
+     * 因此开启后改用叠在编辑器下层、aria-hidden 的装饰层承载文案。
+     */
+    animatedPlaceholder?: boolean;
 };
 
 // 回车提交语义由调用方决定：false 只在 ⌘/Ctrl+Enter 提交，"both" 两种都提交；Shift+Enter 始终换行。
@@ -61,7 +67,7 @@ function shouldSubmitOnEnter(event: { key: string; ctrlKey: boolean; metaKey: bo
 }
 
 export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function CanvasResourceMentionTextarea(
-    { value, references, onSelectReference, onChange, onSubmit, onKeyDown, className, containerClassName, style, highlightLabels = true, mentionMenuWidth = 320, sendOnEnter = true, onContentSizeChange, includeAssetLibrary = false, activeDropReferenceId, onReferenceFilesDrop, autoLinkEnabled = false, ...props },
+    { value, references, onSelectReference, onChange, onSubmit, onKeyDown, className, containerClassName, style, highlightLabels = true, mentionMenuWidth = 320, sendOnEnter = true, onContentSizeChange, includeAssetLibrary = false, activeDropReferenceId, onReferenceFilesDrop, autoLinkEnabled = false, animatedPlaceholder = false, ...props },
     forwardedRef,
 ) {
     const rawTheme = useActiveTheme();
@@ -81,6 +87,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     const [autoLinkPosition, setAutoLinkPosition] = useState<{ left: number; top: number } | null>(null);
     const [nativeDropReferenceId, setNativeDropReferenceId] = useState<string | null>(null);
     const [previewReference, setPreviewReference] = useState<CanvasResourceReference | null>(null);
+    const [placeholderFocused, setPlaceholderFocused] = useState(false);
     const canvasReferences = useResolvedCanvasResourceReferences(references);
     const rawAssetReferences = useMemo(() => includeAssetLibrary ? buildAssetMentionReferences(assets) : [], [assets, includeAssetLibrary]);
     const assetReferences = useResolvedCanvasResourceReferences(rawAssetReferences);
@@ -327,6 +334,18 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         ...(style || {}),
         caretColor: style?.color || theme.node.text,
     } as CSSProperties;
+    // 空值时占位文案统一叠在编辑器下层：原生 placeholder 无法逐字刷新，且各浏览器垂直对齐规则不一致。
+    // 打字机模式下颜色与透明度交给 CSS 类，避免调用方传入的正文色把占位语义顶掉。
+    const placeholderText = props.placeholder;
+    const placeholderOverlay = !value && placeholderText ? (
+        <div
+            aria-hidden
+            className={`${className || ""}${animatedPlaceholder ? " creation-typing-placeholder" : ""} pointer-events-none absolute inset-0 z-0`}
+            style={animatedPlaceholder ? { ...style, color: undefined, opacity: undefined } : { ...style, color: style?.color || theme.node.text, opacity: 0.4 }}
+        >
+            {animatedPlaceholder ? <TypewriterPlaceholder text={placeholderText} paused={placeholderFocused} /> : placeholderText}
+        </div>
+    ) : null;
     const menuAnchor = useRichEditor ? editorRef.current : textareaRef.current;
     const menu = mention && availableReferences.length && menuAnchor ? (
         <MentionMenu
@@ -347,11 +366,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     if (useRichEditor) {
         return (
             <div ref={containerRef} data-canvas-no-zoom className={`relative w-full min-h-0 overflow-hidden ${containerClassName || "h-full"}`}>
-                {!value && props.placeholder ? (
-                    <div aria-hidden className={`${className || ""} pointer-events-none absolute inset-0 z-0`} style={{ ...style, color: style?.color || theme.node.text, opacity: 0.4 }}>
-                        {props.placeholder}
-                    </div>
-                ) : null}
+                {placeholderOverlay}
                 <div
                     ref={editorRef}
                     role="textbox"
@@ -480,8 +495,12 @@ if (event.key === "Enter" && (event.nativeEvent.isComposing || composingRef.curr
                         props.onWheel?.(event as unknown as React.WheelEvent<HTMLTextAreaElement>);
                     }}
                     onScroll={(event) => props.onScroll?.(event as unknown as React.UIEvent<HTMLTextAreaElement>)}
-                    onFocus={(event) => props.onFocus?.(event as unknown as React.FocusEvent<HTMLTextAreaElement>)}
+                    onFocus={(event) => {
+                        setPlaceholderFocused(true);
+                        props.onFocus?.(event as unknown as React.FocusEvent<HTMLTextAreaElement>);
+                    }}
                     onBlur={(event) => {
+                        setPlaceholderFocused(false);
                         setAutoLinkCursor(null);
                         if (event.relatedTarget instanceof Element && event.relatedTarget.closest("[data-canvas-resource-mention-menu]")) return;
                         window.setTimeout(() => {
@@ -501,8 +520,10 @@ if (event.key === "Enter" && (event.nativeEvent.isComposing || composingRef.curr
 
     return (
         <div ref={containerRef} data-canvas-no-zoom className={`relative w-full min-h-0 overflow-hidden ${containerClassName || "h-full"}`}>
+            {placeholderOverlay}
             <textarea
                 {...props}
+                placeholder={animatedPlaceholder ? undefined : props.placeholder}
                 ref={(node) => {
                     textareaRef.current = node;
                     if (typeof forwardedRef === "function") forwardedRef(node);
@@ -579,7 +600,12 @@ if (event.key === "Enter" && (event.nativeEvent.isComposing || composingRef.curr
                     }
                     props.onWheel?.(event);
                 }}
+                onFocus={(event) => {
+                    setPlaceholderFocused(true);
+                    props.onFocus?.(event);
+                }}
                 onBlur={(event) => {
+                    setPlaceholderFocused(false);
                     setAutoLinkCursor(null);
                     if (event.relatedTarget instanceof Element && event.relatedTarget.closest("[data-canvas-resource-mention-menu]")) return;
                     window.setTimeout(() => {
@@ -594,6 +620,74 @@ if (event.key === "Enter" && (event.nativeEvent.isComposing || composingRef.curr
         </div>
     );
 });
+
+// 打字机占位文案的节奏：逐字显示 → 停留 → 逐字擦除 → 短停顿后重播。
+const TYPEWRITER_TYPE_INTERVAL = 68;
+const TYPEWRITER_HOLD_INTERVAL = 2600;
+const TYPEWRITER_ERASE_INTERVAL = 28;
+const TYPEWRITER_RESTART_INTERVAL = 620;
+
+type TypewriterPhase = "typing" | "holding" | "erasing" | "resting";
+
+/**
+ * 占位文案的打字机呈现。焦点进入输入框或用户开启降低动态偏好时直接给出完整文案，
+ * 避免提示文字在光标旁持续变动；这两种情况也不渲染光标块。
+ */
+function TypewriterPlaceholder({ text, paused }: { text: string; paused: boolean }) {
+    const reducedMotion = useReducedMotion();
+    const characters = useMemo(() => Array.from(text), [text]);
+    const still = paused || Boolean(reducedMotion);
+    const [revealed, setRevealed] = useState(0);
+    const revealedRef = useRef(0);
+    const phaseRef = useRef<TypewriterPhase>("typing");
+
+    useEffect(() => {
+        revealedRef.current = 0;
+        phaseRef.current = "typing";
+        setRevealed(0);
+    }, [characters, still]);
+
+    useEffect(() => {
+        if (still || !characters.length) return;
+        let timer = 0;
+        function schedule(delay: number) {
+            timer = window.setTimeout(tick, delay);
+        }
+        function tick() {
+            const phase = phaseRef.current;
+            if (phase === "holding") {
+                phaseRef.current = "erasing";
+                schedule(TYPEWRITER_ERASE_INTERVAL);
+                return;
+            }
+            if (phase === "resting") {
+                phaseRef.current = "typing";
+                schedule(TYPEWRITER_TYPE_INTERVAL);
+                return;
+            }
+            const step = phase === "typing" ? 1 : -1;
+            const next = Math.min(Math.max(revealedRef.current + step, 0), characters.length);
+            revealedRef.current = next;
+            setRevealed(next);
+            if (phase === "typing" && next >= characters.length) {
+                phaseRef.current = "holding";
+                schedule(TYPEWRITER_HOLD_INTERVAL);
+                return;
+            }
+            if (phase === "erasing" && next <= 0) {
+                phaseRef.current = "resting";
+                schedule(TYPEWRITER_RESTART_INTERVAL);
+                return;
+            }
+            schedule(phase === "typing" ? TYPEWRITER_TYPE_INTERVAL : TYPEWRITER_ERASE_INTERVAL);
+        }
+        schedule(TYPEWRITER_TYPE_INTERVAL);
+        return () => window.clearTimeout(timer);
+    }, [characters, still]);
+
+    if (still) return <>{text}</>;
+    return <>{characters.slice(0, revealed).join("")}<span className="creation-typing-caret" /></>;
+}
 
 export const TOOL_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
     Brush, Camera, Clapperboard, Clock, Contrast, FastForward, Globe2, Grid2x2, Grid3x3, Package, Palette, PersonStanding, Rewind, ScanFace, SlidersHorizontal, Sparkles, Sun,

@@ -43,8 +43,10 @@ const (
 	defaultAppearanceBrandSlug = "open-ai-canvas"
 	defaultAppearanceSkinID    = "classic"
 	defaultAppearanceLogoURL   = "/logo.svg"
-	defaultAppearanceVideoURL  = "https://boss-shjd.biliapi.net/updream/aniforge/video/video_bbcb00bd-650d-4249-9346-5cd21fd2484c_m1hc-u0-1pu13x-3v1s.mp4"
-	defaultAppearancePosterURL = "https://i0.hdslb.com/bfs/aitool/aniforge/image/02933f26-5f1b-49ff-a811-b7f95ee5e5b8_m1hc-u0-sau.jpg"
+	// 登录页影片改用仓库内置素材（web/public/auth/），不再依赖外部 CDN：
+	// 外链会随第三方失效，也会把首屏起播时间交给别人的服务器。
+	defaultAppearanceVideoURL  = "/auth/login-hero.mp4"
+	defaultAppearancePosterURL = "/auth/login-hero-poster.jpg"
 	defaultAppearanceHeroTitle = "让一个故事，\n从文字走向银幕。"
 )
 

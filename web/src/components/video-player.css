@@ -7,8 +7,17 @@
 .canvas-video-player {
     position: relative;
     isolation: isolate;
+    --video-font-family: var(--font-ui);
     --canvas-video-control-size: 36px;
     --canvas-video-control-gap: 6px;
+}
+
+.canvas-video-player .vds-google-cast {
+    font-family: var(--font-ui);
+}
+
+.canvas-video-player .vds-captions {
+    font-family: var(--media-user-font-family, var(--font-ui));
 }
 
 .canvas-video-player[data-player-variant="compact"] {

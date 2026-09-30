@@ -1,9 +1,10 @@
 import { App, Popover } from "antd";
 import { Switch } from "@/components/ui/base/switch";
-import { ChevronRight, CircleUserRound, LogIn, LogOut, Moon, ShieldCheck, Sun } from "lucide-react";
+import { ChevronRight, LogIn, LogOut, Moon, ShieldCheck, Sun } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 
+import { CoalAvatar } from "@/components/brand/coal-avatar";
 import { AppChangelogButton } from "@/components/layout/app-changelog-modal";
 import { IdentityProviderBadge } from "@/components/layout/identity-provider-badge";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
@@ -129,7 +130,7 @@ function UserAvatar({ user, className }: { user: LocalUser; className: string })
                 {avatarUrl && !failed ? (
                     <img src={avatarUrl} alt="" referrerPolicy="no-referrer" className="size-full object-cover" onError={() => setFailed(true)} />
                 ) : (
-                    <CircleUserRound className="app-workspace-account-icon" aria-hidden />
+                    <CoalAvatar />
                 )}
             </span>
             <IdentityProviderBadge user={user} compact className="absolute -bottom-1 -right-1" />

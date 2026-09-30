@@ -1,8 +1,15 @@
 @layer utilities {
-    /* Editor workbench scrolling and range controls belong to the editor plugin, not the app shell. */
+    /* Editor workbench scrolling and range controls belong to the editor plugin, not the app shell.
+       注意导演台是**反色**材质：--director-dock-surface 在浅色主题下是深色面板，
+       在深色主题下反而是白面板（见 globals.css 的 :root / .dark .editor-workbench 两处定义）。
+       所以滑块不能写死白色 —— 深色主题下白面板 + 白滑块等于隐形，与侧栏滚动条踩的是同一个坑。
+       改由面板自身前景色 --director-dock-fg-strong 派生：两个主题下都自动取到对比色。
+       同文件的 .editor-slider 滑块本来就用的这个来源，此处对齐即可。 */
     .director-scroll {
+        --director-scroll-thumb: color-mix(in srgb, var(--director-dock-fg-strong) 22%, transparent);
+        --director-scroll-thumb-hover: color-mix(in srgb, var(--director-dock-fg-strong) 36%, transparent);
         scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        scrollbar-color: var(--director-scroll-thumb) transparent;
     }
     .director-scroll::-webkit-scrollbar {
         width: 8px;
@@ -12,13 +19,13 @@
         background: transparent;
     }
     .director-scroll::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.18);
+        background: var(--director-scroll-thumb);
         border-radius: 9999px;
         border: 2px solid transparent;
         background-clip: padding-box;
     }
     .director-scroll::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--director-scroll-thumb-hover);
         background-clip: padding-box;
         border: 2px solid transparent;
     }

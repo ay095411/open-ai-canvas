@@ -22,8 +22,8 @@ function tileGeometry(index: number) {
     return { geometry, flat, target };
 }
 
-function imageTexture(image: HTMLImageElement, index: number, type: "film" | "script" | "board", look: WelcomeLook) {
-    const canvas = document.createElement("canvas");
+function imageTexture(image: HTMLImageElement, index: number, type: "film" | "script" | "board", look: WelcomeLook, fontFamily: string, existing?: THREE.CanvasTexture) {
+    const canvas: HTMLCanvasElement = existing?.image ?? document.createElement("canvas");
     canvas.width = 768;
     canvas.height = 512;
     const ctx = canvas.getContext("2d")!;
@@ -36,7 +36,7 @@ function imageTexture(image: HTMLImageElement, index: number, type: "film" | "sc
     ctx.filter = "none";
     if (type === "board") {
         ctx.fillStyle = "#d8dfd9";
-        ctx.font = "18px sans-serif";
+        ctx.font = `18px ${fontFamily}`;
         ctx.fillText(`SHOT ${String(index + 1).padStart(2, "0")}   /   MEDIUM SHOT`, 22, 494);
         ctx.fillStyle = "#929c96";
         ctx.textAlign = "right";
@@ -50,7 +50,7 @@ function imageTexture(image: HTMLImageElement, index: number, type: "film" | "sc
         ctx.fillStyle = shade;
         ctx.fillRect(0, 0, 768, 512);
         ctx.fillStyle = "#f3f2ef";
-        ctx.font = "20px sans-serif";
+        ctx.font = `20px ${fontFamily}`;
         ctx.fillText(`${look.title} / 场 ${String(Math.floor(index / 4) + 1).padStart(2, "0")}`, 48, 65);
         ctx.font = "32px serif";
         ctx.fillText(look.screenplay[index], 48, 366, 672);
@@ -61,8 +61,9 @@ function imageTexture(image: HTMLImageElement, index: number, type: "film" | "sc
         ctx.font = "16px monospace";
         ctx.fillText(`SCENE / ${String(index + 1).padStart(2, "0")}`, 48, 475);
     }
-    const texture = new THREE.CanvasTexture(canvas);
+    const texture = existing ?? new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
     return texture;
 }
 
@@ -89,8 +90,13 @@ export default function StoryReel({ look, progress, paused, onReady, onError }: 
         const meshes: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
         const textures: THREE.Texture[] = [];
         const films: THREE.Texture[] = [];
-        const scripts: THREE.Texture[] = [];
-        const boards: THREE.Texture[] = [];
+        const scripts: THREE.CanvasTexture[] = [];
+        const boards: THREE.CanvasTexture[] = [];
+        const fontFamily = getComputedStyle(canvas).fontFamily;
+        const fontReady = document.fonts.load(`20px ${fontFamily}`, look.title).catch((error) => {
+            console.warn("Welcome reel font could not be loaded; using fallback fonts", error);
+            return [];
+        });
         const images: HTMLImageElement[] = [];
         const video = document.createElement("video");
         if (look.video) video.src = look.video;
@@ -165,9 +171,9 @@ export default function StoryReel({ look, progress, paused, onReady, onError }: 
             if (disposed) return;
             window.clearTimeout(timeout);
             loaded.forEach((image, index) => {
-                const film = imageTexture(image, index, "film", look);
-                const script = imageTexture(image, index, "script", look);
-                const board = imageTexture(image, index, "board", look);
+                const film = imageTexture(image, index, "film", look, fontFamily);
+                const script = imageTexture(image, index, "script", look, fontFamily);
+                const board = imageTexture(image, index, "board", look, fontFamily);
                 films.push(film); scripts.push(script); boards.push(board);
                 textures.push(film, script, board);
                 const tile = tileGeometry(index);
@@ -180,6 +186,14 @@ export default function StoryReel({ look, progress, paused, onReady, onError }: 
                 const mesh = new THREE.Mesh(tile.geometry, material);
                 meshes.push(mesh);
                 scene.add(mesh);
+            });
+            // Canvas 不会随网页字体加载自动重绘；在原纹理上更新，避免阻塞首屏动画。
+            void fontReady.then((fonts) => {
+                if (disposed || fonts.length === 0) return;
+                loaded.forEach((image, index) => {
+                    imageTexture(image, index, "script", look, fontFamily, scripts[index]);
+                    imageTexture(image, index, "board", look, fontFamily, boards[index]);
+                });
             });
             let last = performance.now();
             let current = progress.current;

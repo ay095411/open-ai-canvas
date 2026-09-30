@@ -1,0 +1,24 @@
+/* 按字体包许可保留原始文件；Vite 为字体生成内容哈希，font-display 避免加载时隐藏文字。 */
+@font-face {
+    font-family: "OPPO Sans";
+    src: url("../assets/fonts/oppo-sans/oppo-sans-4.0.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 100 700;
+    font-display: swap;
+}
+
+/* 所有页面共用正文与标题字体。 */
+:root {
+    --font-ui: "OPPO Sans", "Inter Variable", "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: var(--font-ui);
+    --font-heading: var(--font-ui);
+    /* 避免按需加载的 Ant Design reset 将 html 重置为系统字体。 */
+    font-family: var(--font-sans);
+}
+
+@layer base {
+    :where(body, button, input, select, optgroup, textarea),
+    ::file-selector-button {
+        font-family: inherit;
+    }
+}

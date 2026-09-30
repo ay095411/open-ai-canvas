@@ -196,11 +196,14 @@ func (s *Service) CloseAnnouncement(actor *model.User, id string) (*model.Announ
 	return closed, nil
 }
 
+// UserAnnouncements 返回用户可见的进行中公告。user 为 nil 时是游客态：
+// 游客没有已读记录，全部进行中公告都记为未读（未读数 = 公告总数）。
 func (s *Service) UserAnnouncements(user *model.User) (*UserAnnouncementFeed, error) {
-	if user == nil {
-		return nil, Unauthorized("请先登录")
+	userID := ""
+	if user != nil {
+		userID = user.ID
 	}
-	announcements, unreadCount, err := s.repo.AnnouncementFeed(user.ID)
+	announcements, unreadCount, err := s.repo.AnnouncementFeed(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -271,9 +274,6 @@ func (s *Service) OpenAnnouncementImage(actor *model.User, announcementID string
 }
 
 func (s *Service) PrepareAnnouncementImageDelivery(actor *model.User, announcementID string, options ResourceAccessOptions, rangeHeader string) (*ResourceDelivery, error) {
-	if actor == nil {
-		return nil, Unauthorized("请先登录")
-	}
 	announcement, err := s.repo.Announcement(strings.TrimSpace(announcementID))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -281,7 +281,8 @@ func (s *Service) PrepareAnnouncementImageDelivery(actor *model.User, announceme
 		}
 		return nil, err
 	}
-	if actor.Role != model.UserRoleAdmin && announcement.Status != model.AnnouncementStatusActive {
+	// 游客与普通用户同规则：只能访问进行中公告的配图；管理员可看历史公告配图。
+	if (actor == nil || actor.Role != model.UserRoleAdmin) && announcement.Status != model.AnnouncementStatusActive {
 		return nil, Forbidden("公告不可访问")
 	}
 	if announcement.ImageResourceID == "" {

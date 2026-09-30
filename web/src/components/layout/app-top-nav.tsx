@@ -7,6 +7,7 @@ import { WorkspaceSidebarNav } from "@/components/layout/workspace-sidebar-nav";
 import { readWorkspaceSidebarCollapsed, writeWorkspaceSidebarCollapsed } from "@/components/layout/workspace-sidebar-state";
 import { WorkspaceTopBar } from "@/components/layout/workspace-top-bar";
 import { WorkspaceTopBarExtensionProvider } from "@/components/layout/workspace-top-bar-extension";
+import { WorkspaceSettingsHost } from "@/components/layout/workspace-settings-modal";
 import { WorkspaceWalletHost } from "@/components/layout/workspace-wallet-modal";
 import { cn } from "@/lib/utils";
 import { isSpatialWorkbenchPath } from "@/lib/workspace-routes";
@@ -113,6 +114,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                 </div>
             </WorkspaceTopBarExtensionProvider>
             <WorkspaceWalletHost />
+            <WorkspaceSettingsHost />
             <ModelSetupGuide hidden={pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin")} />
         </>
     );

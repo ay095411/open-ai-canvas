@@ -3,7 +3,7 @@ import { App, Spin } from "antd";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { History, Sparkles, Maximize2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-picker-modal";
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
@@ -33,6 +33,7 @@ import { defaultCreationMode, modeLabels, type CreationConversation, type Creati
 import { attachCreationTaskContexts, completedCreationGenerationTask, conversationTimestamp, creationShotRail, creationVideoShotOrdinal, isImageAttachment, isVideoAttachment, materializeCreationTaskResults, newConversation, newMessage, reconcileCreationTaskMessages } from "./creation-conversations";
 import { CreationComposer, CreationEmptySuggest, CreationFeaturedWorks, CreationHistoryDrawer, CreationMessageView, CreationModeTabs, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
 import { CreationAgentEntry } from "./creation-agent-entry";
+import { CreationHomeAmbientVideo } from "./creation-home-ambient-video";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 
@@ -74,6 +75,13 @@ export default function CreatePage() {
     const [agentMode, setAgentMode] = useState(false);
     const { message: toast, modal } = App.useApp();
     const navigate = useNavigate();
+    const location = useLocation();
+    const user = useUserStore((state) => state.user);
+    // 创作首页对游客开放（浏览模型目录、通知与公告），
+    // 但创作 / Agent / 参考内容 / 历史对话都需要登录；统一从这里跳登录页并携带回跳地址。
+    const openLogin = useCallback(() => {
+        navigate(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+    }, [location.pathname, location.search, navigate]);
     const [openingCanvas, setOpeningCanvas] = useState(false);
     const openingCanvasRef = useRef(false);
     const brandName = useAppearanceStore((state) => state.appearance.brandName);
@@ -273,6 +281,27 @@ export default function CreatePage() {
 
     useEffect(() => () => abortRef.current?.abort(), []);
 
+    // 游客态也要在首页展示系统支持的模型数据；登录用户由 user-session 水合时加载。
+    // 后端 GET /api/model-catalog 是脱敏读模型，匿名可读；失败只影响模型展示，不阻塞页面。
+    useEffect(() => {
+        if (user) return;
+        let cancelled = false;
+        void import("@/services/api/logical-models")
+            .then(({ getModelCatalog }) => getModelCatalog())
+            .then((catalog) => {
+                if (cancelled || catalog.source !== "system" || !Array.isArray(catalog.channels)) return;
+                const channels = catalog.channels;
+                return import("@/lib/user-session").then(({ systemChannelModelChannels }) => {
+                    if (cancelled) return;
+                    useConfigStore.getState().mergeSystemChannels(systemChannelModelChannels(channels));
+                });
+            })
+            .catch((error) => console.warn("游客模型目录加载失败", error));
+        return () => {
+            cancelled = true;
+        };
+    }, [user]);
+
     useEffect(() => {
         activeIdRef.current = activeId;
     }, [activeId]);
@@ -337,6 +366,8 @@ export default function CreatePage() {
     }, [hydrated, recoveryTaskKey, toast]);
 
     const loadAddedSkills = useCallback(() => {
+        // 技能列表接口需要登录；游客聚焦输入框时不发无效请求。
+        if (!useUserStore.getState().user) return;
         if (addedSkillsRequestedRef.current) return;
         addedSkillsRequestedRef.current = true;
         void import("@/services/api/skills")
@@ -556,6 +587,11 @@ export default function CreatePage() {
     }, [addAsset, busy, referenceReplacementBusy, replaceAttachmentReference, toast]);
 
     const submit = async (retryContext?: CreationRetryContext, retryLockKey?: string) => {
+        // 创作任务必须登录：游客点「开始创作」直接进登录页，登录后回到当前页。
+        if (!useUserStore.getState().user) {
+            openLogin();
+            return;
+        }
         const releaseRetryLock = () => {
             if (retryLockKey) retryPreparingRef.current.delete(retryLockKey);
         };
@@ -983,7 +1019,7 @@ export default function CreatePage() {
         onReorderAttachments: reorderAttachments,
         onReplaceAttachment: replaceReferenceFromTrack,
         onReplaceReferenceFiles: replaceReferenceFromFiles,
-        onOpenLibrary: () => setLibraryOpen(true),
+        onOpenLibrary: () => (user ? setLibraryOpen(true) : openLogin()),
         onModeChange: selectMode,
         model: selectedModel,
         modelRequirements,
@@ -1016,7 +1052,7 @@ export default function CreatePage() {
         <div className="creation-home relative flex h-full min-h-0 flex-col overflow-hidden">
             {isEmpty ? <>
                 <div className="creation-top-actions">
-                    <Tooltip title="历史对话"><button type="button" aria-label="查看历史对话" aria-expanded={historyOpen} className="creation-top-action" onClick={() => setHistoryOpen(true)}><History /></button></Tooltip>
+                    <Tooltip title="历史对话"><button type="button" aria-label="查看历史对话" aria-expanded={historyOpen} className="creation-top-action" onClick={() => (user ? setHistoryOpen(true) : openLogin())}><History /></button></Tooltip>
                 </div>
                 <AnimatePresence>
                     {launchpadCondensed && !agentMode ? <motion.div className="creation-floating-prompt" key="floating-prompt"
@@ -1032,18 +1068,18 @@ export default function CreatePage() {
                     </motion.div> : null}
                 </AnimatePresence>
                 <main ref={threadScrollRef} onScroll={handleThreadScroll} className="creation-empty-workspace creation-scrollbar">
+                <CreationHomeAmbientVideo />
                 <div className="creation-home-heading">
-                    <h1>和{brandName}聊聊创作想法</h1>
-                    <p>从一个画面、一个角色或一句话开始，继续你的创作。</p>
+                    <h1>和<span className="creation-home-brand">{brandName}</span>聊聊创作想法</h1>
                 </div>
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className={cn("creation-composer-stage is-home-mode", agentMode && "is-agent-mode")}>
-                        <CreationModeTabs mode={mode} agentActive={agentMode} onAgentSelect={() => setAgentMode(true)} onModeChange={(next) => { setAgentMode(false); selectMode(next); }} />
+                        <CreationModeTabs mode={mode} agentActive={agentMode} onAgentSelect={() => (user ? setAgentMode(true) : openLogin())} onModeChange={(next) => { setAgentMode(false); selectMode(next); }} />
                         {agentMode ? <CreationAgentEntry /> : <div className="creation-empty-composer"><CreationComposer {...composerProps} variant="empty" /></div>}
                     </div>
                     <CreationEmptySuggest
                         onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
-                        onOpenLibrary={() => { setAgentMode(false); selectMode("image"); setLibraryOpen(true); }}
+                        onOpenLibrary={() => { if (!user) { openLogin(); return; } setAgentMode(false); selectMode("image"); setLibraryOpen(true); }}
                     />
                 </section>
                 <CreationFeaturedWorks

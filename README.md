@@ -56,6 +56,7 @@
 
 - [Bun](https://bun.sh/)：前端和文档站
 - [Go 1.25](https://go.dev/)：后端
+- [Git LFS](https://git-lfs.com/)：拉取完整登录背景视频，源码构建前需安装
 - Docker Compose：仅在使用容器开发或部署时需要
 
 ### 宿主机启动
@@ -63,13 +64,15 @@
 ```bash
 git clone https://github.com/ddcat-ai/open-ai-canvas.git
 cd open-ai-canvas
+git lfs install --local
+git lfs pull
 
 # 使用 Git 忽略的目录保存本地开发数据和缓存
 mkdir -p .local/project-workbench-debug .local/cache/go-build .local/cache/go-mod
 
 # 终端一：后端
 cd backend
-CANVAS_BACKEND_ADDR=127.0.0.1:8080 \
+CANVAS_BACKEND_ADDR=127.0.0.1:8180 \
 CANVAS_BACKEND_DATA_DIR=../.local/project-workbench-debug \
 GOCACHE=../.local/cache/go-build \
 GOMODCACHE=../.local/cache/go-mod \
@@ -81,7 +84,7 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-打开 <http://localhost:3000>。首次使用时注册管理员账号，并在设置中配置模型渠道。前端默认将 `/api` 代理到 `http://127.0.0.1:8080`；如需修改代理目标，可设置 `VITE_API_PROXY_TARGET`。
+打开 <http://localhost:3100>。首次使用时注册管理员账号，并在设置中配置模型渠道。前端默认将 `/api` 代理到 `http://127.0.0.1:8180`；如需修改代理目标，可设置 `VITE_API_PROXY_TARGET`。
 
 Windows PowerShell 用户可在仓库根目录执行：
 
@@ -104,7 +107,7 @@ LOCAL_UID=$(id -u) LOCAL_GID=$(id -g) \
 docker compose -f docker-compose.local.yml up -d --build
 ```
 
-默认前端端口为 `3000`、后端端口为 `8080`；端口冲突时可通过 `CANVAS_WEB_HOST_PORT` 和 `CANVAS_BACKEND_HOST_PORT` 覆盖。
+默认前端端口为 `3100`、后端端口为 `8180`；端口冲突时可通过 `CANVAS_WEB_HOST_PORT` 和 `CANVAS_BACKEND_HOST_PORT` 覆盖。
 
 更多本地开发说明（包括时间线字幕转写）见[本地开发文档](docs/content/docs/backend/local-development.mdx)。
 
@@ -136,7 +139,7 @@ docker compose -f docker-compose.local.yml up -d --build
 curl -fsSL https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/main/scripts/install-server.sh | sudo bash
 ```
 
-默认访问 `http://服务器IP:3000`。更新或排查：
+默认访问 `http://服务器IP:3100`。更新或排查：
 
 ```bash
 cd /opt/open-ai-canvas
@@ -163,7 +166,7 @@ curl -fsSL https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/main/script
 - 设置准确的 `CANVAS_CORS_ORIGINS`，不要在公网使用 `*`；使用 HTTPS 并正确转发代理头。
 - 后端默认拒绝本机、私网和链路本地模型地址。开发时只通过 `CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS` 精确放行可信主机，不要使用全量放行开关。
 - 用户 API Key 不应出现在 URL、日志、错误上报或服务端长期明文存储中；只在可信部署和 HTTPS 链路中使用真实密钥。
-- 后端 `8080` 应留在 Compose 网络内，不要直接暴露到公网；限制 `.env`、数据库、上传目录、备份和 `.settings-key` 的权限。
+- 后端 `8180` 应留在 Compose 网络内，不要直接暴露到公网；限制 `.env`、数据库、上传目录、备份和 `.settings-key` 的权限。
 - 媒体资源可使用后端数据目录、阿里云 OSS 或腾讯云 COS；删除素材前会检查业务引用。
 
 安全问题请按 [`SECURITY.md`](SECURITY.md) 报告，不要在公开 Issue 中粘贴密钥、Cookie、数据库或生产日志。

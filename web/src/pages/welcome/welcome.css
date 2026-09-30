@@ -14,7 +14,7 @@
     --welcome-z-copy: 3;
     background: var(--welcome-black);
     color: var(--welcome-paper);
-    font-family: "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: var(--font-ui);
     font-size: 14px;
     line-height: 1.6;
     letter-spacing: 0;
@@ -268,7 +268,7 @@ body:has(.welcome-page) {
 .welcome-chapter h1 {
     font-size: var(--welcome-display);
     font-weight: 400;
-    line-height: 1.12;
+    line-height: 1.15;
     margin-bottom: 26px;
 }
 .welcome-chapter h2 {

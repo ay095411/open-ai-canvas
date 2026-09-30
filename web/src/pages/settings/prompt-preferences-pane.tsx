@@ -8,6 +8,7 @@ import { RotateCcw, Save, ShieldCheck, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PromptCodeEditor } from "@/components/prompt/prompt-code-editor";
+import { SettingsPaneHeader } from "./settings-pane-header";
 import {
     listUserPromptPreferences,
     resetUserPromptCustomization,
@@ -153,7 +154,12 @@ export function PromptPreferencesPane() {
     const outputLabel = selected.definition.outputType === "json" ? selected.definition.schemaKey || "JSON" : "文本";
 
     return (
-        <div className="flex min-h-full flex-col">
+        <div className="flex h-full flex-col">
+            <SettingsPaneHeader
+                className="shrink-0"
+                title="提示词偏好"
+                description="定制平台提示词模板。选一个模板后，可只追加个人要求，或整体改写成自己的创作策略。"
+            />
             <header className="shrink-0 pb-4">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -179,7 +185,7 @@ export function PromptPreferencesPane() {
                 <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-base font-semibold">{selected.definition.label}</h2>
+                            <h3 className="text-sm font-semibold">{selected.definition.label}</h3>
                             <StatusBadge variant="filled" tone="neutral" label={`平台 v${selected.template?.version || "--"}`} />
                             <StatusBadge variant="filled" tone="neutral" label={outputLabel} />
                             {dirty ? <StatusBadge variant="filled" tone="warning" label="未保存" /> : null}

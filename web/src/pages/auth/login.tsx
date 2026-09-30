@@ -1,6 +1,6 @@
-import { type FormEvent, useEffect, useState, type ReactNode } from "react";
-import { App, Button, Divider, Input, Segmented } from "antd";
-import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
+import { App, Button, Input, Segmented } from "antd";
+import { LockKeyhole, UserRound } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { getAuthSession, getAuthSettings, linuxDOLoginURL, login } from "@/services/api/auth";
@@ -64,65 +64,37 @@ export default function LoginPage() {
         }
     };
 
+    /**
+     * 字段不再单独配一行 label：占位符 + 前缀图标已经说清了每个框是什么，
+     * 「用户名 / 邮箱」「密码」两行小字是纯重复。可访问性靠 aria-label 兜住
+     * （视觉隐藏的 label 不如 aria-label 可靠，antd Input 会把 aria-label 透传到 input）。
+     * 「忘记密码？」放在密码框与提交按钮之间、右对齐：一是紧跟它要补救的那个字段，
+     * 二是让卡片以主按钮收尾——挂在按钮下面时，整卡最后一行是一条 12px 的小字，
+     * 尾部看上去像没收住。
+     */
     return (
-        <form onSubmit={submit} className="space-y-5">
+        <form onSubmit={submit} className="flex flex-col gap-4">
             {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} />}
             {method !== "password" ? <VerificationFields key={method} purpose="login" method={method} value={verification} onChange={setVerification} disabled={submitting} /> : <>
-            <AuthField label="用户名 / 邮箱" htmlFor="login-account">
-                <Input id="login-account" size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required />
-            </AuthField>
-            <AuthField
-                label="密码"
-                htmlFor="login-password"
-                action={
-                    <Link
-                        to={forgotPasswordURL}
-                        className="auth-scene-link -my-2 inline-flex min-h-8 items-center rounded-sm text-xs font-medium transition-colors"
-                    >
-                        忘记密码？
-                    </Link>
-                }
-            >
-                <Input.Password
-                    id="login-password"
-                    size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="请输入密码"
-                    autoComplete="current-password"
-                    required
-                />
-            </AuthField>
+                <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required />
+                <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required />
             </>}
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} icon={<ArrowRight className="size-4" />} iconPlacement="end">
+            <div className="-my-1 flex justify-end">
+                <Link to={forgotPasswordURL} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors">
+                    忘记密码？
+                </Link>
+            </div>
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
                 登录
             </Button>
+            {/* 第三方登录不再配「或」分隔线：整页只有两个区块时，一条分割线带来的
+                视觉噪音大于它的分组作用，改用按钮间距区分。 */}
             {linuxdoEnabled ? (
-                <>
-                    <Divider plain className="auth-scene-divider">
-                        或
-                    </Divider>
-                    <Button size="large" block icon={<LinuxDOIcon />} href={linuxDOLoginURL(next)}>
-                        使用 Linux.do 登录
-                    </Button>
-                </>
+                <Button size="large" block icon={<LinuxDOIcon />} href={linuxDOLoginURL(next)}>
+                    使用 Linux.do 登录
+                </Button>
             ) : null}
         </form>
-    );
-}
-
-function AuthField({ label, htmlFor, action, children }: { label: string; htmlFor: string; action?: ReactNode; children: ReactNode }) {
-    return (
-        <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-                <label htmlFor={htmlFor} className="auth-scene-label text-xs font-medium">
-                    {label}
-                </label>
-                {action}
-            </div>
-            {children}
-        </div>
     );
 }
 

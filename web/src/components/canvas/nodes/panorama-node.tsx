@@ -107,8 +107,15 @@ export function PanoramaNodeContent({ node, theme, reduceMediaEffects }: Panoram
             ctx.drawImage(capture.canvas, (index % 2) * PANORAMA_QUAD_SIZE, Math.floor(index / 2) * PANORAMA_QUAD_SIZE, PANORAMA_QUAD_SIZE, PANORAMA_QUAD_SIZE);
             capture.release();
         }
+        controller.setView(restore.lon, restore.lat);
         const labels = ["前 (0°)", "右 (90°)", "后 (180°)", "左 (270°)"];
-        ctx.font = "bold 36px sans-serif";
+        const font = `bold 36px ${getComputedStyle(document.documentElement).fontFamily}`;
+        try {
+            await document.fonts.load(font, labels.join(""));
+        } catch (error) {
+            console.warn("Panorama label font could not be loaded; using fallback fonts", error);
+        }
+        ctx.font = font;
         ctx.fillStyle = "rgba(255,255,255,0.85)";
         ctx.strokeStyle = "rgba(0,0,0,0.65)";
         ctx.lineWidth = 4;
@@ -118,7 +125,6 @@ export function PanoramaNodeContent({ node, theme, reduceMediaEffects }: Panoram
             ctx.strokeText(label, x, y);
             ctx.fillText(label, x, y);
         });
-        controller.setView(restore.lon, restore.lat);
         await exportNode(node, off.toDataURL("image/png"), `${node.title || "全景"} · 四向视图`);
     };
 

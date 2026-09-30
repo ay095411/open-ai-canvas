@@ -19,11 +19,9 @@ func RegisterAnnouncementRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"banners": banners})
 	})
 	r.GET("/announcements", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
+		// 游客首页也能查看系统公告：匿名时按游客态返回（全部记为未读）；
+		// 已读标记仍走 POST /announcements/read，那里要求登录。
+		user, _ := svc.CurrentUser(sessionCookie(c))
 		feed, err := svc.UserAnnouncements(user)
 		if err != nil {
 			failService(c, err)
@@ -32,11 +30,8 @@ func RegisterAnnouncementRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, feed)
 	})
 	r.GET("/announcements/:id/image", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
+		// 公告配图对游客开放（仅进行中公告，与普通用户同规则）。
+		user, _ := svc.CurrentUser(sessionCookie(c))
 		delivery, err := svc.PrepareAnnouncementImageDelivery(user, c.Param("id"), resourceAccessOptions(c), c.GetHeader("Range"))
 		if err != nil {
 			failService(c, err)

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { CircleUserRound } from "lucide-react";
+
+import { CoalAvatar } from "@/components/brand/coal-avatar";
 import { cn } from "@/lib/utils";
 import type { LocalUser } from "@/stores/use-user-store";
 
@@ -9,13 +10,15 @@ export function UserAvatar({ user, className }: { user: LocalUser; className?: s
 
     useEffect(() => setFailed(false), [avatarUrl]);
 
-    // 结构保持 button > span > svg：占位图标自动复用顶栏图标按钮的 18px/1.8 描边与配色合同；默认不套圆角容器，hover 由按钮背景反馈。
+    // 结构保持 span > svg：默认头像与真实头像共用同一个盒子，尺寸完全由 className 决定。
+    // 未设置头像或图片加载失败时落到品牌角色「黑煤球」，不再用通用人像图标 ——
+    // 默认态也要有辨识度，人像图标谁都不是。
     return (
         <span className={cn("grid shrink-0 place-items-center overflow-hidden", className)}>
             {avatarUrl && !failed ? (
                 <img src={avatarUrl} alt="" referrerPolicy="no-referrer" className="size-full object-cover" onError={() => setFailed(true)} />
             ) : (
-                <CircleUserRound className="size-full" aria-hidden />
+                <CoalAvatar className="size-full" />
             )}
         </span>
     );

@@ -45,7 +45,7 @@ function Test-ListeningPort([int]$Port) {
     }
 }
 
-foreach ($port in @(3000, 8080)) {
+foreach ($port in @(3100, 8180)) {
     if (Test-ListeningPort $port) {
         throw "端口 $port 已被占用，请先关闭占用进程后重试。"
     }
@@ -70,19 +70,19 @@ $dataDirLiteral = ConvertTo-PowerShellLiteral $dataDir
 $backendCommand = @"
 `$ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $backendDirLiteral
-`$env:CANVAS_BACKEND_ADDR = '127.0.0.1:8080'
+`$env:CANVAS_BACKEND_ADDR = '127.0.0.1:8180'
 `$env:CANVAS_BACKEND_DATA_DIR = $dataDirLiteral
 `$env:GOCACHE = $(ConvertTo-PowerShellLiteral $goBuildCache)
 `$env:GOMODCACHE = $(ConvertTo-PowerShellLiteral $goModuleCache)
-Write-Host '影策后端：http://127.0.0.1:8080' -ForegroundColor Cyan
+Write-Host '影策后端：http://127.0.0.1:8180' -ForegroundColor Cyan
 go run ./cmd/server
 "@
 
 $webCommand = @"
 `$ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $webDirLiteral
-`$env:VITE_API_PROXY_TARGET = 'http://127.0.0.1:8080'
-Write-Host '影策前端：http://localhost:3000' -ForegroundColor Cyan
+`$env:VITE_API_PROXY_TARGET = 'http://127.0.0.1:8180'
+Write-Host '影策前端：http://localhost:3100' -ForegroundColor Cyan
 bun run dev
 "@
 
@@ -91,4 +91,4 @@ $webProcess = Start-Process -FilePath $powerShellPath -WindowStyle Normal -Worki
 
 Write-Host "已打开前后端开发窗口。" -ForegroundColor Green
 Write-Host "后端窗口 PID: $($backendProcess.Id)；前端窗口 PID: $($webProcess.Id)"
-Write-Host "访问 http://localhost:3000；分别在两个窗口按 Ctrl+C 停止服务。"
+Write-Host "访问 http://localhost:3100；分别在两个窗口按 Ctrl+C 停止服务。"

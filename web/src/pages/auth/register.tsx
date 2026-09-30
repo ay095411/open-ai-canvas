@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
-import { App, Button, Checkbox, Divider, Input, Modal, Segmented } from "antd";
-import { ArrowRight, FileText, Info, LockKeyhole, Mail, TriangleAlert, UserRound } from "lucide-react";
+import { App, Button, Checkbox, Input, Modal, Segmented } from "antd";
+import { FileText, Info, LockKeyhole, Mail, TriangleAlert, UserRound } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { getAuthSession, getAuthSettings, linuxDOLoginURL, register } from "@/services/api/auth";
@@ -22,7 +22,6 @@ export default function RegisterPage() {
     const [email, setEmail] = useState("");
     const [verification, setVerification] = useState({ ...emptyVerification });
     const [method, setMethod] = useState<VerificationMethod>("email");
-    const [displayName, setDisplayName] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [agreementAccepted, setAgreementAccepted] = useState(false);
@@ -74,7 +73,8 @@ export default function RegisterPage() {
         setSubmitting(true);
         try {
             if (!settings?.firstUser && !verification.ticket) throw new Error("请先获取本次注册验证码");
-            await register({ username, ...(settings?.firstUser ? { email } : verification), displayName, password, acceptedTerms: agreementAccepted });
+            // 不传 displayName：后端 NormalizeDisplayName 空值时回退成用户名。
+            await register({ username, ...(settings?.firstUser ? { email } : verification), password, acceptedTerms: agreementAccepted });
             const { applyUserSession } = await import("@/lib/user-session");
             await applyUserSession(await getAuthSession());
             if (!settings?.firstUser) window.sessionStorage.setItem("infinite-canvas:model-setup-guide", "1");
@@ -101,7 +101,7 @@ export default function RegisterPage() {
     const disabled = !settings || registrationClosed || verificationUnavailable;
 
     return (
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="flex flex-col gap-4">
             {settings?.firstUser ? (
                 <Notice icon={<Info className="size-3.5" />} tone="blue">
                     首个账号自动成为管理员，邮箱验证码暂不要求。
@@ -118,14 +118,12 @@ export default function RegisterPage() {
                 </Notice>
             ) : null}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                <AuthField label="用户名">
-                    <Input size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} />
-                </AuthField>
-                <AuthField label="显示名称">
-                    <Input size="large" value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="不填则使用用户名" disabled={disabled} />
-                </AuthField>
-            </div>
+            {/* 显示名称不再在注册时收集：它和用户名 90% 的情况下是同一个词，
+                多一个框只换来一次「要不要改昵称」的犹豫。后端
+                NormalizeDisplayName 在空值时回退成用户名，不传即可。 */}
+            <AuthField label="用户名">
+                <Input size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} />
+            </AuthField>
 
             {settings?.firstUser ? <AuthField label="邮箱（可选）">
                 <Input
@@ -143,32 +141,32 @@ export default function RegisterPage() {
                 {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
             </>}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                <AuthField label="密码">
-                    <Input.Password
-                        size="large"
-                        prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="至少 8 位"
-                        autoComplete="new-password"
-                        required
-                        disabled={disabled}
-                    />
-                </AuthField>
-                <AuthField label="确认密码">
-                    <Input.Password
-                        size="large"
-                        prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                        value={confirmPassword}
-                        onChange={(event) => setConfirmPassword(event.target.value)}
-                        placeholder="再次输入密码"
-                        autoComplete="new-password"
-                        required
-                        disabled={disabled}
-                    />
-                </AuthField>
-            </div>
+            {/* 输入框一律独占一行：两列并排在 480px 的卡宽上每格只剩 200px，
+                密码那一行要同时塞下锁图标 + 占位符 + 眼睛图标，视觉上是最挤的一行。 */}
+            <AuthField label="密码">
+                <Input.Password
+                    size="large"
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="至少 8 位"
+                    autoComplete="new-password"
+                    required
+                    disabled={disabled}
+                />
+            </AuthField>
+            <AuthField label="确认密码">
+                <Input.Password
+                    size="large"
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="再次输入密码"
+                    autoComplete="new-password"
+                    required
+                    disabled={disabled}
+                />
+            </AuthField>
 
             {settingsFailed ? (
                 <Notice icon={<TriangleAlert className="size-3.5" />} tone="amber">
@@ -192,25 +190,23 @@ export default function RegisterPage() {
                 </div>
             ) : null}
 
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={disabled || registerCountdown > 0 || !agreementAccepted} icon={<ArrowRight className="size-4" />} iconPlacement="end">
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={disabled || registerCountdown > 0 || !agreementAccepted}>
                 {registerCountdown > 0 ? `${registerCountdown} 秒后可重试` : "创建账号"}
             </Button>
+            {/* 第三方入口不再配「或」分隔线，与登录页保持一致：整卡满宽按钮自带分组，
+                一条分割线只是多一道视觉噪音。 */}
             {settings?.linuxdoEnabled && !settings.smsAndEmailRegistration ? (
-                <>
-                    <Divider plain className="auth-scene-divider">
-                        或
-                    </Divider>
-                    <Button size="large" block disabled={!agreementAccepted} icon={<LinuxDOIcon />} href={agreementAccepted ? linuxDOLoginURL(next, true) : undefined}>
-                        使用 Linux.do 注册 / 登录
-                    </Button>
-                </>
+                <Button size="large" block disabled={!agreementAccepted} icon={<LinuxDOIcon />} href={agreementAccepted ? linuxDOLoginURL(next, true) : undefined}>
+                    使用 Linux.do 注册 / 登录
+                </Button>
             ) : null}
             <Modal
-                className="workspace-modal workspace-modal-compact auth-agreement-modal"
+                className="workspace-modal auth-agreement-modal"
                 title={agreementTitle}
                 open={agreementOpen}
                 onCancel={() => setAgreementOpen(false)}
                 footer={null}
+                centered
                 destroyOnHidden
             >
                 {agreementParagraphs.length === 0 ? (

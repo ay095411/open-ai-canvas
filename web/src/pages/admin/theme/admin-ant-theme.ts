@@ -26,7 +26,7 @@ export function getIsolatedAdminAntTheme(dark: boolean, skinID: unknown = "class
         algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         cssVar: { key: `admin-console-${dark ? "dark" : "light"}` },
         token: {
-            fontFamily: 'ui-sans-serif, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif',
+            fontFamily: "var(--font-ui)",
             fontSize: 13,
             fontSizeSM: 12,
             borderRadius: 6,

@@ -41,7 +41,7 @@
     font-size: var(--typ-display-md);
     font-weight: 400;
     letter-spacing: -0.035em;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .canvas-entry-header h2 > span { color: var(--canvas-entry-muted); }

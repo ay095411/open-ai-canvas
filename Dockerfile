@@ -32,5 +32,5 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 ENTRYPOINT ["/usr/local/bin/canvas-web-entrypoint"]
 
-EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -qO- http://127.0.0.1:3000/ >/dev/null || exit 1
+EXPOSE 3100
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -qO- http://127.0.0.1:3100/ >/dev/null || exit 1

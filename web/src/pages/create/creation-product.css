@@ -1,11 +1,258 @@
 /* Creation-specific geometry. Shared controls still use the workspace tokens. */
-.creation-mode-tabs { position: relative; isolation: isolate; display: grid; width: min(456px, 100%); margin: 0 auto 20px; padding: 4px; border-radius: 18px; background: var(--user-surface-muted); }
-.creation-mode-indicator { position: absolute; z-index: -1; inset: 0; border-radius: 14px; background: var(--user-surface); box-shadow: 0 2px 8px color-mix(in srgb, var(--user-ink) 5%, transparent); }
-.creation-mode-button { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; height: 44px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: var(--user-ink-muted); font-size: 14px; font-weight: 600; cursor: pointer; transition: color var(--user-motion), transform var(--user-motion); }
+/* 创作模式切换：液态玻璃胶囊 + 黑煤球陪伴。
+   参考稿把「当前模式」变成一个可读的角色状态 —— 煤球用双手扶住激活胶囊，切换时先滑行、再落地回弹。
+   几何全部由 --creation-coal-body 派生（记作 D），比例按参考稿逐像素标定（D=58 的原型）：
+   球径 58、煤球盒 72×70、球在盒内偏移 (7,3)，
+   球底停在**胶囊上沿往上 0.0345D**（球浮在胶囊上方，靠两只小手搭住口沿，不是陷进去），
+   即煤球盒 top = 胶囊上沿往上 1.0845D。
+   想调大调小只改这一个值，眼睛、嘴、手、光点会跟着换算。 */
+.creation-mode-tabs {
+    --creation-tab-pad: 4px;
+    --creation-coal-body: 58px;
+    --creation-coal-width: calc(var(--creation-coal-body) * 1.2414);
+    /* 玻璃色阶自带：项目 --user-accent 是无彩的黑 / 白（#171717 / #f5f5f5），做不出参考稿要求的
+       蓝紫光晕，因此这里与既有 .creation-mode-spark 的 #6366f1 保持同源，只在用户端这一处使用。
+       ink 负责光晕与阴影；fill 是胶囊实底，激活标签的白字会落在它上面，两者不能混用。 */
+    --creation-glass-ink: #5b57e8;
+    --creation-glass-fill: #5b55f0;
+    --creation-glass-fg: #ffffff;
+    --creation-tab-slide: 520ms cubic-bezier(.22, 1, .36, 1);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    width: min(456px, 100%);
+    margin: 0 auto 20px;
+    padding: var(--creation-tab-pad);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--user-surface-muted) 86%, transparent);
+    box-shadow:
+        inset 0 0 0 1px var(--user-border),
+        inset 0 1px color-mix(in srgb, var(--user-surface) 60%, transparent);
+    /* 首页底色目前是纯色，毛玻璃看不出差别；保留是为了让后续换渐变背景时这一层自动成立。
+       只写标准属性，`-webkit-` 交给构建期前缀化 —— 手写并列若把前缀放在后面，会被去重掉标准属性。 */
+    backdrop-filter: blur(18px) saturate(1.35);
+}
+
+.dark .creation-mode-tabs { --creation-glass-ink: #7f78ff; --creation-glass-fill: #625bff; }
+
+/* 指示器与黑煤球共用 --creation-tab-* 这一份测量值和同一条过渡曲线。
+   两者若各用一套 spring，位移中途会分离成「两个元件在动」，正是参考稿要避免的机械感。 */
+.creation-mode-indicator {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: var(--creation-tab-w, 0px);
+    height: var(--creation-tab-h, 0px);
+    border-radius: 999px;
+    transform: translate3d(var(--creation-tab-x, 0px), var(--creation-tab-y, 0px), 0);
+    transition: transform var(--creation-tab-slide);
+    /* 本体用实心 fill。原来是 ink 以 36% 叠在浅色页面上，实测白字只有 1.2~2.0:1，
+       几乎读不出来；换成实底后中段达到 5.2:1（浅色）/ 4.7:1（深色），白字才立得住。
+       底部的白光是「液态」的来源，只覆盖下部约 1/3，不碰中段标签所在的对比度。 */
+    background:
+        radial-gradient(100% 62% at 50% 132%, color-mix(in srgb, #fff 42%, transparent), transparent 74%),
+        var(--creation-glass-fill);
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent),
+        inset 0 1px color-mix(in srgb, #fff 32%, transparent),
+        0 0 20px color-mix(in srgb, var(--creation-glass-ink) 30%, transparent);
+}
+
+.dark .creation-mode-indicator {
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, #fff 26%, transparent),
+        inset 0 1px color-mix(in srgb, #fff 26%, transparent),
+        0 0 28px color-mix(in srgb, var(--creation-glass-ink) 46%, transparent);
+}
+
+/* 胶囊下方的溢光：参考稿里光晕明显大过胶囊本体，是「液态」的主要来源。 */
+.creation-mode-indicator::after {
+    content: "";
+    position: absolute;
+    left: 13%;
+    right: 13%;
+    bottom: -11px;
+    height: 18px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--creation-glass-ink) 46%, transparent);
+    filter: blur(12px);
+    pointer-events: none;
+}
+
+.creation-mode-button {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--user-ink-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--user-motion), transform var(--user-motion);
+}
 .creation-mode-button svg { width: 18px; height: 18px; stroke-width: 1.8; color: currentColor; }
-.creation-mode-button[aria-pressed="true"], .creation-mode-button:hover { color: var(--user-ink); }
-.creation-mode-button:active { transform: scale(.97); }
+.creation-mode-button[aria-pressed="true"] { color: var(--creation-glass-fg); }
+/* 悬停只给轻微反馈，模式仍只由 click 改变（参考稿第 3 条）。 */
+.creation-mode-button:hover:not([aria-pressed="true"]) { color: var(--user-ink); transform: translateY(-1px); }
+.creation-mode-button:active:not([aria-pressed="true"]) { transform: scale(.97); }
 .creation-mode-button:focus-visible { outline: 2px solid var(--user-accent); outline-offset: 2px; }
+/* Agent 圆点在激活胶囊上是深底，原来的靛蓝会糊掉，跟着反色。 */
+.creation-mode-button[aria-pressed="true"] .creation-mode-spark { background: #fff; box-shadow: 0 0 10px rgb(255 255 255 / .7); }
+
+/* 黑煤球：横向跟 --creation-tab-cx（指示器中心）走。
+   纵向落点按参考稿原型实测：球底停在胶囊上沿**往上** 0.0345D —— 球是浮在胶囊上方的，
+   两只小手搭住口沿，而不是陷进去。1.0845 = 1（球径）+ 0.0345（离口沿的空隙）+ 0.05（身体在煤球盒内的起始偏移）。 */
+.creation-mode-coal {
+    position: absolute;
+    z-index: 3;
+    top: calc(var(--creation-tab-pad) - var(--creation-coal-body) * 1.0845);
+    left: 0;
+    width: var(--creation-coal-width);
+    height: 0;
+    pointer-events: none;
+    will-change: transform;
+    transform: translate3d(calc(var(--creation-tab-cx, 0px) - var(--creation-coal-width) / 2), 0, 0);
+    transition: transform var(--creation-tab-slide);
+}
+.creation-mode-coal-hop { display: block; }
+.creation-mode-coal-body {
+    position: absolute;
+    top: calc(var(--creation-coal-body) * .05);
+    left: calc(var(--creation-coal-body) * .12);
+    width: var(--creation-coal-body);
+    height: var(--creation-coal-body);
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 25%, #505159 0, #2b2d33 22%, #15161a 64%, #08090b 100%);
+    /* 明暗按身位换算（系数取参考稿原型的 9/-10/16、6/5/11、0/8/16 再除 58）。
+       不再叠紫光晕：参考稿里球是靠自身左上高光与深底分界的，外圈彩光会把它变成一个「发光球」。 */
+    box-shadow:
+        inset calc(var(--creation-coal-body) * -.155) calc(var(--creation-coal-body) * -.172) calc(var(--creation-coal-body) * .276) rgb(0 0 0 / .6),
+        inset calc(var(--creation-coal-body) * .103) calc(var(--creation-coal-body) * .086) calc(var(--creation-coal-body) * .19) rgb(255 255 255 / .08),
+        0 calc(var(--creation-coal-body) * .138) calc(var(--creation-coal-body) * .276) rgb(0 0 0 / .4);
+    animation: creation-coal-idle 3.1s ease-in-out infinite;
+}
+/* 绒毛颗粒：参考稿用网点叠出「毛」的质感，网格跟着身位走，缩放后颗粒密度不变。 */
+.creation-mode-coal-body::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--creation-coal-body) * .086);
+    border-radius: 50%;
+    opacity: .22;
+    background-image: radial-gradient(rgb(255 255 255 / .18) .6px, transparent .8px);
+    background-size: calc(var(--creation-coal-body) * .086) calc(var(--creation-coal-body) * .086);
+}
+/* 眼睛是**没有瞳孔**的奶油色竖椭圆。参考稿刻意不加瞳孔 —— 眼球本身只有 7×10px，
+   一旦加了瞳孔，跟随指针时整颗眼白+瞳孔一起位移就会看成「眼球在滑出来」，
+   而纯色椭圆只做 2px 的轻移，读起来才是角色在瞟一眼。
+   位置按参考稿原型实测（煤球盒坐标系，D=58）：左眼 left 21、右眼 left 39、top 25，
+   即 0.3621D / 0.6724D / 0.431D —— 一对眼基本居中偏左 0.04D，左脸留出脸颊。 */
+.creation-mode-coal-eye {
+    position: absolute;
+    top: calc(var(--creation-coal-body) * .431);
+    width: calc(var(--creation-coal-body) * .1207);
+    height: calc(var(--creation-coal-body) * .1724);
+    border-radius: 50%;
+    background: #f4f0df;
+    /* 跟随指针时只做 80ms 线性位移，避免破坏表情。 */
+    transition: transform 80ms linear;
+}
+.creation-mode-coal-eye.is-left { left: calc(var(--creation-coal-body) * .3621); }
+.creation-mode-coal-eye.is-right { left: calc(var(--creation-coal-body) * .6724); }
+.creation-mode-coal-mouth {
+    position: absolute;
+    top: calc(var(--creation-coal-body) * .7069);
+    left: calc(var(--creation-coal-body) * .5);
+    width: calc(var(--creation-coal-body) * .1207);
+    height: calc(var(--creation-coal-body) * .069);
+    border-bottom: 1.5px solid #f4f0df;
+    border-radius: 0 0 8px 8px;
+    opacity: .9;
+}
+/* 小手：让虎口正好搭在胶囊上沿。球底在 1.0345D，手占 0.8448..1.1207D，
+   即手心下沿比球底低 2px —— 正是参考稿里「压在口沿上」的那点重叠。
+   左右各探出球体 0.1034D，所以横向用 0.0172D（= 煤球盒内 1px），视觉上比球更宽。 */
+.creation-mode-coal-hand {
+    position: absolute;
+    top: calc(var(--creation-coal-body) * .8448);
+    width: calc(var(--creation-coal-body) * .3448);
+    height: calc(var(--creation-coal-body) * .2759);
+    border-radius: 50%;
+    background: linear-gradient(145deg, #414249, #15161a);
+    box-shadow: inset 1px 1px 3px rgb(255 255 255 / .07), 0 3px 5px rgb(0 0 0 / .3);
+}
+/* 旋转走 transform，落地下压走独立的 translate 属性 —— 两者叠加，
+   否则 grip 关键帧里的 transform 会把 rotate 覆盖掉，手会在落地瞬间弹正。 */
+.creation-mode-coal-hand.is-left { left: calc(var(--creation-coal-body) * .0172); transform: rotate(13deg); }
+.creation-mode-coal-hand.is-right { right: calc(var(--creation-coal-body) * .0172); transform: rotate(-13deg); }
+/* 兴奋点：参考稿就是头顶右上角外侧一颗 5×5 的小亮点（0.0862D）。
+   位置同样是煤球盒坐标系（身体顶边在 0.05D）：top 0.1207D、right -0.0172D。 */
+.creation-mode-coal-spark {
+    position: absolute;
+    top: calc(var(--creation-coal-body) * .1207);
+    right: calc(var(--creation-coal-body) * -.0172);
+    width: calc(var(--creation-coal-body) * .0862);
+    height: calc(var(--creation-coal-body) * .0862);
+    border-radius: 50%;
+    background: var(--creation-glass-ink);
+    box-shadow: 0 0 calc(var(--creation-coal-body) * .207) var(--creation-glass-ink);
+    animation: creation-coal-spark 2s ease-in-out infinite;
+}
+
+/* 首帧之后才开放过渡：初次测量是从 0 滑到目标位，否则加载时会自己动一下。 */
+.creation-mode-tabs[data-ready="false"] .creation-mode-indicator,
+.creation-mode-tabs[data-ready="false"] .creation-mode-coal { transition: none; }
+
+/* 跳跃：离地 -> 滑行 -> 落地微回弹。用 a / b 两个同内容的关键帧交替触发重播，
+   靠「属性值变化」重启动画，省掉 void offsetWidth 这类强制重排。
+   落地时两只小手会往下压一下（grip）—— 这是参考稿里「抓住胶囊」的关键帧，
+   少了它整块动作会像「浮上来又落下去」，有了才像落地撑住。 */
+.creation-mode-tabs[data-hop="1"] .creation-mode-coal-hop { animation: creation-coal-hop-a 560ms cubic-bezier(.2, .8, .25, 1); }
+.creation-mode-tabs[data-hop="2"] .creation-mode-coal-hop { animation: creation-coal-hop-b 560ms cubic-bezier(.2, .8, .25, 1); }
+.creation-mode-tabs[data-hop="1"] .creation-mode-coal-hand { animation: creation-coal-grip-a 560ms ease; }
+.creation-mode-tabs[data-hop="2"] .creation-mode-coal-hand { animation: creation-coal-grip-b 560ms ease; }
+
+/* 待机浮动的幅度按参考稿取 4px（0.069D）。 */
+@keyframes creation-coal-idle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(calc(var(--creation-coal-body) * -.069)); }
+}
+
+@keyframes creation-coal-hop-a {
+    0% { transform: translateY(-9px) scale(1.04); }
+    55% { transform: translateY(3px) scale(.96); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes creation-coal-hop-b {
+    0% { transform: translateY(-9px) scale(1.04); }
+    55% { transform: translateY(3px) scale(.96); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+/* 只动 translate，不动 transform —— 手的 rotate(±13deg) 必须留着。 */
+@keyframes creation-coal-grip-a {
+    0%, 100% { translate: 0 0; }
+    45% { translate: 0 calc(var(--creation-coal-body) * .069); }
+}
+
+@keyframes creation-coal-grip-b {
+    0%, 100% { translate: 0 0; }
+    45% { translate: 0 calc(var(--creation-coal-body) * .069); }
+}
+
+@keyframes creation-coal-spark {
+    0%, 100% { opacity: .4; transform: scale(.82); }
+    50% { opacity: 1; transform: scale(1.08); }
+}
 .creation-mode-spark {
     width: 6px;
     height: 6px;
@@ -40,22 +287,18 @@
 .creation-agent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .creation-agent-error { grid-column: 1 / -1; color: var(--status-error); font-size: 12px; margin: 0; }
 .creation-home .creation-empty-composer[hidden] { display: none; }
-.creation-submit { margin-left: auto; flex: 0 0 auto; display: inline-flex; gap: 8px; }
+.creation-submit { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
 .creation-submit-cost { display: inline-flex; align-items: center; gap: 4px; color: var(--user-ink-muted); font-size: 12px; padding-inline: 8px; }
 .creation-submit-cost svg { width: 14px; height: 14px; }
-@layer utilities {
-    .app-product-workspace .creation-home .creation-submit.ant-btn { height: auto; min-height: 40px; padding: 0; border: 0; background: transparent !important; box-shadow: none; border-radius: 999px; opacity: 1; }
-    .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 8px; width: auto; height: 40px; padding: 0 18px; border-radius: 999px; background: var(--button-primary-bg); color: var(--button-primary-fg); transition: background var(--user-motion), box-shadow var(--user-motion), transform var(--user-motion); }
-    .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 28%, rgb(255 255 255 / .28) 48%, transparent 68%); transform: translateX(-120%); pointer-events: none; }
-    .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action span { font-size: 13px; font-weight: 600; }
-    .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action svg { width: 17px; height: 17px; color: currentColor; transition: transform var(--user-motion); }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:disabled .creation-submit-action { background: var(--user-surface-hover); color: var(--user-ink-muted); }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):hover .creation-submit-action { background: var(--button-primary-hover-bg); transform: translateY(-1px); }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):hover .creation-submit-action::after { animation: creation-submit-sheen 640ms cubic-bezier(.16, 1, .3, 1); }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):hover .creation-submit-action svg { transform: translateY(-1px); }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):active .creation-submit-action { background: var(--button-primary-active-bg); transform: scale(.97); }
-    .app-product-workspace .creation-home .creation-chat-composer.is-thread .creation-submit.ant-btn .creation-submit-action { height: 34px; padding: 0 14px; }
-}
+.creation-home .creation-submit-action { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: var(--space-2); min-width: 120px; height: 40px; padding: 0 18px; border: 0; border-radius: var(--r-full); background: var(--button-primary-bg); color: var(--button-primary-fg); cursor: pointer; transition: background var(--user-motion), transform var(--user-motion); }
+.creation-home .creation-submit-action::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 28%, rgb(255 255 255 / .28) 48%, transparent 68%); transform: translateX(-120%); pointer-events: none; }
+.creation-home .creation-submit-action span { font-size: var(--fs-body); font-weight: 600; }
+.creation-home .creation-submit-action svg { width: 17px; height: 17px; flex-shrink: 0; color: currentColor; }
+.creation-home .creation-submit-action:disabled:not([aria-busy="true"]) { background: var(--user-surface-hover); color: var(--user-ink-muted); cursor: not-allowed; }
+.creation-home .creation-submit-action[aria-busy="true"] { cursor: wait; }
+.creation-home .creation-submit-action:not(:disabled):hover { background: var(--button-primary-hover-bg); transform: translateY(-1px); }
+.creation-home .creation-submit-action:not(:disabled):hover::after { animation: creation-submit-sheen 640ms cubic-bezier(.16, 1, .3, 1); }
+.creation-home .creation-submit-action:not(:disabled):active { background: var(--button-primary-active-bg); transform: scale(.97); }
 .creation-inspiration-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .creation-inspiration-filters button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; min-height: 36px; border: 0; border-radius: 999px; color: var(--user-ink-muted); background: transparent; font-size: 13px; transition: background var(--user-motion), color var(--user-motion); }
 .creation-inspiration-filters button span { font-size: 11px; opacity: .65; font-variant-numeric: tabular-nums; }
@@ -72,6 +315,9 @@
 .creation-inspiration-footer a { color: var(--user-accent); }
 @media (max-width: 620px) {
     .creation-mode-button { padding-inline: 6px; font-size: 12px; gap: 6px; }
+    /* 窄屏每列只剩 ~80px，煤球保持 58px 会盖住相邻选项的图标，按字号比例（12/13）缩一档。
+       轨道高度不随宽度变，所以这里只调身位，落点公式仍然成立。 */
+    .creation-mode-tabs { --creation-coal-body: 48px; }
     .creation-agent-entry { grid-template-columns: 1fr; padding: 20px; gap: 12px; }
     .creation-agent-orb { display: none; }
     .creation-agent-copy h2 { font-size: 18px; }
@@ -113,13 +359,20 @@
 .app-user-workspace .creation-launchpad .creation-reference-add-button:active:not(:disabled) { transform: scale(.97); }
 @keyframes creation-submit-sheen { to { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) {
-    .creation-mode-button:active { transform: none; }
+    .creation-mode-button:active:not([aria-pressed="true"]) { transform: none; }
+    /* 指示器与煤球仍要换位（那是状态，不是装饰），但去掉滑行与起跳。 */
+    .creation-mode-indicator,
+    .creation-mode-coal { transition: none; }
+    .creation-mode-coal-body,
+    .creation-mode-coal-spark { animation: none; }
+    .creation-mode-tabs[data-hop="1"] .creation-mode-coal-hop,
+    .creation-mode-tabs[data-hop="2"] .creation-mode-coal-hop { animation: none; }
     .creation-agent-entry { animation: none; }
     .app-user-workspace .creation-chat-composer,
     .app-user-workspace .creation-chat-control,
     .app-user-workspace .creation-voice-trigger.ant-btn,
     .app-user-workspace .creation-submit-action { transition: none !important; transform: none !important; }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):hover .creation-submit-action::after { animation: none; }
+    .creation-home .creation-submit-action:not(:disabled):hover::after { animation: none; }
 }
 
 /* 参数弹窗挂在 body overlays，必须直接用用户表面 token；描边由 Ant inner 的 1px border 造成。 */
@@ -150,8 +403,9 @@
     background: var(--user-surface-raised) !important;
     background-image: none !important;
     box-shadow: 0 18px 40px rgba(0, 0, 0, .36) !important;
+    /* 只写标准属性：原先标准在前、`-webkit-` 在后，被去重成只剩 `-webkit-`，
+       于是这条覆盖在 Firefox 上从未生效，Ant 自带的模糊一直留着。 */
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     border-radius: 16px !important;
 }
 

@@ -3,7 +3,7 @@
  * Light/dark follow the page theme class; product skins are ignored. */
 
 :is([data-admin-root], body.admin-overlays, .admin-drawer, .admin-secondary-drawer, .admin-modal-root, .admin-channel-modal-root, .admin-mobile-navigation-menu) {
-    --admin-font: ui-sans-serif, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui, sans-serif;
+    --admin-font: var(--font-ui);
     --admin-font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     --admin-space: 8px;
     --admin-radius-sm: 4px;
@@ -92,7 +92,7 @@
     color: var(--admin-text);
     font-family: var(--admin-font);
     font-size: 13px;
-    line-height: 1.45;
+    line-height: 1.5;
     font-feature-settings:
         "ss01" 0,
         "cv11" 0;

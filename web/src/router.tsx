@@ -63,11 +63,15 @@ function fullScreenDeferred(element: ReactNode) {
     return <Suspense fallback={<FullScreenLoader label="正在打开创作空间" detail="准备当前页面" />}>{element}</Suspense>;
 }
 
-function AuthenticatedWorkspaceLayout() {
+/**
+ * 工作区布局壳：只负责 Suspense 边界 + UserLayout，不再强制登录。
+ * 登录墙由每条路由自己的 RequireAuth 承担；`/` 与 `/create`（创作首页）对游客开放。
+ */
+function WorkspaceLayout() {
     const { pathname } = useLocation();
     const isCanvasProjectRoute = pathname.startsWith("/canvas/");
     const fallback = isCanvasProjectRoute ? <CanvasRefreshShell /> : <FullScreenLoader label="正在打开创作空间" detail="准备当前页面" />;
-    return <RequireAuth><Suspense fallback={fallback}><UserLayout><Outlet /></UserLayout></Suspense></RequireAuth>;
+    return <Suspense fallback={fallback}><UserLayout><Outlet /></UserLayout></Suspense>;
 }
 
 /**
@@ -100,11 +104,13 @@ export const router = createBrowserRouter([
     { path: "/share/canvas/:token", element: fullScreenDeferred(<SharedCanvasPage />), errorElement: <RouteErrorPage /> },
     ...(import.meta.env.DEV ? devRoutes() : []),
     {
-        element: <AuthenticatedWorkspaceLayout />,
+        element: <WorkspaceLayout />,
         errorElement: <RouteErrorPage />,
         children: [
-            { path: "/", element: <RequireAuth>{deferred(<CreatePage />)}</RequireAuth> },
-            { path: "/create", element: <RequireAuth>{deferred(<CreatePage />)}</RequireAuth> },
+            // 创作首页对游客开放：可看模型目录、常驻通知与公告；
+            // 页面内的创作 / Agent / 参考内容 / 历史对话动作在组件内做登录门。
+            { path: "/", element: deferred(<CreatePage />) },
+            { path: "/create", element: deferred(<CreatePage />) },
             {
                 path: "/tasks",
                 element: (

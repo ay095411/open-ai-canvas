@@ -9,6 +9,7 @@ import { loadCanvasDrawing, saveCanvasDrawing, type CanvasDrawingSnapshot } from
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 import type { CanvasNodeData } from "@/types/canvas";
+import "./canvas-drawing-editor.css";
 
 const CanvasDrawingTldrawEditor = lazy(() => import("@/components/canvas/canvas-drawing-tldraw-editor").then((module) => ({ default: module.CanvasDrawingTldrawEditor })));
 const CanvasDrawingExcalidrawEditor = lazy(() => import("@/components/canvas/canvas-drawing-excalidraw-editor").then((module) => ({ default: module.CanvasDrawingExcalidrawEditor })));

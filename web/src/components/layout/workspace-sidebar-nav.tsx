@@ -1,22 +1,21 @@
 import { Popover } from "antd";
-import { Bell, ChevronDown, ChevronRight, CircleUserRound, History as HistoryIcon, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
-import { LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { ArrowUpRight, Bell, ChevronDown, ChevronRight, History as HistoryIcon, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 
 import { BrandLogoFrame } from "@/components/brand/brand-logo";
+import { CoalAvatar } from "@/components/brand/coal-avatar";
 import { Kbd } from "@/components/ui/base/kbd";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
-import { aceternityMotion } from "@/lib/aceternity-motion";
 import { cn } from "@/lib/utils";
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { WorkspaceAccountCard } from "./workspace-account-card";
 import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
-import { WorkspaceSidebarStorageMeter } from "./workspace-sidebar-storage-meter";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 
 export type WorkspaceNavItem = {
@@ -70,24 +69,43 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
     useEffect(() => setFailed(false), [avatarUrl]);
 
     if (!user) {
-        return <Link to="/login" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录" title="登录"><CircleUserRound className="size-5" /><span>登录</span></Link>;
+        // 游客态：登录入口 + 公告铃铛（公告列表对游客公开，查看不标记已读）。
+        return (
+            <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
+                {/* 游客态的头像也用品牌角色「黑煤球」，与登录后的默认头像同一个盒子
+                    （`.app-workspace-sidebar-profile-avatar`），尺寸与圆形裁切因此一致；
+                    斜箭头表示这是一次页面跳转（去 /login），语义同账户弹窗里的「管理员后台」。
+                    折叠态只留头像：文字和箭头会挤爆 42px 的方框。 */}
+                <Link to="/login" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录" title="登录">
+                    <span className="app-workspace-sidebar-profile-avatar"><CoalAvatar /></span>
+                    {!collapsed ? <span className="app-workspace-sidebar-profile-copy"><strong>登录</strong></span> : null}
+                    {!collapsed ? <ArrowUpRight className="app-workspace-sidebar-profile-arrow" /> : null}
+                </Link>
+                {!collapsed ? <SystemAnnouncementCenter className="app-workspace-sidebar-notification" /> : null}
+            </div>
+        );
     }
 
-    const avatar = avatarUrl && !failed ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : <CircleUserRound aria-hidden />;
+    const avatar = avatarUrl && !failed ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : <CoalAvatar />;
     const content = <WorkspaceAccountCard onNavigate={() => setMenuOpen(false)} onWallet={() => { setMenuOpen(false); openWorkspaceWallet(); }} />;
 
     return (
         <div className={cn("app-workspace-sidebar-account", collapsed && "is-collapsed")}>
             <WorkspaceSidebarCheckin collapsed={collapsed} />
-            <WorkspaceSidebarStorageMeter collapsed={collapsed} />
             <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
                 <Popover open={menuOpen} onOpenChange={setMenuOpen} trigger="click" placement="topLeft" arrow={false} rootClassName="workspace-account-popover" content={content}>
                     <button type="button" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="打开账户菜单" title={profileName}>
                         <span className="app-workspace-sidebar-profile-avatar">{avatar}</span>
-                        {!collapsed ? <span className="app-workspace-sidebar-profile-copy"><strong>{profileName}</strong><span>创作工作台</span></span> : null}
+                        {/* 侧栏常驻行只显示名字，不放副标题（邮箱 / 账号标识）——
+                            账号信息在点开的账户弹窗里给，常驻行保持单行且不在侧栏泄露账号标识。
+                            外层 profile-copy 不能因为只剩一个子节点就拍平：它承载 min-w-0，
+                            拍平后长名字的省略号会失效。 */}
+                        {!collapsed ? <span className="app-workspace-sidebar-profile-copy"><strong>{profileName}</strong></span> : null}
                     </button>
                 </Popover>
-                {!collapsed ? <SystemAnnouncementCenter userId={user.id} className="app-workspace-sidebar-notification" /> : <span className="app-workspace-sidebar-notification-spacer" aria-hidden />}
+                {/* autoOpen 从顶栏通知按钮继承过来：公告的「未读自动浮出」是投递行为，
+                    与通知按钮挂在哪一侧无关，顶栏清空后不应静默丢掉。 */}
+                {!collapsed ? <SystemAnnouncementCenter userId={user.id} className="app-workspace-sidebar-notification" autoOpen /> : <span className="app-workspace-sidebar-notification-spacer" aria-hidden />}
             </div>
         </div>
     );
@@ -96,11 +114,14 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
 function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { collapsed: boolean; onNavigate: () => void; onExpand: () => void; onCollapse: () => void }) {
     const appearance = useAppearanceStore((state) => state.appearance);
 
+    // 折叠态头部默认呈现品牌标记，hover / 键盘聚焦时才过渡成「展开侧栏」图标：
+    // 窄轨只放一个功能符号，会让品牌在折叠后彻底消失。
     if (collapsed) {
         return (
             <div className="app-workspace-sidebar-rail-header shrink-0">
                 <button type="button" className="app-workspace-sidebar-rail-button" aria-label="展开侧栏菜单" title="展开侧栏菜单" onClick={onExpand}>
-                    <PanelLeftOpen className="size-4" strokeWidth={1.7} />
+                    <BrandLogoFrame className="app-workspace-brand-mark app-workspace-sidebar-rail-mark grid size-8 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm" logoClassName="size-5 object-contain" alt="" fallback={<InfinityIcon className="size-4" strokeWidth={2.2} />} />
+                    <PanelLeftOpen className="app-workspace-sidebar-rail-reveal size-4" strokeWidth={1.7} aria-hidden />
                 </button>
             </div>
         );
@@ -111,9 +132,9 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
             <Link to="/" onClick={onNavigate} className="app-workspace-sidebar-brand-button group" aria-label={`${appearance.brandName}首页`}>
                 <span className="flex min-w-0 items-center gap-2">
                     <BrandLogoFrame className="app-workspace-brand-mark grid size-8 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm" logoClassName="size-5 object-contain" alt="" fallback={<InfinityIcon className="size-4" strokeWidth={2.2} />} />
+                    {/* 只保留品牌字标。外层 flex-col 即使只剩一个子节点也保留：超长品牌名依赖该层的 min-w-0 才能触发 truncate。 */}
                     <span className="flex min-w-0 flex-col">
                         <span className="app-workspace-brand-wordmark truncate text-[var(--fs-body)] leading-none font-semibold">{appearance.brandName}</span>
-                        <span className="mt-1 truncate text-[var(--fs-label)] leading-none text-foreground/60">创作工作台</span>
                     </span>
                 </span>
             </Link>
@@ -144,7 +165,6 @@ function NavItem({
     const isActive = activeId === item.id || (item.id === "settings" && activeId.startsWith("settings:"));
     const hasChildren = Boolean(item.children?.length);
     const [isOpen, setIsOpen] = useState(false);
-    const reducedMotion = useReducedMotion();
 
     // 激活分支自动展开（如设置分区子项），保证当前位置可见。
     useEffect(() => {
@@ -178,7 +198,7 @@ function NavItem({
     );
 
     const rowClassName = cn(
-        "app-workspace-nav-link group relative isolate flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--r-md)] px-3 py-2 text-[var(--fs-body)] transition-[color,transform] duration-200 select-none",
+        "app-workspace-nav-link group relative isolate flex min-h-11 w-full items-center justify-between gap-2 rounded-[var(--r-md)] px-3 py-2 text-[var(--fs-body)] select-none",
         collapsed && "is-collapsed",
         isActive ? "is-active font-medium" : "text-foreground/62 hover:bg-surface-hover hover:text-foreground",
     );
@@ -187,7 +207,8 @@ function NavItem({
             layoutId="workspace-nav-active-pill"
             className="app-workspace-nav-active-pill"
             aria-hidden
-            transition={reducedMotion ? { duration: 0 } : aceternityMotion.spring.dock}
+            /* 选中背景直接切换，不做滑动过渡（用户要求）。 */
+            transition={{ duration: 0 }}
         />
     ) : null;
 

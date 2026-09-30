@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { App, Button, Input } from "antd";
+import { Mail, ShieldCheck, Smartphone } from "lucide-react";
 import { startVerification, type VerificationDraft, type VerificationMethod, type VerificationPurpose } from "@/services/api/verification";
 
 // 验证码输入框与「获取验证码」按钮同排显示：按钮贴右侧、竖线分隔。
@@ -19,6 +20,7 @@ function CodeField({ label, value, onChange, onSend, sending, remaining, targetR
                 <Input
                     size="large"
                     variant="borderless"
+                    prefix={<ShieldCheck className="auth-scene-icon size-4" />}
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
                     autoComplete={autoComplete}
@@ -75,9 +77,11 @@ export function VerificationFields({ purpose, method, value, onChange, disabled 
         finally { setSending(false); inFlight.current = false; }
     };
     const sendLabel = method === "sms_email" ? "获取验证码" : "获取验证码";
-    return <div className="space-y-4">
-        {sms && <label className="block space-y-2"><span className="auth-scene-label text-xs font-medium">手机号</span><Input size="large" value={value.phone} onChange={(e) => changeTarget("phone", e.target.value)} autoComplete="tel" inputMode="tel" placeholder="中国大陆手机号，支持 +86" required disabled={disabled || sending} /></label>}
-        {email && <label className="block space-y-2"><span className="auth-scene-label text-xs font-medium">邮箱</span><Input size="large" type="email" value={value.email} onChange={(e) => changeTarget("email", e.target.value)} autoComplete="email" placeholder="请输入邮箱" required disabled={disabled || sending} /></label>}
+    // 每个字段都带同一个位置的前缀图标：全部输入框独占一行之后，图标的有无会直接
+    // 变成「文字左边缘对不对齐」，缺一个就看得出来。
+    return <div className="flex flex-col gap-4">
+        {sms && <label className="block space-y-2"><span className="auth-scene-label text-xs font-medium">手机号</span><Input size="large" prefix={<Smartphone className="auth-scene-icon size-4" />} value={value.phone} onChange={(e) => changeTarget("phone", e.target.value)} autoComplete="tel" inputMode="tel" placeholder="中国大陆手机号，支持 +86" required disabled={disabled || sending} /></label>}
+        {email && <label className="block space-y-2"><span className="auth-scene-label text-xs font-medium">邮箱</span><Input size="large" type="email" prefix={<Mail className="auth-scene-icon size-4" />} value={value.email} onChange={(e) => changeTarget("email", e.target.value)} autoComplete="email" placeholder="接收验证码的邮箱" required disabled={disabled || sending} /></label>}
         {/* 双通道（sms_email）一次请求同时下发两种验证码，此时按钮文案不区分通道。 */}
         {(sms || email) && (
             <CodeField

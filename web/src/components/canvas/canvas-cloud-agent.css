@@ -187,7 +187,7 @@
     padding: 14px 15px 12px;
     color: var(--agent-ink, inherit);
     font-size: 12px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .agent-context-eyebrow {
@@ -306,7 +306,7 @@
     margin: 10px 0 0;
     color: var(--agent-caption);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .agent-context-breakdown {
@@ -411,7 +411,7 @@
 /* 状态行的图标只是语义标记，不应把正文向右推成另一条内容轴。 */
 .agent-status-message {
     min-width: 0;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .agent-status-message--system {
@@ -902,15 +902,16 @@
 
 .agent-scene-capsules-scroll {
     scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .agent-scene-capsules-scroll::-webkit-scrollbar {
-    height: 4px;
+    height: var(--scrollbar-size-thin);
 }
 
 .agent-scene-capsules-scroll::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--foreground) 14%, transparent);
+    border-radius: var(--r-full);
+    background: var(--scrollbar-thumb);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1833,8 +1834,11 @@
 }
 
 .agent-reasoning-status.is-live {
-    background: color-mix(in srgb, var(--agent-reasoning-accent) 9%, transparent);
-    color: var(--agent-reasoning-accent);
+    /* 「模型正在思考」的活性标记取状态语义色，而不是画布品牌 accent：
+       思考是状态、不是品牌表达，不应随皮肤或画布主题漂移。依据见 ui-design-system §10.1。
+       非流式态（“查看”）保持中性，避免推理块与正文争夺主视觉。 */
+    background: color-mix(in srgb, var(--status-thinking) 9%, transparent);
+    color: var(--status-thinking);
 }
 
 .agent-reasoning-status-dot {
@@ -1881,7 +1885,7 @@
     min-width: 0;
     color: color-mix(in srgb, var(--foreground) 54%, transparent);
     font-size: 12px;
-    line-height: 1.75;
+    line-height: 1.7;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
@@ -2660,7 +2664,7 @@
     margin: 0;
     color: var(--muted-foreground);
     font-size: var(--fs-body);
-    line-height: 1.65;
+    line-height: 1.6;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     overflow-wrap: anywhere;

@@ -29,10 +29,7 @@ func RegisterModelCatalogRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"quote": quote})
 	})
 	r.GET("/model-catalog", func(c *gin.Context) {
-		if _, err := currentUser(c, svc); err != nil {
-			failService(c, err)
-			return
-		}
+		// 游客首页要展示系统支持的模型数据；目录是脱敏读模型（不含密钥/Base URL），可匿名读。
 		catalog, err := svc.ModelCatalog(nil)
 		if err != nil {
 			failService(c, err)

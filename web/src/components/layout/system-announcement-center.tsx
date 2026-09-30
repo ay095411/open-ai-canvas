@@ -17,7 +17,8 @@ const ANNOUNCEMENT_DISMISS_SESSION_PREFIX = "yingce.announcements.dismiss-sessio
 type AnnouncementFeed = Awaited<ReturnType<typeof getAnnouncementFeed>>;
 
 type SystemAnnouncementCenterProps = {
-    userId: string;
+    /** 已登录用户 ID；缺省为游客态——公告照常可读，但不标记已读、不自动弹出。 */
+    userId?: string;
     className?: string;
     style?: CSSProperties;
     showLabel?: boolean;
@@ -32,11 +33,13 @@ export function SystemAnnouncementCenter({ userId, className, style, showLabel =
     const [open, setOpen] = useState(false);
     const [automaticPrompt, setAutomaticPrompt] = useState(false);
     const [dismissedFingerprint, setDismissedFingerprint] = useState("");
-    const queryKey = ["system-announcements", userId] as const;
+    const dismissalKey = userId || "guest";
+    const queryKey = ["system-announcements", dismissalKey] as const;
     const feedQuery = useQuery({
         queryKey,
         queryFn: getAnnouncementFeed,
-        enabled: Boolean(userId),
+        // 公告列表对游客开放（后端匿名可读）；游客不标记已读。
+        enabled: true,
         staleTime: ANNOUNCEMENT_CACHE_TTL_MS,
         refetchInterval: ANNOUNCEMENT_REFRESH_INTERVAL_MS,
         // 公告在打开面板时会显式 refetch；不把浏览器 focus 变成每个工作区实例的请求触发器。
@@ -47,7 +50,7 @@ export function SystemAnnouncementCenter({ userId, className, style, showLabel =
     const error = feedQuery.error instanceof Error ? feedQuery.error.message : feedQuery.error ? "读取公告失败" : "";
 
     useEffect(() => {
-        if (!autoOpen || open || !feedQuery.isSuccess || announcements.length === 0) return;
+        if (!userId || !autoOpen || open || !feedQuery.isSuccess || announcements.length === 0) return;
         const fingerprint = announcementFeedFingerprint(announcements);
         if (!fingerprint || fingerprint === dismissedFingerprint || announcementAutoPromptSuppressed(userId, fingerprint)) return;
         setAutomaticPrompt(true);
@@ -58,7 +61,8 @@ export function SystemAnnouncementCenter({ userId, className, style, showLabel =
         setAutomaticPrompt(false);
         setOpen(true);
         const feed = (await feedQuery.refetch()).data;
-        if (!feed?.unreadCount) return;
+        // 已读标记依赖登录态；游客打开面板只读，不写已读记录。
+        if (!userId || !feed?.unreadCount) return;
         try {
             const result = await markAnnouncementsRead(feed.announcements.map((announcement) => announcement.id));
             const nextUnreadCount = Math.max(0, result.unreadCount || 0);
@@ -72,8 +76,8 @@ export function SystemAnnouncementCenter({ userId, className, style, showLabel =
     const dismissAutomaticPrompt = (duration: "once" | "today") => {
         const fingerprint = announcementFeedFingerprint(announcements);
         if (fingerprint) setDismissedFingerprint(fingerprint);
-        if (fingerprint) rememberAnnouncementDismissalSession(userId, fingerprint);
-        if (duration === "today") rememberAnnouncementDismissalToday(userId, fingerprint);
+        if (fingerprint) rememberAnnouncementDismissalSession(dismissalKey, fingerprint);
+        if (duration === "today") rememberAnnouncementDismissalToday(dismissalKey, fingerprint);
         setAutomaticPrompt(false);
         setOpen(false);
     };

@@ -1,0 +1,18 @@
+/* Excalidraw 的菜单可挂载在 body；只接管工具界面，保留绘图内容的字体。 */
+:root :is(.excalidraw, .excalidraw-tooltip) {
+    --ui-font: var(--font-ui);
+}
+
+/* 这些控件在依赖中直接指定 Assistant，未使用 --ui-font。 */
+:root .excalidraw :is(
+    .ExcTextField__label,
+    .ExcTextField__input input,
+    .RadioGroup__choice,
+    .ImageExportModal h3,
+    .ImageExportModal__settings__setting__label,
+    .ExcButton,
+    .OverwriteConfirm__Description,
+    .excalidraw__embeddable-hint
+) {
+    font-family: var(--font-ui);
+}

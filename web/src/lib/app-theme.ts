@@ -145,6 +145,7 @@ export function getAntThemeConfig(dark: boolean, skinID: unknown = "classic"): T
         algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         cssVar: { key: `infinite-canvas-${normalizeSkinID(skinID)}-${dark ? "dark" : "light"}` },
         token: {
+            fontFamily: "var(--font-ui)",
             colorPrimary: color.solidBg,
             colorPrimaryHover: color.solidHoverBg,
             colorPrimaryActive: color.solidActiveBg,
@@ -446,7 +447,6 @@ export function getAdminAntThemeConfig(dark: boolean, skinID: unknown = "classic
             borderRadiusLG: skin.borderRadiusLG || 8,
             colorBgContainer: "var(--color-surface)",
             colorBorder: "var(--color-border)",
-            fontFamily: "var(--font-sans)",
             padding: 12,
             paddingSM: 8,
             fontSize: 13,

@@ -27,7 +27,7 @@ describe("welcome story", () => {
     });
 
     test("credits cover all looks separately from the code license", () => {
-        const credits = readFileSync(publicFile("/welcome/credits.html"), "utf8");
+        const credits = readFileSync(resolve(import.meta.dir, "../welcome/credits.html"), "utf8");
         expect(credits).toContain("https://creativecommons.org/licenses/by/4.0/");
         for (const look of welcomeLooks) expect(credits).toContain(`id="${look.id}"`);
         expect(credits).not.toContain("竹影");

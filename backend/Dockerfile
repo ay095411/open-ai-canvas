@@ -73,7 +73,7 @@ RUN apk add --no-cache ca-certificates tzdata wget \
 
 WORKDIR /app
 ENV GIN_MODE=release
-ENV CANVAS_BACKEND_ADDR=:8080
+ENV CANVAS_BACKEND_ADDR=:8180
 ENV CANVAS_BACKEND_DATA_DIR=/data
 
 RUN mkdir -p /data && chown -R app:app /data
@@ -86,6 +86,6 @@ COPY backend/agent-runtime/pi/package.json backend/agent-runtime/pi/package-lock
 COPY backend/agent-runtime/pi/agent-runtime.mjs /app/backend/agent-runtime/pi/agent-runtime.mjs
 
 USER app
-EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -qO- http://127.0.0.1:8080/api/health/ready >/dev/null || exit 1
+EXPOSE 8180
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD wget -qO- http://127.0.0.1:8180/api/health/ready >/dev/null || exit 1
 CMD ["infinite-canvas-backend"]

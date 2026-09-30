@@ -19,13 +19,6 @@ export function FullScreenLoader({ label = "正在恢复工作区", detail = "�
             className={cn("full-screen-loader", className)}
         >
             <div className="full-screen-loader-scene" aria-hidden="true">
-                <span className="full-screen-loader-guide is-horizontal" />
-                <span className="full-screen-loader-guide is-vertical" />
-                <span className="full-screen-loader-frame is-left"><i /><i /><i /></span>
-                <span className="full-screen-loader-frame is-right"><i /><i /><i /></span>
-                <span className="full-screen-loader-script"><i /><i /><i /><b /></span>
-                <span className="full-screen-loader-timeline"><i /><i /><i /><i /><b /></span>
-                <span className="full-screen-loader-orbit" />
                 <BrandLogoFrame className="full-screen-loader-logo" logoClassName="full-screen-loader-logo-image" alt="" fallback={<span className="full-screen-loader-logo-fallback" />} />
             </div>
             <div className="full-screen-loader-copy"><strong>{label}</strong><span>{detail}</span><LoadingSignal /></div>

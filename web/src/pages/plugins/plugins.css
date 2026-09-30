@@ -62,7 +62,7 @@
     margin-top: var(--space-2);
     color: color-mix(in srgb, var(--foreground) 44%, transparent);
     font-size: var(--fs-label);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .plugins-sidebar-nav {
@@ -229,7 +229,7 @@
     margin-top: var(--space-half);
     color: color-mix(in srgb, var(--foreground) 46%, transparent);
     font-size: var(--fs-label);
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .plugin-section-count {
@@ -667,7 +667,7 @@
     margin-top: var(--space-1);
     color: color-mix(in srgb, var(--foreground) 50%, transparent);
     font-size: var(--fs-label);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .plugin-upload-panel-icon {
@@ -722,7 +722,7 @@
     gap: var(--space-2);
     color: color-mix(in srgb, var(--foreground) 49%, transparent);
     font-size: var(--fs-label);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .plugin-upload-notice svg {
@@ -909,7 +909,7 @@
     margin-top: var(--space-1);
     color: color-mix(in srgb, var(--foreground) 44%, transparent);
     font-size: var(--fs-label);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .plugin-settings-fields {

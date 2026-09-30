@@ -46,7 +46,7 @@
     .creation-model-picker-surface {
         border: 1px solid rgba(220, 225, 231, .82) !important;
         border-radius: 14px !important;
-        background: rgba(255, 255, 255, .78) !important;
+        background: var(--glass-scrim-panel) !important;
         box-shadow: 0 18px 46px rgba(20, 26, 35, .14), inset 0 1px 0 rgba(255, 255, 255, .78) !important;
         overflow: hidden;
         padding: 0 !important;
@@ -533,7 +533,7 @@ html:not(.dark) .creation-chat-composer .creation-model-picker.canvas-composer-m
     overflow: hidden;
     border: 0 !important;
     border-radius: 10px !important;
-    background: rgba(30, 32, 37, .92) !important;
+    background: var(--glass-scrim-panel) !important;
     box-shadow: 0 18px 44px rgba(0, 0, 0, .3) !important;
     backdrop-filter: blur(18px) saturate(120%);
     -webkit-backdrop-filter: blur(18px) saturate(120%);

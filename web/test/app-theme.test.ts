@@ -1,8 +1,26 @@
 import { describe, expect, test } from "bun:test";
 
-import { getAntThemeConfig, getWorkspaceAntThemeConfig } from "../src/lib/app-theme";
+import { getAdminAntThemeConfig, getAntThemeConfig, getWorkspaceAntThemeConfig } from "../src/lib/app-theme";
 import { DEFAULT_CLASSIC_SKIN, duplicateSkinDefinition } from "../src/lib/skin-themes";
 import { getIsolatedAdminAntTheme } from "../src/pages/admin/theme/admin-ant-theme";
+
+describe("shared default font", () => {
+    for (const dark of [false, true]) {
+        test(`product and admin use the UI font token in ${dark ? "dark" : "light"} mode`, () => {
+            for (const skin of [DEFAULT_CLASSIC_SKIN, duplicateSkinDefinition(DEFAULT_CLASSIC_SKIN, ["classic"])]) {
+                for (const config of [getAntThemeConfig(dark, skin), getAdminAntThemeConfig(dark, skin), getIsolatedAdminAntTheme(dark, skin)]) {
+                    expect(config.token?.fontFamily).toBe("var(--font-ui)");
+                }
+            }
+        });
+    }
+
+    test("workspace density keeps inheriting the product font", () => {
+        const config = getWorkspaceAntThemeConfig();
+        expect(config.inherit).not.toBe(false);
+        expect(config.token?.fontFamily).toBeUndefined();
+    });
+});
 
 describe("shared action colors and focus feedback", () => {
     for (const dark of [false, true]) {

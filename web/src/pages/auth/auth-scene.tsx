@@ -1,14 +1,12 @@
 import { motion, useReducedMotion } from "motion/react";
 import { Tabs } from "antd";
-import { ArrowLeft, Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 
-import { BrandLogo } from "@/components/brand/brand-logo";
 import { SiteComplianceFooter } from "@/components/layout/site-compliance-footer";
 import { aceternityMotion } from "@/lib/aceternity-motion";
-import { brandStudioLabel, useAppearanceStore } from "@/stores/use-appearance-store";
-import { useThemeStore } from "@/stores/use-theme-store";
+import { useAppearanceStore } from "@/stores/use-appearance-store";
 
 const AUTH_TABS = [
     { key: "login", label: "登录" },
@@ -16,21 +14,9 @@ const AUTH_TABS = [
 ];
 
 const authCopy = {
-    login: {
-        eyebrow: "WELCOME BACK",
-        title: "进入创作现场",
-        description: "继续编辑你的画布、素材与生成任务。",
-    },
-    register: {
-        eyebrow: "CREATE ACCOUNT",
-        title: "建立你的创作空间",
-        description: "一个账号管理画布、素材、技能和模型偏好。",
-    },
-    recovery: {
-        eyebrow: "ACCOUNT RECOVERY",
-        title: "重新设置密码",
-        description: "验证账号邮箱后，设置一个新的登录密码。",
-    },
+    login: { title: "登录" },
+    register: { title: "注册" },
+    recovery: { title: "重新设置密码" },
 } as const;
 
 export function LinuxDOIcon() {
@@ -48,62 +34,28 @@ export function LinuxDOIcon() {
 
 export function AuthScene() {
     const appearance = useAppearanceStore((state) => state.appearance);
-    const theme = useThemeStore((state) => state.theme);
     const location = useLocation();
     const navigate = useNavigate();
     const reducedMotion = useReducedMotion();
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [manualVideoActive, setManualVideoActive] = useState(false);
-    const [videoPlaying, setVideoPlaying] = useState(false);
     const [failedPosterURL, setFailedPosterURL] = useState("");
     const recovery = location.pathname === "/forgot-password";
     const activeTab = location.pathname === "/register" ? "register" : "login";
     const copy = recovery ? authCopy.recovery : activeTab === "register" ? authCopy.register : authCopy.login;
-    const automaticVideoActive = appearance.authVideoAutoplay && !reducedMotion;
-    const videoActive = Boolean(appearance.authVideoUrl && (automaticVideoActive || manualVideoActive));
-
-    useEffect(() => {
-        setManualVideoActive(false);
-        setVideoPlaying(false);
-    }, [appearance.authVideoUrl, appearance.authVideoAutoplay]);
-
-    const playVideo = () => {
-        setManualVideoActive(true);
-        requestAnimationFrame(() => {
-            void videoRef.current?.play().catch(() => setVideoPlaying(false));
-        });
-    };
+    // 只保留静音自动播放：原先那颗「播放品牌影片 / 创作正在发生」按钮和自动播放表达的是
+    // 同一件事，却让这一屏多出一个控件和一个状态。关掉自动播放或用户偏好减少动效时，
+    // 退到静态首帧（poster）。
+    const videoActive = Boolean(appearance.authVideoUrl && appearance.authVideoAutoplay && !reducedMotion);
 
     return (
         <main className="auth-scene h-dvh min-h-0 overflow-y-auto lg:overflow-hidden">
-            <div className="grid min-h-full lg:h-full lg:grid-cols-[minmax(0,1.32fr)_minmax(520px,1fr)]">
-                <section className="auth-scene-hero relative min-h-[250px] overflow-hidden sm:min-h-[320px] lg:min-h-0" aria-label={`${appearance.brandName}品牌影片`}>
-                    {videoActive && appearance.authVideoUrl ? <video ref={videoRef} className="absolute inset-0 size-full object-cover" src={appearance.authVideoUrl} poster={appearance.authVideoPosterUrl || undefined} autoPlay muted loop playsInline preload="metadata" onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} /> : appearance.authVideoPosterUrl && failedPosterURL !== appearance.authVideoPosterUrl ? <img className="absolute inset-0 size-full object-cover" src={appearance.authVideoPosterUrl} alt="" decoding="async" onError={() => setFailedPosterURL(appearance.authVideoPosterUrl)} /> : null}
-                    <div aria-hidden className="auth-scene-hero-overlay absolute inset-0" />
-                    <div aria-hidden className="auth-scene-video-blend absolute inset-y-0 right-0 hidden w-[clamp(120px,14vw,240px)] lg:block" />
-                    <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-4 p-5 sm:p-7 lg:p-9">
-                        <Link to="/" className="auth-scene-brand inline-flex items-center gap-2.5 text-sm font-semibold drop-shadow-sm transition-opacity hover:opacity-80">
-                            <BrandLogo theme={theme} className="size-7" alt="" fallback={<span className="size-7 bg-current" style={{ mask: "url(/logo.svg) center / contain no-repeat", WebkitMask: "url(/logo.svg) center / contain no-repeat" }} />} />
-                            {appearance.brandName}
-                        </Link>
-                        <button type="button" className="auth-scene-hero-control inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[var(--fs-label)] backdrop-blur-xl transition disabled:cursor-default" onClick={playVideo} disabled={videoPlaying || !appearance.authVideoUrl} aria-pressed={videoPlaying}>
-                            <Play className="size-3 fill-current" />
-                            {videoPlaying ? "创作正在发生" : "播放品牌影片"}
-                        </button>
-                    </div>
-                    <motion.div
-                        initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: aceternityMotion.duration.panel, ease: aceternityMotion.easing.enter }}
-                        className="absolute inset-x-0 bottom-0 max-w-2xl p-5 sm:p-7 lg:p-10"
-                    >
-                        <p className="auth-scene-hero-muted text-xs font-semibold tracking-[0.18em]">{brandStudioLabel(appearance)}</p>
-                        <h1 className="auth-scene-hero-title mt-3 max-w-xl whitespace-pre-line text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">{appearance.authHeroTitle}</h1>
-                        {appearance.authHeroDescription ? <p className="auth-scene-hero-muted mt-4 max-w-xl whitespace-pre-line text-sm leading-6 sm:text-base sm:leading-7">{appearance.authHeroDescription}</p> : null}
-                    </motion.div>
+            <div className="grid min-h-full lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(640px,720px)]">
+                <section className="auth-scene-hero relative min-h-[200px] overflow-hidden sm:min-h-[260px] lg:min-h-0" aria-label={`${appearance.brandName}品牌影片`}>
+                    {videoActive && appearance.authVideoUrl ? <video className="absolute inset-0 size-full object-cover" src={appearance.authVideoUrl} poster={appearance.authVideoPosterUrl || undefined} autoPlay muted loop playsInline preload="metadata" /> : appearance.authVideoPosterUrl && failedPosterURL !== appearance.authVideoPosterUrl ? <img className="absolute inset-0 size-full object-cover" src={appearance.authVideoPosterUrl} alt="" decoding="async" onError={() => setFailedPosterURL(appearance.authVideoPosterUrl)} /> : null}
                 </section>
 
-                <section className="auth-scene-form-pane relative flex min-h-[660px] items-start justify-center overflow-y-auto px-4 pb-24 pt-20 sm:px-8 lg:min-h-0 lg:px-10 lg:pb-24 lg:pt-20">
+                {/* min-h-[660px] 之类的固定高度是为了让登录/注册切换时卡片不跳动，
+                    代价是登录态下方留一大片空白——简化后内容本来就少，直接让卡片按内容高度走。 */}
+                <section className="auth-scene-form-pane relative flex flex-col overflow-y-auto">
                     <Link to="/" className="auth-scene-return absolute right-5 top-5 z-20 inline-flex h-9 items-center gap-2 rounded-full px-4 text-xs backdrop-blur-xl transition lg:right-8 lg:top-8">
                         <ArrowLeft className="size-3.5" />
                         返回首页
@@ -114,27 +66,43 @@ export function AuthScene() {
                         animate={{ opacity: 1, y: 0 }}
                         layout={!reducedMotion}
                         transition={{ duration: aceternityMotion.duration.panel, ease: aceternityMotion.easing.enter }}
-                        className="my-auto w-full max-w-[460px]"
+                        className="flex flex-1 shrink-0 items-center justify-center px-4 pb-8 pt-20 sm:px-8 lg:px-10"
                     >
-                        <div className="auth-scene-card h-auto overflow-hidden rounded-lg backdrop-blur-2xl">
-                            <section aria-label={copy.title} className={`flex flex-col ${recovery ? "min-h-[600px]" : activeTab === "login" ? "" : "min-h-[620px] sm:min-h-[640px]"}`}>
-                                <header className="px-6 pb-5 pt-6 sm:px-8 sm:pt-7">
-                                    <p className="auth-scene-eyebrow text-xs font-semibold tracking-[0.18em]">{copy.eyebrow}</p>
-                                    <h2 className="mt-2 text-3xl font-semibold">{copy.title}</h2>
-                                    <p className="auth-scene-muted mt-2 text-sm leading-6">{copy.description}</p>
+                        {/* rounded-2xl（16px）：控件统一 12px（--r-lg），卡片要比控件更圆一档，
+                            否则圆角层级会倒过来。
+                            backdrop-blur 跟着底色一起去掉了：没有底色可透，留着只是白付一次
+                            合成开销。 */}
+                        <div className="auth-scene-card my-auto h-auto w-full max-w-[600px] overflow-hidden rounded-2xl">
+                            <div className="px-6 pt-6 text-center sm:px-8 sm:pt-7">
+                                <Link to="/" className="auth-scene-brand inline-flex max-w-full flex-col items-center justify-center gap-2 transition-opacity hover:opacity-80" aria-label="Navo AI首页">
+                                    <img src="/auth/navo-ai-icon.png" alt="" width={664} height={467} className="auth-scene-brand-logo" />
+                                    <h1 className="text-2xl font-semibold leading-tight tracking-tight">Navo AI</h1>
+                                </Link>
+                                <p className="auth-scene-muted mt-4 text-sm leading-6 lg:whitespace-nowrap">
+                                    为创作者而生，为创意而造。你的创意伙伴，越用越懂你
+                                </p>
+                            </div>
+                            <section aria-label={copy.title} className="flex flex-col">
+                                {/* 卡片标题与标签栏写的是同一个词（登录 / 注册），标题下面 40px
+                                    再出现一次同样的字，是这一屏最扎眼的重复。标签栏本身已经回答
+                                    「这一屏是什么」，所以有标签栏时标题降级成仅供读屏的隐藏标题
+                                    （保留语义与 aria 结构、保留页面标题），只有不带标签栏的
+                                    找回密码页才把标题显示出来。 */}
+                                <header className={`px-6 pt-6 sm:px-8 sm:pt-7 ${recovery ? "pb-3" : "sr-only"}`}>
+                                    <h2 className="text-xl font-semibold">{copy.title}</h2>
                                 </header>
                                 {!recovery ? (
-                                    <div className="px-6 sm:px-8">
+                                    <div className="px-6 pt-6 sm:px-8 sm:pt-8">
                                         <Tabs className="auth-card-tabs" activeKey={activeTab} items={AUTH_TABS} onChange={(key) => navigate({ pathname: key === "register" ? "/register" : "/login", search: location.search })} />
                                     </div>
                                 ) : null}
-                                <div key={location.pathname} className={`${!recovery && activeTab === "login" ? "" : "flex-1"} px-6 py-6 sm:px-8 sm:py-7`}>
+                                <div key={location.pathname} className="px-6 py-6 sm:px-8 sm:py-8">
                                     <Outlet />
                                 </div>
                             </section>
                         </div>
                     </motion.div>
-                    <SiteComplianceFooter variant="auth" className="absolute inset-x-0 bottom-0" />
+                    <SiteComplianceFooter variant="auth" className="shrink-0" />
                 </section>
             </div>
         </main>

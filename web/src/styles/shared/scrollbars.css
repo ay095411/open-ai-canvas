@@ -1,5 +1,9 @@
 @layer utilities {
-    /* Shared scrollbar utilities used by canvas, project, settings and admin surfaces. */
+    /* Shared scrollbar utilities used by canvas, project, settings and admin surfaces.
+       滑块色原本写死暖灰 rgba(120,113,108,...) / 板岩 rgba(148,163,184,...)，
+       与主题不同源：深色主题下是暖褐灰压在冷调近黑底上，浅色主题下又偏重。
+       除 storyboard（下表专用的粗轨滚动条，见下）外，一律改由 --scrollbar-*
+       从当前主题前景派生，透明度取近原值，观感变化控制在个位数百分比。 */
     .hide-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -9,21 +13,24 @@
         display: none;
     }
 
+    /* 常驻可见的细滚动条：用 strong 档（原 .45 → 42%） */
     .thin-scrollbar {
-        scrollbar-color: rgba(120, 113, 108, 0.45) transparent;
+        scrollbar-color: var(--scrollbar-thumb-strong) var(--scrollbar-track);
         scrollbar-width: thin;
     }
 
     .thin-scrollbar::-webkit-scrollbar {
-        height: 4px;
-        width: 4px;
+        height: var(--scrollbar-size-thin);
+        width: var(--scrollbar-size-thin);
     }
 
     .thin-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(120, 113, 108, 0.45);
-        border-radius: 999px;
+        background: var(--scrollbar-thumb-strong);
+        border-radius: var(--r-full);
     }
 
+    /* storyboard 是表格列头与行区共享 gutter 的粗轨滚动条，自带描边轨道与最小滑块高度，
+       属组件级材质而非通用工具类，其取值保留（12px 宽 + 板岩色 + 描边），不并入滚动条 token。 */
     .storyboard-scrollbar {
         overscroll-behavior: contain;
         scrollbar-color: rgba(148, 163, 184, 0.72) rgba(120, 113, 108, 0.14);
@@ -62,32 +69,33 @@
         background-clip: content-box;
     }
 
+    /* hover 浮现的滚动条：默认全隐，hover 时用 strong 档并铺一层浅轨道 */
     .hover-scrollbar {
         scrollbar-color: transparent transparent;
         scrollbar-width: thin;
     }
 
     .hover-scrollbar:hover {
-        scrollbar-color: rgba(120, 113, 108, 0.5) transparent;
+        scrollbar-color: var(--scrollbar-thumb-strong) var(--scrollbar-track);
     }
 
     .hover-scrollbar::-webkit-scrollbar {
-        height: 6px;
-        width: 6px;
+        height: var(--scrollbar-size);
+        width: var(--scrollbar-size);
     }
 
     .hover-scrollbar::-webkit-scrollbar-thumb {
         background: transparent;
-        border-radius: 999px;
+        border-radius: var(--r-full);
     }
 
     .hover-scrollbar:hover::-webkit-scrollbar-track {
-        background: rgba(120, 113, 108, 0.12);
-        border-radius: 999px;
+        background: var(--scrollbar-track-subtle);
+        border-radius: var(--r-full);
     }
 
     .hover-scrollbar:hover::-webkit-scrollbar-thumb {
-        background: rgba(120, 113, 108, 0.5);
+        background: var(--scrollbar-thumb-strong);
     }
 
     .hover-scrollbar-hint {
@@ -95,8 +103,8 @@
     }
 
     .hover-scrollbar-hint::after {
-        background: rgba(120, 113, 108, 0.42);
-        border-radius: 999px;
+        background: var(--scrollbar-thumb-strong);
+        border-radius: var(--r-full);
         bottom: 4px;
         content: "";
         height: 3px;

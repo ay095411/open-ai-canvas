@@ -36,7 +36,7 @@ ui/base/buttons/
 
 ## 3. Token 义务（含 BoardUI 深度扩展；数值以 composio-brand-package 为权威源）
 
-- **数值权威源**：新 token 的色值/字号/间距/圆角一律取自规范包（`tokens.json` 优先，`DESIGN.md`/`theme.css` 对照），先翻译进 globals.css 三层 token 再被组件消费；禁止组件/页面直写规范包裸值。字体采用 Inter + 开源等宽（不采用规范包 abcDiatype）。
+- **数值权威源**：新 token 的色值/字号/间距/圆角一律取自规范包（`tokens.json` 优先，`DESIGN.md`/`theme.css` 对照），先翻译进 globals.css 三层 token 再被组件消费；禁止组件/页面直写规范包裸值。正文与标题默认使用本地打包的 OPPO Sans 4.0，通过 `web/src/styles/fonts.css` 的 `--font-ui` 统一消费；等宽与品牌展示字体维持专用角色。OPPO 字体按附带许可保留原始文件与授权说明，不修改或裁剪字形。
 
 - 只消费三层 token（Primitive→Semantic→Component 的 `var(--*)` 或其 Tailwind 映射）；**禁止裸 `text-[Npx]`、裸圆角、硬编码色**。
 - **语义状态矩阵**：高频角色用 `-default/-hover/-active/-disabled`（及 `-selected`）状态位 token，不在组件里推算色值。
@@ -108,3 +108,188 @@ Button/Input 全量、Dialog/Modal、Drawer、Popconfirm、Tabs、Combobox/Selec
 - [ ] 图标以组件引用传入且由组件定尺寸；动效走统一工具并尊重 reduced-motion
 - [ ] 键盘可操作、焦点环可见、持久状态 `aria-pressed` 可感知
 - [ ] 满足进库门槛；PR 描述写明对标对象；替换场景已删私有实现
+
+## 10. 外部调研吸收记录
+
+### 10.1 miora.design 设计语言调研（2026-09-29）
+
+调研对象：`https://miora.design/`（腾讯设计出品的 AI 创作工作台）。参考材料归档于 `.local/refs/miora-2026-09-29/`（首页截图 + 完整样式表）。
+
+**总体结论：不采用其整体视觉方向**（浅暖底 + 橙主色）。两条例由：
+
+1. 与本项目已锁定的 composio 视觉权威源（近黑底 + 电蓝 `#0007cd`）方向相反，切换等于推翻既有的 §3 数值权威源决策；
+2. 其橙色主色 `hsl(26,98%,54%)` 与既有 `--palette-node-skill`（橙）、`--palette-node-image`（琥珀）、`--palette-node-drawing`（赭石）同处橙琥珀色相区间，升格为全站唯一强调色会稀释画布节点类型辨识。
+
+**吸收以下四项**，全部落在 `globals.css` 三层 token 内，未引入裸值：
+
+| 吸收项 | 落地位置 | 说明 |
+| --- | --- | --- |
+| AI 推理态语义色 | 新增 `--palette-status-thinking`（light `#65a30d` / dark `#a3e635`）→ `--status-thinking` → `--color-status-thinking` | 本项目此前只有 success / error / loading / warning 四通道，缺「模型推理中」语义位。色相取黄绿（HSL 82°），与 success（HSL 148°）保持可辨识距离 |
+| 亮色浮层阴影压制 | `--shadow-2xl`、`--elevation-overlay`、`--elevation-panel` 单层不透明度压到 ≤0.15，改用近层小模糊 + 远层大模糊叠加 | 大面积深影会把浅色界面压灰。**暗色不适用该规则**——近黑底上黑影必须更重才可见，已在 `.dark` 注释中写明 |
+| 控件内高光 | 新增 `--elevation-control-inset` / `--elevation-control-inset-hover`（亮色白内高光、暗色黑内阴影） | 仅提供能力。本项目按钮维持扁平契约（`app-theme.ts` 已关闭 primary/default shadow），由 Celadon UI 自研控件按需消费，不改变既有默认外观 |
+| 毛玻璃 | **无需改动** | 本项目已有 `--glass-blur` / `--glass-saturate` / `--glass-alpha*`，且已全站消费（多处 `backdrop-filter`）。miora 用 `saturate(180%)`，本项目刻意收敛为 112%，予以保留 |
+
+**明确不采用**：橙色主色、12px 紧凑字号基准（本项目 `--fs-body: 14px` 是中文基准，整体下沉会导致汉字笔画发糊）、100vh 单输入框布局（本项目为画布 + 多页面路由 + 后台）、暖色视频背景（与画布工具场景冲突）。
+
+### 10.2 吸收清单 v2：玻璃材质 token 化与无障碍降级（2026-09-29）
+
+本轮把调研推深到工艺层（动效、焦点态、圆角、文字层级、无障碍媒体查询）。
+
+**复核后确认无需吸收的三项**（本项目已具备或更强）：
+
+| 项 | 复核结论 |
+| --- | --- |
+| 动效时长 / 缓动 | 本项目更完整：五档时长（`--motion-dur-instant/fast/base/slow/emphasize`）+ 五条自研缓动 + `--motion-scale` 三级降级联动 `prefers-reduced-motion`。miora 只有 4 条 `cubic-bezier` 与 5 档时长，不引入 |
+| 焦点态 | 本项目 `globals.css` 已有 189 处 `:focus-visible`，并具备 `--focus-ring-width` / `--focus-ring-soft` / `--ring`。miora 的 `outline: 2px solid transparent + outline-offset: 2px + ring` 与本项目同构，不引入 |
+| 圆角 / 控件内高光 | 本项目圆角刻度更细（`--r-xs` 4px … `--r-5xl` 32px）；控件内高光已由 v1 的 `--elevation-control-inset` 覆盖。miora 的 `--ms-button-shadow-*`（hover 抬升 + 位移）与本项目「按钮扁平契约」冲突，不采用 |
+
+**本轮吸收：玻璃材质 token 化 + 三重无障碍降级**
+
+miora 的做法是把毛玻璃的**滤镜本身**抽成可开关的变量（`--ms-material-popover-filter`），再在 `prefers-reduced-transparency: reduce` 与 `prefers-contrast: more` 中置为 `none` 并换实底背景，从而「一处开关、全站材质降级」。
+
+本项目落地时遇到一个现实差异：`globals.css` 内 `backdrop-filter` 共 15 处，其中只有 4 处消费 `--glass-*` token，其余 11 处是各自不同的字面半径（从 `blur(3px)` 到 `blur(28px) saturate(140%)`），**无法用单个 token 统一**。故分两步落地：
+
+**第一步 · 建机制**（严格视觉等价，不改变任何现有观感）
+
+- 新增 `--glass-filter`：玻璃材质的唯一消费入口，默认值即原 `blur(var(--glass-blur)) saturate(var(--glass-saturate))`
+- 新增 `--glass-solid-bg`（跟随 `--card`）：玻璃表面的实底替身
+- 原 9 行 token 消费点替换为 `var(--glass-filter)`，取值完全相同
+
+**第二步 · 加降级**（三条规则，同时覆盖 token 化与字面值两类写法）
+
+| 规则 | 作用 |
+| --- | --- |
+| `@media (prefers-reduced-transparency: reduce), (prefers-contrast: more)` | `--glass-filter: none`，并对 `*, *::before, *::after` 全局关停 `backdrop-filter`（兜住未 token 化的字面值站点） |
+| `@media (prefers-contrast: more)` | 额外将 `--glass-border-alpha` 抬到 1 —— 实底之后表面与底层失去色彩差，需靠描边维持分界 |
+| `@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))` | 不支持该属性时 token 退化为 `none` |
+
+**浏览器支持面（2026-09 核实，避免误判生效范围）**：
+
+- `prefers-reduced-transparency` —— Chromium 系已全支持（Chrome / Edge 118+），**Firefox 与 Safari 均未实现**（Safari 以隐私为由明确不实现）。也就是说这条规则的实际受众是 Chrome / Edge 用户；Windows 10/11 的「设置 → 个性化 → 颜色 → 透明效果」就是它的开关。
+- `prefers-contrast: more` —— Baseline，Chrome 96+ / Firefox 101+ / Safari 14.1+，全球覆盖约 96%，是三条规则里生效面最广的一条。
+
+两条都保留，按渐进增强对待：命中则降级，未命中不影响既有观感。
+
+踩到并已修正的两个坑（记录备查）：
+
+1. 用 `replace_all` 替换 token 值时，把 `--glass-filter` 的**定义本身**也替换成了 `var(--glass-filter)`，形成自引用 → 该 token 变 guaranteed-invalid，会让 8 处玻璃**静默失效**。批量替换 token 名时必须先排除定义行。
+2. 降级规则内并列书写 `backdrop-filter` 与 `-webkit-backdrop-filter`，会被构建期压缩器判为同值重复而去重，**反而丢掉标准属性**。只写标准属性、交由构建期前缀化，产物才是 `{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}` 双份齐全。
+
+**backlog（需先定视觉，本轮未实施）**：11 处字面半径站点的**背景**是各自硬编码的半透明色（如 `.asset-zoom-controls` 的 `rgba(15,15,15,.76)`、`.creation-featured-badge` 的 `rgba(25,25,28,.58)`），无法被 token 覆盖。要完整实现「降低透明度 → 全实底」，需引入统一的玻璃 scrim token，这会把现有 `.58 / .68 / .76` 等取值收敛到一档，属视觉变更，需单独确认。当前降级对它们只生效「去模糊」，不改变背景不透明度。
+
+### 10.3 吸收清单 v3：滚动条族落地，并由此暴露一个真实缺陷（2026-09-29）
+
+前两轮挖的是「浮层材质」与「无障碍降级」两层。本轮把 miora 的 538 个 custom property 按功能族完整分组后，逐族与项目对照，结论如下。
+
+**逐族对照结果（决定吸收与否的依据）**
+
+| miora 家族 | 项目现状 | 结论 |
+| --- | --- | --- |
+| `mio-color-scrollbar-*`（3） | **完全缺失**，21 处 `-webkit-scrollbar` 全是组件局部硬编码 | **吸收** —— 并已发现真实缺陷，见下 |
+| `ms-leading-*`（3：1.25 / 1.5 / 1.7） | **完全缺失**；498 处 `line-height` 散落 25 种比例 + 12 种 px | 候选，但收敛属视觉变更，待定 |
+| `ms-radius-*`（8） | 已有 11 档（`--r-*`），是 miora 的超集 | 不吸收，项目更细 |
+| `ms-tabs-*`（4：list-bg / list-shadow / trigger-active-bg / trigger-active-shadow） | 无构造 token；28 个文件用 `Segmented`，覆盖规则散落在 4 处组件选择器 | 候选，价值高（可收敛重复覆盖），需定视觉 |
+| `ms-menu-*`（content-width / item-height / separator-area-height） | 无对应度量 token；`min-height` 硬编码分布 28/32/34/36/38/40/42/44/48… 12 档 | 候选，属度量标准化，非视觉方向问题 |
+| `mio-color-skill-audit-*`（benign / suspicious / malicious × text / bg） | `--palette-status-*` 只有 success / error / loading / warning / thinking 五态，无**风险等级**语义 | **不吸收** —— 前端无该域消费方，无消费者的 token 是负债 |
+| `ART_CRITIQUE_SEVERITY_COLORS` 等 8 个字面色 | 定义在 TS 而非 token 层 | **不吸收** —— 这些色用于 canvas 2D 绘制，无法消费 CSS 变量，字面值是结构上必需的，非遗漏 |
+| 语义文本层级（secondary / tertiary / quaternary / disabled / placeholder / on-brand / on-danger …） | 采用**按作用域分散**的 muted 变体（`--user-ink-muted`、`--workspace-text`、`--creation-muted`、`--creation-faint`） | **不吸收** —— 架构取向不同，项目以作用域隔离换取上下文贴合，非缺口 |
+
+**落地项：滚动条族**
+
+```
+--scrollbar-size: 6px;
+--scrollbar-size-thin: 4px;
+--scrollbar-track: transparent;
+--scrollbar-thumb: color-mix(in srgb, var(--foreground) 18%, transparent);
+--scrollbar-thumb-hover: color-mix(in srgb, var(--foreground) 34%, transparent);
+```
+
+关键点是**滑块必须由当前主题派生**，不能写死黑/白。miora 的做法是浅色用 `neutral-black / .2`、深色用 `neutral-white / .15` 分别派生；项目原有的浅色侧栏写的是 `rgba(255, 255, 255, 0.2)` —— 方向写反了。
+
+**这暴露了一个此前没人发现的真实缺陷**：浅色侧栏底色是 `--workspace-navigation: #efeff0`，把 20% 白叠上去得到约 `#f8f8f8`，与底色仅差约 1 个色阶（≈0.7% 明度）。也就是说 `.app-workspace-sidebar:hover` 里那套「hover 才显示滚动条」的交互，**在浅色主题下从始至终完全无效** —— 滑块确实按设计显示了，只是显示成和背景同色。深色主题因为底色是 `#171718`，同样的白色反而可见，所以这个 bug 只在浅色下显形、长期未被察觉。
+
+修正后同一套规则在明暗两主题下都成立，**`.dark` 分支随之删除**（原先的 `.dark` 覆盖只是在用更低的白色透明度做同样的错事）。滚动条宽度与轨道也一并 token 化。验证：构建产物中 5 个消费点与 5 个 token 定义全部留存，`.dark` 分支 0 处残留。
+
+顺带清理的同源问题：`.library-toolbar .ant-segmented` 的 `border/background/box-shadow` 覆盖被**并列书写了两遍**（一处跟随 `.ant-input-affix-wrapper, .ant-select`，一处跟随 `.ant-select-selector`），属重复来源，已按「回到唯一源规则」删去其一。
+
+**过程中确认的构建期行为**：压缩器会为 `color-mix()` 自动生成 `@supports (color: color-mix(in lab, red, red))` 包裹，把 token 的基值降级为裸 `var(--foreground)`。这是预期行为（不支持混色时退化为纯前景色，中性且安全），不是产物污染。
+
+**backlog（本轮未实施，按证据强度排序）**：
+
+1. **滚动条族全量收敛** —— 把余下 20 处局部硬编码（如 `.canvas-project-sidebar-chapter-scroll` 的 `--foreground 12%`、`.creation-thread-scroll` 的 `--user-ink 20%`）并入 `--scrollbar-thumb`。现有取值 12% / 18% / 20% 会收敛到一档，属轻微视觉变更。`--scrollbar-thumb` 本轮已声明但尚无消费方，就是为这一批预留的。
+2. **行高阶梯** —— 498 处声明里，1.4–1.65 区间挤了 6 种比例（1.4 / 1.45 / 1.5 / 1.55 / 1.6 / 1.65）共 264 处，更像无意漂移而非设计意图。参照 miora 收敛为 3 档是合理的，但会实际改变行距。
+3. **Segmented / Tabs 构造 token** —— 价值最高的一项：能替掉现散落在 `.library-toolbar`、`.task-status-filter`、`.workflow-workspace-tabs`、`.auth-card-tabs` 的成组覆盖。
+
+### 10.4 吸收清单 v4：滚动条 / 行高 / 内凹控件 / 玻璃 scrim 四批同时落地（2026-09-29）
+
+#### 10.4.1 滚动条族：从 8 处散落到一族 token，并揪出两个"隐形滑块"
+
+落地 token（`globals.css` 无层 `:root`）：
+
+```
+--scrollbar-size: 6px;              --scrollbar-size-thin: 4px;
+--scrollbar-track: transparent;     --scrollbar-track-subtle: 10% 前景;
+--scrollbar-thumb: 20% 前景;         --scrollbar-thumb-hover: 32% 前景;
+--scrollbar-thumb-strong: 42% 前景;  --scrollbar-thumb-strong-hover: 54% 前景;
+```
+
+收敛了 8 个站点。收敛前同一角色有四套取值：`.creation-scrollbar` 22%、`.creation-thread-scroll` 20%、`.canvas-project-sidebar-chapter-scroll` 12%、`.agent-scene-capsules-scroll` 14%（hover 侧还有 28/30/32/34% 四个值）；另外 `styles/shared/scrollbars.css` 整个文件用的是**写死**的暖灰 `rgba(120,113,108,.45)` 与板岩 `rgba(148,163,184,.72)`，不跟主题。
+
+由此确认**两个真实缺陷，同一个成因：滑块写死白色，而宿主表面在某个主题下是浅色。**
+
+| 站点 | 材质 | 缺陷 |
+| --- | --- | --- |
+| `.app-workspace-sidebar-scroll-area` | 浅色主题下侧栏底 `#efeff0` | 滑块 `rgba(255,255,255,.2)` 叠加后 `#f2f2f3`，与底色差约 1.2% 明度 —— **浅色下 hover 显示滚动条完全无效** |
+| `.director-scroll`（编辑器 7 个面板） | **反色**材质：`--director-dock-surface` 浅色主题下是深色面板、深色主题下是**白**面板 | 滑块写死 `rgba(255,255,255,.18)` —— **深色主题下白面板 + 白滑块 = 隐形** |
+
+两者修法一致：由宿主自身的前景色派生。侧栏用全局 `--scrollbar-thumb-hover`（`color-mix(var(--foreground))`）；导演台用面板前景 `--director-dock-fg-strong`（同文件的 `.editor-slider` 滑块本来就用这个来源，说明滚动条写死白色是疏漏而非意图）。派生写法让同一套规则在明暗两主题下都成立，原先为它们各写的 `.dark` / `html:not(.dark)` 覆盖分支随之删除。
+
+**顺带审计**：13 个 `scrollbar-width: none` 的隐藏站点全部配有 `::-webkit-scrollbar { display: none }`，Chrome 侧无遗漏。`.storyboard-scrollbar`（表格列头共享 gutter 的 12px 粗轨 + 描边轨道）属组件级材质，不并入通用 token，保留。
+
+#### 10.4.2 行高：只收敛亚感知漂移，不重写全部声明
+
+全仓 498 处 `line-height` 里有 25 种无单位比例。其中 1.4–1.65 区间挤了 6 种（1.4 / 1.45 / 1.5 / 1.55 / 1.6 / 1.65）共 264 处，更像无意漂移。
+
+**收敛规则（可复核、非拍脑袋）**：仅当某取值与"质量更大"的邻近档位相差 ≤0.05 时才收敛 —— 14px 正文下 0.05 对应 0.7px，肉眼不可分辨；**质量相等则不动**，无从判定谁是规范值时不猜。带 `px` / `%` / `var()` 的声明一律不碰。
+
+执行结果：131 处声明、10 个文件、消除 10 个档位（1.05/1.1→1.15、1.12、1.22、1.24、1.45/1.55→1.5、1.62/1.65→1.6、1.75→1.7、1.85→1.8），比例总数 25 → 12，**1.4–1.65 由 6 档压成 1.4 / 1.5 / 1.6 三档**，与 miora 的 3 档阶梯一致。
+
+未引入 `--leading-*` token 层：无单位 `line-height` 本身已随字号自适应，再加一层间接量收益有限，且会为 498 处声明制造一次纯风格迁移 —— 违反 AGENTS.md「不要为了统一风格改动无关模块」。行高层的问题在漂移，不在缺少 token。
+
+#### 10.4.3 内凹控件构造 token
+
+分段控件容器、工具栏控件外壳、模式切换器共用同一套"凹槽"表面，此前容器底色写着前景 5% 与 6% 两个值。收敛为：
+
+```
+--control-recessed-bg: color-mix(in srgb, var(--foreground) 5%, transparent);
+--control-recessed-active-shadow: 0 1px 4px color-mix(in srgb, var(--foreground) 10%, transparent);
+```
+
+命名用语义而非组件名：消费方包含 `Segmented`、输入框/下拉外壳与提示词优化模式切换器三种控件，叫 `--segmented-*` 会与实际不符。构造取自 miora `--ms-tabs-*` 四点模型（容器底/容器投影/选中底/选中投影）中与本项目相关的两点 —— 本项目选中态底色跟随 `--foreground` 文字色，不需要独立 token。
+
+#### 10.4.4 玻璃 scrim：18 处收敛为四档，并接入无障碍降级
+
+```
+--glass-scrim-media-soft:  rgba(10,10,12,.42);   /* 播放、勾选等交互标识 */
+--glass-scrim-media:       rgba(10,10,12,.58);   /* 徽章、计数、时长 */
+--glass-scrim-media-strong:rgba(10,10,12,.76);   /* 悬浮控制簇 */
+--glass-scrim-panel:       rgba(255,255,255,.82);/* 跟随主题的浮层表面（暗色覆盖为 rgba(28,30,34,.9)） */
+--glass-scrim-media-solid:  #0a0a0c;             /* 实底替身 */
+--glass-scrim-panel-solid:  var(--glass-solid-bg);
+```
+
+压在影像上的徽章此前散落 10 个近似 alpha（.36/.42/.5/.52/.55/.58/.6/.62/.76）。media 档不分主题 —— 背景是不可控的影像，浅底会随图变而失去对比。降级区块（`prefers-reduced-transparency` / `prefers-contrast: more` 与 `@supports not (backdrop-filter)`）把三档 media 一并换成同一个深实底、panel 换成实底，这样"关掉玻璃"才真的让浮层压得住底层内容，而不只是去掉模糊、仍留一层半透明。
+
+**审计方法上的一个盲区（值得记下来）**：第一版审计只扫描"同一规则块里既有 `backdrop-filter` 又有 `background`"的站点，漏掉了 `.assets-cover-badge.is-kind` / `.is-category` / `.assets-cover-more:hover` 这类**继承玻璃基础规则、只覆盖 `background` 的变体**。第二版改为先收集所有带 `backdrop-filter` 的选择器，再看哪些规则的 `background` 是深色半透明且选择器与之同族，才捞全。
+
+#### 10.4.5 顺带修正：把间距 token 当模糊半径用
+
+`blur(var(--space-2))` / `blur(var(--space-4))` 共 3 处。用间距刻度表达模糊半径是类别错误 —— 两者量纲无关，一旦有人调整空隙阶梯，模糊半径会跟着莫名变化。改为当前实际生效的字面值（`8px` / `8px` / `16px`），观感零变化。
+
+#### 10.4.6 ⚠️ 工程注意：本仓库大量 CSS 在 `@layer` 内，级联层优先级会反转
+
+`globals.css` 有三个 `@layer`：`base`（1433）、`utilities`（1524、12062）。token 定义与降级区块在**无层**的 `:root`（第 18 行）与无名 `@media`（第 381 行）。
+
+关键规则：对 `!important` 声明，**级联层的优先级是反的** —— 层内的 important 声明**胜过**层外（unlayered）的 important 声明。因此 `.creation-control-popover-surface` 那条无层、位置更靠后的 `background: rgba(30,32,37,.92) !important`（原 10959 行）**反而是被压制的那条**，真正生效的是 `@layer utilities` 里的浅色/暗色两条。差点据此误报一个"浅色主题拿到深色底"的 bug。
+
+**排查任何"某条规则没生效"时，先看它是否在 `@layer` 内，不要只看源码顺序。** 本轮已把那条死规则一并 token 化保持自洽，未删除（删除会改变行为，若对层级的判断有误）。

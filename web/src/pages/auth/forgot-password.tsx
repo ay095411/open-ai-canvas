@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState, type ReactNode } from "react";
 import { App, Button, Input } from "antd";
-import { ArrowLeft, ArrowRight, LockKeyhole, Mail, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowLeft, LockKeyhole, Mail, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { getAuthSettings, resetPassword, sendPasswordResetEmailCode } from "@/services/api/auth";
@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
 
     if (stage === "request") {
         return (
-            <form onSubmit={requestCode} className="space-y-5">
+            <form onSubmit={requestCode} className="flex flex-col gap-4">
                 {emailEnabled === false ? <Notice icon={<TriangleAlert className="size-3.5" />}>管理员尚未启用密码找回，请联系管理员处理。</Notice> : null}
                 <AuthField label="账号邮箱" htmlFor="recovery-email">
                     <Input
@@ -101,14 +101,14 @@ export default function ForgotPasswordPage() {
                         prefix={<Mail className="auth-scene-icon size-4" />}
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="请输入绑定邮箱"
+                        placeholder="注册时使用的邮箱"
                         autoComplete="email"
                         inputMode="email"
                         required
                         disabled={emailEnabled === false}
                     />
                 </AuthField>
-                <Button type="primary" htmlType="submit" size="large" block loading={sendingCode} disabled={emailEnabled === false} icon={<ArrowRight className="size-4" />} iconPlacement="end">
+                <Button type="primary" htmlType="submit" size="large" block loading={sendingCode} disabled={emailEnabled === false}>
                     发送验证码
                 </Button>
                 <BackToLogin to={loginURL} />
@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <form onSubmit={submitReset} className="space-y-4">
+        <form onSubmit={submitReset} className="flex flex-col gap-4">
             <AuthField label="账号邮箱" htmlFor="recovery-email-confirm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                     <Input id="recovery-email-confirm" size="large" prefix={<Mail className="auth-scene-icon size-4" />} value={email} readOnly autoComplete="email" />
@@ -144,35 +144,33 @@ export default function ForgotPasswordPage() {
                     </Button>
                 </div>
             </AuthField>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <AuthField label="新密码" htmlFor="recovery-password">
-                    <Input.Password
-                        id="recovery-password"
-                        size="large"
-                        prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="至少 8 位"
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                    />
-                </AuthField>
-                <AuthField label="确认密码" htmlFor="recovery-confirm-password">
-                    <Input.Password
-                        id="recovery-confirm-password"
-                        size="large"
-                        prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                        value={confirmPassword}
-                        onChange={(event) => setConfirmPassword(event.target.value)}
-                        placeholder="再次输入密码"
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                    />
-                </AuthField>
-            </div>
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} icon={<ArrowRight className="size-4" />} iconPlacement="end">
+            <AuthField label="新密码" htmlFor="recovery-password">
+                <Input.Password
+                    id="recovery-password"
+                    size="large"
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="至少 8 位"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                />
+            </AuthField>
+            <AuthField label="确认密码" htmlFor="recovery-confirm-password">
+                <Input.Password
+                    id="recovery-confirm-password"
+                    size="large"
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="再次输入密码"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                />
+            </AuthField>
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
                 重置密码
             </Button>
             <BackToLogin to={loginURL} />

@@ -1,18 +1,19 @@
 import { ImageSizePicker } from "@/components/image-size-picker";
 import { imageResolutionUsesQuality } from "@/lib/image-size-presets";
 import { createPortal } from "react-dom";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { App, Button, Dropdown, Popover } from "antd";
 import { AppDrawer } from "@/components/ui/product/app-drawer";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { useWorkspaceTopBarMount } from "@/components/layout/workspace-top-bar-extension";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { Reorder, LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { ArrowDown, ArrowUp, Brain, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Clock3, Copy, Download, FileText, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, MoreHorizontal, Music2, Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Sparkles, Trash2, UserRound, WandSparkles, Waves, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Brain, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Clock3, Copy, Download, FileText, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, MoreHorizontal, Music2, Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Sparkles, Trash2, WandSparkles, Waves, X } from "lucide-react";
 
 import { AIMessageMarkdown } from "@/components/ai/ai-message-markdown";
+import { CoalAvatar } from "@/components/brand/coal-avatar";
 import { GenerationToolCard, type GenerationToolStatus } from "@/components/ai/generation-tool-card";
-import { WorkingDots, WorkingGlow } from "@/components/ai/working-indicator";
+import { WorkingDots } from "@/components/ai/working-indicator";
 import { MessageReasoning } from "@/components/ai/message-reasoning";
 import { creationResultAssetIds, creationResultStorageKeys } from "@/lib/canvas/canvas-asset-handoff";
 import { generationErrorMessage } from "@/lib/generation-error";
@@ -235,7 +236,7 @@ function CreationUserMessage({ item, shotNumber, onEditUserMessage }: { item: Cr
     const user = useUserStore((state) => state.user);
     const userAvatarUrl = user?.avatarUrl?.trim();
     return <article className="creation-user-message">
-        <div className="creation-user-message-meta">{shotNumber > 0 ? <span className="creation-shot-badge">镜 {shotNumber}</span> : null}{item.createdAt ? <time dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time> : null}<strong>{user?.displayName || "你"}</strong><span className="creation-user-avatar">{userAvatarUrl ? <img src={userAvatarUrl} alt="" referrerPolicy="no-referrer" loading="lazy" decoding="async" /> : <UserRound />}</span></div>
+        <div className="creation-user-message-meta">{shotNumber > 0 ? <span className="creation-shot-badge">镜 {shotNumber}</span> : null}{item.createdAt ? <time dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time> : null}<strong>{user?.displayName || "你"}</strong><span className="creation-user-avatar">{userAvatarUrl ? <img src={userAvatarUrl} alt="" referrerPolicy="no-referrer" loading="lazy" decoding="async" /> : <CoalAvatar />}</span></div>
         <div className="creation-user-message-copy-wrap"><p>{visiblePrompt}</p></div>
         {item.references?.length ? <CreationMessageReferences references={item.references} /> : null}
         {item.attachments?.length ? <div className="creation-user-message-attachments">{item.attachments.map((attachment) => {
@@ -431,6 +432,8 @@ export function CreationComposer(props: ComposerProps) {
     const interactionBusy = props.busy || props.referenceReplacementBusy;
     const canSubmit = Boolean(props.prompt.trim()) && !interactionBusy;
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
+    // 报价接口需要登录；游客态直接回退到本地积分估算，不发无效请求。
+    const authenticated = useUserStore((state) => Boolean(state.user));
     const priceChannel = resolveModelChannel(props.config, props.model);
     const quoteRequest = useMemo(() => modelQuoteRequest(props.config, props.model, props.mode, props.modelRequirements), [props.config, props.mode, props.model, props.modelRequirements]);
     const [routeQuote, setRouteQuote] = useState<LogicalModelQuote | null>(null);
@@ -447,7 +450,7 @@ export function CreationComposer(props: ComposerProps) {
         requirements: props.modelRequirements,
     });
     useEffect(() => {
-        if (!creditsEnabled || !quoteRequest) {
+        if (!authenticated || !creditsEnabled || !quoteRequest) {
             setRouteQuote(null);
             return;
         }
@@ -459,17 +462,14 @@ export function CreationComposer(props: ComposerProps) {
                 if (!controller.signal.aborted) setRouteQuote(null);
             });
         return () => controller.abort();
-    }, [creditsEnabled, quoteRequest]);
+    }, [authenticated, creditsEnabled, quoteRequest]);
     const generationCredits = routeQuote ? routeQuote.amountMicrocredits / 1_000_000 : credits;
     const showCost = creditsEnabled && generationCredits !== null && generationCredits !== undefined;
     const formattedCredits = generationCredits?.toLocaleString("zh-CN", { maximumFractionDigits: 6 });
     const actionLabel = props.referenceReplacementBusy ? "正在替换参考图" : interactionBusy || (props.generationActive && !canSubmit) ? "生成中" : showCost ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，发送` : "发送";
-    // Send-button working state must span the WHOLE generation (not just the
-    // submit-lock window): spinner + glow stay while a message is pending and
-    // the composer is empty; typing a next prompt returns the arrow so the
-    // user knows a new send is possible.
+    // Keep the working state throughout generation; typing a next prompt
+    // restores the send action when another submission is allowed.
     const showWorkingSpinner = interactionBusy || (props.generationActive && !canSubmit);
-    const showWorkingGlow = props.generationActive && !canSubmit;
     const placeholder = props.mode === "text"
         ? "描述你的故事、角色或想继续讨论的创意"
         : props.mode === "image"
@@ -585,7 +585,7 @@ export function CreationComposer(props: ComposerProps) {
         >
         <div className="creation-chat-writing-surface">
             <div className="creation-chat-editor">
-                <CanvasResourceMentionTextarea ref={props.composerFocusRef} value={props.prompt} references={props.references} mentionMenuWidth={400} sendOnEnter onFocus={props.onPromptFocus} onChange={props.setPrompt} onSubmit={props.onSubmit} containerClassName="creation-chat-mention-container" className="creation-chat-mention-editor creation-scrollbar" style={{ color: "var(--creation-text)" }} placeholder={props.placeholderOverride || (props.variant === "empty" ? emptyPlaceholder : placeholder)} aria-label="创作提示词，可使用 @ 引用当前参考内容或技能；回车发送，Shift+回车换行" spellCheck disabled={interactionBusy} activeDropReferenceId={dropTargetReferenceId} onReferenceFilesDrop={(reference, files) => { const target = props.references.find((item) => item.id === reference.id); if (target?.attachmentId) props.onReplaceReferenceFiles(target.attachmentId, files); }} />
+                <CanvasResourceMentionTextarea ref={props.composerFocusRef} value={props.prompt} references={props.references} mentionMenuWidth={400} sendOnEnter onFocus={props.onPromptFocus} onChange={props.setPrompt} onSubmit={props.onSubmit} containerClassName="creation-chat-mention-container" className="creation-chat-mention-editor creation-scrollbar" style={{ color: "var(--creation-text)" }} animatedPlaceholder={props.variant === "empty"} placeholder={props.placeholderOverride || (props.variant === "empty" ? emptyPlaceholder : placeholder)} aria-label="创作提示词，可使用 @ 引用当前参考内容或技能；回车发送，Shift+回车换行" spellCheck disabled={interactionBusy} activeDropReferenceId={dropTargetReferenceId} onReferenceFilesDrop={(reference, files) => { const target = props.references.find((item) => item.id === reference.id); if (target?.attachmentId) props.onReplaceReferenceFiles(target.attachmentId, files); }} />
                 {props.attachments.length || referencesSupported ? <div className={`creation-reference-panel${trackState.isExpanded ? " is-expanded" : ""}`} aria-busy={interactionBusy}>
                     {trackState.isExpanded ? <div className="creation-reference-panel-header">
                         <div className="creation-reference-filter-tabs" role="group" aria-label="筛选参考内容">
@@ -677,27 +677,26 @@ export function CreationComposer(props: ComposerProps) {
                 {props.mode === "video" || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
                 {props.mode === "video" ? <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} /> : null}
                 {props.mode === "text" ? <>
-                    <Tooltip title={interactionBusy ? "生成中，此开关将在下次发送时生效" : (props.textStreaming ? "流式输出已开启" : "流式输出已关闭")}><button type="button" className="creation-chat-control" aria-pressed={props.textStreaming} disabled={interactionBusy} onClick={() => props.setTextStreaming(!props.textStreaming)}><Waves /><span>流式</span></button></Tooltip>
-                    <Tooltip title={interactionBusy ? "生成中，此开关将在下次发送时生效" : (props.textThinking ? "思考已开启，会展示模型返回的推理摘要" : "开启模型思考")}><button type="button" className="creation-chat-control" aria-pressed={props.textThinking} disabled={interactionBusy} onClick={() => props.setTextThinking(!props.textThinking)}><Brain /><span>思考</span></button></Tooltip>
+                    <Tooltip title={interactionBusy ? "生成中，暂不能切换流式输出" : (props.textStreaming ? "流式输出已开启" : "流式输出已关闭")}><button type="button" className="creation-chat-control is-streaming" aria-label="流式输出" aria-pressed={props.textStreaming} disabled={interactionBusy} onClick={() => props.setTextStreaming(!props.textStreaming)}><Waves /><span>流式</span></button></Tooltip>
+                    <Tooltip title={interactionBusy ? "生成中，此开关将在下次发送时生效" : (props.textThinking ? "思考已开启，会展示模型返回的推理摘要" : "开启模型思考")}><button type="button" className="creation-chat-control is-thinking" aria-pressed={props.textThinking} disabled={interactionBusy} onClick={() => props.setTextThinking(!props.textThinking)}><Brain /><span>思考</span></button></Tooltip>
                 </> : null}
                 {props.prompt.trim() || props.attachments.length || props.references.some((reference) => reference.active) ? <Tooltip title="清空提示词和参考内容"><button type="button" className="creation-chat-control is-clear" onClick={props.onClearComposer} disabled={interactionBusy} aria-label="清空提示词和参考内容"><Trash2 /><span>清空</span></button></Tooltip> : null}
             </div>
-            <Button
-                type="text"
-                className={`creation-submit ${showCost ? "has-cost" : ""}`}
-                disabled={interactionBusy || !canSubmit}
-                style={{
-                    position: "relative",
-                    color: "var(--user-ink)",
-                } as CSSProperties}
-                onClick={interactionBusy ? undefined : props.onSubmit}
-                aria-label={actionLabel}
-                title={!canSubmit && !interactionBusy ? "输入创作想法后即可生成" : actionLabel}
-            >
-                {showWorkingGlow ? <WorkingGlow active color="var(--creation-text)" radius="999px" /> : null}
+            <div className={`creation-submit ${showCost ? "has-cost" : ""}`}>
                 {showCost ? <span className="creation-submit-cost" title={routeQuote ? modelQuoteDescription(routeQuote) : undefined}><CreditSymbol /><span>{routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits}</span></span> : null}
-                <span className="creation-submit-action" aria-hidden>{showWorkingSpinner ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}<span>{showWorkingSpinner ? "生成中" : "开始创作"}</span></span>
-            </Button>
+                <button
+                    type="button"
+                    className="creation-submit-action"
+                    disabled={interactionBusy || !canSubmit}
+                    onClick={props.onSubmit}
+                    aria-label={actionLabel}
+                    aria-busy={showWorkingSpinner}
+                    title={!canSubmit && !showWorkingSpinner ? "输入创作想法后即可生成" : actionLabel}
+                >
+                    {showWorkingSpinner ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" /> : <ArrowUp className="size-4" aria-hidden="true" />}
+                    <span>{showWorkingSpinner ? "生成中" : "开始创作"}</span>
+                </button>
+            </div>
         </footer>
         <CreationMediaPreviewModal url={previewUrl} type={previewType} onClose={() => setPreviewUrl("")} />
         </SpotlightSurface>
@@ -724,33 +723,147 @@ export function CreationComposer(props: ComposerProps) {
     );
 }
 
+type CreationModeTabBox = { x: number; y: number; w: number; h: number };
+
+/**
+ * 创作模式切换。视觉参考「液态玻璃胶囊 + 黑煤球」，四条约束决定了实现方式：
+ * - 指示器与黑煤球必须严格同步：两者共用 --creation-tab-* 这一份测量值和同一条 CSS 过渡。
+ *   各用一套 spring 会在位移中途分离成「两个元件在动」，正是参考稿要避免的机械感。
+ * - 位置来自「当前 aria-pressed 的按钮」的测量值，而不是让指示器成为按钮的子节点：
+ *   这样首页四列、dock 三列紧凑条、垂直轨道共用一套定位，也让指示器和煤球拿到同一个横坐标。
+ * - 悬停只给轻微反馈，模式仍只由 click 改变；煤球的眼睛跟随指针，但只做很小的位移。
+ * - 垂直轨道与紧凑 dock 条没有上方空间，煤球由 CSS 直接隐藏。
+ */
 export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAgentSelect, orientation = "horizontal" }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void; agentActive?: boolean; onAgentSelect?: () => void; orientation?: "horizontal" | "vertical" }) {
     const reducedMotion = useReducedMotion();
+    const tabsRef = useRef<HTMLDivElement | null>(null);
+    const coalRef = useRef<HTMLSpanElement | null>(null);
+    const [tabBox, setTabBox] = useState<CreationModeTabBox | null>(null);
+    const [hop, setHop] = useState(0);
+    const [ready, setReady] = useState(false);
+    const activeModeKey = agentActive ? "agent" : mode;
+    const columnCount = onAgentSelect ? 4 : 3;
     const items: { mode: CreationMode; icon: ReactNode; label: string }[] = [
         { mode: "video", icon: <Film />, label: "视频" },
         { mode: "image", icon: <ImageIcon />, label: "图片" },
         { mode: "text", icon: <MessageSquareText />, label: "文本" },
     ];
-    const indicator = (pressed: boolean) => pressed ? (
-        <motion.span
-            layoutId={`creation-mode-indicator-${orientation}`}
-            className="creation-mode-indicator"
-            aria-hidden
-            transition={reducedMotion ? { duration: 0 } : aceternityMotion.spring.dock}
-        />
-    ) : null;
-    return <LayoutGroup id={`creation-mode-tabs-${orientation}`}>
-        <div className="creation-mode-tabs" role="group" aria-label="创作模式" data-active-mode={agentActive ? "agent" : mode} data-orientation={orientation} style={{ gridTemplateColumns: orientation === "vertical" ? "minmax(0, 1fr)" : `repeat(${onAgentSelect ? 4 : 3}, minmax(0, 1fr))` }}>
+
+    // 首帧之后才开放过渡：初次测量是从 0 滑到目标位，否则加载时会自己动一下。
+    useEffect(() => {
+        const frame = window.requestAnimationFrame(() => setReady(true));
+        return () => window.cancelAnimationFrame(frame);
+    }, []);
+
+    useLayoutEffect(() => {
+        const container = tabsRef.current;
+        if (!container) return;
+        const measure = () => {
+            const active = container.querySelector<HTMLElement>('.creation-mode-button[aria-pressed="true"]');
+            if (!active) return;
+            const next = { x: active.offsetLeft, y: active.offsetTop, w: active.offsetWidth, h: active.offsetHeight };
+            setTabBox((prev) => prev && prev.x === next.x && prev.y === next.y && prev.w === next.w && prev.h === next.h ? prev : next);
+        };
+        measure();
+        // 观察容器而不是按钮：窄屏换行、dock 的 max-content 宽度、字体加载都会改容器尺寸。
+        const observer = new ResizeObserver(measure);
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, [activeModeKey, orientation, columnCount]);
+
+    // 只比较模式是否真的变了：用 ref 记上一次的值，而不是「是否首次挂载」，
+    // 这样 StrictMode 的双次挂载不会在加载时误触发一次起跳。
+    const previousModeRef = useRef(activeModeKey);
+    useEffect(() => {
+        if (previousModeRef.current === activeModeKey) return;
+        previousModeRef.current = activeModeKey;
+        if (reducedMotion) return;
+        // 交替两个同内容的关键帧来重播落地动画：属性值变了动画才会重启，
+        // 省掉 classList.remove + void offsetWidth 那种强制重排。
+        setHop((value) => value === 1 ? 2 : 1);
+    }, [activeModeKey, reducedMotion]);
+
+    // 眼睛跟随指针：直接写 DOM transform，不进 React state —— 每帧 setState 会让整块创作区重渲染。
+    // 原型是 dx = (指针 - 眼心)/35 再钳到 ±2 —— 也就是鼠标离眼睛超过 70px 就顶到上限，
+    // 眼睛几乎永远钉在最左或最右，看起来是「斜眼」而不是「跟随」。这里两处都改掉：
+    //   1) 归一化半径从 70px 放大到 620px，整个视口范围内连续变化，不再动一下就顶格；
+    //   2) 基准点取「角色中心」而不是每只眼睛自己的中心 —— 否则左右眼各自为政会外八。
+    // 另外每帧读的是煤球的 rect（只有横向滑行、没有纵向动画），避免量到正在浮动/位移的元素。
+    useEffect(() => {
+        if (reducedMotion || orientation !== "horizontal") return;
+        const coal = coalRef.current;
+        const body = coal?.querySelector<HTMLElement>(".creation-mode-coal-body");
+        const eyes = coal ? Array.from(coal.querySelectorAll<HTMLElement>(".creation-mode-coal-eye")) : [];
+        if (!coal || !body || eyes.length === 0) return;
+        const RADIUS = 620;
+        const toUnit = (value: number) => Math.max(-1, Math.min(1, value));
+        let frame = 0;
+        let pointerX = 0;
+        let pointerY = 0;
+        const follow = () => {
+            frame = 0;
+            const coalRect = coal.getBoundingClientRect();
+            const depth = body.getBoundingClientRect().width; // = --creation-coal-body
+            const centerX = coalRect.left + coalRect.width / 2;
+            const centerY = coalRect.top + depth * 0.55; // 身体顶边在 0.05D，球心即 0.55D
+            const dx = toUnit((pointerX - centerX) / RADIUS) * depth * 0.038;
+            const dy = toUnit((pointerY - centerY) / RADIUS) * depth * 0.028;
+            const shift = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0)`;
+            for (const eye of eyes) eye.style.transform = shift;
+        };
+        const onPointerMove = (event: globalThis.PointerEvent) => {
+            pointerX = event.clientX;
+            pointerY = event.clientY;
+            if (!frame) frame = window.requestAnimationFrame(follow);
+        };
+        window.addEventListener("pointermove", onPointerMove, { passive: true });
+        return () => {
+            window.removeEventListener("pointermove", onPointerMove);
+            if (frame) window.cancelAnimationFrame(frame);
+            for (const eye of eyes) eye.style.transform = "";
+        };
+    }, [reducedMotion, orientation]);
+
+    const visualStyle = {
+        gridTemplateColumns: orientation === "vertical" ? "minmax(0, 1fr)" : `repeat(${columnCount}, minmax(0, 1fr))`,
+        "--creation-tab-x": `${tabBox?.x ?? 0}px`,
+        "--creation-tab-y": `${tabBox?.y ?? 0}px`,
+        "--creation-tab-w": `${tabBox?.w ?? 0}px`,
+        "--creation-tab-h": `${tabBox?.h ?? 0}px`,
+        "--creation-tab-cx": `${(tabBox?.x ?? 0) + (tabBox?.w ?? 0) / 2}px`,
+    } as CSSProperties;
+
+    return <div
+        ref={tabsRef}
+        className="creation-mode-tabs"
+        role="group"
+        aria-label="创作模式"
+        data-active-mode={activeModeKey}
+        data-orientation={orientation}
+        data-ready={ready ? "true" : "false"}
+        data-hop={hop}
+        style={visualStyle}
+    >
+        <span className="creation-mode-indicator" aria-hidden />
+        <span ref={coalRef} className="creation-mode-coal" aria-hidden>
+            <span className="creation-mode-coal-hop">
+                <span className="creation-mode-coal-body" />
+                <span className="creation-mode-coal-eye is-left" />
+                <span className="creation-mode-coal-eye is-right" />
+                <span className="creation-mode-coal-mouth" />
+                <span className="creation-mode-coal-hand is-left" />
+                <span className="creation-mode-coal-hand is-right" />
+                <span className="creation-mode-coal-spark" />
+            </span>
+        </span>
         {items.map((item) => (
             <button key={item.mode} type="button" className="creation-mode-button" data-mode={item.mode} aria-pressed={!agentActive && item.mode === mode} aria-label={`${item.label}生成`} onClick={() => onModeChange(item.mode)}>
-                {indicator(!agentActive && item.mode === mode)}
                 {item.icon}
                 <span>{item.label}</span>
             </button>
         ))}
-        {onAgentSelect ? <button type="button" className="creation-mode-button" data-mode="agent" aria-pressed={agentActive} onClick={onAgentSelect}>{indicator(agentActive)}<Brain /><span>Agent</span><i className="creation-mode-spark" aria-hidden /></button> : null}
-        </div>
-    </LayoutGroup>;
+        {onAgentSelect ? <button type="button" className="creation-mode-button" data-mode="agent" aria-pressed={agentActive} onClick={onAgentSelect}><Brain /><span>Agent</span><i className="creation-mode-spark" aria-hidden /></button> : null}
+    </div>;
 }
 
 function ModePicker({ mode, onModeChange }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void }) {
@@ -837,10 +950,10 @@ export function CreationEmptyBanner() {
 }
 
 const creationEmptySuggestions: Array<{ mode: CreationMode; icon: typeof Clapperboard; title: string; hint: string; prompt: string; openLibrary?: boolean }> = [
-    { mode: "video", icon: Clapperboard, title: "生成第一个镜头", hint: "描述画面、镜头运动与光线", prompt: "雨夜天台，镜头缓缓推近霓虹灯牌下的主角，她回眸看向镜头，强对比电影感布光" },
-    { mode: "image", icon: ImageIcon, title: "从参考图开始", hint: "上传风格图，生成同风格画面", prompt: "", openLibrary: true },
-    { mode: "text", icon: FileText, title: "续写故事", hint: "和 AI 讨论剧情、角色与对白", prompt: "帮我续写一个短剧故事，先聊聊剧情走向：" },
-    { mode: "video", icon: Sparkles, title: "引用技能增强", hint: "@技能 调用分镜、配音等专业能力", prompt: "调用分镜技能，帮我规划这个镜头的拍摄方案：" },
+    { mode: "video", icon: Clapperboard, title: "生成第一个镜头", hint: "描述画面、运动与光线", prompt: "雨夜天台，镜头缓缓推近霓虹灯牌下的主角，她回眸看向镜头，强对比电影感布光" },
+    { mode: "image", icon: ImageIcon, title: "从参考图开始", hint: "上传风格图，生成同款画面", prompt: "", openLibrary: true },
+    { mode: "text", icon: FileText, title: "续写故事", hint: "和 AI 讨论剧情与角色", prompt: "帮我续写一个短剧故事，先聊聊剧情走向：" },
+    { mode: "video", icon: Sparkles, title: "引用技能增强", hint: "@技能 调用分镜、配音", prompt: "调用分镜技能，帮我规划这个镜头的拍摄方案：" },
 ];
 
 export function CreationEmptySuggest({ onStartPrompt, onOpenLibrary }: { onStartPrompt: (mode: CreationMode, prompt: string) => void; onOpenLibrary: () => void }) {

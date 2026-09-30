@@ -9,7 +9,7 @@ const appVersion = process.env.CANVAS_BUILD_VERSION?.trim() || readFileSync(reso
 const buildCommit = process.env.CANVAS_BUILD_COMMIT?.trim() || process.env.VITE_BUILD_COMMIT?.trim() || "unknown";
 const buildTime = process.env.CANVAS_BUILD_TIME?.trim() || process.env.VITE_BUILD_TIME?.trim() || "unknown";
 const appChangelog = readFileSync(resolve(webDir, "../CHANGELOG.md"), "utf8");
-const apiProxyTarget = process.env.VITE_API_PROXY_TARGET?.trim() || "http://127.0.0.1:8080";
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET?.trim() || "http://127.0.0.1:8180";
 
 export default defineConfig({
     plugins: [react()],
@@ -41,6 +41,11 @@ export default defineConfig({
     },
     build: {
         rolldownOptions: {
+            // 独立署名页也经 Vite 处理，与主站共用带哈希的字体资源。
+            input: {
+                main: resolve(webDir, "index.html"),
+                credits: resolve(webDir, "welcome/credits.html"),
+            },
             output: {
                 strictExecutionOrder: true,
                 codeSplitting: {

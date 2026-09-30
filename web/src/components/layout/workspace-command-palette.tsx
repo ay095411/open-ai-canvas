@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { navigationTools } from "@/constant/navigation-tools";
 import { Kbd } from "@/components/ui/base/kbd";
 import { cn } from "@/lib/utils";
+import { openWorkspaceSettings } from "@/lib/workspace-settings";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 import { useUserStore } from "@/stores/use-user-store";
 
@@ -37,7 +38,7 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
             toolEntry("assets", "/assets"),
             toolEntry("skills", "/skills"),
             ...(features.creditsEnabled ? [{ ...toolEntry("wallet"), run: () => openWorkspaceWallet() }] : []),
-            toolEntry("settings", "/settings"),
+            { ...toolEntry("settings"), run: () => openWorkspaceSettings() },
         ];
     }, [features]);
 

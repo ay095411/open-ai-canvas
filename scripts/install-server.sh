@@ -5,7 +5,7 @@ set -Eeuo pipefail
 REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/ddcat-ai/open-ai-canvas.git}"
 REPOSITORY_REF="${REPOSITORY_REF:-main}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/open-ai-canvas}"
-CANVAS_HTTP_PORT="${CANVAS_HTTP_PORT:-3000}"
+CANVAS_HTTP_PORT="${CANVAS_HTTP_PORT:-3100}"
 COMPOSE_FILE="docker-compose.deploy.yml"
 BUILD_COMPOSE_FILE="docker-compose.build.yml"
 
@@ -28,7 +28,7 @@ require_root() {
 }
 
 install_packages() {
-    local packages=(ca-certificates curl git openssl)
+    local packages=(ca-certificates curl git git-lfs openssl)
 
     if command -v apt-get >/dev/null 2>&1; then
         apt-get update
@@ -38,7 +38,7 @@ install_packages() {
     elif command -v yum >/dev/null 2>&1; then
         yum install -y "${packages[@]}"
     else
-        fail "暂不支持当前 Linux 发行版，请先手动安装 Docker、Git、curl 和 OpenSSL"
+        fail "暂不支持当前 Linux 发行版，请先手动安装 Docker、Git、Git LFS、curl 和 OpenSSL"
     fi
 }
 
@@ -69,6 +69,8 @@ sync_source() {
         cd "$INSTALL_DIR"
         [[ -z "$(git status --porcelain --untracked-files=no)" ]] || fail "$INSTALL_DIR 存在本地代码改动，请先处理后再更新"
         git pull --ff-only origin "$REPOSITORY_REF"
+        git lfs install --local
+        git lfs pull
         return
     fi
 
@@ -78,6 +80,8 @@ sync_source() {
     mkdir -p "$(dirname "$INSTALL_DIR")"
     git clone --depth 1 --branch "$REPOSITORY_REF" "$REPOSITORY_URL" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
+    git lfs install --local
+    git lfs pull
 }
 
 prepare_environment() {

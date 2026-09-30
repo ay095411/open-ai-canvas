@@ -1,23 +1,31 @@
 @layer utilities {
-    /* Creation surfaces use a compact, theme-aware scrollbar. */
+    /* Creation surfaces use a compact, theme-aware scrollbar.
+       取值已收敛到 --scrollbar-* token：此前暗/亮主题各写一套（滑块 18% / 16%、hover 32% / 28%），
+       同一角色出现四个近似值。改为消费 token 后不再需要 html:not(.dark) 覆盖，
+       也删掉了 var(--user-ink, #fff) 的 #fff 兜底 —— 该兜底在浅色面上会产出白滑块，
+       与底色同明度而不可见（与侧栏滚动条曾踩的是同一个坑）。 */
     .creation-scrollbar {
-        scrollbar-color: color-mix(in srgb, var(--user-ink, #fff) 22%, transparent) transparent;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
         scrollbar-gutter: auto;
         scrollbar-width: thin;
     }
 
-    .creation-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .creation-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .creation-scrollbar::-webkit-scrollbar {
+        width: var(--scrollbar-size);
+        height: var(--scrollbar-size);
+    }
+
+    .creation-scrollbar::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+    }
+
     .creation-scrollbar::-webkit-scrollbar-thumb {
         border: 0;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--user-ink, #fff) 18%, transparent);
+        border-radius: var(--r-full);
+        background: var(--scrollbar-thumb);
     }
-    .creation-scrollbar::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--user-ink, #fff) 32%, transparent); }
 
-    html:not(.dark) .creation-scrollbar {
-        scrollbar-color: color-mix(in srgb, var(--user-ink, #1b1b1f) 22%, transparent) transparent;
+    .creation-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-thumb-hover);
     }
-    html:not(.dark) .creation-scrollbar::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--user-ink, #1b1b1f) 16%, transparent); }
-    html:not(.dark) .creation-scrollbar::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--user-ink, #1b1b1f) 28%, transparent); }
 }

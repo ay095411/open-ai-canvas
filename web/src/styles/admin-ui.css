@@ -159,7 +159,7 @@
     margin: 5px 0 0;
     color: var(--admin-text-muted);
     font-size: var(--fs-label);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-appearance-logo-frame-control {
@@ -361,7 +361,7 @@
 .admin-appearance-preview > p {
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-appearance-asset-copy em {
@@ -491,13 +491,13 @@
 
 .admin-appearance-preview-copy strong {
     font-size: clamp(23px, 2.2vw, 31px);
-    line-height: 1.22;
+    line-height: 1.2;
 }
 
 .admin-appearance-preview-copy > span {
     color: rgb(255 255 255 / 0.66);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-appearance-preview > p {
@@ -893,7 +893,7 @@
     padding: 11px 12px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-skin-locked-note svg {
@@ -1219,7 +1219,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 @media (max-width: 1120px) {
@@ -1865,7 +1865,7 @@
     margin-top: 5px;
     color: var(--admin-text-muted);
     font-size: 13px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-shell .admin-page-theme-toggle {
@@ -2416,7 +2416,7 @@
 .admin-settings-section-content .ant-form-item-explain {
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-settings-section-footer {
@@ -2516,7 +2516,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-feature-board {
@@ -2686,7 +2686,7 @@
     color: var(--admin-text-primary);
     font-size: 12px;
     font-weight: 650;
-    line-height: 1.45;
+    line-height: 1.5;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -2842,7 +2842,7 @@
     color: var(--admin-text-primary);
     font-size: 14px;
     font-weight: 660;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-feature-detail-grid {
@@ -2867,7 +2867,7 @@
     margin-top: 5px;
     color: var(--admin-text-secondary);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-feature-detail-cell.is-warning > span,
@@ -2912,7 +2912,7 @@
     margin-bottom: 12px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-feature-review-list {
@@ -2953,7 +2953,7 @@
     margin-top: 5px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-access-settings {
@@ -3060,7 +3060,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-access-overview {
@@ -3120,7 +3120,7 @@
     margin-top: 6px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-access-policy-copy > span {
@@ -3380,7 +3380,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-access-confirm-copy p + p {
@@ -3519,7 +3519,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-email-overview {
@@ -3577,7 +3577,7 @@
     margin-top: 6px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-email-policy-copy > span {
@@ -3683,7 +3683,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-email-confirm-copy p + p {
@@ -3821,7 +3821,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-storage-overview {
@@ -3937,7 +3937,7 @@
     margin-top: 5px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-storage-mode-choice > .admin-status-badge {
@@ -4082,7 +4082,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-storage-confirm-copy p + p {
@@ -4223,7 +4223,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-ark-overview {
@@ -4361,7 +4361,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-ark-context-note,
@@ -4472,7 +4472,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-ark-confirm-copy p + p {
@@ -4615,7 +4615,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-intercept-overview {
@@ -4836,7 +4836,7 @@
     margin-top: 5px;
     color: var(--admin-text-muted);
     font-size: 10px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-intercept-rule-field :is(.ant-input, .ant-input-affix-wrapper, .ant-input-textarea) {
@@ -4914,7 +4914,7 @@
     margin-top: 6px;
     color: var(--admin-text-muted);
     font-size: 10px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-intercept-preview-result {
@@ -4941,7 +4941,7 @@
     overflow-wrap: anywhere;
     color: var(--admin-text-primary);
     font-size: 13px;
-    line-height: 1.65;
+    line-height: 1.6;
     white-space: pre-wrap;
 }
 
@@ -4996,7 +4996,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-intercept-confirm-copy p + p {
@@ -5124,7 +5124,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-drawing-overview {
@@ -5252,7 +5252,7 @@
     display: block;
     font-size: 14px;
     font-weight: 650;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-drawing-engine-choice-description {
@@ -5260,7 +5260,7 @@
     margin-top: 11px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-drawing-engine-choice-note {
@@ -5369,7 +5369,7 @@
     margin-bottom: 12px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-drawing-review-list {
@@ -5408,7 +5408,7 @@
     grid-column: 1 / -1;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-runtime-policy {
@@ -5497,7 +5497,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-runtime-policy-overview {
@@ -5703,7 +5703,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-runtime-policy-confirm-copy p + p {
@@ -5880,7 +5880,7 @@
     padding: 10px 12px;
     color: color-mix(in srgb, var(--admin-status-warning) 78%, var(--admin-text-primary));
     font-size: 12px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-third-party-overview {
@@ -5951,7 +5951,7 @@
     margin-top: 2px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-third-party-provider-tags {
@@ -6119,7 +6119,7 @@
 .admin-third-party-credential-state p {
     color: var(--admin-text-muted);
     font-size: 10px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-third-party-credential-actions {
@@ -6167,7 +6167,7 @@
     padding: 10px 16px;
     color: var(--admin-text-muted);
     font-size: 10px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-third-party-test-note svg {
@@ -6230,7 +6230,7 @@
     margin-top: 4px;
     color: var(--admin-text-muted);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-third-party-confirm-copy p + p {
@@ -6470,7 +6470,7 @@
     display: block;
     max-width: 760px;
     font-style: normal;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-feature-board-row-name > span {
@@ -6553,7 +6553,7 @@
 
 .admin-feature-runtime-note span {
     font-size: 10px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 @media (max-width: 1279px) {
@@ -6908,7 +6908,7 @@
     margin-top: 3px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-credit-operations,
@@ -6977,7 +6977,7 @@
     margin-top: 4px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-credit-drawer-loading {
@@ -7018,14 +7018,14 @@
     color: var(--admin-text-primary);
     font-size: 13px;
     font-weight: 650;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-credit-drawer-section-heading p {
     margin-top: 3px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-credit-policy-grid {
@@ -7139,7 +7139,7 @@
     margin-top: 3px;
     color: var(--admin-text-secondary);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-redemption-uncertain-notice .ant-btn {
@@ -7241,7 +7241,7 @@
     margin-top: 3px;
     color: var(--admin-text-secondary);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-api-log-recovery-notice .ant-btn {
@@ -7267,7 +7267,7 @@
     color: var(--admin-text-primary);
     font-size: 12px;
     font-weight: 600;
-    line-height: 1.45;
+    line-height: 1.5;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -7280,7 +7280,7 @@
 .admin-api-log-result-cost > span {
     color: var(--admin-text-muted);
     font-size: 10px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-api-log-tertiary-text {
@@ -7295,7 +7295,7 @@
     color: var(--admin-text-secondary);
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
     font-size: 10px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-api-log-path > :first-child {
@@ -7537,7 +7537,7 @@
     color: var(--admin-text-primary);
     font-size: 13px;
     font-weight: 650;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-api-log-detail-section > header p {
@@ -7777,7 +7777,7 @@
     color: var(--admin-text-secondary);
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
     font-size: 10.5px;
-    line-height: 1.62;
+    line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
 }
@@ -7869,7 +7869,7 @@
     gap: 3px;
     color: var(--admin-text-muted);
     font-size: 10px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-announcement-uncertain-notice {
@@ -7901,7 +7901,7 @@
     margin-top: 3px;
     color: var(--admin-text-secondary);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-announcement-uncertain-actions {
@@ -8042,7 +8042,7 @@
 .admin-announcement-drawer :is(.ant-form-item-extra, .ant-form-item-explain) {
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-announcement-drawer :is(.ant-input, .ant-input-affix-wrapper, .ant-select-selector):focus,
@@ -8081,7 +8081,7 @@
     margin-top: 4px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-announcement-editor-section {
@@ -8103,14 +8103,14 @@
     color: var(--admin-text-primary);
     font-size: 13px;
     font-weight: 650;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-announcement-editor-section-heading p {
     margin-top: 3px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-announcement-form-grid {
@@ -8264,7 +8264,7 @@
 .admin-redemption-drawer :is(.ant-form-item-extra, .ant-form-item-explain) {
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-redemption-drawer-intro {
@@ -8300,7 +8300,7 @@
     margin-top: 4px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-redemption-drawer-section {
@@ -8322,14 +8322,14 @@
     color: var(--admin-text-primary);
     font-size: 13px;
     font-weight: 650;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-redemption-drawer-section-heading p {
     margin-top: 3px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-redemption-form-grid {
@@ -8386,7 +8386,7 @@
     padding: 10px 12px;
     color: var(--admin-text-secondary);
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-redemption-sensitive-notice.is-warning {
@@ -8398,7 +8398,7 @@
     margin: -4px 0 10px;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .admin-redemption-detail-summary {
@@ -9118,7 +9118,7 @@
     margin: 0;
     color: var(--admin-text-muted);
     font-size: 13px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-model-editor-section-content > .ant-form-item:last-child,
@@ -9256,7 +9256,7 @@
     margin: 2px 0 0;
     color: var(--admin-text-muted);
     font-size: 11px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-model-editor-modal .admin-capability-reference-fields,
@@ -10447,7 +10447,7 @@ html[data-magicui-theme-vt="active"] .admin-shell * {
     margin: 0 0 14px;
     color: var(--admin-text-secondary, var(--admin-text-muted));
     font-size: 12px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-system-update-version-row {
@@ -10559,7 +10559,7 @@ html[data-magicui-theme-vt="active"] .admin-shell * {
     margin: 2px 0 0;
     color: color-mix(in srgb, var(--foreground) 48%, transparent);
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.5;
     overflow-wrap: anywhere;
 }
 
@@ -10914,7 +10914,7 @@ html[data-magicui-theme-vt="active"] .admin-shell * {
     padding: 6px 14px;
     border-top: 1px solid var(--admin-row-border);
     font-size: 12px;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .admin-performance-facts dt {
@@ -11021,7 +11021,7 @@ html[data-magicui-theme-vt="active"] .admin-shell * {
     gap: 8px;
     color: var(--admin-text-secondary);
     font-size: 13px;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 .admin-performance-confirm p {

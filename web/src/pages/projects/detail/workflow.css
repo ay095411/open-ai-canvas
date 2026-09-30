@@ -551,7 +551,7 @@
     padding: 8px 11px;
     color: var(--foreground);
     font-size: var(--fs-body);
-    line-height: 1.55;
+    line-height: 1.5;
     outline: 0;
 }
 
@@ -826,7 +826,7 @@
 .workflow-timeline-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .workflow-timeline-heading strong { font-size: var(--fs-micro); font-weight: 700; font-variant-numeric: tabular-nums; }
 .workflow-timeline-heading b { color: var(--foreground); font-size: var(--fs-caption); font-weight: 750; font-variant-numeric: tabular-nums; }
-.workflow-timeline-title { display: block; min-height: 16px; overflow: hidden; margin-top: 5px; color: color-mix(in srgb, var(--foreground) 72%, transparent); font-size: var(--fs-label); font-style: normal; font-weight: 550; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.workflow-timeline-title { display: block; min-height: 16px; overflow: hidden; margin-top: 5px; color: color-mix(in srgb, var(--foreground) 72%, transparent); font-size: var(--fs-label); font-style: normal; font-weight: 550; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
 .workflow-timeline-meta { display: block; overflow: hidden; margin-top: 4px; color: color-mix(in srgb, var(--foreground) 38%, transparent); font-size: var(--fs-micro); text-overflow: ellipsis; white-space: nowrap; }
 .workflow-timeline-status { position: absolute; right: 10px; bottom: 8px; left: 10px; display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 6px; }
 .workflow-timeline-status > span:first-child { min-width: 0; overflow: hidden; color: color-mix(in srgb, var(--foreground) 45%, transparent); font-size: var(--fs-micro); text-overflow: ellipsis; white-space: nowrap; }
