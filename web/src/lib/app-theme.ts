@@ -308,6 +308,14 @@ export function getAntThemeConfig(dark: boolean, skinID: unknown = "classic"): T
                 optionSelectedBg: color.selectSelectedBg,
                 optionSelectedColor: color.selectText,
             },
+            Tag: {
+                // antd 6 在 JS 里用 FastColor 把 colorFillTertiary 叠到 colorBgContainer
+                // 派生 Tag 默认底色，在当前主题下该算式会退化成纯黑（浅色模式黑底黑字，
+                // 素材档案的标签因此不可读）。这里显式给值，绕开派生，并与
+                // globals.css 里彩色 Tag 的单色契约（color-mix foreground）保持一致。
+                defaultBg: dark ? "rgba(255, 255, 255, 0.07)" : "rgba(23, 23, 23, 0.06)",
+                defaultColor: dark ? "rgba(250, 250, 250, 0.78)" : "rgba(23, 23, 23, 0.76)",
+            },
             Table: {
                 headerBg: subtleBackground,
                 headerColor: skin.textMuted || (dark ? "rgba(250, 250, 250, 0.62)" : "rgba(23, 23, 23, 0.58)"),
