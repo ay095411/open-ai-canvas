@@ -9,7 +9,10 @@
         border-radius: var(--user-radius-card) !important;
         background: var(--user-surface-raised) !important;
         background-image: none !important;
-        box-shadow: none !important;
+        /* 浮层是悬浮元素，必须有投影才能与页面分离；这里的 @layer !important
+           优先级高于全局非 layer 规则，此前写 none 会把 elevation 整个压掉，
+           导致浅色主题下白色浮层和页面完全糊在一起。 */
+        box-shadow: var(--elevation-overlay) !important;
     }
 
     .workspace-quiet-popup.ant-select-dropdown,

@@ -5,7 +5,7 @@ import { Box, CheckCheck, Clapperboard, Copy, Download, FileText, FileUp, Link2,
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { assetCategoryLabel } from "@/lib/asset-category";
 import { formatBytes } from "@/lib/image-utils";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resourceStorageLabel, resourceStorageLocation, resourceStorageTitle } from "@/lib/canvas/resource-storage-status";
 import { type LibraryAsset, assetKindIcons } from "./asset-library-format";
 import { isKnownAssetKind } from "./asset-library-cards";
@@ -247,17 +247,28 @@ export function AssetImageZoom({ asset }: { asset: LibraryAsset & { kind: "image
     const [scale, setScale] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+    const viewerRef = useRef<HTMLDivElement | null>(null);
     const reset = () => {
         setScale(1);
         setOffset({ x: 0, y: 0 });
     };
+    // React 的 onWheel 是 passive 监听，preventDefault() 不生效，滚轮会同时
+    // 缩放图片和滚动页面。这里用非 passive 原生监听接管：悬停在查看器上时
+    // 滚轮只缩放图片，页面不再滚动。
+    useEffect(() => {
+        const node = viewerRef.current;
+        if (!node) return;
+        const onWheel = (event: WheelEvent) => {
+            event.preventDefault();
+            setScale((value) => Math.min(4, Math.max(0.25, value * (event.deltaY < 0 ? 1.12 : 0.89))));
+        };
+        node.addEventListener("wheel", onWheel, { passive: false });
+        return () => node.removeEventListener("wheel", onWheel);
+    }, []);
     return (
         <div
+            ref={viewerRef}
             className="asset-zoom-viewer"
-            onWheel={(event) => {
-                event.preventDefault();
-                setScale((value) => Math.min(4, Math.max(0.25, value * (event.deltaY < 0 ? 1.12 : 0.89))));
-            }}
             onPointerDown={(event) => {
                 if (scale <= 1) return;
                 event.currentTarget.setPointerCapture(event.pointerId);
