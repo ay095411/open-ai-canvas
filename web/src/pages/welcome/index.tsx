@@ -59,7 +59,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
-        document.title = "影策 · 让一个故事从文字走向银幕";
+        document.title = "Navo AI · 让一个故事从文字走向银幕";
         const media = window.matchMedia("(prefers-reduced-motion: reduce)");
         const onMotion = () => setReduced(media.matches);
         media.addEventListener("change", onMotion);
@@ -119,7 +119,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
             </aside>
 
             <main>
-                <section ref={storyRef} id="story" className="welcome-story" aria-label="影策创作之旅">
+                <section ref={storyRef} id="story" className="welcome-story" aria-label="Navo AI创作之旅">
                     <div className={`welcome-stage chapter-${chapter}${staticScene ? " is-static" : ""}`}>
                         <div className={`welcome-poster${ready && !staticScene ? " is-ready" : ""}`} aria-hidden="true"><img src={look.frames[staticScene ? chapter * 2 : 0]} alt="" fetchPriority="high" /></div>
                         {!staticScene && <SceneBoundary onError={() => setFailed(true)}><Suspense fallback={null}><StoryReel look={look} progress={progressRef} paused={paused} onReady={() => setReady(true)} onError={() => setFailed(true)} /></Suspense></SceneBoundary>}

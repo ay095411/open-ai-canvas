@@ -14287,7 +14287,7 @@ html:not(.dark) .creation-history-drawer-root {
     .creation-empty-workspace > .creation-empty-suggest { margin-top: 20px; }
 }
 
-/* ===== 素材库 · 重构（影策影视资产） =====
+/* ===== 素材库 · 重构（Navo AI 影视资产） =====
    与画布库共用 studio-band 毛玻璃页头与 frame 外壳；类型化封面、accent 反白筛选、
    批量操作条、banner+欢迎卡空态、资产档案抽屉。全局保持黑白单色。 */
 .assets-library-page .assets-header-meta { gap: 6px; }
@@ -18070,7 +18070,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     letter-spacing: .06em !important;
     line-height: 1.15 !important;
 }
-/* 品牌名（动态，默认「影策」、可被站点外观改成任意长度）单独做彩虹艺术字。
+/* 品牌名（动态，默认「Navo AI」、可被站点外观改成任意长度）单独做彩虹艺术字。
    字体走 --font-brand = Fredoka Variable（SIL OFL 1.1，可商用、无侵权风险、无需在 UI 内署名），
    圆头几何的展示体，和液态玻璃胶囊 + 煤球这套圆润语气同源；
    它只有拉丁与希伯来字形，中文品牌名会整段回落到 --font-sans 的 OPPO Sans 及中文后备字体，

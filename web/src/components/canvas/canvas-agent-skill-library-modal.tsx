@@ -286,7 +286,7 @@ function SkillLibraryCard({ skill, theme, categories, selected, canSelect, onTog
     const coverUrl = cover?.showcaseUrl;
     const hasCover = Boolean(coverUrl && !coverFailed);
     const categoryLabel = categories.find((item) => item.value === skill.tag)?.label || "其他";
-    const author = skill.effectiveUser?.name || "影策创作者";
+    const author = skill.effectiveUser?.name || "Navo AI 创作者";
     const addedCount = formatSkillCount(skill.addedCount || 0);
 
     useEffect(() => setCoverFailed(false), [coverUrl]);
