@@ -73,22 +73,15 @@ export function CanvasImagePreview({ src = "", storageKey, alt = "图片", onClo
             className="canvas-image-preview-modal"
         >
             <div
-                className="flex min-h-[min(72vh,680px)] items-center justify-center border-t p-5 sm:p-8"
+                className="relative flex min-h-[min(72vh,680px)] items-center justify-center border-t p-6 sm:p-10"
                 style={{
                     borderColor: "var(--workspace-border)",
                     background: "color-mix(in srgb, var(--workspace-surface) 86%, var(--background))",
                 }}
             >
-                <div
-                    className="relative flex min-h-[min(62vh,560px)] w-full items-center justify-center overflow-hidden rounded-[var(--r-lg)] p-4 sm:p-6"
-                    style={{
-                        background: "var(--workspace-surface-strong)",
-                        boxShadow: "0 18px 50px color-mix(in srgb, var(--foreground) 14%, transparent)",
-                    }}
-                >
                     {loading && !error ? (
                         <div
-                            className="absolute inset-3 grid place-items-center rounded-[var(--r-md)] border border-dashed sm:inset-5"
+                            className="absolute inset-0 grid place-items-center"
                             style={{
                                 borderColor: "var(--workspace-border)",
                                 background: "color-mix(in srgb, var(--workspace-surface-strong) 68%, var(--workspace-surface))",
@@ -106,7 +99,7 @@ export function CanvasImagePreview({ src = "", storageKey, alt = "图片", onClo
                     ) : null}
                     {error ? (
                         <div
-                            className="absolute inset-3 grid place-items-center rounded-[var(--r-md)] border border-dashed sm:inset-5"
+                            className="absolute inset-0 grid place-items-center"
                             style={{
                                 borderColor: "var(--workspace-border-strong)",
                                 background: "color-mix(in srgb, var(--workspace-surface-strong) 68%, var(--workspace-surface))",
@@ -128,7 +121,7 @@ export function CanvasImagePreview({ src = "", storageKey, alt = "图片", onClo
                             src={resolvedSrc}
                             alt={alt}
                             draggable={false}
-                            className={`max-h-[min(66vh,620px)] max-w-full rounded-[var(--r-sm)] object-contain transition-opacity duration-200 motion-reduce:transition-none ${loading || error ? "opacity-0" : "opacity-100"}`}
+                            className={`max-h-[min(66vh,620px)] max-w-full rounded-[var(--r-md)] object-contain shadow-[0_24px_64px_color-mix(in_srgb,var(--foreground)_18%,transparent)] transition-opacity duration-200 motion-reduce:transition-none ${loading || error ? "opacity-0" : "opacity-100"}`}
                             onLoad={() => {
                                 setLoading(false);
                                 setError(false);
@@ -139,7 +132,6 @@ export function CanvasImagePreview({ src = "", storageKey, alt = "图片", onClo
                             }}
                         />
                     ) : null}
-                </div>
             </div>
         </AppModal>
     );
