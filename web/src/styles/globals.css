@@ -18650,7 +18650,9 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .ant-select.app-unified-select--pill {
     border-radius: var(--r-full) !important;
-    padding-inline: 4px;
+    /* 与输入框的 padding-inline（12px）对齐：此前 4px 会让前置图标几乎贴着左边缘，
+       和同排搜索框的图标缩进差 8px，视觉上明显不齐。 */
+    padding-inline: 12px;
 }
 
 .ant-select.app-unified-select.ant-select-sm {
