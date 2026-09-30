@@ -63,7 +63,7 @@ export function CanvasImagePreview({ src = "", storageKey, alt = "图片", onClo
                     >
                         <ImageIcon className="size-4" />
                     </span>
-                    <span className="min-w-0 truncate text-sm font-semibold" title={alt}>{alt}</span>
+                    <span className="min-w-0 truncate text-[15px] font-semibold" title={alt}>{alt}</span>
                 </div>
             }
             footer={null}
@@ -73,11 +73,8 @@ export function CanvasImagePreview({ src = "", storageKey, alt = "图片", onClo
             className="canvas-image-preview-modal"
         >
             <div
-                className="relative flex min-h-[min(72vh,680px)] items-center justify-center border-t p-6 sm:p-10"
-                style={{
-                    borderColor: "var(--workspace-border)",
-                    background: "color-mix(in srgb, var(--workspace-surface) 86%, var(--background))",
-                }}
+                className="relative flex min-h-[min(72vh,680px)] items-center justify-center p-6 sm:p-10"
+                style={{ background: "transparent" }}
             >
                     {loading && !error ? (
                         <div

@@ -19000,3 +19000,19 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     background: color-mix(in srgb, var(--foreground) 12%, transparent);
     color: color-mix(in srgb, var(--foreground) 46%, transparent);
 }
+
+/* 媒体预览弹窗：这一版 antd 的头部无默认内边距（28px 高），单独给足呼吸感；
+   分隔线只保留内容区上沿一条，避免与 header border-bottom 叠成双线。 */
+.canvas-image-preview-modal .ant-modal-header {
+    margin: 0;
+    padding: 14px 20px 12px;
+    background: transparent;
+}
+.canvas-image-preview-modal .ant-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+}
+.canvas-image-preview-modal .ant-modal-close {
+    top: 10px;
+    right: 12px;
+}
