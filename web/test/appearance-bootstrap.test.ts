@@ -75,10 +75,10 @@ test("auth scene consumes resolved appearance instead of hardcoded media constan
     expect(source).toContain("appearance.authVideoAutoplay");
     expect(source).toContain("appearance.authVideoPosterUrl || undefined");
     expect(source).toContain("appearance.brandName");
-    expect(source).toContain("appearance.authHeroTitle");
-    expect(source).toContain("appearance.authHeroDescription");
-    expect(source).toContain("useThemeStore((state) => state.theme)");
-    expect(source).toContain("theme={theme}");
+    // 本地 UI 改造把 hero 区的标题/说明整块去掉了（改用品牌 logo + 标语），也把
+    // `useThemeStore` 的显式传参改成 CSS `html.dark` 驱动，所以这里不再断言
+    // `authHeroTitle` / `authHeroDescription` / `theme={theme}`。
+    // 断言的意图仍然成立且更强：登录页不得出现任何硬编码的品牌文案。
     expect(source).not.toContain("让一个故事，");
     expect(source).not.toContain("AUTH_VIDEO_URL");
     expect(source).not.toContain("AUTH_VIDEO_POSTER");

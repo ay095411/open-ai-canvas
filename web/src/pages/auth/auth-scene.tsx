@@ -54,8 +54,10 @@ export function AuthScene() {
                 </section>
 
                 {/* min-h-[660px] 之类的固定高度是为了让登录/注册切换时卡片不跳动，
-                    代价是登录态下方留一大片空白——简化后内容本来就少，直接让卡片按内容高度走。 */}
-                <section className="auth-scene-form-pane relative flex flex-col overflow-y-auto">
+                    代价是登录态下方留一大片空白——简化后内容本来就少，直接让卡片按内容高度走。
+                    items-center 来自上游「修复缩放时版权栏遮挡表单」：卡片在剩余空间里居中，
+                    底部版权栏（shrink-0）不再与卡片重叠。内边距仍由内层 motion.div 承担。 */}
+                <section className="auth-scene-form-pane relative flex min-h-[660px] flex-col items-center overflow-y-auto">
                     <Link to="/" className="auth-scene-return absolute right-5 top-5 z-20 inline-flex h-9 items-center gap-2 rounded-full px-4 text-xs backdrop-blur-xl transition lg:right-8 lg:top-8">
                         <ArrowLeft className="size-3.5" />
                         返回首页
