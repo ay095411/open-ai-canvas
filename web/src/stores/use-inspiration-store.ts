@@ -4,13 +4,19 @@
  * 内置目录（public/inspirations 与 lib/inspirations/highlights）始终只读，
  * 这里只保存叠加层，重新导入外部目录后用户的改动仍然对得上 id。
  * 落盘走 localforage 的用户作用域，切换账号不会串数据；理由见 AGENTS 第 4 节。
+ *
+ * 权限：**改库的写操作只对管理员开放**，普通用户是「只读 + 收藏」。
+ * 判定口径与页面共用 `lib/inspirations/permissions.ts`，页面负责不出入口，这里负责兜底
+ * ——新加一个入口时忘了判角色，也不会真的写进去。
  */
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { catalogIdOf, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
+import { canManageInspirations } from "@/lib/inspirations/permissions";
 import { CUSTOM_ID_PREFIX, isCustomInspiration, type InspirationOverride } from "@/lib/inspirations/resolve";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
+import { useUserStore } from "@/stores/use-user-store";
 
 export const INSPIRATION_STORE_KEY = "open_ai_canvas:inspirations";
 /** 导入导出文件的格式版本，字段变化时递增并在这里做迁移。 */
@@ -50,6 +56,7 @@ type InspirationStore = {
     overrides: Record<string, InspirationOverride>;
     hidden: string[];
     favorites: string[];
+    /** 非管理员调用会被忽略并返回空串。 */
     createEntry: (draft: InspirationDraft) => string;
     updateEntry: (id: string, patch: InspirationOverride) => void;
     /** 自建条目真删，内置条目转为隐藏——内置数据来自外部目录，删了下次同步还会回来。 */
@@ -62,6 +69,19 @@ type InspirationStore = {
     /** 持久化回填完成；页面据此决定要不要显示骨架态。 */
     markHydrated: () => void;
 };
+
+/**
+ * 改库写操作的统一门禁。
+ * 游客 / 尚未 hydrate 出用户时也判为「不允许」——页面上的入口本身就要先确认是管理员才渲染，
+ * 所以这里 fail-closed 不会挡住合法调用。
+ */
+function canManageLibrary(): boolean {
+    return canManageInspirations(useUserStore.getState().user);
+}
+
+function warnBlocked(action: string) {
+    console.warn(`[inspirations] 已忽略「${action}」：灵感库对普通用户只读，只有管理员可以改。`);
+}
 
 function nonEmpty(value: unknown, field: string): string {
     if (typeof value !== "string" || !value.trim()) throw new Error(`缺少必填字段 ${field}`);
@@ -120,6 +140,10 @@ export const useInspirationStore = create<InspirationStore>()(
             favorites: [],
 
             createEntry: (draft) => {
+                if (!canManageLibrary()) {
+                    warnBlocked("新建灵感");
+                    return "";
+                }
                 const id = `${CUSTOM_ID_PREFIX}${crypto.randomUUID()}`;
                 const entry: CreationInspiration = { ...normalizeDraft(draft), id, sourceId: "original" };
                 set((state) => ({ custom: [entry, ...state.custom] }));
@@ -127,6 +151,10 @@ export const useInspirationStore = create<InspirationStore>()(
             },
 
             updateEntry: (id, patch) => {
+                if (!canManageLibrary()) {
+                    warnBlocked("编辑灵感");
+                    return;
+                }
                 if (!id) throw new Error("缺少要修改的灵感 ID");
                 const sanitized = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined && value !== ""));
                 if (!Object.keys(sanitized).length) return;
@@ -138,6 +166,10 @@ export const useInspirationStore = create<InspirationStore>()(
             },
 
             removeEntry: (id) => {
+                if (!canManageLibrary()) {
+                    warnBlocked("删除 / 隐藏灵感");
+                    return;
+                }
                 if (!id) throw new Error("缺少要删除的灵感 ID");
                 if (isCustomInspiration(id)) {
                     set((state) => ({
@@ -153,7 +185,13 @@ export const useInspirationStore = create<InspirationStore>()(
                 }));
             },
 
-            restoreEntry: (id) => set((state) => ({ hidden: state.hidden.filter((item) => item !== id) })),
+            restoreEntry: (id) => {
+                if (!canManageLibrary()) {
+                    warnBlocked("恢复显示灵感");
+                    return;
+                }
+                set((state) => ({ hidden: state.hidden.filter((item) => item !== id) }));
+            },
 
             toggleFavorite: (id) => {
                 if (!id) throw new Error("缺少要收藏的灵感 ID");
@@ -174,6 +212,10 @@ export const useInspirationStore = create<InspirationStore>()(
             },
 
             importPayload: (text) => {
+                if (!canManageLibrary()) {
+                    warnBlocked("导入灵感");
+                    return { created: 0, updated: 0, skipped: 0 };
+                }
                 let parsed: unknown;
                 try {
                     parsed = JSON.parse(text);
@@ -209,7 +251,13 @@ export const useInspirationStore = create<InspirationStore>()(
                 return { created, updated, skipped };
             },
 
-            resetCustomizations: () => set({ custom: [], overrides: {}, hidden: [], favorites: [] }),
+            resetCustomizations: () => {
+                if (!canManageLibrary()) {
+                    warnBlocked("重置灵感库改动");
+                    return;
+                }
+                set({ custom: [], overrides: {}, hidden: [], favorites: [] });
+            },
 
             markHydrated: () => set({ hydrated: true }),
         }),

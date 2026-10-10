@@ -10,9 +10,11 @@ import { Select } from "@/components/ui/base/select";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { catalogIdOf, inspirationSourceOf, inspirationSources, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
+import { canManageInspirations } from "@/lib/inspirations/permissions";
 import { fillablePrompt, isCustomInspiration, resolveInspirations } from "@/lib/inspirations/resolve";
 import { loadInspirationCatalog, type InspirationCatalog } from "@/services/inspiration-catalog";
 import { useInspirationStore } from "@/stores/use-inspiration-store";
+import { useUserStore } from "@/stores/use-user-store";
 import { InspirationDetailModal } from "./inspiration-detail-modal";
 import { InspirationEditorModal, type InspirationCategoryChoice } from "./inspiration-editor-modal";
 import "./inspirations.css";
@@ -26,6 +28,10 @@ type CategoryChoice = InspirationCategoryChoice & { count: number };
 
 /** 来源筛选的顺序。必须覆盖 inspirationSources 里全部有内容的来源，漏掉就会有条目筛不到。 */
 const SOURCE_ORDER: InspirationSourceId[] = ["original", "chatgpt-prompts", "seedance", "haohaoxue", "youmind"];
+/**
+ * 「已隐藏」是管理视图：隐藏本身就是改库动作，普通用户既不能隐藏、也就不该看到这个视图。
+ * 组件内会按角色把它过滤掉，非管理员的筛选栏里不会出现。
+ */
 const VIEW_OPTIONS: { label: string; value: ViewFilter }[] = [
     { label: "全部", value: "all" },
     { label: "收藏", value: "favorites" },
@@ -53,6 +59,13 @@ function downloadText(text: string, fileName: string) {
 export default function InspirationsPage() {
     const { message, modal } = App.useApp();
     const navigate = useNavigate();
+
+    /**
+     * 谁能改库。普通用户对灵感库是「只读 + 收藏」：浏览 / 搜索 / 复制提示词 / 一键带去创作 /
+     * 收藏都能用，新建、导入、导出、编辑、删除隐藏一律不出现在界面上。
+     * 判定口径与 store 里的写守卫共用同一个纯函数，避免两处各写一套。
+     */
+    const isAdmin = useUserStore((state) => canManageInspirations(state.user));
 
     const custom = useInspirationStore((state) => state.custom);
     const overrides = useInspirationStore((state) => state.overrides);
@@ -105,6 +118,13 @@ export default function InspirationsPage() {
     useEffect(() => {
         setPage(1);
     }, [source, modeFilter, category, view, sort, debouncedSearch, pageSize]);
+
+    /** 管理视图对普通用户不可见，也就不该停在这上面（例如管理员被降级后留在该视图）。 */
+    useEffect(() => {
+        if (!isAdmin) setView((current) => (current === "hidden" ? "all" : current));
+    }, [isAdmin]);
+
+    const viewOptions = useMemo(() => (isAdmin ? VIEW_OPTIONS : VIEW_OPTIONS.filter((option) => option.value !== "hidden")), [isAdmin]);
 
     const overlay = useMemo(() => ({ custom, overrides, hidden }), [custom, hidden, overrides]);
     const resolved = useMemo(() => (catalog ? resolveInspirations(catalog.entries, overlay) : []), [catalog, overlay]);
@@ -277,7 +297,11 @@ export default function InspirationsPage() {
         [importPayload, message],
     );
 
-    const headerActions = (
+    /**
+     * 页头那组按钮全是改库动作（导入 / 导出 / 新建灵感），只给管理员。
+     * 普通用户整组不渲染——游标指向的隐藏 file input 也一并去掉，免得留下一个没有入口的控件。
+     */
+    const headerActions = isAdmin ? (
         <>
             <Button icon={<Import className="size-4" />} onClick={() => importRef.current?.click()}>
                 导入
@@ -308,7 +332,7 @@ export default function InspirationsPage() {
                 }}
             />
         </>
-    );
+    ) : null;
 
     const total = catalog ? resolved.length + hiddenItems.length : 0;
 
@@ -344,7 +368,7 @@ export default function InspirationsPage() {
 
                     <div className="flex flex-wrap items-center gap-2">
                         <Input allowClear prefix={<Search className="size-4 text-foreground/40" />} placeholder="搜标题、描述或标签" value={search} onChange={(event) => setSearch(event.target.value)} className="max-w-xs" />
-                        <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={(value) => setView(value as ViewFilter)} />
+                        <SegmentedControl options={viewOptions} value={view} onChange={(value) => setView(value as ViewFilter)} />
                         <Select
                             options={[
                                 { label: `全部来源 (${resolved.length})`, value: "all" },
@@ -387,6 +411,7 @@ export default function InspirationsPage() {
                                             <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                                             <span className="inspiration-card-source">{inspirationSourceOf(item).label}</span>
                                             <div className="inspiration-card-actions">
+                                                {/* 收藏是个人书签，不改库内容，所有登录用户都能用。 */}
                                                 <Tooltip title={favorite ? "取消收藏" : "收藏"}>
                                                     <button
                                                         type="button"
@@ -400,7 +425,8 @@ export default function InspirationsPage() {
                                                         <Heart className="size-3.5" fill={favorite ? "currentColor" : "none"} />
                                                     </button>
                                                 </Tooltip>
-                                                {view === "hidden" ? (
+                                                {/* 编辑 / 隐藏 / 恢复都是改库动作，只给管理员。 */}
+                                                {!isAdmin ? null : view === "hidden" ? (
                                                     <Tooltip title="恢复显示">
                                                         <button
                                                             type="button"
@@ -479,12 +505,18 @@ export default function InspirationsPage() {
                 onUse={handleUse}
                 onCopy={handleCopy}
                 onToggleFavorite={(item) => toggleFavorite(catalogIdOf(item))}
-                onEdit={(item) => {
-                    setDetail(null);
-                    setEditing(item);
-                    setEditorOpen(true);
-                }}
-                onDelete={handleDelete}
+                /* 编辑 / 删除不传就是不渲染——弹窗自己按「有没有这几个 prop」决定底栏左侧那一组，
+                   所以普通用户打开详情只看到「收藏 / 关闭 / 用这个创意创作」。 */
+                onEdit={
+                    isAdmin
+                        ? (item) => {
+                              setDetail(null);
+                              setEditing(item);
+                              setEditorOpen(true);
+                          }
+                        : undefined
+                }
+                onDelete={isAdmin ? handleDelete : undefined}
             />
 
             <InspirationEditorModal
