@@ -31,7 +31,9 @@ import { buildCreationMentionReferences, expandCreationPrompt, reconcileCreation
 import { creationAttachmentFromAsset, creationAttachmentFromAudio, creationAttachmentFromAudioAsset, creationAttachmentFromDocument, creationAttachmentFromExternalAsset, creationAttachmentFromImage, creationAttachmentFromVideo, creationAttachmentFromVideoAsset, creationAttachmentKind, creationAudioAsset, creationFileAccepted, creationImageAsset, creationMediaAspectRatio, creationUploadAccept, creationVideoAsset, removeCreationAttachment, splitCreationAttachments, type CreationAttachment } from "./creation-assets";
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
 import { attachCreationTaskContexts, completedCreationGenerationTask, conversationTimestamp, creationShotRail, creationVideoShotOrdinal, isImageAttachment, isVideoAttachment, materializeCreationTaskResults, newConversation, newMessage, reconcileCreationTaskMessages } from "./creation-conversations";
-import { CreationComposer, CreationEmptySuggest, CreationFeaturedWorks, CreationHistoryDrawer, CreationMessageView, CreationModeTabs, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
+import { CreationComposer, CreationEmptySuggest, CreationHistoryDrawer, CreationMessageView, CreationModeTabs, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
+import { CreationInspirationTunnel } from "./creation-inspiration-tunnel";
+import { declaredInspirationSources } from "@/lib/inspirations/catalog";
 import { CreationAgentEntry } from "./creation-agent-entry";
 import { CreationHomeAmbientVideo } from "./creation-home-ambient-video";
 import { createCreationSubmitGate } from "./creation-submit-gate";
@@ -108,6 +110,7 @@ export default function CreatePage() {
     const [hydrated, setHydrated] = useState(false);
     const userId = useUserStore((state) => state.user?.id || null);
     const userSessionHydrated = useUserStore((state) => state.hydrated);
+    const inspirationSourcesVisible = useUserStore((state) => state.features.inspirationSourcesVisible);
     const [conversationScope, setConversationScope] = useState<string | null>(null);
     const [mode, setMode] = useState<CreationMode>(() => initialComposerPreferences.mode || defaultCreationMode);
     const [prompt, setPrompt] = useState("");
@@ -421,6 +424,21 @@ export default function CreatePage() {
             updateConfig(next === "text" ? "textModel" : next === "image" ? "imageModel" : "videoModel", nextModels[0]);
         }
     };
+
+    // 灵感库「用这个创意创作」跳过来时把提示词和类型带上。
+    // 用完立刻清掉路由状态：留着的话，用户前进后退回到这一页会被重复填充一次。
+    const inspirationHandoff = location.state as { inspirationPrompt?: string; inspirationMode?: CreationMode } | null;
+    useEffect(() => {
+        const handoffPrompt = inspirationHandoff?.inspirationPrompt;
+        if (!handoffPrompt) return;
+        setAgentMode(false);
+        if (inspirationHandoff?.inspirationMode) selectMode(inspirationHandoff.inspirationMode);
+        setPrompt(handoffPrompt);
+        navigate(".", { replace: true, state: null });
+        window.requestAnimationFrame(() => composerFocusRef.current?.focus());
+        // selectMode 每次渲染都是新函数，放进依赖会让本效果反复触发；靠 state 置空来收敛即可。
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [inspirationHandoff, navigate]);
 
     const setComposerRatio = (value: string) => {
         setRatio(value);
@@ -1087,6 +1105,10 @@ export default function CreatePage() {
                 <div className="creation-home-heading">
                     <h1>和<span className="creation-home-brand">{brandName}</span>聊聊创作想法</h1>
                 </div>
+                <CreationInspirationTunnel
+                    mode={mode}
+                    onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
+                />
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className={cn("creation-composer-stage is-home-mode", agentMode && "is-agent-mode")}>
                         <CreationModeTabs mode={mode} agentActive={agentMode} onAgentSelect={() => (user ? setAgentMode(true) : openLogin())} onModeChange={(next) => { setAgentMode(false); selectMode(next); }} />
@@ -1097,10 +1119,25 @@ export default function CreatePage() {
                         onOpenLibrary={() => { if (!user) { openLogin(); return; } setAgentMode(false); selectMode("image"); setLibraryOpen(true); }}
                     />
                 </section>
-                <CreationFeaturedWorks
-                    onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
-                />
-            </main>
+                {inspirationSourcesVisible ? <div className="creation-inspiration-credit">
+                    <details>
+                        <summary>素材来源</summary>
+                        {declaredInspirationSources().map((source) => (
+                            <p key={source.name ?? source.label}>
+                                {source.notice}
+                                {source.repository ? (
+                                    <>
+                                        {" "}
+                                        <a href={source.repository} target="_blank" rel="noreferrer">
+                                            {source.name} · {source.license}
+                                        </a>
+                                    </>
+                                ) : null}
+                            </p>
+                        ))}
+                    </details>
+                </div> : null}
+                </main>
             </> : <div className="creation-thread-workbench">
                 <CreationWorkspaceToolbar onNewConversation={startNewConversation} onOpenHistory={() => setHistoryOpen(true)} shots={videoShots} onJumpToShot={jumpToShot} onContinueCanvas={() => void continueOnCanvas()} openingCanvas={openingCanvas} />
                 <main ref={threadScrollRef} onScroll={handleThreadScroll} className="creation-thread-scroll creation-scrollbar">

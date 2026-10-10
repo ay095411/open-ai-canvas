@@ -16,7 +16,7 @@ import { router } from "@/router";
 createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <AppProviders>
-            <RouterProvider router={router} />
+            <RouterProvider router={router} useTransitions={false} />
         </AppProviders>
     </React.StrictMode>,
 );
