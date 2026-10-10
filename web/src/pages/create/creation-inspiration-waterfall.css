@@ -1,0 +1,270 @@
+/* 创作页空态下方的灵感瀑布流。
+   布局走 CSS 多列：卡片从列顶往下流，每张高度按自己的比例走，自然错落成瀑布。
+   卡片必须 break-inside: avoid —— 少了它，长卡片会被列边界从中间劈成两半。
+   颜色、圆角、动效一律走项目 token，不写字面值。 */
+
+.creation-waterfall-section {
+    margin-top: 44px;
+}
+
+.creation-waterfall-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.creation-waterfall-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    color: var(--user-ink);
+    font-size: var(--fs-body, 14px);
+    font-weight: 600;
+}
+
+.creation-waterfall-heading small {
+    color: var(--user-ink-soft);
+    font-size: var(--fs-caption, 12px);
+    font-weight: 400;
+}
+
+.creation-waterfall-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.creation-waterfall-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    color: var(--user-ink-soft);
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--user-ink) 14%, transparent);
+    border-radius: var(--r-full, 999px);
+    font-size: var(--fs-caption, 12px);
+    line-height: 1.6;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        color var(--user-motion, 180ms) ease,
+        background-color var(--user-motion, 180ms) ease,
+        border-color var(--user-motion, 180ms) ease;
+}
+
+.creation-waterfall-filter:hover {
+    color: var(--user-ink);
+    border-color: color-mix(in srgb, var(--user-ink) 28%, transparent);
+}
+
+/* 选中态用「实底 + 反白」。深浅两套主题下 var(--user-ink) / var(--user-surface)
+   本身就是互补的一对，所以这里不需要按主题再写一遍。 */
+.creation-waterfall-filter[aria-pressed="true"] {
+    color: var(--user-surface);
+    background: var(--user-ink);
+    border-color: transparent;
+}
+
+.creation-waterfall-filter:focus-visible {
+    outline: 2px solid var(--user-accent, #5f55d9);
+    outline-offset: 2px;
+}
+
+.creation-waterfall-filter-count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+}
+
+.creation-waterfall {
+    column-width: 232px;
+    column-gap: 16px;
+}
+
+.creation-waterfall-card {
+    display: block;
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 0;
+    overflow: hidden;
+    /* 关键：不允许被列边界切开。 */
+    break-inside: avoid;
+    color: inherit;
+    background: var(--creation-surface, var(--user-surface));
+    border: 1px solid color-mix(in srgb, var(--user-ink) 9%, transparent);
+    border-radius: var(--r-2xl, 16px);
+    box-shadow: 0 12px 28px -20px color-mix(in srgb, var(--user-ink) 42%, transparent);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        transform var(--user-motion, 180ms) cubic-bezier(0.2, 0.8, 0.3, 1),
+        box-shadow var(--user-motion, 180ms) ease,
+        border-color var(--user-motion, 180ms) ease;
+}
+
+.creation-waterfall-card:hover,
+.creation-waterfall-card:focus-visible {
+    border-color: color-mix(in srgb, var(--user-ink) 18%, transparent);
+    box-shadow: 0 24px 44px -24px color-mix(in srgb, var(--user-ink) 52%, transparent);
+    transform: translateY(-3px);
+}
+
+.creation-waterfall-card:focus-visible {
+    outline: 2px solid var(--user-accent, #5f55d9);
+    outline-offset: 2px;
+}
+
+/* 封面高度由内联 aspect-ratio 定（条目自带的比例，缺省按创作类型给），
+   这样图片到达之前卡片就已经是最终高度，整面瀑布不会在加载时上下抽动。 */
+.creation-waterfall-cover {
+    position: relative;
+    overflow: hidden;
+    background: var(--user-surface-muted);
+}
+
+.creation-waterfall-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 420ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.creation-waterfall-card:hover .creation-waterfall-cover img {
+    transform: scale(1.045);
+}
+
+/* 悬停才浮出的行动点，平时不挡住画面。 */
+.creation-waterfall-cta {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 12px;
+    color: var(--user-ink);
+    background: color-mix(in srgb, var(--user-surface) 92%, transparent);
+    border-radius: var(--r-full, 999px);
+    font-size: var(--fs-caption, 12px);
+    line-height: 1.5;
+    opacity: 0;
+    transform: translateY(6px);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition:
+        opacity var(--user-motion, 180ms) ease,
+        transform var(--user-motion, 180ms) ease;
+}
+
+.creation-waterfall-cta svg {
+    width: 14px;
+    height: 14px;
+}
+
+.creation-waterfall-card:hover .creation-waterfall-cta,
+.creation-waterfall-card:focus-visible .creation-waterfall-cta {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.creation-waterfall-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px 12px;
+}
+
+.creation-waterfall-title {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--user-ink);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.creation-waterfall-desc {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--user-ink-soft);
+    font-size: var(--fs-caption, 12px);
+    line-height: 1.55;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.creation-waterfall-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: fit-content;
+    margin: 10px auto 0;
+    padding: 9px 22px;
+    color: var(--user-ink);
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--user-ink) 18%, transparent);
+    border-radius: var(--r-full, 999px);
+    font-size: var(--fs-caption, 12px);
+    line-height: 1.6;
+    cursor: pointer;
+    transition:
+        background-color var(--user-motion, 180ms) ease,
+        border-color var(--user-motion, 180ms) ease;
+}
+
+.creation-waterfall-more:hover {
+    background: var(--user-surface-hover, color-mix(in srgb, var(--user-ink) 6%, transparent));
+    border-color: color-mix(in srgb, var(--user-ink) 32%, transparent);
+}
+
+.creation-waterfall-more:focus-visible {
+    outline: 2px solid var(--user-accent, #5f55d9);
+    outline-offset: 2px;
+}
+
+.creation-waterfall-loading {
+    padding: 28px 0;
+    color: var(--user-ink-soft);
+    font-size: var(--fs-caption, 12px);
+    text-align: center;
+}
+
+/* 窄屏收成单列：多列在手机上会把每张卡压成又窄又长的一条。 */
+@media (max-width: 640px) {
+    .creation-waterfall {
+        column-count: 1;
+        column-width: auto;
+    }
+
+    .creation-waterfall-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .creation-waterfall-card,
+    .creation-waterfall-cover img,
+    .creation-waterfall-cta {
+        transition: none;
+    }
+
+    .creation-waterfall-card:hover,
+    .creation-waterfall-card:focus-visible {
+        transform: none;
+    }
+
+    .creation-waterfall-card:hover .creation-waterfall-cover img {
+        transform: none;
+    }
+}
