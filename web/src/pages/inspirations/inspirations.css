@@ -1,20 +1,24 @@
-/* 灵感库画廊。卡片是主体：封面按原图比例自适应、信息压在底部、悬停整体抬起来。
-   颜色、圆角、阴影一律走项目 token，不写字面值。 */
+/* 灵感库画廊 + 灵感详情弹窗。瀑布流排布：卡片从列顶往下流，每张高度按自己的图走，自然错落。
+   用 CSS 多列而不是 grid —— grid 会把同一行的卡片拉齐成等高，矮图下面空出一块。
+   注意多列是**按列**填充的：读完第一列顶部才会到第二列，不是左右左右地走。
+   颜色、圆角、阴影一律走项目 token，不写字面值。
+
+   ⚠️ 这张表由两个模块 import：灵感库页面（index.tsx）与详情弹窗（inspiration-detail-modal.tsx）。
+   首页瀑布流也会渲染详情弹窗，所以弹窗那半边样式必须跟着弹窗走，否则 /create 冷启动时没有它们。 */
 
 .inspiration-gallery {
-    display: grid;
-    gap: var(--space-4, 16px);
-    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-    /* 封面不再统一裁成 4:3，每张卡高度由自己的图决定；
-       不加这行的话同一行的卡片会被拉成等高，矮图下面空出一块。 */
-    align-items: start;
+    column-width: 248px;
+    column-gap: var(--space-4, 16px);
 }
 
 .inspiration-card {
     position: relative;
-    display: flex;
-    flex-direction: column;
+    display: block;
+    width: 100%;
+    margin: 0 0 var(--space-4, 16px);
     overflow: hidden;
+    /* 关键：不允许被列边界切成两半。 */
+    break-inside: avoid;
     /* 玻璃质感：亮描边 + 大而软的投影，和首页纵深画廊同一套语言。 */
     border: 1px solid color-mix(in srgb, var(--user-ink) 9%, transparent);
     border-radius: var(--r-2xl, 16px);
@@ -252,12 +256,12 @@
     outline-offset: 2px;
 }
 
-/* 提示词正文：等宽、可滚动、保留换行，复制按钮钉在右上角。 */
+/* 提示词正文：等宽、保留换行。
+   不给它自己的 max-height + overflow —— 详情右侧那一列已经是一个滚动区，
+   再套一层内滚动会变成"在两个滚动条之间找文字"，长提示词尤其难受。 */
 .inspiration-prompt-block {
     position: relative;
-    max-height: 320px;
     padding: var(--space-3, 12px);
-    overflow: auto;
     border: 1px solid color-mix(in srgb, var(--user-ink) 10%, transparent);
     border-radius: var(--r-lg, 12px);
     background: var(--user-surface-muted);
@@ -267,6 +271,90 @@
     line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* ── 详情弹窗：左图右文两栏 ────────────────────────────────────────────────
+   原来图片压在顶部、最高占 52vh，正文只剩一条缝，还有一层内滚动。
+   改成两栏：图片占左栏按比例完整显示，右栏是唯一滚动区，提示词正文完整铺开。
+   弹窗整个高度固定，两栏各自撑满，内容区因此拿到「整屏高」而不是「剩下多少算多少」。 */
+
+.inspiration-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    /* ⚠️ 行必须显式夹住。不写的话隐式行是 auto，会被右栏的长提示词撑到 1200px+，
+       容器那个固定高度就形同虚设——底栏直接被顶出视口，左栏图片也按撑大的行去居中。
+       minmax(0, 1fr) 才是「就按容器这个高度分」。 */
+    grid-template-rows: minmax(0, 1fr);
+    height: min(78vh, 780px);
+}
+
+.inspiration-detail-media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-5, 20px);
+    overflow: hidden;
+    background: var(--user-surface-muted);
+}
+
+/* 只缩不放：max-* 会让浏览器按内在比例重算另一边，不会压变形。 */
+.inspiration-detail-media img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.inspiration-detail-main {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.inspiration-detail-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    gap: var(--space-4, 16px);
+    padding: var(--space-5, 20px);
+    overflow-y: auto;
+}
+
+/* justify-content: space-between 配右组的 ml-auto：只有一组时也会靠右。 */
+.inspiration-detail-footer {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px) var(--space-5, 20px);
+    border-top: 1px solid color-mix(in srgb, var(--user-ink) 8%, transparent);
+}
+
+/* 窄屏或矮屏放不下两栏：上下堆叠，图片让位给正文。
+   容器高度照旧固定（下面那行才是唯一滚动区），图片行给一个按视口算的上限。 */
+@media (max-width: 900px), (max-height: 640px) {
+    .inspiration-detail {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 32vh) minmax(0, 1fr);
+    }
+
+    .inspiration-detail-media {
+        padding: var(--space-4, 16px);
+    }
+}
+
+/* 窄屏单列：多列在手机上会把每张卡压成又窄又长的一条。 */
+@media (max-width: 640px) {
+    .inspiration-gallery {
+        column-count: 1;
+        column-width: auto;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
