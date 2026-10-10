@@ -16,32 +16,49 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
     );
 }
 
+/**
+ * 灵感详情弹窗。
+ *
+ * 两种用法：灵感页给全量能力（收藏 / 编辑 / 删除都是库管理动作）；
+ * 首页瀑布流只借它做「看一眼完整提示词」，所以那一组按钮与分类行都是可选的，
+ * 不传就不渲染——首页不该出现改库的入口。
+ */
 export function InspirationDetailModal({
     item,
     categoryLabel,
-    favorite,
+    favorite = false,
     onClose,
     onUse,
     onEdit,
     onDelete,
     onToggleFavorite,
     onCopy,
+    afterClose,
 }: {
     item: CreationInspiration | null;
-    categoryLabel: (item: CreationInspiration) => string;
-    favorite: boolean;
+    categoryLabel?: (item: CreationInspiration) => string;
+    favorite?: boolean;
     onClose: () => void;
     onUse: (item: CreationInspiration) => void;
-    onEdit: (item: CreationInspiration) => void;
-    onDelete: (item: CreationInspiration) => void;
-    onToggleFavorite: (item: CreationInspiration) => void;
+    onEdit?: (item: CreationInspiration) => void;
+    onDelete?: (item: CreationInspiration) => void;
+    onToggleFavorite?: (item: CreationInspiration) => void;
     onCopy: (text: string, label: string) => void;
+    /**
+     * 弹窗连动画都放完、子节点已卸载后触发。
+     *
+     * 调用方若要在这之后再去做「抢焦点」的动作（例如把提示词填进创作输入框并聚焦），
+     * 必须挂在这里：AntD Modal 关闭动画结束后会把焦点还给打开它的元素，
+     * 直接在 onUse 里 focus 会被这一下覆盖掉。
+     */
+    afterClose?: () => void;
 }) {
     const source = item ? inspirationSourceOf(item) : null;
     const custom = item ? isCustomInspiration(catalogIdOf(item)) : false;
+    const hasLibraryActions = Boolean(onToggleFavorite || onEdit || onDelete);
 
     return (
-        <AppModal open={Boolean(item)} onCancel={onClose} width={880} title={null} footer={null}>
+        <AppModal open={Boolean(item)} onCancel={onClose} afterClose={afterClose} width={880} title={null} footer={null}>
             {item ? (
                 <div className="flex max-h-[76vh] flex-col">
                     <div className="relative shrink-0 overflow-hidden" style={{ borderRadius: "var(--r-xl, 14px)" }}>
@@ -54,23 +71,31 @@ export function InspirationDetailModal({
                                 <h2 className="text-[var(--fs-heading,16px)] font-semibold leading-6 text-foreground">{item.title}</h2>
                                 {item.description ? <p className="mt-1 text-xs leading-5 text-foreground/58">{item.description}</p> : null}
                             </div>
-                            <div className="flex shrink-0 items-center gap-1.5">
-                                <Tooltip title={favorite ? "取消收藏" : "收藏"}>
-                                    <button type="button" className="inspiration-icon-button" aria-pressed={favorite} onClick={() => onToggleFavorite(item)}>
-                                        <Heart className="size-4" fill={favorite ? "currentColor" : "none"} />
-                                    </button>
-                                </Tooltip>
-                                <Tooltip title="编辑">
-                                    <button type="button" className="inspiration-icon-button" onClick={() => onEdit(item)}>
-                                        <Pencil className="size-4" />
-                                    </button>
-                                </Tooltip>
-                                <Tooltip title={custom ? "删除" : "从库中隐藏"}>
-                                    <button type="button" className="inspiration-icon-button" onClick={() => onDelete(item)}>
-                                        <Trash2 className="size-4" />
-                                    </button>
-                                </Tooltip>
-                            </div>
+                            {hasLibraryActions ? (
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                    {onToggleFavorite ? (
+                                        <Tooltip title={favorite ? "取消收藏" : "收藏"}>
+                                            <button type="button" className="inspiration-icon-button" aria-pressed={favorite} onClick={() => onToggleFavorite(item)}>
+                                                <Heart className="size-4" fill={favorite ? "currentColor" : "none"} />
+                                            </button>
+                                        </Tooltip>
+                                    ) : null}
+                                    {onEdit ? (
+                                        <Tooltip title="编辑">
+                                            <button type="button" className="inspiration-icon-button" onClick={() => onEdit(item)}>
+                                                <Pencil className="size-4" />
+                                            </button>
+                                        </Tooltip>
+                                    ) : null}
+                                    {onDelete ? (
+                                        <Tooltip title={custom ? "删除" : "从库中隐藏"}>
+                                            <button type="button" className="inspiration-icon-button" onClick={() => onDelete(item)}>
+                                                <Trash2 className="size-4" />
+                                            </button>
+                                        </Tooltip>
+                                    ) : null}
+                                </div>
+                            ) : null}
                         </div>
 
                         <div className="flex flex-col gap-1.5">
@@ -78,7 +103,7 @@ export function InspirationDetailModal({
                                 {source?.name ?? "原创"}
                                 {item.credit ? ` · ${item.credit}` : ""}
                             </MetaRow>
-                            <MetaRow label="分类">{categoryLabel(item)}</MetaRow>
+                            {categoryLabel ? <MetaRow label="分类">{categoryLabel(item)}</MetaRow> : null}
                             <MetaRow label="类型">
                                 {modeLabels[item.mode]}
                                 {item.ratio ? ` · ${item.ratio}` : ""}

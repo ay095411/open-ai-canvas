@@ -89,6 +89,20 @@ export function catalogIdOf(item: CreationInspiration): string {
     return item.id ?? `${item.sourceId ?? "original"}:${item.title}`;
 }
 
+/** 上游分类码 → 中文译名，译名表见 public/inspirations/manifest.json。 */
+export type InspirationCategoryLabels = Record<string, Record<string, string>>;
+
+/**
+ * 把条目的上游分类码翻成中文。
+ * 分类码是上游自带的，没有 `category` 就是未分类；译名表里查不到这个码
+ * （例如目录更新了但 manifest 还没跟上）就退回显示原码，不能显示成空白。
+ */
+export function inspirationCategoryLabel(item: CreationInspiration, labels: InspirationCategoryLabels): string {
+    const code = item.category?.trim();
+    if (!code) return "未分类";
+    return labels[item.sourceId ?? "original"]?.[code] ?? code;
+}
+
 /** 本项目编写的灵感，与外部导入的条目合并后展示。 */
 const curatedWorks: CreationInspiration[] = [
     {

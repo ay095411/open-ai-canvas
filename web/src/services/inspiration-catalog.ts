@@ -5,7 +5,7 @@
  * 首页纵深画廊的池子同理，连提示词正文有几百 KB，走 gallery-pool.json，
  * 浏览器 HTTP 缓存之外再做一层内存缓存，同一次会话只请求一遍。
  */
-import { curatedInspirations, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
+import { curatedInspirations, type CreationInspiration, type InspirationCategoryLabels, type InspirationSourceId } from "@/lib/inspirations/catalog";
 
 /** manifest.json 里每个来源带的分类码译名表。 */
 type SourceManifest = { revision?: string; count?: number; categories?: Record<string, string> };
@@ -91,7 +91,7 @@ export function loadInspirationCatalog(): Promise<InspirationCatalog> {
     return pending;
 }
 
-/** 首页画廊的池子：带本地缩略图的精选条目，正文一并带着，点卡片就能直接填词。 */
+/** 首页画廊的池子：带本地缩略图的精选条目，正文一并带着，点开卡片就能看完整提示词。 */
 const GALLERY_POOL_FILE = "/inspirations/gallery-pool.json";
 
 let galleryPool: Promise<CreationInspiration[]> | null = null;
@@ -111,4 +111,32 @@ export function loadGalleryPool(): Promise<CreationInspiration[]> {
             });
     }
     return galleryPool;
+}
+
+let categoryLabels: Promise<InspirationCategoryLabels> | null = null;
+
+/**
+ * 只取分类译名表。manifest 是 4KB 量级，而全量目录 3MB——
+ * 首页详情里要显示中文分类，但不该为几个标签把整份目录拉下来。
+ * 译名表是纯装饰，拉不到就当成空表（调用方会退回显示分类码），不抛错。
+ */
+export function loadInspirationCategoryLabels(): Promise<InspirationCategoryLabels> {
+    if (!categoryLabels) {
+        categoryLabels = fetchJson<CatalogManifest>("/inspirations/manifest.json")
+            .then((manifest) => {
+                const table: InspirationCategoryLabels = {};
+                for (const [sourceId, source] of Object.entries(manifest.sources ?? {})) {
+                    table[sourceId] = { ...(source.categories ?? {}) };
+                }
+                // 原创条目没有上游分类码，占一个空表让查表逻辑不用特判。
+                table.original ??= {};
+                return table;
+            })
+            .catch((error) => {
+                console.warn("分类译名表加载失败，分类将显示上游原始码", error);
+                categoryLabels = null;
+                return {} as InspirationCategoryLabels;
+            });
+    }
+    return categoryLabels;
 }
