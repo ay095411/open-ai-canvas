@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button } from "antd";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { MoveDiagonal2 } from "lucide-react";
 import { saveAs } from "file-saver";
 import { buildAgentDebugExport } from "@/lib/canvas/agent-debug-export";
 import { agentPlanVisible, latestAgentPlanItems, latestAgentPlanTerminal, pendingAgentQuestion } from "@/lib/canvas/cloud-agent-plan";
@@ -958,17 +957,18 @@ export function CanvasCloudAgentPanel({ canvasId, domainProjectId, nodeCount, se
                     >
                         <div data-agent-resize="north" className="absolute inset-x-5 top-0 z-10 hidden h-2 cursor-n-resize touch-none sm:block" />
                         <div data-agent-resize="west" className="absolute bottom-5 left-0 top-5 z-10 hidden w-2 cursor-w-resize touch-none sm:block" />
+                        {/* 角上的缩放手柄不再画那个斜向箭头图标：它常驻在标题左上角太扎眼，
+                            而北 / 西两条边本来就没有可见手柄、只靠光标提示，这里跟它们保持一致。
+                            按钮本身留着 —— 它同时是这条面板唯一能用键盘调整大小的入口
+                            （onResizeKeyDown），拖拽时靠 cursor-nw-resize、键盘聚焦时靠 focus-visible 显形。 */}
                         <button
                             type="button"
                             aria-label="调整 Agent 面板大小"
                             title="拖动调整宽高，也可用方向键调整"
                             data-agent-resize="northwest"
-                            className="agent-panel-resize-corner absolute left-2 top-2 z-10 hidden size-5 cursor-nw-resize touch-none place-items-center rounded-md opacity-60 transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 sm:grid"
+                            className="agent-panel-resize-corner absolute left-2 top-2 z-10 hidden size-5 cursor-nw-resize touch-none rounded-md focus-visible:outline focus-visible:outline-2 sm:block"
                             onKeyDown={panelLayout.onResizeKeyDown}
-                            style={{ color: theme.node.muted }}
-                        >
-                            <MoveDiagonal2 className="size-3" aria-hidden="true" />
-                        </button>
+                        />
                         <AnimatePresence mode="wait" initial={false}>
                             {view === "settings" ? (
                                 <motion.div key="settings" className="flex min-h-0 flex-1" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 18 }} transition={{ duration: reducedMotion ? 0 : 0.18 }}>

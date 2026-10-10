@@ -1122,6 +1122,16 @@
     cursor: grabbing;
 }
 
+/* 角上的缩放手柄必须在这里声明光标，不能只靠 className 里的 cursor-nw-resize 工具类：
+   globals.css 里那条给所有 button 兜底 `cursor: pointer` 的规则是**未分层**的，
+   而未分层 > 任何 @layer（与特异性、顺序无关）—— 它会静默压掉 button 上的 `cursor-*`
+   工具类，因为它们生在 Tailwind 的 utilities 层里。北 / 西两条边是 <div> 所以一直没事，
+   只有西北这个角是 <button>（面板唯一能用键盘调整大小的入口），只能从 CSS 这一侧压回来。
+   隔壁 .agent-composer-resize-handle 出于同样原因也把光标写在了 CSS 里。 */
+.canvas-agent-panel [data-agent-resize="northwest"] {
+    cursor: nw-resize;
+}
+
 .agent-message-mention {
     display: inline-flex;
     max-width: 100%;
