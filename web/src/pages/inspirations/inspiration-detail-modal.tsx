@@ -61,8 +61,11 @@ export function InspirationDetailModal({
         <AppModal open={Boolean(item)} onCancel={onClose} afterClose={afterClose} width={880} title={null} footer={null}>
             {item ? (
                 <div className="flex max-h-[76vh] flex-col">
-                    <div className="relative shrink-0 overflow-hidden" style={{ borderRadius: "var(--r-xl, 14px)" }}>
-                        <img src={item.image} alt="" className="h-56 w-full object-cover sm:h-64" referrerPolicy="no-referrer" />
+                    {/* 封面按原图比例自适应：不裁切、也不放大超过原图尺寸。
+                        竖向长图靠 max-h 收进来，横向长图自然占满宽度，两侧留的
+                        是同一块底纹，看着像有意的画框而不是没铺满。 */}
+                    <div className="relative flex shrink-0 justify-center overflow-hidden" style={{ borderRadius: "var(--r-xl, 14px)", background: "var(--user-surface-muted)" }}>
+                        <img src={item.image} alt="" width={item.width} height={item.height} className="block h-auto max-h-[52vh] w-auto max-w-full" referrerPolicy="no-referrer" />
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">

@@ -5,6 +5,9 @@
  * 这边只负责"铺开给你看"——整面瀑布、按创作类型过滤、点开一张看完整提示词，
  * 决定要用再一键带回创作区。所以它不拉全量目录（约 4MB），只用 gallery-pool
  * （几百 KB，条目已经带本地缩略图），分类译名单独取 4KB 的 manifest。
+ *
+ * 卡片图片按原图比例自适应显示，不裁切也不压成统一高度；宽高由目录数据里的
+ * width/height 提前给出，图片到达前就已占好位，整面瀑布不会边加载边上下抽动。
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { App } from "antd";
@@ -28,17 +31,6 @@ const FILTERS: { label: string; value: ModeFilter }[] = [
     { label: "视频", value: "video" },
     { label: "文本", value: "text" },
 ];
-
-/**
- * 封面比例：条目自带 ratio 就照它，否则按创作类型给一个默认值。
- * 比例是写死在样式上的，图片回来之前卡片就已经是最终高度——整面瀑布不会
- * 边加载边上下抽动。这也是每张卡高度各不相同、错落成瀑布的来源。
- */
-function coverAspect(item: CreationInspiration): string {
-    const ratio = item.ratio?.trim() ?? "";
-    if (/^\d{1,2}\s*:\s*\d{1,2}$/.test(ratio)) return ratio.replace(/\s*:\s*/, " / ");
-    return item.mode === "video" ? "16 / 9" : "4 / 3";
-}
 
 export function CreationInspirationWaterfall({ onStartPrompt }: { onStartPrompt: (mode: CreationMode, prompt: string) => void }) {
     const { message } = App.useApp();
@@ -156,8 +148,8 @@ export function CreationInspirationWaterfall({ onStartPrompt }: { onStartPrompt:
                             }
                         }}
                     >
-                        <div className="creation-waterfall-cover" style={{ aspectRatio: coverAspect(item) }}>
-                            <img src={item.image} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} />
+                        <div className="creation-waterfall-cover">
+                            <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} />
                             <span className="creation-waterfall-cta">
                                 <Eye aria-hidden="true" />
                                 查看详情
@@ -178,14 +170,7 @@ export function CreationInspirationWaterfall({ onStartPrompt }: { onStartPrompt:
             ) : null}
 
             {/* 首页是展示态：不传收藏 / 编辑 / 删除，弹窗里就不会出现改库的入口。 */}
-            <InspirationDetailModal
-                item={detail}
-                categoryLabel={categoryLabel}
-                onClose={() => setDetail(null)}
-                onUse={useInspiration}
-                onCopy={copyPrompt}
-                afterClose={commitPendingUse}
-            />
+            <InspirationDetailModal item={detail} categoryLabel={categoryLabel} onClose={() => setDetail(null)} onUse={useInspiration} onCopy={copyPrompt} afterClose={commitPendingUse} />
         </section>
     );
 }

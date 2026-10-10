@@ -1,10 +1,13 @@
-/* 灵感库画廊。卡片是主体：封面占满、信息压在底部、悬停整体抬起来。
+/* 灵感库画廊。卡片是主体：封面按原图比例自适应、信息压在底部、悬停整体抬起来。
    颜色、圆角、阴影一律走项目 token，不写字面值。 */
 
 .inspiration-gallery {
     display: grid;
     gap: var(--space-4, 16px);
     grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    /* 封面不再统一裁成 4:3，每张卡高度由自己的图决定；
+       不加这行的话同一行的卡片会被拉成等高，矮图下面空出一块。 */
+    align-items: start;
 }
 
 .inspiration-card {
@@ -37,9 +40,11 @@
     outline-offset: 2px;
 }
 
+/* 封面按原图比例自适应：不设固定比例、不裁切。
+   宽高由 img 的 width/height 属性给出（本地缩略图的真实尺寸），
+   图还没到时就已经占好位；上游远程图没有尺寸，只能等图片自己报。 */
 .inspiration-card-cover {
     position: relative;
-    aspect-ratio: 4 / 3;
     overflow: hidden;
     background: var(--user-surface-muted);
 }
@@ -47,21 +52,17 @@
 .inspiration-card-cover img {
     display: block;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 420ms cubic-bezier(0.2, 0.8, 0.3, 1);
+    height: auto;
 }
 
-.inspiration-card:hover .inspiration-card-cover img {
-    transform: scale(1.045);
-}
-
-/* 封面底部压一层暗角，让源标签始终读得清。 */
+/* 封面底部压一层暗角，让源标签始终读得清。
+   封面高度随原图比例变，固定 46% 在高图上下会拉出一大片黑，
+   所以再夹一个上限。 */
 .inspiration-card-cover::after {
     content: "";
     position: absolute;
     inset: auto 0 0;
-    height: 46%;
+    height: min(46%, 120px);
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.58));
     pointer-events: none;
 }
@@ -269,17 +270,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .inspiration-card,
-    .inspiration-card-cover img {
+    .inspiration-card {
         transition: none;
     }
 
     .inspiration-card:hover,
     .inspiration-card:focus-visible {
-        transform: none;
-    }
-
-    .inspiration-card:hover .inspiration-card-cover img {
         transform: none;
     }
 }

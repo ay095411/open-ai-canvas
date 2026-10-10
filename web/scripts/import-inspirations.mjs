@@ -14,6 +14,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
+import { imageDimensions } from "./lib/image-dimensions.mjs";
+
 const WEB_DIR = resolve(import.meta.dir, "..");
 const PUBLIC_DIR = join(WEB_DIR, "public", "inspirations");
 const SHOT_DIR = join(WEB_DIR, "public");
@@ -396,14 +398,18 @@ function renderGalleryPool(revisions, highlights) {
     return JSON.stringify({ generatedAt: new Date().toISOString(), revisions, entries });
 }
 /**
- * 下载上游封面并压成本地缩略图，返回可写进目录的相对路径。
+ * 下载上游封面并压成本地缩略图，返回可写进目录的相对路径与真实像素尺寸。
  * 返回 skipped 表示这张封面不可用（下载失败除外——那是抛错），调用方应把该条移出画廊池。
+ *
+ * 尺寸是给卡片「按原图比例自适应、不裁切」占位用的：缩略图等比缩放到 560 宽，
+ * 高矮各不相同，不把尺寸带进目录的话图片到达前卡片高度是 0，整面瀑布会上下抽动。
  */
 async function buildThumb(source, entry, name, force) {
     const relative = `/${THUMB_DIR}/${source}/${name}.webp`;
     const target = join(SHOT_DIR, THUMB_DIR, source, `${name}.webp`);
     if (existsSync(target) && !force) {
-        return statSync(target).size < MIN_THUMB_BYTES ? { skipped: true } : { relative, downloaded: false };
+        if (statSync(target).size < MIN_THUMB_BYTES) return { skipped: true };
+        return { relative, downloaded: false, ...(imageDimensions(readFileSync(target)) ?? {}) };
     }
     const response = await fetch(entry.image, { headers: { "User-Agent": UA, Referer: new URL(entry.image).origin } });
     if (!response.ok) throw new Error(`下载封面失败 ${entry.image}: HTTP ${response.status}`);
@@ -414,7 +420,7 @@ async function buildThumb(source, entry, name, force) {
     }
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, resized);
-    return { relative, downloaded: true };
+    return { relative, downloaded: true, ...(imageDimensions(resized) ?? {}) };
 }
 
 /** 删掉不再被引用的缩略图，避免换了一批之后旧文件永远留在仓库里。 */
@@ -528,6 +534,11 @@ async function main() {
             }
             // 直接把 image 指向本地缩略图：目录 JSON 和精选模块都从这里取值。
             entry.image = result.relative;
+            // 真实尺寸跟着走：卡片按原图比例占位，不做裁切。
+            if (result.width && result.height) {
+                entry.width = result.width;
+                entry.height = result.height;
+            }
             thumbNames.add(name);
             thumbed.push(entry);
             if (result.downloaded) downloaded += 1;

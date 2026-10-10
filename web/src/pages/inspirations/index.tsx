@@ -384,7 +384,7 @@ export default function InspirationsPage() {
                                         }}
                                     >
                                         <div className="inspiration-card-cover">
-                                            <img src={item.image} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                                            <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                                             <span className="inspiration-card-source">{inspirationSourceOf(item).label}</span>
                                             <div className="inspiration-card-actions">
                                                 <Tooltip title={favorite ? "取消收藏" : "收藏"}>
