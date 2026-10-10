@@ -10,6 +10,8 @@ export type CanvasHistorySnapshot = {
     chatSessions: CanvasAssistantSession[];
     activeChatId: string | null;
     canvasAppearance: CanvasAppearance;
+    /** 见 `CanvasProject.appearanceCustomized`：撤销/重做要连「是否已显式设置过外观」一起回滚。 */
+    appearanceCustomized: boolean;
     backgroundMode: CanvasBackgroundMode;
     showImageInfo: boolean;
 };
@@ -37,6 +39,7 @@ type CanvasHistoryPatch = {
     chatSessions?: EntityPatch<CanvasAssistantSession>;
     activeChatId?: ValuePatch<string | null>;
     canvasAppearance?: ValuePatch<CanvasAppearance>;
+    appearanceCustomized?: ValuePatch<boolean>;
     backgroundMode?: ValuePatch<CanvasBackgroundMode>;
     showImageInfo?: ValuePatch<boolean>;
 };
@@ -47,7 +50,8 @@ type UseCanvasHistoryOptions = CanvasHistorySnapshot & {
     setConnections: Dispatch<SetStateAction<CanvasConnection[]>>;
     setChatSessions: Dispatch<SetStateAction<CanvasAssistantSession[]>>;
     setActiveChatId: Dispatch<SetStateAction<string | null>>;
-    applyCanvasAppearance: (appearance: CanvasAppearance) => void;
+    /** 应用快照里的外观：第二个参数是「是否显式设置过」，决定画布是跟随工作台主题还是用自有外观。 */
+    applyCanvasAppearance: (appearance: CanvasAppearance, customized: boolean) => void;
     setBackgroundMode: Dispatch<SetStateAction<CanvasBackgroundMode>>;
     setShowImageInfo: Dispatch<SetStateAction<boolean>>;
     setSelectedNodeIds: Dispatch<SetStateAction<Set<string>>>;
@@ -62,6 +66,7 @@ export function useCanvasHistory({
     chatSessions,
     activeChatId,
     canvasAppearance,
+    appearanceCustomized,
     backgroundMode,
     showImageInfo,
     setNodes,
@@ -84,8 +89,8 @@ export function useCanvasHistory({
     const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
 
     const createHistorySnapshot = useCallback(
-        (): CanvasHistorySnapshot => ({ nodes, connections, chatSessions, activeChatId, canvasAppearance, backgroundMode, showImageInfo }),
-        [activeChatId, backgroundMode, canvasAppearance, chatSessions, connections, nodes, showImageInfo],
+        (): CanvasHistorySnapshot => ({ nodes, connections, chatSessions, activeChatId, canvasAppearance, appearanceCustomized, backgroundMode, showImageInfo }),
+        [activeChatId, appearanceCustomized, backgroundMode, canvasAppearance, chatSessions, connections, nodes, showImageInfo],
     );
 
     const clearCommitTimer = useCallback(() => {
@@ -115,7 +120,7 @@ export function useCanvasHistory({
         setConnections(snapshot.connections);
         setChatSessions(snapshot.chatSessions);
         setActiveChatId(snapshot.activeChatId);
-        applyCanvasAppearance(snapshot.canvasAppearance);
+        applyCanvasAppearance(snapshot.canvasAppearance, snapshot.appearanceCustomized);
         setBackgroundMode(snapshot.backgroundMode);
         setShowImageInfo(snapshot.showImageInfo);
         setSelectedNodeIds(new Set());
@@ -184,6 +189,7 @@ function snapshotsShareReferences(before: CanvasHistorySnapshot, after: CanvasHi
         && before.chatSessions === after.chatSessions
         && before.activeChatId === after.activeChatId
         && before.canvasAppearance === after.canvasAppearance
+        && before.appearanceCustomized === after.appearanceCustomized
         && before.backgroundMode === after.backgroundMode
         && before.showImageInfo === after.showImageInfo;
 }
@@ -195,6 +201,7 @@ function createCanvasHistoryPatch(before: CanvasHistorySnapshot, after: CanvasHi
     patch.chatSessions = createEntityPatch(before.chatSessions, after.chatSessions);
     if (before.activeChatId !== after.activeChatId) patch.activeChatId = { before: before.activeChatId, after: after.activeChatId };
     if (before.canvasAppearance !== after.canvasAppearance) patch.canvasAppearance = { before: before.canvasAppearance, after: after.canvasAppearance };
+    if (before.appearanceCustomized !== after.appearanceCustomized) patch.appearanceCustomized = { before: before.appearanceCustomized, after: after.appearanceCustomized };
     if (before.backgroundMode !== after.backgroundMode) patch.backgroundMode = { before: before.backgroundMode, after: after.backgroundMode };
     if (before.showImageInfo !== after.showImageInfo) patch.showImageInfo = { before: before.showImageInfo, after: after.showImageInfo };
     return Object.values(patch).some(Boolean) ? patch : null;
@@ -229,6 +236,7 @@ function applyCanvasHistoryPatch(snapshot: CanvasHistorySnapshot, patch: CanvasH
         chatSessions: patch.chatSessions ? applyEntityPatch(snapshot.chatSessions, patch.chatSessions, side) : snapshot.chatSessions,
         activeChatId: patch.activeChatId ? patch.activeChatId[side] : snapshot.activeChatId,
         canvasAppearance: patch.canvasAppearance ? patch.canvasAppearance[side] : snapshot.canvasAppearance,
+        appearanceCustomized: patch.appearanceCustomized ? patch.appearanceCustomized[side] : snapshot.appearanceCustomized,
         backgroundMode: patch.backgroundMode ? patch.backgroundMode[side] : snapshot.backgroundMode,
         showImageInfo: patch.showImageInfo ? patch.showImageInfo[side] : snapshot.showImageInfo,
     };

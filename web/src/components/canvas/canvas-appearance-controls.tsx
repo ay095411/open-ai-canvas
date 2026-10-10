@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, ColorPicker, Input, Segmented, Slider } from "antd";
-import { CircleDot, Grid2x2, Moon, Paintbrush, RotateCcw, Save, Square, Sun } from "lucide-react";
+import { CircleDot, Grid2x2, Monitor, Moon, Paintbrush, RotateCcw, Save, Square, Sun } from "lucide-react";
 
 import {
     canvasAppearanceForTheme,
@@ -18,18 +18,22 @@ const DARK_PRESETS = ["#000000", "#30272B", "#302D26", "#25302E"];
 
 export function CanvasAppearanceControls({
     appearance,
+    appearanceFollowsWorkspace,
     backgroundMode,
     colorTheme,
     theme,
     onAppearanceChange,
+    onAppearanceFollowWorkspaceChange,
     onSaveAppearanceDefault,
     onBackgroundModeChange,
 }: {
     appearance: CanvasAppearance;
+    appearanceFollowsWorkspace: boolean;
     backgroundMode: CanvasBackgroundMode;
     colorTheme: CanvasColorTheme;
     theme: CanvasTheme;
     onAppearanceChange: (appearance: CanvasAppearance) => void;
+    onAppearanceFollowWorkspaceChange: () => void;
     onSaveAppearanceDefault: (appearance: CanvasAppearance) => void;
     onBackgroundModeChange: (mode: CanvasBackgroundMode) => void;
 }) {
@@ -71,10 +75,13 @@ export function CanvasAppearanceControls({
     return (
         <>
             <div className="mt-3 text-[var(--fs-micro)] font-semibold uppercase opacity-45">主题模式</div>
-            <div className="mt-1 grid grid-cols-3 gap-1 rounded-[var(--dock-item-radius-labeled)] border p-1" style={{ background: theme.spatial.surface, borderColor: theme.toolbar.border }}>
-                <ThemeButton active={draft.mode === "light"} label="浅色" theme={theme} onClick={() => selectFixedTheme("light")}><Sun className="size-3.5" /></ThemeButton>
-                <ThemeButton active={draft.mode === "dark"} label="黑色" theme={theme} onClick={() => selectFixedTheme("dark")}><Moon className="size-3.5" /></ThemeButton>
-                <ThemeButton active={draft.mode === "custom"} label="自定义" theme={theme} onClick={selectCustomTheme}><Paintbrush className="size-3.5" /></ThemeButton>
+            {/* 「跟随」是默认档：画布外观没被单独设置过时跟着工作台走（浅色工作台不会再进画布变深）。
+                一旦选了浅色 / 黑色 / 自定义，就等于给这张画布单独定了外观。 */}
+            <div className="mt-1 grid grid-cols-4 gap-1 rounded-[var(--dock-item-radius-labeled)] border p-1" style={{ background: theme.spatial.surface, borderColor: theme.toolbar.border }}>
+                <ThemeButton active={appearanceFollowsWorkspace} label="跟随" title="跟随工作台主题（不单独设置）" theme={theme} onClick={onAppearanceFollowWorkspaceChange}><Monitor className="size-3.5" /></ThemeButton>
+                <ThemeButton active={!appearanceFollowsWorkspace && draft.mode === "light"} label="浅色" theme={theme} onClick={() => selectFixedTheme("light")}><Sun className="size-3.5" /></ThemeButton>
+                <ThemeButton active={!appearanceFollowsWorkspace && draft.mode === "dark"} label="黑色" theme={theme} onClick={() => selectFixedTheme("dark")}><Moon className="size-3.5" /></ThemeButton>
+                <ThemeButton active={!appearanceFollowsWorkspace && draft.mode === "custom"} label="自定义" theme={theme} onClick={selectCustomTheme}><Paintbrush className="size-3.5" /></ThemeButton>
             </div>
 
             {draft.mode === "custom" && draft.custom ? (
@@ -123,9 +130,10 @@ export function CanvasAppearanceControls({
     );
 }
 
-function ThemeButton({ active, label, theme, onClick, children }: { active: boolean; label: string; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
+function ThemeButton({ active, label, theme, title, onClick, children }: { active: boolean; label: string; theme: CanvasTheme; title?: string; onClick: () => void; children: ReactNode }) {
+    const hint = title || `切换到${label}主题`;
     return (
-        <button type="button" className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded-[var(--dock-item-radius)] px-1 text-[var(--fs-tiny)] font-semibold transition-colors" style={active ? { background: theme.node.text, color: theme.node.panel } : { color: theme.toolbar.item }} aria-label={`切换到${label}主题`} aria-pressed={active} title={`切换到${label}主题`} onClick={onClick}>
+        <button type="button" className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded-[var(--dock-item-radius)] px-1 text-[var(--fs-tiny)] font-semibold transition-colors" style={active ? { background: theme.node.text, color: theme.node.panel } : { color: theme.toolbar.item }} aria-label={hint} aria-pressed={active} title={hint} onClick={onClick}>
             {children}<span className="truncate">{label}</span>
         </button>
     );

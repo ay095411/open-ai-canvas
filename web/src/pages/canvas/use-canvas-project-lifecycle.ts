@@ -26,6 +26,7 @@ type UseCanvasProjectLifecycleOptions = {
     chatSessions: CanvasAssistantSession[];
     activeChatId: string | null;
     canvasAppearance: CanvasAppearance;
+    appearanceCustomized: boolean;
     backgroundMode: CanvasBackgroundMode;
     showImageInfo: boolean;
     viewport: ViewportTransform;
@@ -40,6 +41,7 @@ type UseCanvasProjectLifecycleOptions = {
     setChatSessions: Dispatch<SetStateAction<CanvasAssistantSession[]>>;
     setActiveChatId: Dispatch<SetStateAction<string | null>>;
     setCanvasAppearance: Dispatch<SetStateAction<CanvasAppearance>>;
+    setAppearanceCustomized: Dispatch<SetStateAction<boolean>>;
     setBackgroundMode: Dispatch<SetStateAction<CanvasBackgroundMode>>;
     setShowImageInfo: Dispatch<SetStateAction<boolean>>;
     setViewport: Dispatch<SetStateAction<ViewportTransform>>;
@@ -57,6 +59,7 @@ export function useCanvasProjectLifecycle({
     chatSessions,
     activeChatId,
     canvasAppearance,
+    appearanceCustomized,
     backgroundMode,
     showImageInfo,
     viewport,
@@ -71,6 +74,7 @@ export function useCanvasProjectLifecycle({
     setChatSessions,
     setActiveChatId,
     setCanvasAppearance,
+    setAppearanceCustomized,
     setBackgroundMode,
     setShowImageInfo,
     setViewport,
@@ -117,8 +121,13 @@ export function useCanvasProjectLifecycle({
         }
         const applyRestoredProject = (targetProject: CanvasProject) => {
             if (cancelled) return;
+            // 外观「没设置」就跟随工作台主题：老项目里那个由旧代码建画布时写死的
+            // `{ mode: "dark" }` 没有 appearanceCustomized 标记，同样按没设置处理。
+            const restoredCustomized = Boolean(targetProject.appearance) && targetProject.appearanceCustomized === true;
+            if (!restoredCustomized) useCanvasThemeStore.getState().followWorkspaceTheme();
+            // 先决定跟随与否，再取基准主题：跟随之后 store 里的 theme 就是工作台主题。
             const fallbackTheme = useCanvasThemeStore.getState().theme;
-            const restoredAppearance = targetProject.appearance
+            const restoredAppearance = restoredCustomized
                 ? normalizeCanvasAppearance(targetProject.appearance, fallbackTheme)
                 : canvasAppearanceForTheme(fallbackTheme);
             const initialNodes = normalizeCanvasNodeTimestamps(resetInterruptedGeneration(targetProject.nodes), {
@@ -131,6 +140,7 @@ export function useCanvasProjectLifecycle({
                 chatSessions: targetProject.chatSessions || [],
                 activeChatId: targetProject.activeChatId || null,
                 canvasAppearance: restoredAppearance,
+                appearanceCustomized: restoredCustomized,
                 backgroundMode: targetProject.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
                 showImageInfo: targetProject.showImageInfo || false,
             };
@@ -145,7 +155,9 @@ export function useCanvasProjectLifecycle({
             setChatSessions(snapshot.chatSessions);
             setActiveChatId(snapshot.activeChatId);
             setCanvasAppearance(snapshot.canvasAppearance);
-            useCanvasThemeStore.getState().setTheme(canvasAppearanceBaseTheme(snapshot.canvasAppearance, fallbackTheme));
+            setAppearanceCustomized(snapshot.appearanceCustomized);
+            // 已显式设置过 → 用项目自己的主题；没设置 → 已经 followWorkspaceTheme()，不要再写 setTheme。
+            if (restoredCustomized) useCanvasThemeStore.getState().setTheme(canvasAppearanceBaseTheme(snapshot.canvasAppearance, fallbackTheme));
             setBackgroundMode(snapshot.backgroundMode);
             setShowImageInfo(snapshot.showImageInfo);
             setViewport(targetProject.viewport);
@@ -253,15 +265,15 @@ export function useCanvasProjectLifecycle({
 
     useEffect(() => {
         if (!projectLoaded || historyPausedRef.current) return;
-        const snapshot = { nodes, connections, chatSessions, activeChatId, canvasAppearance, backgroundMode, showImageInfo };
+        const snapshot = { nodes, connections, chatSessions, activeChatId, canvasAppearance, appearanceCustomized, backgroundMode, showImageInfo };
         if (!observedContentRef.current || sameCanvasHistorySnapshot(observedContentRef.current, snapshot)) return;
         observedContentRef.current = snapshot;
-        const patch = { nodes, connections, chatSessions, activeChatId, appearance: canvasAppearance, backgroundMode, showImageInfo };
+        const patch = { nodes, connections, chatSessions, activeChatId, appearance: canvasAppearance, appearanceCustomized, backgroundMode, showImageInfo };
         const stored = useCanvasStore.getState().projects.find((project) => project.id === projectId);
         // 远端结果投影到编辑器不是一次本地编辑，避免改写时间戳并触发反向保存。
         if (stored && sameCanvasPatch(stored, patch)) return;
         updateProject(projectId, patch);
-    }, [activeChatId, backgroundMode, canvasAppearance, chatSessions, connections, historyPausedRef, nodes, projectId, projectLoaded, showImageInfo, updateProject]);
+    }, [activeChatId, appearanceCustomized, backgroundMode, canvasAppearance, chatSessions, connections, historyPausedRef, nodes, projectId, projectLoaded, showImageInfo, updateProject]);
 
     useEffect(() => {
         if (!projectLoaded) return;
@@ -317,7 +329,7 @@ export function useCanvasProjectLifecycle({
     }, [message, projectId, renameProject]);
 
     const persistLocalEdits = useCallback(async (options: { flush?: boolean } = {}) => {
-        const snapshot = { nodes: nodesRef.current, connections: connectionsRef.current, chatSessions, activeChatId, canvasAppearance, backgroundMode, showImageInfo };
+        const snapshot = { nodes: nodesRef.current, connections: connectionsRef.current, chatSessions, activeChatId, canvasAppearance, appearanceCustomized, backgroundMode, showImageInfo };
         if (observedContentRef.current && !sameCanvasHistorySnapshot(observedContentRef.current, snapshot)) {
             updateProject(projectId, {
                 nodes: nodesRef.current,
@@ -325,6 +337,7 @@ export function useCanvasProjectLifecycle({
                 chatSessions,
                 activeChatId,
                 appearance: canvasAppearance,
+                appearanceCustomized,
                 backgroundMode,
                 showImageInfo,
                 viewport: viewportRef.current,
@@ -333,7 +346,7 @@ export function useCanvasProjectLifecycle({
         }
         updateProject(projectId, { viewport: viewportRef.current });
         if (options.flush !== false) await flushCanvasStorePersistence();
-    }, [activeChatId, backgroundMode, canvasAppearance, chatSessions, connectionsRef, nodesRef, projectId, showImageInfo, updateProject, viewportRef]);
+    }, [activeChatId, appearanceCustomized, backgroundMode, canvasAppearance, chatSessions, connectionsRef, nodesRef, projectId, showImageInfo, updateProject, viewportRef]);
 
     const reloadLatestCanvasProject = useCallback(async () => {
         const pending = pendingReloadRef.current;
@@ -431,16 +444,18 @@ function sameCanvasHistorySnapshot(left: CanvasHistorySnapshot, right: CanvasHis
         && left.chatSessions === right.chatSessions
         && left.activeChatId === right.activeChatId
         && left.canvasAppearance === right.canvasAppearance
+        && left.appearanceCustomized === right.appearanceCustomized
         && left.backgroundMode === right.backgroundMode
         && left.showImageInfo === right.showImageInfo;
 }
 
-function sameCanvasPatch(project: CanvasProject, patch: Pick<CanvasProject, "nodes" | "connections" | "chatSessions" | "activeChatId" | "backgroundMode" | "showImageInfo"> & { appearance: CanvasProject["appearance"] }) {
+function sameCanvasPatch(project: CanvasProject, patch: Pick<CanvasProject, "nodes" | "connections" | "chatSessions" | "activeChatId" | "backgroundMode" | "showImageInfo"> & { appearance: CanvasProject["appearance"]; appearanceCustomized: CanvasProject["appearanceCustomized"] }) {
     return project.nodes === patch.nodes
         && project.connections === patch.connections
         && project.chatSessions === patch.chatSessions
         && project.activeChatId === patch.activeChatId
         && project.appearance === patch.appearance
+        && project.appearanceCustomized === patch.appearanceCustomized
         && project.backgroundMode === patch.backgroundMode
         && project.showImageInfo === patch.showImageInfo;
 }

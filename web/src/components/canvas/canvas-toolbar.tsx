@@ -27,6 +27,7 @@ export function CanvasToolbar({
     canUndo,
     canRedo,
     appearance,
+    appearanceFollowsWorkspace,
     backgroundMode,
     showImageInfo,
     onAddImage,
@@ -48,6 +49,7 @@ export function CanvasToolbar({
     onClear,
     onDeselect,
     onAppearanceChange,
+    onAppearanceFollowWorkspaceChange,
     onSaveAppearanceDefault,
     onBackgroundModeChange,
     onShowImageInfoChange,
@@ -63,6 +65,8 @@ export function CanvasToolbar({
     canUndo: boolean;
     canRedo: boolean;
     appearance: CanvasAppearance;
+    /** 画布外观还没被单独设置过 = 跟随工作台主题，外观面板里「跟随」档处于选中态。 */
+    appearanceFollowsWorkspace: boolean;
     backgroundMode: CanvasBackgroundMode;
     showImageInfo: boolean;
     onAddImage: () => void;
@@ -84,6 +88,7 @@ export function CanvasToolbar({
     onClear: () => void;
     onDeselect: () => void;
     onAppearanceChange: (appearance: CanvasAppearance) => void;
+    onAppearanceFollowWorkspaceChange: () => void;
     onSaveAppearanceDefault: (appearance: CanvasAppearance) => void;
     onBackgroundModeChange: (mode: CanvasBackgroundMode) => void;
     onShowImageInfoChange: (show: boolean) => void;
@@ -213,7 +218,7 @@ export function CanvasToolbar({
                     <motion.div initial={{ opacity: 0, scaleY: 0.9, y: 8 }} animate={{ opacity: 1, scaleY: 1, y: 0 }} exit={{ opacity: 0, scaleY: 0.92, y: 6 }} transition={{ duration: aceternityMotion.duration.panel, ease: aceternityMotion.easing.enter }} className="pointer-events-auto absolute bottom-[var(--canvas-dock-popover-offset)] z-[var(--dock-z-popover)] w-[320px] max-w-[calc(100vw-24px)]" style={{ left: panelX || "50%", transformOrigin: "bottom center", x: "-50%" }}>
                         <SpotlightSurface spotlightColor={theme.toolbar.itemHover} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0 } }} transition={{ duration: aceternityMotion.duration.instant, ease: aceternityMotion.easing.enter }} className="aceternity-floating-panel overflow-hidden rounded-[var(--panel-radius)] border p-2.5 backdrop-blur-2xl" style={{ background: theme.spatial.elevated, borderColor: theme.toolbar.border, color: theme.toolbar.item }} onWheel={(event) => event.stopPropagation()}>
                             <PanelHeading icon={<Palette className="size-4" />} title="画布外观" subtitle="调整整个创作空间" theme={theme} />
-                            <CanvasAppearanceControls appearance={appearance} backgroundMode={backgroundMode} colorTheme={colorTheme} theme={theme} onAppearanceChange={onAppearanceChange} onSaveAppearanceDefault={onSaveAppearanceDefault} onBackgroundModeChange={onBackgroundModeChange} />
+                            <CanvasAppearanceControls appearance={appearance} appearanceFollowsWorkspace={appearanceFollowsWorkspace} backgroundMode={backgroundMode} colorTheme={colorTheme} theme={theme} onAppearanceChange={onAppearanceChange} onAppearanceFollowWorkspaceChange={onAppearanceFollowWorkspaceChange} onSaveAppearanceDefault={onSaveAppearanceDefault} onBackgroundModeChange={onBackgroundModeChange} />
                             <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[var(--dock-item-radius-labeled)] border px-2.5 py-2" style={{ background: theme.spatial.surface, borderColor: theme.toolbar.border }}>
                                 <span className="inline-flex min-w-0 items-center gap-1.5 text-[var(--fs-tiny)] font-semibold"><Info className="size-3" />媒体信息</span>
                                 <Switch size="sm" checked={showImageInfo} onChange={onShowImageInfoChange} />

@@ -3,11 +3,11 @@ import { persist, type PersistStorage, type StorageValue } from "zustand/middlew
 
 import { nanoid } from "nanoid";
 import { sameCanvasContent } from "@/lib/canvas/canvas-content";
-import { canvasAppearanceForTheme, DEFAULT_CANVAS_BACKGROUND_MODE, normalizeCanvasAppearance, readCanvasAppearanceDefault, type CanvasAppearance } from "@/lib/canvas/canvas-appearance";
+import { DEFAULT_CANVAS_BACKGROUND_MODE, normalizeCanvasAppearance, readCanvasAppearanceDefault, type CanvasAppearance } from "@/lib/canvas/canvas-appearance";
 import { parseCanvasStorageDocument, rebaseCanvasProjects, serializeCanvasStorageDocument, type CanvasStorageDocument } from "@/lib/canvas/canvas-storage-revision";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
 import { getActiveUserScope } from "@/lib/user-scope";
-import { DEFAULT_CANVAS_COLOR_THEME, type CanvasBackgroundMode } from "@/lib/canvas-theme";
+import type { CanvasBackgroundMode } from "@/lib/canvas-theme";
 import type { CanvasStarterMode } from "@/lib/canvas/canvas-starter";
 import type { CanvasAssistantSession, CanvasConnection, CanvasNodeData, ViewportTransform } from "@/types/canvas";
 import type { PrevisScene } from "@/types/previs";
@@ -29,6 +29,15 @@ export type CanvasProject = {
     activeChatId: string | null;
     starterMode?: CanvasStarterMode;
     appearance?: CanvasAppearance;
+    /**
+     * 用户是否**在画布外观里主动设置过**这张画布的外观。
+     *
+     * 只有为 true 时 `appearance` 才被当作这张画布的意思表示；否则（缺字段 / false）视为
+     * 「没设置」，画布跟随工作台主题（见 `use-canvas-theme-store` 的 followWorkspace）。
+     * 老项目里那个由旧代码建画布时写死的 `{ mode: "dark" }` 没有这个标记，因此会被当成
+     * 「没设置」——这是刻意的：它从来不是用户的选择。
+     */
+    appearanceCustomized?: boolean;
     backgroundMode: CanvasBackgroundMode;
     showImageInfo: boolean;
     viewport: ViewportTransform;
@@ -45,7 +54,7 @@ type CanvasStore = {
     renameProject: (id: string, title: string) => void;
     deleteProjects: (ids: string[]) => void;
     replaceProjects: (projects: CanvasProject[]) => void;
-    updateProject: (id: string, patch: Partial<Pick<CanvasProject, "projectId" | "nodes" | "connections" | "chatSessions" | "activeChatId" | "starterMode" | "appearance" | "backgroundMode" | "showImageInfo" | "viewport" | "previsScenes" | "timeline">>) => void;
+    updateProject: (id: string, patch: Partial<Pick<CanvasProject, "projectId" | "nodes" | "connections" | "chatSessions" | "activeChatId" | "starterMode" | "appearance" | "appearanceCustomized" | "backgroundMode" | "showImageInfo" | "viewport" | "previsScenes" | "timeline">>) => void;
 };
 
 const initialViewport: ViewportTransform = { x: 0, y: 0, k: 1 };
@@ -676,7 +685,11 @@ export const useCanvasStore = create<CanvasStore>()(
                     connections: [],
                     chatSessions: [],
                     activeChatId: null,
-                    appearance: appearanceDefault?.appearance ?? canvasAppearanceForTheme(DEFAULT_CANVAS_COLOR_THEME),
+                    // 外观没设置就**留空**，不再像旧代码那样写死 `{ mode: DEFAULT_CANVAS_COLOR_THEME }`：
+                    // 留空时加载会按「跟随工作台主题」处理。只有账号在本机点过「保存为默认」，
+                    // 才算一次显式设置，并把标记一并带上。
+                    appearance: appearanceDefault?.appearance,
+                    appearanceCustomized: Boolean(appearanceDefault?.appearance),
                     backgroundMode: appearanceDefault?.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
                     showImageInfo: false,
                     viewport: initialViewport,
@@ -700,6 +713,8 @@ export const useCanvasStore = create<CanvasStore>()(
                     activeChatId: source.activeChatId || null,
                     starterMode: source.starterMode,
                     appearance: source.appearance ? normalizeCanvasAppearance(source.appearance, "dark") : undefined,
+                    // 导入的文件同样只认显式标记：老文件里那个写死的 `{ mode: "dark" }` 不算设置。
+                    appearanceCustomized: source.appearance && source.appearanceCustomized === true ? true : undefined,
                     backgroundMode: source.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
                     showImageInfo: source.showImageInfo || false,
                     viewport: source.viewport || initialViewport,

@@ -28,7 +28,7 @@ import { refreshCanvasCharacterReferenceNodes } from "@/lib/canvas/canvas-charac
 import { useAssetStore } from "@/stores/use-asset-store";
 import { flushCanvasStorePersistence } from "@/stores/canvas/use-canvas-store";
 import { ensureCanvasNodeAsset } from "@/services/project-asset-sync";
-import { useCanvasThemeStore, useCanvasThemeScope } from "@/stores/canvas/use-canvas-theme-store";
+import { currentWorkspaceTheme, useCanvasThemeStore, useCanvasThemeScope } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { App, Button } from "antd";
 import { ArrowLeftRight } from "lucide-react";
@@ -222,6 +222,7 @@ function CanvasViewportPage() {
     const cleanupAssetImages = useAssetStore((state) => state.cleanupImages);
     const colorTheme = useCanvasThemeStore((state) => state.theme);
     const setTheme = useCanvasThemeStore((state) => state.setTheme);
+    const followWorkspaceTheme = useCanvasThemeStore((state) => state.followWorkspaceTheme);
     const theme = canvasThemes[colorTheme];
     const defaultDrawingEngine = useUserStore((state) => state.drawingEngine.defaultEngine);
     const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled);
@@ -248,6 +249,8 @@ function CanvasViewportPage() {
     const [agentPrefillRequest, setAgentPrefillRequest] = useState<(CloudAgentMessagePresentation & { id: number; text: string; autoSubmit?: boolean; requiresVision?: boolean }) | null>(null);
     const [isMiniMapOpen, setIsMiniMapOpen] = useState(false);
     const [canvasAppearance, setCanvasAppearance] = useState<CanvasAppearance>(() => canvasAppearanceForTheme(colorTheme));
+    /** 用户是否在画布外观里主动设置过本画布。false = 跟随工作台主题（见 use-canvas-theme-store）。 */
+    const [appearanceCustomized, setAppearanceCustomized] = useState(false);
     const [backgroundMode, setBackgroundMode] = useState<CanvasBackgroundMode>(DEFAULT_CANVAS_BACKGROUND_MODE);
     const [showImageInfo, setShowImageInfo] = useState(false);
     const [canvasTool, setCanvasTool] = useState<CanvasToolMode>("box-select");
@@ -333,15 +336,35 @@ function CanvasViewportPage() {
     }, [canvasStorageScope, projectId]);
 
     const resolvedCanvasAppearance = useMemo(() => resolveCanvasAppearance(canvasAppearance, colorTheme), [canvasAppearance, colorTheme]);
+    /**
+     * 应用画布外观。`customized` 表示这是不是一次**用户显式选择**：
+     *  - true  → 记住这张画布的外观，脱离「跟随工作台主题」
+     *  - false → 回到跟随：画布颜色交给工作台主题，`appearance` 只当渲染缓存落到项目里
+     * 撤销/重做恢复历史快照时用的也是这条路径，所以标记会跟着一起回滚。
+     */
     const applyCanvasAppearance = useCallback(
-        (next: CanvasAppearance) => {
+        (next: CanvasAppearance, customized: boolean) => {
             const fallback = canvasAppearanceBaseTheme(next, colorTheme);
             const normalized = normalizeCanvasAppearance(next, fallback);
             setCanvasAppearance(normalized);
-            setTheme(canvasAppearanceBaseTheme(normalized, fallback));
+            setAppearanceCustomized(customized);
+            if (customized) setTheme(canvasAppearanceBaseTheme(normalized, fallback));
+            else followWorkspaceTheme();
         },
-        [colorTheme, setTheme],
+        [colorTheme, followWorkspaceTheme, setTheme],
     );
+    /** 外观面板里的「跟随工作台」：清掉本画布的自定义，回到跟随。 */
+    const followWorkspaceAppearance = useCallback(() => {
+        applyCanvasAppearance(canvasAppearanceForTheme(currentWorkspaceTheme()), false);
+    }, [applyCanvasAppearance]);
+    /** 外观面板里选浅色 / 黑色 / 自定义：这是一次显式设置。 */
+    const applyUserCanvasAppearance = useCallback((next: CanvasAppearance) => applyCanvasAppearance(next, true), [applyCanvasAppearance]);
+    // 跟随期间 appearance 只是渲染缓存：工作台主题一变就把它同步过去，
+    // 否则 resolveCanvasAppearance 会拿旧的 mode 渲染出「底色没跟着变、节点配色却变了」的混合状态。
+    useEffect(() => {
+        if (appearanceCustomized) return;
+        setCanvasAppearance((current) => (current.mode === colorTheme ? current : canvasAppearanceForTheme(colorTheme)));
+    }, [appearanceCustomized, colorTheme]);
     const saveCanvasAppearanceDefault = useCallback(
         (next: CanvasAppearance) => {
             writeCanvasAppearanceDefault({ appearance: next, backgroundMode });
@@ -357,6 +380,7 @@ function CanvasViewportPage() {
         chatSessions,
         activeChatId,
         canvasAppearance,
+        appearanceCustomized,
         backgroundMode,
         showImageInfo,
         setNodes,
@@ -386,6 +410,7 @@ function CanvasViewportPage() {
         chatSessions,
         activeChatId,
         canvasAppearance,
+        appearanceCustomized,
         backgroundMode,
         showImageInfo,
         viewport,
@@ -400,6 +425,7 @@ function CanvasViewportPage() {
         setChatSessions,
         setActiveChatId,
         setCanvasAppearance,
+        setAppearanceCustomized,
         setBackgroundMode,
         setShowImageInfo,
         setViewport,
@@ -2822,7 +2848,9 @@ function CanvasViewportPage() {
                                         onDelete={() => deleteNodes(new Set(selectedNodeIds))}
                                         onClear={() => setClearConfirmOpen(true)}
                                         onDeselect={deselectCanvas}
-                                        onAppearanceChange={applyCanvasAppearance}
+                                        appearanceFollowsWorkspace={!appearanceCustomized}
+                                        onAppearanceChange={applyUserCanvasAppearance}
+                                        onAppearanceFollowWorkspaceChange={followWorkspaceAppearance}
                                         onSaveAppearanceDefault={saveCanvasAppearanceDefault}
                                         onBackgroundModeChange={setBackgroundMode}
                                         onShowImageInfoChange={setShowImageInfo}

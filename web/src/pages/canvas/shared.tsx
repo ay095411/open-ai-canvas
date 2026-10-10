@@ -20,7 +20,7 @@ import { FOLDER_COLLAPSED_HEIGHT, FOLDER_COLLAPSED_WIDTH, isCanvasFolderNode, is
 import { ensureMediaNodeMinimumSize } from "@/lib/canvas/canvas-node-size";
 import { getContextResourceNodes } from "@/lib/canvas/canvas-resource-references";
 import { getPublicCanvasShare } from "@/services/api/canvas-share";
-import { useCanvasThemeStore, useCanvasThemeScope } from "@/stores/canvas/use-canvas-theme-store";
+import { currentWorkspaceTheme, useCanvasThemeStore, useCanvasThemeScope } from "@/stores/canvas/use-canvas-theme-store";
 import { CanvasNodeType, type CanvasNodeData, type Position, type ViewportTransform } from "@/types/canvas";
 import { nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
 type ContextMenu = { x: number; y: number; world: Position; nodeId?: string };
@@ -81,6 +81,9 @@ export default function SharedCanvasPage() {
     useEffect(() => {
         let active = true;
         const themeBeforeShare = useCanvasThemeStore.getState().theme;
+        // 连「是不是在跟随工作台」一起记下来：分享页看的是别人的画布，不能把访客自己的
+        // 画布外观偏好（或跟随状态）改掉，所以卸载时两样都要还原。
+        const followBeforeShare = useCanvasThemeStore.getState().followWorkspace;
         let appliedShareTheme: typeof themeBeforeShare | null = null;
         let themeChangedAfterApply = false;
         const unsubscribeTheme = useCanvasThemeStore.subscribe((state, previous) => {
@@ -92,10 +95,16 @@ export default function SharedCanvasPage() {
             setTitle(project.title || "共享画布");
             setNodes((project.nodes || []).map(ensureMediaNodeMinimumSize));
             setConnections(project.connections || []);
-            const nextAppearance = project.appearance ? normalizeCanvasAppearance(project.appearance, themeBeforeShare) : canvasAppearanceForTheme(themeBeforeShare);
+            // 与主编辑页同一套规则：只有分享者**显式设置过**外观才照搬他的外观，
+            // 否则（没设外观、或只有旧代码写死的那个 `{ mode: "dark" }`）跟着访客自己的工作台主题。
+            const shareCustomized = Boolean(project.appearance) && project.appearanceCustomized === true;
+            const nextAppearance = shareCustomized
+                ? normalizeCanvasAppearance(project.appearance, themeBeforeShare)
+                : canvasAppearanceForTheme(currentWorkspaceTheme());
             setAppearance(nextAppearance);
             appliedShareTheme = canvasAppearanceBaseTheme(nextAppearance, themeBeforeShare);
-            useCanvasThemeStore.getState().setTheme(appliedShareTheme);
+            if (shareCustomized) useCanvasThemeStore.getState().setTheme(appliedShareTheme);
+            else useCanvasThemeStore.getState().followWorkspaceTheme();
             setBackgroundMode(project.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE);
             const initial = project.viewport || { x: 0, y: 0, k: 1 };
             viewportRef.current = initial;
@@ -109,7 +118,8 @@ export default function SharedCanvasPage() {
             active = false;
             unsubscribeTheme();
             if (appliedShareTheme && !themeChangedAfterApply && useCanvasThemeStore.getState().theme === appliedShareTheme) {
-                useCanvasThemeStore.getState().setTheme(themeBeforeShare);
+                if (followBeforeShare) useCanvasThemeStore.getState().followWorkspaceTheme();
+                else useCanvasThemeStore.getState().setTheme(themeBeforeShare);
             }
         };
     }, [token]);
