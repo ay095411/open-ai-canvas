@@ -1,6 +1,6 @@
 import { App, Button, InputNumber } from "antd";
 import { SettingsRow } from "@/components/ui/product/settings-row";
-import { ArrowLeft, Boxes, Brain, Bug, Cloud, MessageSquareText, RadioTower, SlidersHorizontal, Workflow } from "lucide-react";
+import { ArrowLeft, Boxes, Brain, Bug, Cloud, MessageSquareText, RadioTower, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { UserOSSSettingsForm } from "@/components/layout/user-oss-settings-form";
@@ -12,12 +12,13 @@ import { RUNNINGHUB_PLUGIN_ID } from "@/lib/plugins/builtin/workflows";
 import { ChannelSettingsPane, channelValidationError, focusInvalidChannelField, isChannelReady } from "./channel-settings-pane";
 import { SettingsPaneHeader } from "./settings-pane-header";
 import { ModelDefaultGrid } from "./model-default-grid";
+import { ProfilePane } from "./profile-pane";
 import { PromptPreferencesPane } from "./prompt-preferences-pane";
 import DiagnosticsPanel from "./diagnostics-panel";
 import AgentMemoryPane from "./agent-memory-pane";
 import { RunningHubSettingsPane } from "./runninghub-settings-pane";
 
-export type SettingsSectionKey = "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "diagnostics";
+export type SettingsSectionKey = "profile" | "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "diagnostics";
 
 /**
  * 分区清单是「页面版」和「弹窗版」唯一的真源：两个形态共用同一个数组和同一套文案，
@@ -29,6 +30,7 @@ export type SettingsSectionKey = "channels" | "models" | "runninghub" | "prefere
  * 原本都是两行，整列高度被撑得参差不齐）。折叠成行是这里唯一需要守的约束。
  */
 export const settingsSections: Array<{ key: SettingsSectionKey; label: string; description: string; icon: ReactNode }> = [
+    { key: "profile", label: "个人信息", description: "头像、密码与邮箱", icon: <UserRound className="size-4" /> },
     { key: "channels", label: "个人渠道", description: "模型服务与工作流", icon: <RadioTower className="size-4" /> },
     { key: "runninghub", label: "RunningHub 工作流", description: "云端工作流配置", icon: <Workflow className="size-4" /> },
     { key: "models", label: "模型选择", description: "按领域选默认模型", icon: <Boxes className="size-4" /> },
@@ -119,6 +121,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
     };
 
     const panes: Record<SettingsSectionKey, ReactNode> = {
+        profile: <SettingsPane><ProfilePane key={userId} /></SettingsPane>,
         channels: <SettingsPane><ChannelSettingsPane onOpenModels={() => selectSection("models")} onOpenRunningHub={runningHubPluginEnabled ? () => selectSection("runninghub") : undefined} /></SettingsPane>,
         models: (
             <SettingsPane>
