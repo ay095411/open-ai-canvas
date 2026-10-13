@@ -53,9 +53,9 @@
 /* 卡片取宽横幅比例（14:5），宽度跟随内容列；整条画廊突破内容列铺满窗口，
    高度固定占位——横幅带不参与纵向弹性分配。 */
 .creation-inspiration-tunnel {
-    --gallery-card-width: clamp(440px, 38cqw, 780px);
-    /* 相邻卡左右边缘刚好相接：层距 = 0.86 倍卡宽，侧卡从主卡背后探出一半。 */
-    --gallery-step: calc(var(--gallery-card-width) * 0.86);
+    --gallery-card-width: clamp(480px, 42cqw, 860px);
+    /* 层距 0.7 倍卡宽：侧卡约 22% 藏在主卡背后，中间一张明显压住两边。 */
+    --gallery-step: calc(var(--gallery-card-width) * 0.7);
     position: relative;
     isolation: isolate;
     container-type: inline-size;
@@ -68,6 +68,9 @@
 .creation-gallery-stage {
     position: relative;
     height: calc(var(--gallery-card-width) * 5 / 14 + 44px);
+    /* 触屏上横向拖拽归画廊、纵向滑动仍滚页面。 */
+    touch-action: pan-y;
+    cursor: grab;
 }
 
 .creation-tunnel-card {
@@ -97,14 +100,24 @@
        --card-mount 由 .is-ready 翻开，opacity 走 transition 平滑淡入。 */
     opacity: calc(var(--card-mount, 0) * var(--card-depth-opacity, 1));
     /* 先把卡片按自身尺寸对中，再叠加纵深位移与缩放——位移不会被 scale 影响。
+       --card-drag 是手动拖拽的实时位移（写在 stage 上），放在 scale 之前保证 1:1 跟手。
        --card-enter-y / --card-enter-scale 是入场位移，封面就绪后归零，
        所以卡片是"从略下方、略小的位置浮上来"，而不是硬闪出来。 */
-    transform: translate(-50%, -50%) translate(var(--card-x, 0px), var(--card-enter-y, 44px)) scale(calc(var(--card-scale, 1) * var(--card-enter-scale, 0.95)));
+    transform: translate(-50%, -50%) translate(var(--card-x, 0px), var(--card-enter-y, 44px)) translateX(var(--card-drag, 0px)) scale(calc(var(--card-scale, 1) * var(--card-enter-scale, 0.95)));
     /* 只动 transform 和 opacity，两者都能交给合成层，不触发重排重绘。
        缓动先缓后快再长尾软着陆，观感是镜头平稳推拉而不是"弹"过去。 */
     transition:
         transform 460ms cubic-bezier(0.32, 0.72, 0, 1),
         opacity 380ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 拖拽进行中：关掉过渡让队列逐帧跟手，指针形态换成抓取中。 */
+.creation-gallery-stage.is-dragging {
+    cursor: grabbing;
+}
+
+.creation-gallery-stage.is-dragging .creation-tunnel-card {
+    transition: none;
 }
 
 /* 侧翼卡片的压暗罩：非当前卡整体变暗退后，切换时罩子跟着淡入淡出。
@@ -141,7 +154,7 @@
    独立属性会插在 transform 之前合成，卡片会被缩放带得偏离原位。
    抬起用更短的时长——切换是运镜，悬停是手感，两者不该共用一个节奏。 */
 .creation-tunnel-card.is-active:hover {
-    transform: translate(-50%, -50%) translate(var(--card-x, 0px), calc(var(--card-enter-y, 0px) - 14px)) scale(calc(var(--card-scale, 1) * var(--card-enter-scale, 1) * 1.04));
+    transform: translate(-50%, -50%) translate(var(--card-x, 0px), calc(var(--card-enter-y, 0px) - 14px)) translateX(var(--card-drag, 0px)) scale(calc(var(--card-scale, 1) * var(--card-enter-scale, 1) * 1.04));
     transition:
         transform 240ms cubic-bezier(0.2, 0.8, 0.3, 1),
         opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -338,7 +351,7 @@
     }
 
     .creation-tunnel-card.is-active:hover {
-        transform: translate(-50%, -50%) translate(var(--card-x, 0px), 0) scale(var(--card-scale, 1));
+        transform: translate(-50%, -50%) translate(var(--card-x, 0px), 0) translateX(var(--card-drag, 0px)) scale(var(--card-scale, 1));
     }
 
     .creation-gallery-arrow {

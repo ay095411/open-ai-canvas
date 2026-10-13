@@ -13,7 +13,7 @@
 // 每张卡片等自己的封面加载完再露面。不这么做的话，先到的图先显示、
 // 慢的那几张只剩一块空面板，观感就是"右边出来了左边还空着"。
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 
@@ -25,8 +25,8 @@ import "./creation-inspiration-tunnel.css";
 
 /** 画廊里排队展示的照片数，取奇数，两侧层数才对得齐。 */
 const GALLERY_SIZE = 11;
-/** 每后退一层的纵深（px）。纵深更陡：第一层就收到约 0.72 倍，贴出横幅轮播的层次。 */
-const STEP_Z = 460;
+/** 每后退一层的纵深（px）。纵深更陡：第一层就收到约 0.70 倍，中间一张明显大于并压住两侧。 */
+const STEP_Z = 520;
 /** 虚拟焦距，只用来算出"后退一层缩多少"，不再是 CSS perspective。 */
 const PERSPECTIVE = 1200;
 /** 最多同时可见的层数，再远就隐掉。 */
@@ -158,6 +158,61 @@ export function CreationInspirationTunnel({ mode, onStartPrompt }: { mode: Creat
         [shots.length],
     );
 
+    // ── 手动拖拽轮播 ──
+    // 按住横幅左右拖，整条队列实时跟手（--card-drag 直接写进 stage 的内联样式，
+    // 不走 React 状态，避免每帧重渲染 11 张卡）；松手时位移过阈值就切一张，
+    // 否则弹回原位。拖拽期间禁用 transition，松手后再恢复，让 CSS 平滑接管。
+    const dragRef = useRef<{ pointerId: number; startX: number; active: boolean } | null>(null);
+    const suppressClickRef = useRef(0);
+
+    const handleDragStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        // 只响应主键（鼠标左键 / 触摸 / 笔），右键不做拖拽。
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        if (dragRef.current) return;
+        dragRef.current = { pointerId: event.pointerId, startX: event.clientX, active: false };
+        setPaused(true);
+    }, []);
+
+    const handleDragMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        const drag = dragRef.current;
+        const stage = stageRef.current;
+        if (!drag || !stage || event.pointerId !== drag.pointerId) return;
+        const delta = event.clientX - drag.startX;
+        if (!drag.active) {
+            // 6px 起步阈值：点按卡片不误判成拖拽。
+            if (Math.abs(delta) < 6) return;
+            drag.active = true;
+            stage.classList.add("is-dragging");
+            // 捕获指针：移出画廊后仍持续收到 move，松手才结束。
+            event.currentTarget.setPointerCapture(event.pointerId);
+        }
+        stage.style.setProperty("--card-drag", `${delta.toFixed(1)}px`);
+    }, []);
+
+    const handleDragEnd = useCallback(
+        (event: ReactPointerEvent<HTMLDivElement>) => {
+            const drag = dragRef.current;
+            const stage = stageRef.current;
+            if (!drag || event.pointerId !== drag.pointerId) return;
+            dragRef.current = null;
+            setPaused(false);
+            if (!drag.active || !stage) return;
+            stage.classList.remove("is-dragging");
+            stage.style.removeProperty("--card-drag");
+            const card = stage.querySelector<HTMLButtonElement>(".creation-tunnel-card");
+            const cardWidth = card?.getBoundingClientRect().width ?? 0;
+            // 阈值随卡宽走：拖过卡宽的 14% 才算切换意图，保底 48px。
+            const threshold = Math.max(48, cardWidth * 0.14);
+            if (Math.abs(event.clientX - drag.startX) >= threshold) {
+                // 拖过就算拖拽完成，吞掉松手后落在卡片上的 click，不能顺势把灵感填进输入框。
+                suppressClickRef.current = Date.now();
+                // 向左拖 = 看下一张，向右拖 = 看上一张，与轮播方向一致。
+                step(event.clientX - drag.startX < 0 ? 1 : -1);
+            }
+        },
+        [step],
+    );
+
     // 自动轮播：走完一轮就换一批新的，用户不会反复看到同样那几张。
     useEffect(() => {
         if (paused || reducedMotion || shots.length < 2) return;
@@ -204,7 +259,15 @@ export function CreationInspirationTunnel({ mode, onStartPrompt }: { mode: Creat
 
     return (
         <div className="creation-inspiration-tunnel" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-            <div ref={stageRef} className="creation-gallery-stage" aria-hidden="true">
+            <div
+                ref={stageRef}
+                className="creation-gallery-stage"
+                aria-hidden="true"
+                onPointerDown={handleDragStart}
+                onPointerMove={handleDragMove}
+                onPointerUp={handleDragEnd}
+                onPointerCancel={handleDragEnd}
+            >
                 {shots.map((inspiration, index) => {
                     const id = catalogIdOf(inspiration);
                     // 相对当前卡片的距离，绕成最短路径，形成首尾相接的队列。
@@ -228,7 +291,11 @@ export function CreationInspirationTunnel({ mode, onStartPrompt }: { mode: Creat
                             tabIndex={-1}
                             className={`creation-tunnel-card ${depth === 0 ? "is-active" : ""} ${readyIds.has(id) ? "is-ready" : ""}`}
                             style={style}
-                            onClick={() => onStartPrompt(inspiration.mode, inspiration.prompt)}
+                            onClick={() => {
+                                // 刚完成一次拖拽的松手 click 不算"选用灵感"。
+                                if (Date.now() - suppressClickRef.current < 400) return;
+                                onStartPrompt(inspiration.mode, inspiration.prompt);
+                            }}
                         >
                             <img
                                 src={inspiration.image}
