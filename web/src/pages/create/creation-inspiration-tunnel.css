@@ -82,10 +82,10 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    /* 三张可见卡共用同一套面板样式：同一圆角、同一细描边，不做阴影——
-       层次感交给缩放、位移和压暗罩，不加额外装饰。 */
+    /* 三张可见卡共用同一套面板样式；侧卡整体被缩到 0.7 倍，
+       圆角按缩放反比放大（16 / 0.7 ≈ 23px），缩放后视觉半径三张卡一致。 */
     border: 1px solid rgba(255, 255, 255, 0.32);
-    border-radius: var(--r-2xl, 16px);
+    border-radius: calc(var(--r-2xl, 16px) / var(--card-scale, 1));
     background: var(--creation-surface-raised, #f0f1ee);
     cursor: pointer;
     /* 只有最前面那张能点，后面的点击会穿到页面上，不去抢焦点。 */
@@ -244,11 +244,12 @@
 }
 
 .creation-gallery-arrow.is-prev {
-    left: clamp(18px, 3.2vw, 64px);
+    /* 锚定中间卡左缘再向外让 56px：贴在主卡旁边，不再藏在视口最边缘。 */
+    left: calc(50% - var(--gallery-card-width) / 2 - 56px);
 }
 
 .creation-gallery-arrow.is-next {
-    right: clamp(18px, 3.2vw, 64px);
+    right: calc(50% - var(--gallery-card-width) / 2 - 56px);
 }
 
 .creation-gallery-arrow:hover {
