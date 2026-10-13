@@ -553,6 +553,7 @@
 .app-user-workspace .app-workspace-sidebar-nav.is-collapsed .app-workspace-sidebar-profile-row { width: 100%; justify-content: center; }
 .app-user-workspace .app-workspace-sidebar-nav.is-collapsed .app-workspace-sidebar-profile { width: 48px; min-width: 48px; flex: 0 0 48px; margin-inline: auto; }
 .app-user-workspace .app-workspace-sidebar-nav.is-collapsed .app-workspace-sidebar-notification-spacer { display: none; }
+.app-user-workspace .app-workspace-sidebar-nav.is-collapsed .app-workspace-sidebar-collapse-toggle.is-collapsed { margin-top: 4px; }
 
 .app-user-workspace .app-workspace-nav-link {
     position: relative;
@@ -711,6 +712,13 @@
 .app-product-overlays button:has(> svg):not(:has(> span)):not(:disabled):active { transform: scale(.92) translateY(0); }
 .app-product-workspace button:has(> svg):not(:has(> span)):focus-visible,
 .app-product-overlays button:has(> svg):not(:has(> span)):focus-visible { outline: 2px solid var(--product-focus-ring); outline-offset: 2px; }
+
+/* 侧栏自绘图标按钮（收起/展开切换等）不套用浮层 accent 光晕，悬浮表现与导航菜单保持一致。 */
+.app-user-workspace .app-workspace-sidebar button:has(> svg):not(:has(> span)):not(:disabled):hover {
+    color: var(--user-ink) !important;
+    background: var(--user-surface-hover) !important;
+    box-shadow: none !important;
+}
 
 /* 列表进入节奏：卡片和图片错开出现，慢网络时仍有内容层次。 */
 .app-product-workspace :is(.product-collection-card, .library-card, .task-grid-card, .task-record-row, .skill-library-card, .plugin-card) { animation: product-card-enter var(--product-enter) var(--product-ease) both; }
@@ -928,3 +936,274 @@
     .app-user-workspace .app-workspace-nav-icon,
     .app-user-workspace .app-workspace-nav-icon svg { animation: none !important; transform: none !important; }
 }
+
+/* ========================================================================
+   Market pages（素材库 / 插件中心）与技能页共用同一套灰调材质：
+   页面浅灰底、卡片灰底、筛选胶囊、无边框灰底搜索框，不引入新圆角或阴影语言。
+   ======================================================================== */
+.app-user-workspace .assets-library-page,
+.app-user-workspace .plugins-page {
+    --market-page-bg: #f5f5f5;
+    --market-card-bg: #e9e9e9;
+    --market-hover-bg: #e0e0e0;
+    --market-ink: #242424;
+    --market-muted: #707070;
+    --market-border: #dcdcdc;
+    --market-accent: var(--user-accent);
+    --market-on-accent: var(--primary-foreground);
+}
+.dark .app-user-workspace .assets-library-page,
+.dark .app-user-workspace .plugins-page {
+    --market-page-bg: #18181a;
+    --market-card-bg: #262629;
+    --market-hover-bg: #323237;
+    --market-ink: #f0f0f2;
+    --market-muted: #ababaf;
+    --market-border: #39393e;
+}
+.app-user-workspace .assets-library-page > div {
+    width: min(1312px, calc(100% - 64px));
+    padding-top: 20px;
+    padding-bottom: 48px;
+    background: var(--market-page-bg);
+}
+.app-user-workspace .assets-library-page {
+    background: var(--market-page-bg);
+    color: var(--market-ink);
+}
+/* 素材库：页头操作按钮与筛选胶囊同语言。 */
+.app-user-workspace .assets-library-page .app-page-header-title,
+.app-user-workspace .assets-library-page .app-page-header h1 {
+    color: var(--market-ink) !important;
+    font-size: 20px !important;
+    font-weight: 650 !important;
+    letter-spacing: -.02em;
+}
+.app-user-workspace .assets-library-page .app-page-header p {
+    color: var(--market-muted) !important;
+}
+.app-user-workspace .assets-library-page .assets-header-meta {
+    color: var(--market-muted);
+    font-size: 12px;
+    font-weight: 400;
+}
+.app-user-workspace .assets-library-page .assets-header-meta::before { display: none; }
+/* 素材库：工具栏搜索框 / 密度选择与技能页一致（无边框灰底、34px）。 */
+.app-user-workspace .assets-library-page .collection-toolbar { margin: 0 0 18px; }
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper {
+    height: 34px;
+    border: 0 !important;
+    border-radius: 12px;
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink);
+    box-shadow: none !important;
+    font-size: 12px;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper:hover,
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper:focus-within {
+    background: var(--market-hover-bg) !important;
+    box-shadow: none !important;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper input { background: transparent; color: var(--market-ink); }
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper input::placeholder { color: var(--market-muted); }
+.app-user-workspace .assets-library-page .collection-toolbar .ant-select-selector {
+    height: 34px;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink) !important;
+    box-shadow: none !important;
+    font-size: 12px;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
+    background: var(--market-hover-bg) !important;
+}
+/* 左侧筛选：胶囊改灰底，激活态用主题色反白（与技能页 chips 一致）。 */
+.app-user-workspace .assets-library-page .collection-filter-label { color: var(--market-muted); }
+.app-user-workspace .assets-library-page .assets-filter-item {
+    min-height: 32px;
+    height: auto;
+    border-radius: 12px;
+    padding: 5px 10px;
+    background: var(--market-card-bg);
+    color: var(--market-muted);
+    font-size: 12px;
+}
+.app-user-workspace .assets-library-page .assets-filter-item:hover { background: var(--market-hover-bg); color: var(--market-ink); }
+.app-user-workspace .assets-library-page .assets-filter-count {
+    background: transparent;
+    color: var(--market-muted);
+}
+.app-user-workspace .assets-library-page .assets-filter-item.is-active,
+.app-user-workspace .assets-library-page .assets-filter-item.is-active:hover {
+    background: var(--market-accent);
+    color: var(--market-on-accent);
+}
+.app-user-workspace .assets-library-page .assets-filter-item.is-active .assets-filter-count {
+    background: transparent;
+    color: var(--market-on-accent);
+}
+/* 素材库：卡片改灰底直角感（16px 圆角、无边框、hover 描边），信息文字用 market 灰阶。 */
+.app-user-workspace .assets-library-page .product-collection-card,
+.app-user-workspace .assets-library-page .library-card {
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink) !important;
+}
+.app-user-workspace .assets-library-page .product-collection-card:hover,
+.app-user-workspace .assets-library-page .product-collection-card:focus-within {
+    background: var(--market-hover-bg) !important;
+    transform: none;
+}
+.app-user-workspace .assets-library-page .asset-collection-body h2 { color: var(--market-ink); }
+.app-user-workspace .assets-library-page .asset-collection-summary,
+.app-user-workspace .assets-library-page .asset-collection-date,
+.app-user-workspace .assets-library-page .asset-collection-source { color: var(--market-muted); }
+/* 素材库空态：banner 剧照与欢迎卡改灰底卡片，标题用主题色。 */
+.app-user-workspace .assets-library-page .assets-empty-banner-caption { color: var(--market-muted); }
+.app-user-workspace .assets-library-page .assets-empty-banner-caption span { color: var(--market-accent); }
+.app-user-workspace .assets-library-page .assets-empty-card {
+    border: 0;
+    border-radius: 16px;
+    background: var(--market-card-bg);
+}
+.app-user-workspace .assets-library-page .assets-empty-card:hover {
+    border: 0;
+    background: var(--market-hover-bg);
+    box-shadow: none;
+    transform: translateY(-2px);
+}
+.app-user-workspace .assets-library-page .assets-empty-card strong { color: var(--market-ink); }
+.app-user-workspace .assets-library-page .assets-empty-card > span:last-child { color: var(--market-muted); }
+.app-user-workspace .assets-library-page .assets-empty-card-icon { background: color-mix(in srgb, var(--market-accent) 14%, var(--market-card-bg)); color: var(--market-accent); }
+/* 批量操作条与回收站提示同语言。 */
+.app-user-workspace .assets-library-page .assets-batch-bar {
+    border: 0;
+    border-radius: 12px;
+    background: var(--market-card-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+}
+.app-user-workspace .assets-library-page .assets-batch-count { color: var(--market-muted); }
+.app-user-workspace .assets-library-page .assets-batch-count strong { color: var(--market-ink); }
+/* 插件中心：页面底、侧栏胶囊、工具栏、分组头与卡片全部对齐技能页材质。 */
+.app-user-workspace .plugins-page {
+    background: var(--market-page-bg);
+    color: var(--market-ink);
+}
+.app-user-workspace .plugins-page .plugins-page-layout { margin-top: 20px; }
+.app-user-workspace .plugins-page .plugins-sidebar-heading h1 {
+    color: var(--market-ink);
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -.02em;
+}
+.app-user-workspace .plugins-page .plugins-sidebar-heading p { color: var(--market-muted); }
+.app-user-workspace .plugins-page .plugins-sidebar-item {
+    min-height: 32px;
+    border-radius: 12px;
+    background: var(--market-card-bg);
+    color: var(--market-muted);
+    font-size: 12px;
+}
+.app-user-workspace .plugins-page .plugins-sidebar-item:hover {
+    background: var(--market-hover-bg);
+    color: var(--market-ink);
+}
+.app-user-workspace .plugins-page .plugins-sidebar-item > span:last-child { color: var(--market-muted); }
+.app-user-workspace .plugins-page .plugins-sidebar-item.is-active {
+    background: var(--market-accent);
+    color: var(--market-on-accent);
+    font-weight: 560;
+}
+.app-user-workspace .plugins-page .plugins-sidebar-item.is-active > span:last-child { color: var(--market-on-accent); }
+.app-user-workspace .plugins-page .plugins-sidebar-nav { gap: 8px; }
+.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper,
+.app-user-workspace .plugins-page .plugins-filter.ant-select .ant-select-selector {
+    min-height: 34px;
+    height: 34px;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink) !important;
+    box-shadow: none !important;
+    font-size: 12px;
+}
+.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper:hover,
+.app-user-workspace .plugins-page .plugins-filter.ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
+    background: var(--market-hover-bg) !important;
+}
+.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper input { background: transparent; color: var(--market-ink); }
+.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper input::placeholder { color: var(--market-muted); }
+/* 插件卡片：灰底、16px 圆角、hover 描边，标签与元信息用 market 灰阶。 */
+.app-user-workspace .plugins-page .plugin-card {
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: var(--market-card-bg);
+    color: var(--market-ink);
+    transition: border-color 160ms ease;
+}
+.app-user-workspace .plugins-page .plugin-card:hover,
+.app-user-workspace .plugins-page .plugin-card:focus-within {
+    border-color: var(--market-border);
+}
+.app-user-workspace .plugins-page .plugin-card-main:focus-visible {
+    outline: 2px solid var(--market-accent);
+    outline-offset: 2px;
+}
+.app-user-workspace .plugins-page .plugin-card-title-row h3 { color: var(--market-ink); }
+.app-user-workspace .plugins-page .plugin-version { color: var(--market-muted); }
+.app-user-workspace .plugins-page .plugin-card-description { color: var(--market-muted); }
+.app-user-workspace .plugins-page .plugin-card-meta { color: var(--market-muted); }
+.app-user-workspace .plugins-page .plugin-category-label,
+.app-user-workspace .plugins-page .plugin-source-label,
+.app-user-workspace .plugins-page .plugin-card-tags span {
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--market-ink) 7%, var(--market-card-bg));
+    color: var(--market-muted);
+}
+.app-user-workspace .plugins-page .plugin-source-label { font-weight: 600; }
+.app-user-workspace .plugins-page .plugin-icon-tile {
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--category-accent, var(--market-ink)) 12%, var(--market-card-bg));
+    color: var(--category-accent, var(--market-muted));
+}
+.app-user-workspace .plugins-page .plugin-card:hover .plugin-icon-tile,
+.app-user-workspace .plugins-page .plugin-card:focus-within .plugin-icon-tile {
+    background: color-mix(in srgb, var(--category-accent, var(--market-ink)) 18%, var(--market-card-bg));
+    color: var(--category-accent, var(--market-ink));
+}
+.app-user-workspace .plugins-page .plugin-section-heading h2 { color: var(--market-ink); }
+.app-user-workspace .plugins-page .plugin-section-heading p { color: var(--market-muted); }
+.app-user-workspace .plugins-page .plugin-section-count {
+    background: color-mix(in srgb, var(--market-ink) 7%, var(--market-card-bg));
+    color: var(--market-muted);
+}
+.app-user-workspace .plugins-page .plugin-section-empty-hint {
+    border: 1px dashed var(--market-border);
+    background: transparent;
+    color: var(--market-muted);
+}
+/* 插件页响应式：与技能页一致的容器收窄。 */
+@media (max-width: 620px) {
+    .app-user-workspace .assets-library-page > div,
+    .app-user-workspace .plugins-page .plugins-page-layout { width: calc(100% - 28px); }
+}
+/* 素材库页头按钮与存储用量：与技能页 actions 同语言（细边框浅灰按钮）。 */
+.app-user-workspace .assets-library-page .assets-header-action-buttons .ant-btn {
+    height: 32px;
+    border-color: var(--market-border);
+    border-radius: 10px;
+    background: var(--market-page-bg);
+    color: var(--market-ink);
+    font-size: 12px;
+}
+.app-user-workspace .assets-library-page .assets-header-action-buttons .ant-btn:hover:not([aria-pressed="true"]):not(.ant-btn-dangerous) {
+    border-color: var(--market-muted);
+}
+.app-user-workspace .assets-library-page .assets-header-action-buttons .ant-btn-primary {
+    border-color: var(--market-ink);
+    background: var(--market-ink);
+    color: var(--market-page-bg);
+}
+.app-user-workspace .assets-library-page .assets-storage-usage { color: var(--market-muted); }

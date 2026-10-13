@@ -56,7 +56,8 @@ export function WorkspaceAccountCard({ onWallet, onNavigate }: { onWallet: () =>
         </div>
         <nav className="workspace-account-card-actions" aria-label="账户操作">
             {/* 账户与设置改成原地打开弹窗，不再跳转 /settings 页面；图标仍是斜箭头 ArrowUpRight
-                （和「管理员后台」同一枚），只有入口行为变了，观感不变。 */}
+                （和「管理员后台」同一枚），只有入口行为变了，观感不变。
+                main 的 /settings?section=profile 深链由设置弹窗承接（profile 已是弹窗分区）。 */}
             <button type="button" className="workspace-account-card-entry" onClick={() => { onNavigate(); openWorkspaceSettings(); }}><Settings /><span>账户与设置</span><ArrowUpRight /></button>
             {user.role === "admin" ? <Link to="/admin" onClick={onNavigate}><ShieldCheck /><span>管理员后台</span><ArrowUpRight /></Link> : null}
             <Button danger type="text" icon={<LogOut />} loading={loggingOut} onClick={() => void handleLogout()}>退出登录</Button>
