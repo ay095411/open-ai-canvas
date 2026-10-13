@@ -67,7 +67,7 @@
 
 .creation-gallery-stage {
     position: relative;
-    height: calc(var(--gallery-card-width) * 5 / 14 + 44px);
+    height: calc(var(--gallery-card-width) * 5 / 16 + 44px);
     /* 触屏上横向拖拽归画廊、纵向滑动仍滚页面。 */
     touch-action: pan-y;
     cursor: grab;
@@ -78,20 +78,15 @@
     top: 50%;
     left: 50%;
     width: var(--gallery-card-width);
-    aspect-ratio: 14 / 5;
+    aspect-ratio: 16 / 5;
     margin: 0;
     padding: 0;
     overflow: hidden;
-    /* 玻璃质感边框：亮描边勾出面板边缘，内侧一圈高光给厚度，
-       外圈大而软的投影把面板从背景里"抬"起来，避免看成扁平纸片。
-       阴影只留三层——11 张卡片都在动，每多一层就是每帧多一次大范围重绘。 */
-    border: 1px solid rgba(255, 255, 255, 0.26);
+    /* 三张可见卡共用同一套面板样式：同一圆角、同一细描边，不做阴影——
+       层次感交给缩放、位移和压暗罩，不加额外装饰。 */
+    border: 1px solid rgba(255, 255, 255, 0.32);
     border-radius: var(--r-2xl, 16px);
     background: var(--creation-surface-raised, #f0f1ee);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.55),
-        0 0 0 1px rgba(0, 0, 0, 0.07),
-        0 28px 54px -26px rgba(0, 0, 0, 0.52);
     cursor: pointer;
     /* 只有最前面那张能点，后面的点击会穿到页面上，不去抢焦点。 */
     pointer-events: none;
@@ -142,22 +137,10 @@
 
 .creation-tunnel-card.is-active {
     pointer-events: auto;
-    border-color: rgba(255, 255, 255, 0.55);
 }
 
 .creation-tunnel-card.is-active::before {
     opacity: 0;
-}
-
-/* 悬停时抬起放大一点，给"可以点进去"的反馈。
-   整条 transform 链重写一遍而不是用 translate / scale 独立属性：
-   独立属性会插在 transform 之前合成，卡片会被缩放带得偏离原位。
-   抬起用更短的时长——切换是运镜，悬停是手感，两者不该共用一个节奏。 */
-.creation-tunnel-card.is-active:hover {
-    transform: translate(-50%, -50%) translate(var(--card-x, 0px), calc(var(--card-enter-y, 0px) - 14px)) translateX(var(--card-drag, 0px)) scale(calc(var(--card-scale, 1) * var(--card-enter-scale, 1) * 1.04));
-    transition:
-        transform 240ms cubic-bezier(0.2, 0.8, 0.3, 1),
-        opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 玻璃罩：斜向高光 + 底部压暗，让面板读起来是一块有厚度的玻璃，不是一张图。 */
@@ -180,6 +163,8 @@
 .creation-tunnel-card-info {
     position: absolute;
     inset: auto 0 0;
+    /* 抬到压暗罩（::before，z-index 1）之上：侧卡图片被压暗、文字保持清晰。 */
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: var(--space-1, 4px);
@@ -188,13 +173,8 @@
     color: #fff;
     text-align: left;
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
-    opacity: 0;
-    /* 比位移稍慢一点收尾，避免文字跟着画面一起"闪"进闪出。 */
-    transition: opacity 380ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.creation-tunnel-card.is-active .creation-tunnel-card-info {
-    opacity: 1;
+    /* 三张可见卡都常驻标题与描述，不再只在当前卡显示；
+       侧卡的文字随整卡透明度自然变淡，层次仍清楚。 */
 }
 
 .creation-tunnel-card-cta {
@@ -203,6 +183,12 @@
     gap: var(--space-1, 4px);
     font-size: var(--fs-label, 11px);
     line-height: 1.2;
+    /* 「使用这个创意」是点击引导，只有能点的当前卡露出它。 */
+    opacity: 0;
+    transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.creation-tunnel-card.is-active .creation-tunnel-card-cta {
     opacity: 0.84;
 }
 
@@ -227,10 +213,12 @@
     -webkit-line-clamp: 2;
 }
 
-/* ── 左右切换按钮：半透明深色圆钮，贴横幅两侧垂直居中 ── */
+/* ── 左右切换按钮：半透明深色圆钮，贴横幅两侧垂直居中。
+   默认隐藏，悬停画廊（或键盘聚焦按钮）时浮现；
+   触屏没有 hover，走 (hover: none) 常显。 ── */
 .creation-gallery-arrow {
     position: absolute;
-    top: calc((var(--gallery-card-width) * 5 / 14 + 44px) / 2);
+    top: calc((var(--gallery-card-width) * 5 / 16 + 44px) / 2);
     z-index: 180;
     display: grid;
     place-items: center;
@@ -241,7 +229,6 @@
     background: rgba(15, 17, 21, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--r-full, 999px);
-    box-shadow: 0 10px 26px -12px rgba(0, 0, 0, 0.6);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
     backdrop-filter: blur(14px) saturate(1.2);
     cursor: pointer;
@@ -250,11 +237,21 @@
     /* 用整条 transform 表达“居中 + 悬停放大”：
        换成 scale 独立属性会插在 transform 之前合成，按钮会跟着往下掉。 */
     transform: translateY(-50%);
+    opacity: 0;
+    visibility: hidden;
     transition:
         transform var(--user-motion, 180ms) ease,
         background-color var(--user-motion, 180ms) ease,
-        box-shadow var(--user-motion, 180ms) ease,
-        color var(--user-motion, 180ms) ease;
+        color var(--user-motion, 180ms) ease,
+        opacity var(--user-motion, 180ms) ease,
+        visibility 0s linear var(--user-motion, 180ms);
+}
+
+.creation-inspiration-tunnel:hover .creation-gallery-arrow,
+.creation-inspiration-tunnel:focus-within .creation-gallery-arrow {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
 }
 
 .creation-gallery-arrow.is-prev {
@@ -268,7 +265,6 @@
 .creation-gallery-arrow:hover {
     background: rgba(15, 17, 21, 0.68);
     transform: translateY(-50%) scale(1.08);
-    box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.68);
 }
 
 .creation-gallery-arrow:active {
@@ -278,6 +274,14 @@
 .creation-gallery-arrow:focus-visible {
     outline: 2px solid var(--creation-accent, var(--user-accent));
     outline-offset: 3px;
+}
+
+/* 触屏没有悬停：切换按钮常显，不然没有入口。 */
+@media (hover: none) {
+    .creation-gallery-arrow {
+        opacity: 1;
+        visibility: visible;
+    }
 }
 
 .creation-gallery-arrow-icon {
