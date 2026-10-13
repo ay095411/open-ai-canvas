@@ -1,0 +1,80 @@
+/* 首页模块入口条 —— 侧栏下线后页面之间唯一的常驻导航。
+   token 全部走 --user-*：等首页切成深色底（背景 + 氛围光）时，这里不需要跟着改。 */
+
+.creation-module-nav {
+    width: 100%;
+    margin: 26px auto 0;
+}
+
+.creation-module-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.creation-module-chip {
+    display: inline-flex;
+    height: 36px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    border: 1px solid var(--user-border);
+    border-radius: 999px;
+    background: var(--user-surface);
+    color: var(--user-ink-muted);
+    font-size: 13px;
+    font-weight: 560;
+    white-space: nowrap;
+    transition: background var(--user-motion), border-color var(--user-motion), color var(--user-motion), transform var(--user-motion);
+}
+
+.creation-module-chip:hover,
+.creation-module-chip:focus-visible {
+    border-color: var(--user-border-strong);
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
+}
+
+.creation-module-chip:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--user-accent) 46%, transparent);
+    outline-offset: 2px;
+}
+
+.creation-module-chip:active {
+    transform: scale(.98);
+}
+
+.creation-module-chip-icon {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    color: var(--user-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .creation-module-chip,
+    .creation-module-chip:active {
+        transform: none;
+        transition: none;
+    }
+}
+
+@media (max-width: 640px) {
+    /* 窄屏放不下一行 7 个：改成单行横滑，别折成三四行把创作区顶下去。 */
+    .creation-module-chips {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+    }
+
+    .creation-module-chips::-webkit-scrollbar {
+        display: none;
+    }
+}

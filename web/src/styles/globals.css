@@ -15444,12 +15444,12 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
 
 /* ===== 2026-09 user workspace alignment =====
    这一组规则只作用于真实用户端壳层和首页，后台与画布编辑器保持原有职责和交互。
-   几何基准：侧栏 220px、顶部 56px、导航行 40px、首页内容最大宽度 1180px。 */
+   几何基准：侧栏 220px、顶部 56px、导航行 36px、首页内容最大宽度 1180px。 */
 .app-user-workspace {
     --workspace-reference-sidebar: 220px;
     --workspace-reference-collapsed: 64px;
     --workspace-reference-topbar: 56px;
-    --workspace-reference-row: 40px;
+    --workspace-reference-row: 36px;
     --workspace-reference-page-bg: #ffffff;
     background: var(--workspace-reference-page-bg);
 }
@@ -15469,7 +15469,7 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
 
 .app-user-workspace .app-workspace-sidebar-nav {
     width: 100%;
-    background: #f7f7f8;
+    background: var(--workspace-sidebar-bg);
 }
 
 .app-user-workspace .app-workspace-sidebar-brand-row {
@@ -15581,11 +15581,11 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
 
 .app-user-workspace .app-workspace-nav-link .app-workspace-nav-icon {
     display: grid;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 0;
 }
 
 .app-user-workspace .app-workspace-nav-link .app-workspace-nav-icon svg,
@@ -15617,7 +15617,10 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
 }
 
 .app-user-workspace .app-workspace-nav-group-label {
-    font-weight: 600;
+    color: var(--workspace-sidebar-muted);
+    font-size: inherit;
+    font-weight: 400;
+    letter-spacing: inherit;
 }
 
 .app-user-workspace .app-workspace-nav-group[data-nav-group-heading=""] + .app-workspace-nav-group[data-nav-group-heading=""] {
@@ -16390,7 +16393,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 }
 
 .dark .app-user-workspace .app-workspace-sidebar,
-.dark .app-user-workspace .app-workspace-sidebar-nav { background: #1b1b1d; }
+.dark .app-user-workspace .app-workspace-sidebar-nav { background: var(--workspace-sidebar-bg); }
 .dark .app-user-workspace .creation-home,
 .dark .app-user-workspace .creation-composer,
 .dark .app-user-workspace .creation-empty-suggest .creation-hero-prompt,
@@ -17191,7 +17194,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .app-user-workspace .app-workspace-sidebar,
 .app-user-workspace .app-workspace-sidebar-nav {
-    background: #f6f6f7;
+    background: var(--workspace-sidebar-bg);
 }
 
 .app-user-workspace .app-workspace-sidebar {
@@ -17248,11 +17251,11 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .app-user-workspace .app-workspace-nav-group-toggle {
     min-height: 26px;
-    padding: 0 11px 4px;
-    color: #929299;
-    font-size: 11px;
-    font-weight: 650;
-    letter-spacing: .04em;
+    padding: 0 10px 4px;
+    color: var(--workspace-sidebar-muted);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
 }
 
 .app-user-workspace .app-workspace-sidebar.is-collapsed .app-workspace-sidebar-scroll-area {
@@ -17847,6 +17850,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .app-user-workspace,
 .app-user-overlays {
     --user-page-bg: #f8f8fa;
+    --workspace-sidebar-bg: #e8e8e8;
+    --workspace-sidebar-hover: #dedede;
+    --workspace-sidebar-selected: #d4d4d4;
+    --workspace-sidebar-ink: #242424;
+    --workspace-sidebar-muted: #737373;
+    --workspace-sidebar-accent: var(--workspace-accent);
     --user-surface: #ffffff;
     --user-surface-raised: #ffffff;
     --user-surface-muted: #f1f1f3;
@@ -17874,6 +17883,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .dark .app-user-workspace,
 .dark .app-user-overlays {
     --user-page-bg: #151517;
+    --workspace-sidebar-bg: #202022;
+    --workspace-sidebar-hover: #2c2c2f;
+    --workspace-sidebar-selected: #38383c;
+    --workspace-sidebar-ink: #f0f0f2;
+    --workspace-sidebar-muted: #a0a0a8;
+    --workspace-sidebar-accent: var(--workspace-accent);
     --user-surface: #1c1c1f;
     --user-surface-raised: #222226;
     --user-surface-muted: #26262a;
@@ -17894,11 +17909,11 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     background: var(--user-page-bg);
 }
 
-/* Navigation rail: 20% wider than the previous 180 / 58 compact track. */
+/* Sidebar palette follows the reference without changing the content surface. */
 .app-user-workspace .app-workspace-sidebar {
     width: var(--workspace-reference-sidebar) !important;
     flex-basis: var(--workspace-reference-sidebar) !important;
-    background: var(--user-page-bg) !important;
+    background: var(--workspace-sidebar-bg) !important;
     border-right: 0 !important;
     transition: width var(--user-motion);
 }
@@ -17906,26 +17921,26 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     width: var(--workspace-reference-collapsed) !important;
     flex-basis: var(--workspace-reference-collapsed) !important;
 }
-.app-user-workspace .app-workspace-sidebar-scroll-area { padding: 22px 12px 12px !important; gap: 24px !important; }
+.app-user-workspace .app-workspace-sidebar-scroll-area { padding: 22px 12px 12px !important; gap: 22px !important; }
 .app-user-workspace .app-workspace-sidebar-footer { padding: 12px 12px 14px !important; border-top: 0 !important; }
 /* 菜单栏终态：hover 只出现背景（图标/文字不变色），选中切换不做过渡（直接切换）。
    transition:none 用于压掉 antd 给所有 <a> 注入的 color 0.24s 过渡（motionDurationSlow）。 */
 .app-user-workspace .app-workspace-nav-link {
     min-height: var(--workspace-reference-row) !important;
     padding: 3px 10px !important;
-    border-radius: 13px !important;
-    color: var(--user-ink-muted) !important;
-    font-size: 13px !important;
-    font-weight: 560 !important;
+    border-radius: 12px !important;
+    color: var(--workspace-sidebar-ink) !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
     transition: none !important;
 }
 .app-user-workspace .app-workspace-nav-link .app-workspace-nav-main { gap: 10px !important; }
 .app-user-workspace .app-workspace-nav-link .app-workspace-nav-icon svg,
-.app-user-workspace .app-workspace-nav-link .app-workspace-nav-main > svg { width: 16px !important; height: 16px !important; }
-.app-user-workspace .app-workspace-nav-link.is-active { background: transparent !important; color: var(--user-ink) !important; font-weight: 680 !important; }
+.app-user-workspace .app-workspace-nav-link .app-workspace-nav-main > svg { width: 18px !important; height: 18px !important; }
+.app-user-workspace .app-workspace-nav-link.is-active { background: transparent !important; color: var(--workspace-sidebar-ink) !important; font-weight: 500 !important; }
 .app-user-workspace .app-workspace-nav-link:hover:not(.is-active),
-.app-user-workspace .app-workspace-nav-link:focus-visible:not(.is-active) { background: var(--user-surface-hover) !important; }
-.app-user-workspace .app-workspace-nav-group-toggle { color: var(--user-ink-soft) !important; }
+.app-user-workspace .app-workspace-nav-link:focus-visible:not(.is-active) { background: var(--workspace-sidebar-hover) !important; }
+.app-user-workspace .app-workspace-nav-group-toggle { color: var(--workspace-sidebar-muted) !important; }
 .app-user-workspace .app-workspace-sidebar.is-collapsed .app-workspace-sidebar-scroll-area { padding-inline: 8px !important; }
 .app-user-workspace .app-workspace-sidebar.is-collapsed .app-workspace-nav-link { width: 48px !important; }
 
@@ -17963,6 +17978,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 /* One scroll owner on the creation route. */
 .app-user-workspace .creation-home {
+    --creation-stage-max-width: 960px;
     min-height: 0 !important;
     height: 100% !important;
     overflow: hidden !important;
@@ -18022,11 +18038,13 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     /* 兜底：万一当前布局里没有顶栏（clearance 解析成 0），第一档就会和 0 重合，
        遮罩在带子顶边直接截断成一条硬边。给一个最小淡入距离，两种情况都不露边。 */
     --creation-ambient-top-fade: max(var(--creation-ambient-top), 40px);
-    --creation-ambient-veil: color-mix(in srgb, var(--user-page-bg) 38%, transparent);
+    --creation-ambient-veil: color-mix(in srgb, var(--user-page-bg) 62%, transparent);
     --creation-ambient-fade-x: linear-gradient(to right, transparent 0%, #000 15%, #000 85%, transparent 100%);
     position: absolute;
     inset: 0 0 auto 0;
     z-index: 0;
+    width: min(100%, var(--creation-stage-max-width));
+    margin-inline: auto;
     height: calc(var(--creation-ambient-height) + var(--creation-ambient-top));
     overflow: hidden;
     pointer-events: none;
@@ -18049,7 +18067,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     );
 }
 .dark .app-user-workspace .creation-home-ambient {
-    --creation-ambient-veil: color-mix(in srgb, var(--user-page-bg) 76%, transparent);
+    --creation-ambient-veil: color-mix(in srgb, var(--user-page-bg) 82%, transparent);
 }
 .app-user-workspace .creation-home-ambient-video,
 .app-user-workspace .creation-home-ambient-veil {
@@ -18067,7 +18085,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     object-fit: cover;
     object-position: center 40%;
 }
-.dark .app-user-workspace .creation-home-ambient-video { filter: saturate(.72) brightness(.92); }
+.dark .app-user-workspace .creation-home-ambient-video { filter: saturate(.6) brightness(.82); }
 .app-user-workspace .creation-home-ambient-veil { background: var(--creation-ambient-veil); }
 
 /* 氛围底片是定位元素，会盖在同为静态定位的标题与舞台之上；把这两层提到 z-index 1。
@@ -18101,75 +18119,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     letter-spacing: .06em !important;
     line-height: 1.15 !important;
 }
-/* 品牌名（动态，默认「Navo AI」、可被站点外观改成任意长度）单独做彩虹艺术字。
-   字体走 --font-brand = Fredoka Variable（SIL OFL 1.1，可商用、无侵权风险、无需在 UI 内署名），
-   圆头几何的展示体，和液态玻璃胶囊 + 煤球这套圆润语气同源；
-   它只有拉丁与希伯来字形，中文品牌名会整段回落到 --font-sans 的 OPPO Sans 及中文后备字体，
-   要让中文也是艺术体得再引一个 OFL 中文展示体，代价是上百个 CJK 分片，暂不做。
-   字号给到 1.45em：h1 用的是 clamp(26px,2vw,32px)，换算下来品牌名约 41.8px（1440）/ 40.6px（600）。
-   注意行内元素会撑高行盒 —— 品牌名比 h1 本体大，h1 行盒由 38.4px 长到 48px（1440，实测 +9.6px）；
-   首页舞台是垂直居中的，这一下只是让整块内容略微上移，heading 底到 tab 顶仍是 54px，不会撞上。
-   尺寸/字重/字距不依赖任何特性，放 @supports 之外；渐变蒙版部分才需要能力检测。
-   另外 h1 的 font-size / font-weight / letter-spacing 都是 !important 的继承值，
-   这里给 span 自己声明即可生效（自身声明永远赢过继承），不必再加 !important。 */
-.app-user-workspace .creation-home-heading .creation-home-brand {
-    font-family: var(--font-brand);
-    font-size: 1.45em;
-    font-weight: 700;
-    letter-spacing: -.01em;
-    /* 品牌名与两侧汉字的间隙：h1 的 letter-spacing 作用不到行内边界
-       （右侧还是品牌的负字距，实测贴死 0px），用外边距单独撑开。 */
-    margin-inline: .12em;
-}
-/*
- * 把渐变当文字蒙版：字色设成 transparent 后 color 会自指成空，
- * 所以色带必须自带完整颜色，不能靠 currentColor 派生。
- * 色带铺满整宽（background-size 100%），保证任何一帧都能看到完整彩虹 ——
- * 若用 200% 宽度让色带横向流动，任一时刻只看得见半条光谱（实测缺紫端）。
- * 「艺术感」交给缓慢的色相漂移：整体 hue 轻微摆动，颜色一直在动但不丢任何一段。
- */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-    .app-user-workspace .creation-home-heading .creation-home-brand {
-        background-image: linear-gradient(
-            92deg,
-            #ff5f6d 0%,
-            #ff8a3d 15%,
-            #ffc93c 30%,
-            #3ddc84 48%,
-            #2bb8e8 66%,
-            #6b63f5 82%,
-            #b45cf0 100%
-        );
-        background-size: 100% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        animation: creation-home-brand-hue 11s var(--motion-ease-in-out) infinite;
-    }
-    /* 深色底把色带整体提亮一档，否则紫/蓝两段在暗背景上会糊掉。 */
-    .dark .app-user-workspace .creation-home-heading .creation-home-brand {
-        background-image: linear-gradient(
-            92deg,
-            #ff7a86 0%,
-            #ffa457 15%,
-            #ffd95e 30%,
-            #5ff09b 48%,
-            #4fd0f7 66%,
-            #8b84ff 82%,
-            #cf7bff 100%
-        );
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .app-user-workspace .creation-home-heading .creation-home-brand { animation: none; }
-    }
-}
-@keyframes creation-home-brand-hue {
-    0%,
-    100% { filter: hue-rotate(0deg); }
-    50% { filter: hue-rotate(24deg); }
-}
 .creation-launchpad {
-    width: min(100%, 960px);
+    width: min(100%, var(--creation-stage-max-width));
     margin-inline: auto;
     container-type: inline-size;
 }
@@ -18477,10 +18428,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     .app-user-workspace .app-workspace-topbar { padding-inline: 12px !important; gap: 8px; }
     .app-user-workspace .app-workspace-sidebar { width: 180px !important; }
     .app-user-workspace .creation-home > .creation-empty-workspace { width: calc(100% - 24px) !important; padding-top: calc(var(--workspace-topbar-clearance, 0px) + 28px) !important; padding-bottom: 40px !important; }
-    /* 窄屏标题只有 28px 字号、约 336px 容器，.02em 会把「想法」挤出成孤字换行；
-       0 字距比旧的 -.04em 已松一整档，视觉上仍是放宽。
-       字号用 vw 收缩：品牌名带 .12em 外边距后，固定 28px 在 ≤370px 会折行，
-       7vw 保证文本宽 ≈ 0.86×视口，任何宽度都装得下。 */
+    /* 窄屏整行标题统一缩放，取消额外字距以减少换行。 */
     .app-user-workspace .creation-home-heading h1 { font-size: clamp(22px, 7vw, 28px) !important; letter-spacing: 0 !important; }
     .app-user-workspace .creation-launchpad > .creation-mode-capsule .creation-chat-control { min-width: 0 !important; padding-inline: 16px !important; }
     .app-user-workspace .creation-chat-writing-surface,

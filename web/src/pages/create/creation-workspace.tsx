@@ -7,7 +7,7 @@ import { AppDrawer } from "@/components/ui/product/app-drawer";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { useWorkspaceTopBarMount } from "@/components/layout/workspace-top-bar-extension";
 import { Tooltip } from "@/components/ui/base/tooltip";
-import { Reorder, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { Reorder, LayoutGroup, motion } from "motion/react";
 import { ArrowDown, ArrowUp, Brain, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Clock3, Copy, Download, FileText, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, MoreHorizontal, Music2, Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Sparkles, Trash2, WandSparkles, Waves, X } from "lucide-react";
 
 import { AIMessageMarkdown } from "@/components/ai/ai-message-markdown";
@@ -446,20 +446,12 @@ export function CreationComposer(props: ComposerProps) {
 type CreationModeTabBox = { x: number; y: number; w: number; h: number };
 
 /**
- * 创作模式切换。视觉参考「液态玻璃胶囊 + 黑煤球」，四条约束决定了实现方式：
- * - 指示器与黑煤球必须严格同步：两者共用 --creation-tab-* 这一份测量值和同一条 CSS 过渡。
- *   各用一套 spring 会在位移中途分离成「两个元件在动」，正是参考稿要避免的机械感。
- * - 位置来自「当前 aria-pressed 的按钮」的测量值，而不是让指示器成为按钮的子节点：
- *   这样首页四列、dock 三列紧凑条、垂直轨道共用一套定位，也让指示器和煤球拿到同一个横坐标。
- * - 悬停只给轻微反馈，模式仍只由 click 改变；煤球的眼睛跟随指针，但只做很小的位移。
- * - 垂直轨道与紧凑 dock 条没有上方空间，煤球由 CSS 直接隐藏。
+ * 创作模式切换：测量当前 aria-pressed 按钮以定位胶囊指示器，
+ * 首页四列、dock 紧凑条和垂直轨道共用同一套定位逻辑。
  */
 export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAgentSelect, orientation = "horizontal" }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void; agentActive?: boolean; onAgentSelect?: () => void; orientation?: "horizontal" | "vertical" }) {
-    const reducedMotion = useReducedMotion();
     const tabsRef = useRef<HTMLDivElement | null>(null);
-    const coalRef = useRef<HTMLSpanElement | null>(null);
     const [tabBox, setTabBox] = useState<CreationModeTabBox | null>(null);
-    const [hop, setHop] = useState(0);
     const [ready, setReady] = useState(false);
     const activeModeKey = agentActive ? "agent" : mode;
     const columnCount = onAgentSelect ? 4 : 3;
@@ -491,66 +483,12 @@ export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAg
         return () => observer.disconnect();
     }, [activeModeKey, orientation, columnCount]);
 
-    // 只比较模式是否真的变了：用 ref 记上一次的值，而不是「是否首次挂载」，
-    // 这样 StrictMode 的双次挂载不会在加载时误触发一次起跳。
-    const previousModeRef = useRef(activeModeKey);
-    useEffect(() => {
-        if (previousModeRef.current === activeModeKey) return;
-        previousModeRef.current = activeModeKey;
-        if (reducedMotion) return;
-        // 交替两个同内容的关键帧来重播落地动画：属性值变了动画才会重启，
-        // 省掉 classList.remove + void offsetWidth 那种强制重排。
-        setHop((value) => value === 1 ? 2 : 1);
-    }, [activeModeKey, reducedMotion]);
-
-    // 眼睛跟随指针：直接写 DOM transform，不进 React state —— 每帧 setState 会让整块创作区重渲染。
-    // 原型是 dx = (指针 - 眼心)/35 再钳到 ±2 —— 也就是鼠标离眼睛超过 70px 就顶到上限，
-    // 眼睛几乎永远钉在最左或最右，看起来是「斜眼」而不是「跟随」。这里两处都改掉：
-    //   1) 归一化半径从 70px 放大到 620px，整个视口范围内连续变化，不再动一下就顶格；
-    //   2) 基准点取「角色中心」而不是每只眼睛自己的中心 —— 否则左右眼各自为政会外八。
-    // 另外每帧读的是煤球的 rect（只有横向滑行、没有纵向动画），避免量到正在浮动/位移的元素。
-    useEffect(() => {
-        if (reducedMotion || orientation !== "horizontal") return;
-        const coal = coalRef.current;
-        const body = coal?.querySelector<HTMLElement>(".creation-mode-coal-body");
-        const eyes = coal ? Array.from(coal.querySelectorAll<HTMLElement>(".creation-mode-coal-eye")) : [];
-        if (!coal || !body || eyes.length === 0) return;
-        const RADIUS = 620;
-        const toUnit = (value: number) => Math.max(-1, Math.min(1, value));
-        let frame = 0;
-        let pointerX = 0;
-        let pointerY = 0;
-        const follow = () => {
-            frame = 0;
-            const coalRect = coal.getBoundingClientRect();
-            const depth = body.getBoundingClientRect().width; // = --creation-coal-body
-            const centerX = coalRect.left + coalRect.width / 2;
-            const centerY = coalRect.top + depth * 0.55; // 身体顶边在 0.05D，球心即 0.55D
-            const dx = toUnit((pointerX - centerX) / RADIUS) * depth * 0.038;
-            const dy = toUnit((pointerY - centerY) / RADIUS) * depth * 0.028;
-            const shift = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0)`;
-            for (const eye of eyes) eye.style.transform = shift;
-        };
-        const onPointerMove = (event: globalThis.PointerEvent) => {
-            pointerX = event.clientX;
-            pointerY = event.clientY;
-            if (!frame) frame = window.requestAnimationFrame(follow);
-        };
-        window.addEventListener("pointermove", onPointerMove, { passive: true });
-        return () => {
-            window.removeEventListener("pointermove", onPointerMove);
-            if (frame) window.cancelAnimationFrame(frame);
-            for (const eye of eyes) eye.style.transform = "";
-        };
-    }, [reducedMotion, orientation]);
-
     const visualStyle = {
         gridTemplateColumns: orientation === "vertical" ? "minmax(0, 1fr)" : `repeat(${columnCount}, minmax(0, 1fr))`,
         "--creation-tab-x": `${tabBox?.x ?? 0}px`,
         "--creation-tab-y": `${tabBox?.y ?? 0}px`,
         "--creation-tab-w": `${tabBox?.w ?? 0}px`,
         "--creation-tab-h": `${tabBox?.h ?? 0}px`,
-        "--creation-tab-cx": `${(tabBox?.x ?? 0) + (tabBox?.w ?? 0) / 2}px`,
     } as CSSProperties;
 
     return <div
@@ -561,21 +499,9 @@ export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAg
         data-active-mode={activeModeKey}
         data-orientation={orientation}
         data-ready={ready ? "true" : "false"}
-        data-hop={hop}
         style={visualStyle}
     >
         <span className="creation-mode-indicator" aria-hidden />
-        <span ref={coalRef} className="creation-mode-coal" aria-hidden>
-            <span className="creation-mode-coal-hop">
-                <span className="creation-mode-coal-body" />
-                <span className="creation-mode-coal-eye is-left" />
-                <span className="creation-mode-coal-eye is-right" />
-                <span className="creation-mode-coal-mouth" />
-                <span className="creation-mode-coal-hand is-left" />
-                <span className="creation-mode-coal-hand is-right" />
-                <span className="creation-mode-coal-spark" />
-            </span>
-        </span>
         {items.map((item) => (
             <button key={item.mode} type="button" className="creation-mode-button" data-mode={item.mode} aria-pressed={!agentActive && item.mode === mode} aria-label={`${item.label}生成`} onClick={() => onModeChange(item.mode)}>
                 {item.icon}

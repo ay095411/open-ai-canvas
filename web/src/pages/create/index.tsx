@@ -1103,7 +1103,7 @@ export default function CreatePage() {
                 <main ref={threadScrollRef} onScroll={handleThreadScroll} className="creation-empty-workspace creation-scrollbar">
                 <CreationHomeAmbientVideo />
                 <div className="creation-home-heading">
-                    <h1>和<span className="creation-home-brand">{brandName}</span>聊聊创作想法</h1>
+                    <h1>让灵感，在 {brandName} 成为作品</h1>
                 </div>
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className={cn("creation-composer-stage is-home-mode", agentMode && "is-agent-mode")}>

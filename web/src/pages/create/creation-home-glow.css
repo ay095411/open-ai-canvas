@@ -1,0 +1,40 @@
+/* 首页氛围光 —— 纯渐变，无视频 / 无动画 / 无 canvas。
+   定位在 .creation-home 内（那里已经有 relative），所以它不随内容滚动：
+   往下滑瀑布流时舞台光留在原地，符合「背景」的语义。
+
+   三层叠加，全部低透明度：
+   1) 顶部中央一团主光，从上方渗出来（radial 圆心落在容器之上，只有下半个晕可见）；
+   2) 左上一团冷光，给画面一点方向性，避免对称到像是脏印；
+   3) 顶部一条极窄的提亮带，让顶栏区域「被照到」，与内容区区分开。 */
+
+.creation-home-glow {
+    /* 光色 token：主光藏青蓝、副光青绿（与签到/积分的强调色同族，全站只此两处用彩色）。 */
+    --creation-glow-primary: #5b6cff;
+    --creation-glow-secondary: #12c8a0;
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 0;
+    height: 720px;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    background:
+        radial-gradient(58% 46% at 50% -6%, color-mix(in srgb, var(--creation-glow-primary) 30%, transparent), transparent 68%),
+        radial-gradient(40% 34% at 10% 4%, color-mix(in srgb, var(--creation-glow-secondary) 16%, transparent), transparent 70%),
+        radial-gradient(64% 22% at 50% 0%, rgb(255 255 255 / 4%), transparent 72%);
+}
+
+/* 光只在舞台顶部有意义；给底部一条向下的渐隐，避免 720px 处出现硬边。 */
+.creation-home-glow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 42%, var(--user-page-bg) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* 本来就是静态层，这里只是显式声明「没有动效」，避免以后有人往里加动画。 */
+    .creation-home-glow {
+        animation: none;
+    }
+}

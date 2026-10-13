@@ -1,9 +1,13 @@
 /**
  * 全量灵感目录的运行时加载。
  *
- * 3MB 量级的目录不能打进主 JS，全量留给灵感页按需拉取；
- * 首页纵深画廊的池子同理，连提示词正文有几百 KB，走 gallery-pool.json，
+ * 目录是 3.8MB 量级（原创 + seedance 2.8MB + haohaoxue 0.6MB + youmind 0.5MB），
+ * 不能打进主 JS，所以构建期落成 public/inspirations/*.json，运行时拉取；
  * 浏览器 HTTP 缓存之外再做一层内存缓存，同一次会话只请求一遍。
+ *
+ * ⚠️ 首页瀑布流与 /inspirations 页**共用这一个加载器** —— 两处必须看到同一份目录、
+ * 同一套用户叠加层（见 `lib/inspirations/resolve.ts` 的 `resolveInspirations`），
+ * 否则「库里隐藏了，首页还在」这类不一致会立刻冒出来。
  */
 import { curatedInspirations, type CreationInspiration, type InspirationCategoryLabels, type InspirationSourceId } from "@/lib/inspirations/catalog";
 
@@ -91,52 +95,15 @@ export function loadInspirationCatalog(): Promise<InspirationCatalog> {
     return pending;
 }
 
-/** 首页画廊的池子：带本地缩略图的精选条目，正文一并带着，点开卡片就能看完整提示词。 */
-const GALLERY_POOL_FILE = "/inspirations/gallery-pool.json";
-
-let galleryPool: Promise<CreationInspiration[]> | null = null;
-
 /**
- * 池子有几百条、几百 KB，是全量目录之外的单独一份，只服务画廊一处。
- * 拿不到就退回打包的原创条目——画廊宁可少几张，也不该空着。
+ * `categoriesBySource` 是给筛选器用的有序数组（带条目数）；
+ * 而「把条目上的分类码翻成中文」要的是 code → label 的表。
+ * 两处都需要，所以在这里一次性转好，避免各调用方各写一遍。
  */
-export function loadGalleryPool(): Promise<CreationInspiration[]> {
-    if (!galleryPool) {
-        galleryPool = fetchJson<unknown>(GALLERY_POOL_FILE)
-            .then((payload) => [...curatedInspirations, ...readEntries(payload, GALLERY_POOL_FILE)])
-            .catch((error) => {
-                console.warn("画廊池加载失败，退回打包的原创条目", error);
-                galleryPool = null;
-                return curatedInspirations;
-            });
+export function categoryLabelsOf(catalog: InspirationCatalog): InspirationCategoryLabels {
+    const table: InspirationCategoryLabels = {};
+    for (const [sourceId, options] of Object.entries(catalog.categoriesBySource)) {
+        table[sourceId] = Object.fromEntries(options.map((option) => [option.id, option.label]));
     }
-    return galleryPool;
-}
-
-let categoryLabels: Promise<InspirationCategoryLabels> | null = null;
-
-/**
- * 只取分类译名表。manifest 是 4KB 量级，而全量目录 3MB——
- * 首页详情里要显示中文分类，但不该为几个标签把整份目录拉下来。
- * 译名表是纯装饰，拉不到就当成空表（调用方会退回显示分类码），不抛错。
- */
-export function loadInspirationCategoryLabels(): Promise<InspirationCategoryLabels> {
-    if (!categoryLabels) {
-        categoryLabels = fetchJson<CatalogManifest>("/inspirations/manifest.json")
-            .then((manifest) => {
-                const table: InspirationCategoryLabels = {};
-                for (const [sourceId, source] of Object.entries(manifest.sources ?? {})) {
-                    table[sourceId] = { ...(source.categories ?? {}) };
-                }
-                // 原创条目没有上游分类码，占一个空表让查表逻辑不用特判。
-                table.original ??= {};
-                return table;
-            })
-            .catch((error) => {
-                console.warn("分类译名表加载失败，分类将显示上游原始码", error);
-                categoryLabels = null;
-                return {} as InspirationCategoryLabels;
-            });
-    }
-    return categoryLabels;
+    return table;
 }

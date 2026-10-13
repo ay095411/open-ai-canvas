@@ -1,0 +1,32 @@
+export const WORKSPACE_AUTH_OPEN_EVENT = "workspace-auth:open";
+
+export type WorkspaceAuthMode = "login" | "register";
+
+export type WorkspaceAuthOpenDetail = {
+    /** 打开后停在哪个表单；不传按登录处理。 */
+    mode?: WorkspaceAuthMode;
+    /** 登录 / 注册成功后要去的地址；不传则回到打开弹窗时所在的那一页。 */
+    next?: string;
+};
+
+/**
+ * 工作台任意入口打开登录弹窗，不再跳 `/login` 独立页。
+ *
+ * 与积分中心（`openWorkspaceWallet`）、账户设置（`openWorkspaceSettings`）同一套约定：
+ * 入口只负责派发事件，弹窗状态由宿主（`WorkspaceAuthHost`）统一持有。
+ * 之所以不在这里自己 `navigate`：调用方（顶栏按钮、创作页登录门、命令面板）大多拿不到
+ * 「打开前那一页」，而宿主一直在路由里，天然知道。
+ */
+export function openWorkspaceAuth(detail: WorkspaceAuthOpenDetail = {}) {
+    window.dispatchEvent(new CustomEvent<WorkspaceAuthOpenDetail>(WORKSPACE_AUTH_OPEN_EVENT, { detail }));
+}
+
+/**
+ * `next` 参数只接受站内相对路径。
+ * 必须挡掉 `//evil.com`（协议相对 URL，浏览器会当成外站）与 `http(s)://`，
+ * 否则 `/login?next=https://evil.com` 就成了一条开放重定向。
+ */
+export function safeAuthNext(value: string | null | undefined) {
+    if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+    return value;
+}

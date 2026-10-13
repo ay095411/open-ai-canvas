@@ -1,5 +1,5 @@
 import { Popover } from "antd";
-import { ArrowUpRight, Bell, ChevronDown, ChevronRight, History as HistoryIcon, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { ArrowUpRight, Bell, ChevronDown, ChevronRight, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
@@ -17,6 +17,7 @@ import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { WorkspaceAccountCard } from "./workspace-account-card";
 import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
+import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, InspirationNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon } from "./workspace-sidebar-icons";
 
 export type WorkspaceNavItem = {
     id: string;
@@ -34,9 +35,20 @@ type WorkspaceNavGroup = {
     items: WorkspaceNavItem[];
 };
 
+const sidebarIcons: Partial<Record<NavigationToolSlug, WorkspaceNavItem["icon"]>> = {
+    create: CreateNavIcon,
+    inspirations: InspirationNavIcon,
+    projects: ProjectNavIcon,
+    canvas: CanvasNavIcon,
+    assets: AssetsNavIcon,
+    skills: SkillsNavIcon,
+    plugins: PluginsNavIcon,
+    tasks: HistoryNavIcon,
+};
+
 function toolItem(slug: NavigationToolSlug, to: string): WorkspaceNavItem {
     const tool = navigationTools.find((item) => item.slug === slug);
-    return { id: slug, title: tool?.label ?? slug, icon: tool?.icon, to };
+    return { id: slug, title: tool?.label ?? slug, icon: sidebarIcons[slug] ?? tool?.icon, to };
 }
 
 function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[]; footer: WorkspaceNavItem[] } {
@@ -51,9 +63,9 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
         },
         {
             heading: "资源与工具",
-            items: [{ ...toolItem("assets", "/assets"), title: "资产" }, { ...toolItem("skills", "/skills"), title: "技能" }, ...(features.pluginCenterEnabled ? [{ ...toolItem("plugins", "/plugins"), title: "插件" }] : [])],
+            items: [{ ...toolItem("assets", "/assets"), title: "资产" }, { ...toolItem("skills", "/skills"), title: "Skills" }, ...(features.pluginCenterEnabled ? [{ ...toolItem("plugins", "/plugins"), title: "插件" }] : [])],
         },
-        ...(features.taskCenterEnabled ? [{ items: [{ ...toolItem("tasks", "/tasks"), title: "创作历史", icon: HistoryIcon }] }] : []),
+        ...(features.taskCenterEnabled ? [{ items: [{ ...toolItem("tasks", "/tasks"), title: "创作历史" }] }] : []),
     ];
 
     // 管理、设置和退出登录不再占据参考站式侧栏底部，而是通过用户卡片菜单进入。
@@ -175,7 +187,7 @@ function NavItem({
     const Icon = item.icon;
     const rowStyle = collapsed ? undefined : ({ paddingLeft: `${level * 12 + 10}px` } as CSSProperties);
 
-    const collapsedTitle = item.id === "home" ? "创作" : item.id === "projects" ? "短剧" : item.id === "canvas" ? "画布" : item.id === "assets" ? "资产" : item.id === "skills" ? "技能" : item.id === "plugins" ? "插件" : item.id === "tasks" ? "历史" : item.title.slice(0, 2);
+    const collapsedTitle = item.id === "home" ? "创作" : item.id === "projects" ? "短剧" : item.id === "canvas" ? "画布" : item.id === "assets" ? "资产" : item.id === "skills" ? "Skills" : item.id === "plugins" ? "插件" : item.id === "tasks" ? "历史" : item.title.slice(0, 2);
     const rowContent = (
         <>
             <span className="app-workspace-nav-main flex min-w-0 items-center gap-2.5">
@@ -241,6 +253,7 @@ function NavItem({
                     data-nav-id={item.id}
                     style={rowStyle}
                     aria-label={collapsed ? item.title : undefined}
+                    aria-current={isActive ? "page" : undefined}
                     title={collapsed ? item.title : undefined}
                     onClick={handleClick}
                     onFocus={() => preloadWorkspaceRoute(linkTo)}
@@ -281,7 +294,7 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
     }, [hasActive]);
 
     const content = (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
             {group.items.map((item) => (
                 <NavItem key={item.id} item={item} activeId={activeId} onSelect={onNavigate} onOpenSearch={onOpenSearch} onLogout={onLogout} collapsed={collapsed} />
             ))}
@@ -314,7 +327,7 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
     const { handleLogout } = useWorkspaceLogout();
     const { groups, footer } = useMemo(() => buildNav(features), [features]);
 
-    const slug = pathname.split("/").filter(Boolean)[0] || "home";
+    const slug = pathname === "/create" ? "home" : pathname.split("/").filter(Boolean)[0] || "home";
     const section = searchParams.get("section");
     const activeId = slug === "settings" && section ? `settings:${section}` : slug;
 
