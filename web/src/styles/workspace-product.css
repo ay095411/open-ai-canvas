@@ -971,17 +971,6 @@
     background: var(--market-page-bg);
     color: var(--market-ink);
 }
-/* 素材库：页头操作按钮与筛选胶囊同语言。 */
-.app-user-workspace .assets-library-page .app-page-header-title,
-.app-user-workspace .assets-library-page .app-page-header h1 {
-    color: var(--market-ink) !important;
-    font-size: 20px !important;
-    font-weight: 650 !important;
-    letter-spacing: -.02em;
-}
-.app-user-workspace .assets-library-page .app-page-header p {
-    color: var(--market-muted) !important;
-}
 .app-user-workspace .assets-library-page .assets-header-meta {
     color: var(--market-muted);
     font-size: 12px;
@@ -990,34 +979,8 @@
 .app-user-workspace .assets-library-page .assets-header-meta::before { display: none; }
 /* 素材库：工具栏搜索框 / 密度选择与技能页一致（无边框灰底、34px）。 */
 .app-user-workspace .assets-library-page .collection-toolbar { margin: 0 0 18px; }
-.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper {
-    height: 34px;
-    border: 0 !important;
-    border-radius: 12px;
-    background: var(--market-card-bg) !important;
-    color: var(--market-ink);
-    box-shadow: none !important;
-    font-size: 12px;
-}
-.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper:hover,
-.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper:focus-within {
-    background: var(--market-hover-bg) !important;
-    box-shadow: none !important;
-}
 .app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper input { background: transparent; color: var(--market-ink); }
 .app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper input::placeholder { color: var(--market-muted); }
-.app-user-workspace .assets-library-page .collection-toolbar .ant-select-selector {
-    height: 34px;
-    border: 0 !important;
-    border-radius: 12px !important;
-    background: var(--market-card-bg) !important;
-    color: var(--market-ink) !important;
-    box-shadow: none !important;
-    font-size: 12px;
-}
-.app-user-workspace .assets-library-page .collection-toolbar .ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
-    background: var(--market-hover-bg) !important;
-}
 /* 左侧筛选：胶囊改灰底，激活态用主题色反白（与技能页 chips 一致）。 */
 .app-user-workspace .assets-library-page .collection-filter-label { color: var(--market-muted); }
 .app-user-workspace .assets-library-page .assets-filter-item {
@@ -1042,17 +1005,6 @@
 .app-user-workspace .assets-library-page .assets-filter-item.is-active .assets-filter-count {
     background: transparent;
     color: var(--market-on-accent);
-}
-/* 素材库：卡片改灰底直角感（16px 圆角、无边框、hover 描边），信息文字用 market 灰阶。 */
-.app-user-workspace .assets-library-page .product-collection-card,
-.app-user-workspace .assets-library-page .library-card {
-    background: var(--market-card-bg) !important;
-    color: var(--market-ink) !important;
-}
-.app-user-workspace .assets-library-page .product-collection-card:hover,
-.app-user-workspace .assets-library-page .product-collection-card:focus-within {
-    background: var(--market-hover-bg) !important;
-    transform: none;
 }
 .app-user-workspace .assets-library-page .asset-collection-body h2 { color: var(--market-ink); }
 .app-user-workspace .assets-library-page .asset-collection-summary,
@@ -1118,21 +1070,6 @@
 }
 .app-user-workspace .plugins-page .plugins-sidebar-item.is-active > span:last-child { color: var(--market-on-accent); }
 .app-user-workspace .plugins-page .plugins-sidebar-nav { gap: 8px; }
-.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper,
-.app-user-workspace .plugins-page .plugins-filter.ant-select .ant-select-selector {
-    min-height: 34px;
-    height: 34px;
-    border: 0 !important;
-    border-radius: 12px !important;
-    background: var(--market-card-bg) !important;
-    color: var(--market-ink) !important;
-    box-shadow: none !important;
-    font-size: 12px;
-}
-.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper:hover,
-.app-user-workspace .plugins-page .plugins-filter.ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
-    background: var(--market-hover-bg) !important;
-}
 .app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper input { background: transparent; color: var(--market-ink); }
 .app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper input::placeholder { color: var(--market-muted); }
 /* 插件卡片：灰底、16px 圆角、hover 描边，标签与元信息用 market 灰阶。 */
@@ -1207,3 +1144,68 @@
     color: var(--market-page-bg);
 }
 .app-user-workspace .assets-library-page .assets-storage-usage { color: var(--market-muted); }
+@layer utilities {
+/* 素材库：页头操作按钮与筛选胶囊同语言。 */
+.app-user-workspace .assets-library-page .app-page-header-title,
+.app-user-workspace .assets-library-page .app-page-header h1 {
+    color: var(--market-ink) !important;
+    font-size: 20px !important;
+    font-weight: 650 !important;
+    letter-spacing: -.02em;
+}
+.app-user-workspace .assets-library-page .app-page-header p {
+    color: var(--market-muted) !important;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper {
+    height: 34px;
+    border: 0 !important;
+    border-radius: 12px;
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink);
+    box-shadow: none !important;
+    font-size: 12px;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper:hover,
+.app-user-workspace .assets-library-page .collection-toolbar .ant-input-affix-wrapper:focus-within {
+    background: var(--market-hover-bg) !important;
+    box-shadow: none !important;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-select-selector {
+    height: 34px;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink) !important;
+    box-shadow: none !important;
+    font-size: 12px;
+}
+.app-user-workspace .assets-library-page .collection-toolbar .ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
+    background: var(--market-hover-bg) !important;
+}
+/* 素材库：卡片改灰底直角感（16px 圆角、无边框、hover 描边），信息文字用 market 灰阶。 */
+.app-user-workspace .assets-library-page .product-collection-card,
+.app-user-workspace .assets-library-page .library-card {
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink) !important;
+}
+.app-user-workspace .assets-library-page .product-collection-card:hover,
+.app-user-workspace .assets-library-page .product-collection-card:focus-within {
+    background: var(--market-hover-bg) !important;
+    transform: none;
+}
+.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper,
+.app-user-workspace .plugins-page .plugins-filter.ant-select .ant-select-selector {
+    min-height: 34px;
+    height: 34px;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: var(--market-card-bg) !important;
+    color: var(--market-ink) !important;
+    box-shadow: none !important;
+    font-size: 12px;
+}
+.app-user-workspace .plugins-page .plugins-search.ant-input-affix-wrapper:hover,
+.app-user-workspace .plugins-page .plugins-filter.ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
+    background: var(--market-hover-bg) !important;
+}
+}

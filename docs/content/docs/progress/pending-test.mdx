@@ -1227,6 +1227,23 @@ PR #507 核心能力已按主分支实现保留，并补齐小视口尺寸约束
 - [x] `cd backend && go test ./internal/kernel/ ./internal/platform/ ./internal/skills/ ./internal/prompts/ ./internal/auth/ ./internal/canvas/ ./internal/assets/ ./internal/handler/ -count=1`
 - [x] `cd backend && go build ./internal/service/ ./internal/handler/ ./cmd/server/`
 - [ ] 登录后打开技能库：列表、加入、GitHub/ZIP 安装、内置技能正文仍可用。
+
+## 资产库与插件中心对齐技能页风格
+
+- 需求意图：用户要求将 `/assets`（素材库）与 `/plugins`（插件中心）的视觉风格对齐 `/skills`（技能库）页：浅灰页面底（`#f5f5f5`）、统一灰卡片（`#e9e9e9`、16px 圆角）、灰底筛选胶囊（32px 高、12px 圆角、激活态跟随项目主题色反白）、无边框灰底搜索框（34px 高、12px 圆角）、页头标题 20px / 650 字重。
+- 样式架构与层级拆分：
+  - 核心定义：在 `web/src/styles/workspace-product.css` 维护 `--market-*` token（浅色 `--market-page-bg: #f5f5f5`、`--market-card-bg: #e9e9e9`、`--market-border: #dcdcdc`、`--market-accent: var(--user-accent)`；深色 `#18181a` / `#262629` / `#39393e` 等）。
+  - CSS `@layer` 级联修正：针对 `@layer utilities` 内普通规则无法覆盖未分层样式的问题，将 market 段（69 条规则）拆分为两部分：59 条普通规则移出层外以最高普通特异性生效，10 条含 `!important` 的规则保留在 `@layer utilities`（以维持层内 `!important` 胜过同文件更早规则的能力）。
+  - JSX 类名清理：`web/src/pages/plugins/index.tsx` 中的插件卡片根元素移除 `product-collection-card` 类，避免命中更早的层内 `!important` 白底规则导致灰卡被强行覆盖。
+- 验证方式与边界记录：
+  - [x] 开发服务器真实浏览器验证：在端口 3100 Vite 开发服务器（与已登录会话）中通过 Playwright 自动化完成视觉与 CSS 计算值验收。
+  - [x] `/assets` 浅色主题计算值：页面底 `rgb(245, 245, 245)`、素材卡片背景 `rgb(233, 233, 233)`、非激活筛选胶囊背景 `rgb(233, 233, 233)`、激活胶囊反白背景 `rgb(23, 23, 23)`、搜索框背景 `rgb(233, 233, 233)`、页头 h1 为 20px / 650。
+  - [x] `/assets` 深色主题计算值：页面底 `rgb(24, 24, 26)`、卡片底 `rgb(38, 38, 41)`、搜索框及筛选胶囊 `rgb(38, 38, 41)`。
+  - [x] `/plugins` 浅色主题计算值：页面底 `rgb(245, 245, 245)`、插件卡片背景 `rgb(233, 233, 233)`、透明边框、16px 圆角、搜索框 `rgb(233, 233, 233)`、页头 h1 为 20px / 650。
+  - [x] `/plugins` 深色主题计算值：页面底 `rgb(24, 24, 26)`、卡片底 `rgb(38, 38, 41)`、搜索框 `rgb(38, 38, 41)`。
+  - [x] 截图验收：两页面在浅色与深色主题下的视觉截图均已抓取核验，卡片层次分明、圆角自然、无白色断层或硬边框。
+  - 如实记录：用户当前工作区分支 `ui-redesign` 正处于未决合并状态，存在 7 个用户专有的合并冲突文件，导致全项目 `bun run build` 在当前工作区暂不可执行（TS1185 冲突标识阻断）。本轮验证遵照 AGENTS.md 不碰触用户冲突文件，所有样式生效与渲染通过端口 3100 dev server 真实 DOM/CSSOM 探针和实拍截图完成确认。
+- [ ] 真实业务环境用户视觉确认：浅色与深色主题下的灰度对比度、卡片 hover 微动效以及移动端窄屏排版。
 - [ ] 管理后台提示词模板、用户风格库、画布按项目画风生成仍走原接口。
 - [ ] 注册、登录、邮件验证码、密码重置、Linux.do 登录仍走原 Cookie 接口。
 - [ ] 公开画布分享链接仍能打开，分享资源 URL 不泄露密钥和任务字段。

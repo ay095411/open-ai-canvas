@@ -15486,7 +15486,7 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     min-height: 38px;
     flex: 1 1 auto;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
     border-radius: 10px;
     padding: 0 7px;

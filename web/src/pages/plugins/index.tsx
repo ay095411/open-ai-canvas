@@ -353,7 +353,7 @@ export default function PluginsPage() {
                                                         const sourceLabel = pluginSourceLabel(plugin, state);
                                                         const canConfigure = canConfigurePlugin(plugin);
                                                         return (
-                                                            <section key={plugin.manifest.id} className={`product-collection-card plugin-card library-card-surface${trusted ? " is-trusted" : ""}`}>
+                                                            <section key={plugin.manifest.id} className={`plugin-card${trusted ? " is-trusted" : ""}`}>
                                                                 <button
                                                                     type="button"
                                                                     className="plugin-card-main"
