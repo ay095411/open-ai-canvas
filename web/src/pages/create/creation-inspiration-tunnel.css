@@ -50,19 +50,18 @@
     text-shadow: 0 1px 14px var(--creation-bg, var(--workspace-page));
 }
 
-/* 卡片取宽横幅比例（14:5），宽度跟随内容列；整条画廊突破内容列铺满窗口，
-   高度固定占位——横幅带不参与纵向弹性分配。 */
+/* 卡宽按「视口 - 展开态侧栏 - 呼吸边」折算（282px = 250px 侧栏 + 32px 余量），
+   两侧卡探出主卡后仍完整落在工作区可视宽度内，圆角与卡面不被边界裁切。 */
 .creation-inspiration-tunnel {
-    --gallery-card-width: clamp(480px, 42cqw, 860px);
+    --gallery-card-width: clamp(380px, calc((100vw - 282px) * 0.42), 860px);
     /* 层距 0.7 倍卡宽：侧卡约 22% 藏在主卡背后，中间一张明显压住两边。 */
     --gallery-step: calc(var(--gallery-card-width) * 0.7);
     position: relative;
     isolation: isolate;
-    container-type: inline-size;
-    width: 100vw;
-    margin-inline: calc(50% - 50vw);
+    width: 100%;
     flex: 0 0 auto;
-    overflow: hidden;
+    /* 不再自身裁切：条带允许探出内容列，由 .creation-home 在工作区边界统一收口。 */
+    overflow: visible;
 }
 
 .creation-gallery-stage {
