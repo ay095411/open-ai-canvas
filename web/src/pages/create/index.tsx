@@ -36,7 +36,7 @@ import { CreationInspirationWaterfall } from "./creation-inspiration-waterfall";
 import { CreationInspirationTunnel } from "./creation-inspiration-tunnel";
 import { declaredInspirationSources } from "@/lib/inspirations/catalog";
 import { CreationAgentEntry } from "./creation-agent-entry";
-import { CreationHomeAmbientVideo } from "./creation-home-ambient-video";
+import { HomeAmbientShader } from "@/components/ui/shaders/home-ambient-shader";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialog } from "./creation-login-dialog";
@@ -1090,6 +1090,7 @@ export default function CreatePage() {
 
     return <>
         <div className="creation-home relative flex h-full min-h-0 flex-col overflow-hidden">
+            <HomeAmbientShader />
             {isEmpty ? <>
                 <div className="creation-top-actions">
                     <Tooltip title="历史对话"><button type="button" aria-label="查看历史对话" aria-expanded={historyOpen} className="creation-top-action" onClick={() => (user ? setHistoryOpen(true) : openLogin())}><History /></button></Tooltip>
@@ -1108,15 +1109,13 @@ export default function CreatePage() {
                     </motion.div> : null}
                 </AnimatePresence>
                 <main ref={threadScrollRef} onScroll={handleThreadScroll} className="creation-empty-workspace creation-scrollbar">
-                <CreationHomeAmbientVideo />
-                {/* 纵深画廊放在最顶部：进场先看到轮播，再是标题和输入框。 */}
+                <div className="creation-home-heading">
+                    <h1>让灵感，在 {brandName} 成为作品</h1>
+                </div>
                 <CreationInspirationTunnel
                     mode={mode}
                     onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
                 />
-                <div className="creation-home-heading">
-                    <h1>让灵感，在 {brandName} 成为作品</h1>
-                </div>
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className={cn("creation-composer-stage is-home-mode", agentMode && "is-agent-mode")}>
                         <CreationModeTabs mode={mode} agentActive={agentMode} onAgentSelect={() => (user ? setAgentMode(true) : openLogin())} onModeChange={(next) => { setAgentMode(false); selectMode(next); }} />
