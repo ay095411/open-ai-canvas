@@ -243,12 +243,13 @@
 }
 
 .creation-gallery-arrow.is-prev {
-    /* 锚定中间卡左缘再向外让 56px：贴在主卡旁边，不再藏在视口最边缘。 */
-    left: calc(50% - var(--gallery-card-width) / 2 - 56px);
+    /* 落在两侧卡靠外的边缘上（主卡 + 0.7 层距 + 0.39 半宽 = 1.09 倍卡宽处再内收 14px），
+       随条带宽度自适应，永远贴在画面两侧。 */
+    left: calc(50% - var(--gallery-card-width) * 1.09 + 14px);
 }
 
 .creation-gallery-arrow.is-next {
-    right: calc(50% - var(--gallery-card-width) / 2 - 56px);
+    right: calc(50% - var(--gallery-card-width) * 1.09 + 14px);
 }
 
 .creation-gallery-arrow:hover {

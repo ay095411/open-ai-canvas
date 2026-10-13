@@ -25,8 +25,8 @@ import "./creation-inspiration-tunnel.css";
 
 /** 画廊里排队展示的照片数，取奇数，两侧层数才对得齐。 */
 const GALLERY_SIZE = 11;
-/** 每后退一层的纵深（px）。纵深更陡：第一层就收到约 0.70 倍，中间一张明显大于并压住两侧。 */
-const STEP_Z = 520;
+/** 每后退一层的纵深（px）。第一层收到约 0.78 倍：比主卡小一截，但高度足够撑起画面。 */
+const STEP_Z = 340;
 /** 虚拟焦距，只用来算出"后退一层缩多少"，不再是 CSS perspective。 */
 const PERSPECTIVE = 1200;
 /** 最多同时可见的层数，再远就隐掉。 */
