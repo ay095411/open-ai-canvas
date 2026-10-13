@@ -213,9 +213,7 @@
     -webkit-line-clamp: 2;
 }
 
-/* ── 左右切换按钮：半透明深色圆钮，贴横幅两侧垂直居中。
-   默认隐藏，悬停画廊（或键盘聚焦按钮）时浮现；
-   触屏没有 hover，走 (hover: none) 常显。 ── */
+/* ── 左右切换按钮：半透明深色圆钮，贴横幅两侧垂直居中，常驻可见 ── */
 .creation-gallery-arrow {
     position: absolute;
     top: calc((var(--gallery-card-width) * 5 / 16 + 44px) / 2);
@@ -235,23 +233,14 @@
     pointer-events: auto;
     touch-action: manipulation;
     /* 用整条 transform 表达“居中 + 悬停放大”：
-       换成 scale 独立属性会插在 transform 之前合成，按钮会跟着往下掉。 */
+       换成 scale 独立属性会插在 transform 之前合成，按钮会跟着往下掉。
+       时长直接写死：--user-motion 实际是「时长+缓动」整段，
+       再拼 ease 会变成非法过渡值，整条 transition 直接失效。 */
     transform: translateY(-50%);
-    opacity: 0;
-    visibility: hidden;
     transition:
-        transform var(--user-motion, 180ms) ease,
-        background-color var(--user-motion, 180ms) ease,
-        color var(--user-motion, 180ms) ease,
-        opacity var(--user-motion, 180ms) ease,
-        visibility 0s linear var(--user-motion, 180ms);
-}
-
-.creation-inspiration-tunnel:hover .creation-gallery-arrow,
-.creation-inspiration-tunnel:focus-within .creation-gallery-arrow {
-    opacity: 1;
-    visibility: visible;
-    transition-delay: 0s;
+        transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+        color 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .creation-gallery-arrow.is-prev {
@@ -274,14 +263,6 @@
 .creation-gallery-arrow:focus-visible {
     outline: 2px solid var(--creation-accent, var(--user-accent));
     outline-offset: 3px;
-}
-
-/* 触屏没有悬停：切换按钮常显，不然没有入口。 */
-@media (hover: none) {
-    .creation-gallery-arrow {
-        opacity: 1;
-        visibility: visible;
-    }
 }
 
 .creation-gallery-arrow-icon {
