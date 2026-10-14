@@ -5,6 +5,16 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 侧栏宽度加宽至 250px 与 Logo 图标放大
+
+- 已调整（侧栏整体宽度）：
+  - 在 `web/src/styles/globals.css` 中将 `--workspace-reference-sidebar`、`--workspace-sidebar-width` 与 `--workspace-sidebar-nav-width` 统一调整为 **`250px`**；
+  - 侧栏菜单整体宽度扩展至 250px，展开状态下菜单项文本与操作区更加舒展饱满。
+- 已调整（Logo 图标与品牌尺寸）：
+  - 在 `web/src/styles/globals.css` 中将 `.app-user-workspace .app-workspace-brand-mark` 的尺寸从 28px 增大到 **`36px`**，圆角调整为 10px；
+  - 在 `web/src/components/layout/workspace-sidebar-nav.tsx` 中将 Logo 内部图片尺寸提升至 `size-6`（24px），fallback 图标增大至 `size-5`（20px），品牌字标调整为 16px 字号与 650 字重，品牌展示更清晰醒目。
+- [x] 开发服务器真实浏览器验证：在端口 3100 访问首页，实机 DOM 探针测量确认 `.app-workspace-sidebar` 实际宽度严格为 250px（`getComputedStyle().width = "250px"`），Logo 外框为 36×36px，内部 Logo 为 34×34px，视觉比例协调大气。
+
 ## 侧栏「资源与工具」不可折叠及菜单图标静止优化
 
 - 已调整（分类标题静态化）：

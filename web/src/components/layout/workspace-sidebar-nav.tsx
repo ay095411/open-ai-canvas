@@ -140,7 +140,7 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
         return (
             <div className="app-workspace-sidebar-rail-header shrink-0">
                 <button type="button" className="app-workspace-sidebar-rail-button" aria-label="展开侧栏菜单" title="展开侧栏菜单" onClick={onExpand}>
-                    <BrandLogoFrame className="app-workspace-brand-mark app-workspace-sidebar-rail-mark grid size-8 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm" logoClassName="size-5 object-contain" alt="" fallback={<InfinityIcon className="size-4" strokeWidth={2.2} />} />
+                    <BrandLogoFrame className="app-workspace-brand-mark app-workspace-sidebar-rail-mark grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm" logoClassName="size-6 object-contain" alt="" fallback={<InfinityIcon className="size-5" strokeWidth={2.2} />} />
                     <PanelLeftOpen className="app-workspace-sidebar-rail-reveal size-4" strokeWidth={1.7} aria-hidden />
                 </button>
             </div>
@@ -150,11 +150,11 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
     return (
         <div className="app-workspace-sidebar-brand-row relative shrink-0 px-3 pt-3">
             <Link to="/" onClick={onNavigate} className="app-workspace-sidebar-brand-button group" aria-label={`${appearance.brandName}首页`}>
-                <span className="flex min-w-0 items-center gap-2">
-                    <BrandLogoFrame className="app-workspace-brand-mark grid size-8 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm" logoClassName="size-5 object-contain" alt="" fallback={<InfinityIcon className="size-4" strokeWidth={2.2} />} />
+                <span className="flex min-w-0 items-center gap-2.5">
+                    <BrandLogoFrame className="app-workspace-brand-mark grid size-9 shrink-0 place-items-center rounded-[10px] shadow-sm" logoClassName="size-6 object-contain" alt="" fallback={<InfinityIcon className="size-5" strokeWidth={2.2} />} />
                     {/* 只保留品牌字标。外层 flex-col 即使只剩一个子节点也保留：超长品牌名依赖该层的 min-w-0 才能触发 truncate。 */}
                     <span className="flex min-w-0 flex-col">
-                        <span className="app-workspace-brand-wordmark truncate text-[var(--fs-body)] leading-none font-semibold">{appearance.brandName}</span>
+                        <span className="app-workspace-brand-wordmark truncate text-[16px] leading-none font-semibold">{appearance.brandName}</span>
                     </span>
                 </span>
             </Link>
