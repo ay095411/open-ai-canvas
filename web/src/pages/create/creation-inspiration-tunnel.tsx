@@ -18,6 +18,7 @@ import { ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 
 import { catalogIdOf, type CreationInspiration } from "@/lib/inspirations/catalog";
+import { fillablePrompt } from "@/lib/inspirations/resolve";
 import { loadGalleryPool } from "@/services/inspiration-catalog";
 import type { CreationMode } from "./creation-types";
 import { createGalleryWheelGesture } from "./creation-gallery-gesture";
@@ -295,7 +296,7 @@ export function CreationInspirationTunnel({ mode, onStartPrompt }: { mode: Creat
                             onClick={() => {
                                 // 刚完成一次拖拽的松手 click 不算"选用灵感"。
                                 if (Date.now() - suppressClickRef.current < 400) return;
-                                onStartPrompt(inspiration.mode, inspiration.prompt);
+                                onStartPrompt(inspiration.mode, fillablePrompt(inspiration));
                             }}
                         >
                             <img
