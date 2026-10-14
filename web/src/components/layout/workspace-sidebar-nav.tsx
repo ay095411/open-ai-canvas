@@ -292,14 +292,6 @@ function NavItem({
 }
 
 function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collapsed }: { group: WorkspaceNavGroup; activeId: string; onNavigate: () => void; onOpenSearch: () => void; onLogout: () => void; collapsed: boolean }) {
-    const [isOpen, setIsOpen] = useState(true);
-    const hasActive = group.items.some((item) => item.id === activeId || (item.id === "settings" && activeId.startsWith("settings:")));
-
-    // 激活项所在分组自动展开，保证当前位置可见。
-    useEffect(() => {
-        if (hasActive) setIsOpen(true);
-    }, [hasActive]);
-
     const content = (
         <div className="flex flex-col gap-1">
             {group.items.map((item) => (
@@ -308,20 +300,18 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
         </div>
     );
 
-    // 无标题分组（核心导航入口）常驻展示，不做折叠。
+    // 无标题分组（核心导航入口）或折叠侧栏常驻展示，不做折叠。
     if (!group.heading || collapsed) {
         return <div className="app-workspace-nav-group flex shrink-0 flex-col" data-nav-group-heading={group.heading || ""}>{content}</div>;
     }
 
+    // 分组标题（如“资源与工具”）作为静态分类标签常驻展示，不可点击隐藏子菜单，不渲染折叠箭头。
     return (
         <div className="app-workspace-nav-group flex shrink-0 flex-col" data-nav-group-heading={group.heading}>
-            <button type="button" onClick={() => setIsOpen((open) => !open)} aria-expanded={isOpen} className="app-workspace-nav-group-toggle select-none">
+            <div className="app-workspace-nav-group-toggle select-none cursor-default" aria-hidden="true">
                 <span className="app-workspace-nav-group-label">{group.heading}</span>
-                <ChevronRight className={cn("size-3.5 shrink-0 text-foreground/35 transition-transform duration-200", isOpen && "rotate-90")} strokeWidth={2} />
-            </button>
-            <div className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-in-out", isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
-                <div className="min-h-0 overflow-hidden pt-0.5">{content}</div>
             </div>
+            <div className="pt-0.5">{content}</div>
         </div>
     );
 }

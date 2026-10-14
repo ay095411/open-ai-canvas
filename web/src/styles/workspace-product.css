@@ -580,17 +580,20 @@
     border-radius: 0;
     background: transparent;
     color: currentColor;
-    transition: transform var(--product-state) var(--product-ease);
+    transform: none !important;
+    transition: none !important;
 }
 .app-user-workspace .app-workspace-nav-icon svg {
     color: currentColor !important;
     opacity: 1 !important;
     transform-origin: center;
-    transition: transform var(--product-state) var(--product-ease);
+    transform: none !important;
+    transition: none !important;
 }
 .app-user-workspace .app-workspace-nav-link:hover .app-workspace-nav-icon,
-.app-user-workspace .app-workspace-nav-link:focus-visible .app-workspace-nav-icon {
-    transform: translateY(-1px);
+.app-user-workspace .app-workspace-nav-link:focus-visible .app-workspace-nav-icon,
+.app-user-workspace .app-workspace-nav-link:active .app-workspace-nav-icon {
+    transform: none !important;
 }
 .app-user-workspace .app-workspace-nav-link.is-active {
     background: transparent !important;
@@ -599,8 +602,8 @@
     background: transparent;
     color: var(--workspace-sidebar-accent);
     box-shadow: none;
+    transform: none !important;
 }
-.app-user-workspace .app-workspace-nav-link:active .app-workspace-nav-icon { transform: scale(.96); }
 .app-user-workspace .app-workspace-nav-group > div > div .app-workspace-nav-link {
     animation: workspace-nav-item-enter var(--product-enter) var(--product-ease) both;
 }

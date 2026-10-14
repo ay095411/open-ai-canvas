@@ -5,6 +5,16 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 侧栏「资源与工具」不可折叠及菜单图标静止优化
+
+- 已调整（分类标题静态化）：
+  - 在 `web/src/components/layout/workspace-sidebar-nav.tsx` 中将侧栏分组标题（「资源与工具」）由原先的可点击折叠按钮 `<button onClick=...>` 重构为静态展示标签 `<div>`；
+  - 彻底移除了标题右侧多余的展开/折叠箭头（`ChevronRight`），子菜单（图片生成、视频生成、资产、Skills、插件等）始终常驻平铺展示，不可被点击隐藏。
+- 已修复（菜单图标 Hover 跳动问题）：
+  - 在 `web/src/styles/workspace-product.css` 中移除了 `.app-workspace-nav-icon` 与 `svg` 在 hover / focus-visible 下的 `transform: translateY(-1px)` 向上跳动位移；
+  - 移除了图标上的 `transition: transform`，设置 `transform: none !important; transition: none !important;`，确保鼠标悬浮菜单项时只有底色反馈，图标保持绝对静止稳定。
+- [x] 开发服务器真实浏览器验证：在端口 3100 访问首页，实机 DOM 探针检测确认「资源与工具」标题为普通 `div`（非 `button`，无折叠箭头，点击不折叠）；模拟鼠标悬浮菜单项时检测图标 `getComputedStyle().transform` 严格为 `"none"`，完全消除图标跳动现象。
+
 ## main 主分支代码二次同步（提交 1a6b21d9 合并）
 
 - 已完成：通过 `git fetch origin main` 与 `git merge origin/main` 成功将主分支最新提交（`1a6b21d9`，含最近画布、灵感大厅后台模块）合入当前分支。
