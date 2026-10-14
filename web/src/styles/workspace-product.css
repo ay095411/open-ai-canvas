@@ -1210,3 +1210,229 @@
     background: var(--market-hover-bg) !important;
 }
 }
+
+/* -------------------------------------------------------------------------
+   素材选择弹窗现代材质与样式优化 (Asset Library Picker Modal Alignment)
+   - 对齐 Skills/Assets 设计语言：灰阶表面、12px/14px 圆角、无边框灰底搜索框、
+     主题色反白胶囊选中态、14px 灰调卡片与轻量复选框。
+   ------------------------------------------------------------------------- */
+.asset-library-picker-modal {
+    --picker-bg: var(--user-surface, #ffffff);
+    --picker-muted: var(--user-ink-muted, #707070);
+    --picker-border: var(--user-border, rgba(0, 0, 0, 0.08));
+    --picker-hover: var(--user-surface-hover, rgba(0, 0, 0, 0.04));
+    --picker-accent: var(--user-accent, #171717);
+    --picker-on-accent: var(--primary-foreground, #ffffff);
+}
+
+.dark .asset-library-picker-modal {
+    --picker-bg: #1c1c1f;
+    --picker-muted: #959599;
+    --picker-border: rgba(255, 255, 255, 0.08);
+    --picker-hover: rgba(255, 255, 255, 0.06);
+    --picker-accent: #f0f0f2;
+    --picker-on-accent: #171717;
+}
+
+/* 弹窗外壳：圆角与柔和阴影 */
+.asset-library-picker-modal .ant-modal-container,
+.asset-library-picker-modal .ant-modal-content {
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--picker-border) !important;
+    background: var(--picker-bg) !important;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28) !important;
+}
+
+.asset-library-picker-modal .ant-modal-close {
+    top: 16px !important;
+    right: 18px !important;
+    color: var(--picker-muted) !important;
+    border-radius: 8px !important;
+    transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.asset-library-picker-modal .ant-modal-close:hover {
+    background: var(--picker-hover) !important;
+    color: var(--user-ink) !important;
+}
+
+/* 顶部工具栏 */
+.asset-library-picker-modal .asset-picker-toolbar {
+    min-height: 58px !important;
+    padding: 12px 64px 12px 20px !important;
+    border-bottom: 1px solid var(--picker-border) !important;
+}
+
+.asset-library-picker-modal .asset-picker-heading-copy > span {
+    font-size: 15px !important;
+    font-weight: 650 !important;
+    color: var(--user-ink) !important;
+}
+
+.asset-library-picker-modal .asset-picker-title-trigger {
+    height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 8px !important;
+    background: var(--picker-hover) !important;
+}
+
+.asset-library-picker-modal .asset-picker-title-trigger strong {
+    font-size: 13px !important;
+    font-weight: 560 !important;
+}
+
+/* 搜索框：无边框灰底，圆角 12px */
+.asset-library-picker-modal .asset-picker-search {
+    height: 36px !important;
+    border-radius: 12px !important;
+    background: var(--picker-hover) !important;
+    padding: 0 12px !important;
+}
+
+.asset-library-picker-modal .asset-picker-search input {
+    font-size: 13px !important;
+}
+
+/* 左侧分类导航胶囊 */
+.asset-library-picker-modal .asset-picker-categories {
+    padding: 12px 4px 12px 0 !important;
+}
+
+.asset-library-picker-modal .asset-picker-nav-label {
+    padding: 8px 10px 4px !important;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0.04em !important;
+    color: var(--picker-muted) !important;
+}
+
+.asset-library-picker-modal .asset-picker-categories .assets-filter-item {
+    height: 34px !important;
+    min-height: 34px !important;
+    border-radius: 10px !important;
+    padding: 0 10px !important;
+    margin-bottom: 2px !important;
+    font-size: 12.5px !important;
+    color: var(--picker-muted) !important;
+    border: 0 !important;
+    background: transparent !important;
+    transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.asset-library-picker-modal .asset-picker-categories .assets-filter-item:hover {
+    background: var(--picker-hover) !important;
+    color: var(--user-ink) !important;
+}
+
+.asset-library-picker-modal .asset-picker-categories .assets-filter-item.is-active {
+    background: var(--picker-accent) !important;
+    color: var(--picker-on-accent) !important;
+    font-weight: 580 !important;
+}
+
+.asset-library-picker-modal .asset-picker-categories .assets-filter-item.is-active .assets-filter-count {
+    color: var(--picker-on-accent) !important;
+    opacity: 0.8 !important;
+}
+
+/* 中间素材卡片网格 */
+.asset-library-picker-modal .asset-picker-body {
+    padding: 0 20px !important;
+    gap: 20px !important;
+}
+
+.asset-library-picker-modal .asset-picker-grid {
+    gap: 14px !important;
+    padding-bottom: 20px !important;
+}
+
+.asset-library-picker-modal .asset-picker-card {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--picker-border) !important;
+    background: var(--picker-hover) !important;
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease !important;
+}
+
+.asset-library-picker-modal .asset-picker-card:hover {
+    border-color: color-mix(in srgb, var(--picker-accent) 32%, var(--picker-border)) !important;
+    transform: translateY(-2px) !important;
+    background: var(--picker-hover) !important;
+}
+
+.asset-library-picker-modal .asset-picker-card.is-selected {
+    border-color: var(--picker-accent) !important;
+    box-shadow: 0 0 0 1.5px var(--picker-accent) !important;
+}
+
+.asset-library-picker-modal .asset-picker-card-media {
+    border-radius: 12px 12px 0 0 !important;
+    aspect-ratio: 4 / 3 !important;
+}
+
+/* 选中勾选角标 */
+.asset-library-picker-modal .asset-picker-card-check {
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: 7px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.asset-library-picker-modal .asset-picker-card.is-selected .asset-picker-card-check {
+    background: var(--picker-accent) !important;
+    border-color: var(--picker-accent) !important;
+    color: var(--picker-on-accent) !important;
+}
+
+.asset-library-picker-modal .asset-picker-card-copy {
+    min-height: 54px !important;
+    padding: 8px 10px 10px !important;
+    gap: 2px !important;
+}
+
+.asset-library-picker-modal .asset-picker-card-copy strong {
+    font-size: 13px !important;
+    font-weight: 580 !important;
+    color: var(--user-ink) !important;
+}
+
+.asset-library-picker-modal .asset-picker-card-copy span {
+    font-size: 11px !important;
+    color: var(--picker-muted) !important;
+}
+
+/* 底部操作栏 */
+.asset-library-picker-modal .asset-picker-footer {
+    padding: 12px 20px !important;
+    border-top: 1px solid var(--picker-border) !important;
+    background: var(--picker-bg) !important;
+}
+
+.asset-library-picker-modal .asset-picker-upload {
+    min-height: 48px !important;
+    border-radius: 12px !important;
+    background: var(--picker-hover) !important;
+    border: 1px dashed var(--picker-border) !important;
+    transition: background-color 150ms ease, border-color 150ms ease !important;
+}
+
+.asset-library-picker-modal .asset-picker-upload:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--picker-hover) 80%, var(--picker-accent)) !important;
+    border-color: var(--picker-muted) !important;
+}
+
+.asset-library-picker-modal .asset-picker-actions .ant-btn {
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 560 !important;
+}
+
+.asset-library-picker-modal .asset-picker-actions .ant-btn-primary {
+    background: var(--picker-accent) !important;
+    color: var(--picker-on-accent) !important;
+    border-color: var(--picker-accent) !important;
+}
