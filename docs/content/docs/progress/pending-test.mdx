@@ -5,6 +5,14 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 模型选择器调用记录与质量检测移除
+
+- 已调整：在 `web/src/components/model-picker.tsx` 中彻底移除了模型选择器（`ModelPicker`）中的调用记录指示条与质量检测徽章：
+  - 品牌栏（左侧目录）：移除每个品牌/渠道右侧常驻渲染的 10 槽位红绿调用指示条（`<ModelRecentHealthTrack>`），恢复为纯净的模型数量与范围说明；
+  - 候选模型项（右侧面板）：移除模型标题右侧的质量检测百分比徽章（`<ModelAvailabilityBadge>`）及悬停弹出的近24小时成功率和7天趋势浮层；
+  - 配套单测 `web/test/model-picker-availability-runs.test.ts` 已同步更新并通过。
+- [x] 开发服务器真实浏览器验证：在端口 3100 点击展开模型选择器，实机 DOM 探针检测确认 `.model-picker-availability-track` 与 `.model-picker-availability` 数量严格为 0，弹窗各选项视觉界面清爽整洁。
+
 ## main 主分支代码同步（v1.6.8.1 合并）
 
 - 已完成：通过 `git fetch origin main` 与 `git merge origin/main` 成功将主分支最新提交（至 `4e2d7e69`，含 v1.6.8.1 版本、千问 AI 平台 MAAS 图像协议插件、局部重绘模型同步、远端素材参考优化等）合入当前分支。
