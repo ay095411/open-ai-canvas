@@ -26,6 +26,8 @@ export function CanvasLinkedProjectEmptyState({ projectName, hasChapter, onAddFi
     );
 }
 
+import { CanvasEmptyStateBackground } from "./canvas-empty-state-background";
+
 export function CanvasShortDramaEmptyState({ onCreatePipeline, onOpenAgent, onStartFreeform, onUpload, onAddText, onAddScript }: {
     onCreatePipeline: () => void;
     onOpenAgent: () => void;
@@ -34,7 +36,8 @@ export function CanvasShortDramaEmptyState({ onCreatePipeline, onOpenAgent, onSt
     onAddText: () => void;
     onAddScript: () => void;
 }) {
-    const theme = canvasThemes[useActiveTheme()];
+    const activeTheme = useActiveTheme();
+    const theme = canvasThemes[activeTheme];
     const entryStyle = {
         "--canvas-entry-text": theme.node.text,
         "--canvas-entry-muted": theme.node.muted,
@@ -42,6 +45,7 @@ export function CanvasShortDramaEmptyState({ onCreatePipeline, onOpenAgent, onSt
     } as CSSProperties;
     return (
         <div className="canvas-entry-stage" style={entryStyle}>
+            <CanvasEmptyStateBackground theme={activeTheme} />
             <div className="canvas-entry-shell" data-canvas-no-zoom data-canvas-wheel-scroll>
                 <header className="canvas-entry-header">
                     <div className="canvas-entry-heading-copy">
@@ -98,7 +102,8 @@ function CanvasEntryFilmMark() {
 }
 
 export function CanvasFreeformEmptyState({ commands }: { commands: CanvasCreateCommand[] }) {
-    const theme = canvasThemes[useActiveTheme()];
+    const activeTheme = useActiveTheme();
+    const theme = canvasThemes[activeTheme];
     const [createOpen, setCreateOpen] = useState(false);
     const createCommands = commands.map((command) => ({
         ...command,
@@ -109,6 +114,7 @@ export function CanvasFreeformEmptyState({ commands }: { commands: CanvasCreateC
     }));
     return (
         <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-4 pb-20 pt-24">
+            <CanvasEmptyStateBackground theme={activeTheme} />
             <div className="pointer-events-auto flex min-h-[260px] w-full max-w-[520px] flex-col items-center justify-center rounded-2xl border border-dashed px-8 py-10 text-center backdrop-blur" data-canvas-no-zoom style={{ background: theme.node.fill, borderColor: theme.node.edge, boxShadow: theme.node.shadow, color: theme.node.text }}>
                 <h2 className="text-base font-semibold">自由空白画布</h2>
                 <p className="mt-1 text-xs" style={{ color: theme.node.muted }}>不预设流程，从任意一种素材开始创作。</p>

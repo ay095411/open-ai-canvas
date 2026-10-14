@@ -39,7 +39,8 @@ export type CreationMessage = {
 export type CreationConversation = { id: string; title: string; updatedAt: string; canvasId?: string; messages: CreationMessage[] };
 
 export const modeLabels: Record<CreationMode, string> = { text: "文本", image: "图片", video: "视频" };
-export const defaultCreationMode: CreationMode = "image";
+/** 首页与创作区的默认模式：文本生成优先，图片 / 视频由输入框左下角的模式切换显式进入。 */
+export const defaultCreationMode: CreationMode = "text";
 export const shotScriptLabels: Record<CreationMode, string> = { text: "创作思路", image: "画面指令", video: "镜头脚本" };
 export const ratioOptions = [
     { value: "1:1", label: "方形" },

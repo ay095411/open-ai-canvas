@@ -32,9 +32,8 @@ const STEP_Z = 340;
 const PERSPECTIVE = 1200;
 /** 最多同时可见的层数，再远就隐掉。 */
 const MAX_DEPTH = 4;
-/** 每一层的透明度：只保留「中间 + 两侧」三张可见，更深的层完全隐去——
- *  再深的卡片会探出工作区边界，被裁成边缘碎片，观感是破的。 */
-const DEPTH_OPACITY = [1, 0.92, 0, 0, 0];
+/** 每一层的透明度：展示 5 张卡片（中间 1 张 + 左右各 2 张可见），更深的层完全隐去。 */
+const DEPTH_OPACITY = [1, 0.88, 0.65, 0, 0, 0];
 /** 自动轮播间隔。悬停、聚焦或系统开了"减少动效"时暂停。 */
 const AUTO_ADVANCE_MS = 6500;
 /** 记住最近展示过的条目数，换页/刷新时不会又抽到同一批。 */
@@ -292,6 +291,7 @@ export function CreationInspirationTunnel({ mode, onStartPrompt }: { mode: Creat
                             type="button"
                             tabIndex={-1}
                             className={`creation-tunnel-card ${depth === 0 ? "is-active" : ""} ${readyIds.has(id) ? "is-ready" : ""}`}
+                            data-depth={depth}
                             style={style}
                             onClick={() => {
                                 // 刚完成一次拖拽的松手 click 不算"选用灵感"。

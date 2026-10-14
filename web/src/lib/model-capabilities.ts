@@ -159,6 +159,8 @@ export function normalizeModelCapabilityConfig(config: ModelCapabilityConfig): M
         image: config.image
             ? {
                   ...config.image,
+                  // Go 的 nil 切片会返回 null；未声明参数与显式空参数合同需保持区别。
+                  parameters: config.image.parameters ?? undefined,
                   size: {
                       ...config.image.size,
                       values: normalizeCapabilityStrings(config.image.size.values),

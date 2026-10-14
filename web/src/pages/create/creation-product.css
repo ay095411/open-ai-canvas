@@ -1,4 +1,9 @@
 /* Creation-specific geometry. Shared controls still use the workspace tokens. */
+:root {
+    --home-background-desktop: url(/images/home-background-desktop.svg);
+    --home-background-mobile: url(/images/home-background-mobile.webp);
+}
+
 /* 创作模式切换：液态玻璃胶囊指示当前模式。 */
 .creation-mode-tabs {
     --creation-tab-pad: 4px;
@@ -127,7 +132,6 @@
         box-shadow: 0 0 10px rgba(99, 102, 241, 0.9), 0 0 16px rgba(99, 102, 241, 0.45);
     }
 }
-.creation-agent-entry { display: grid; grid-template-columns: 88px minmax(0, 1fr); align-items: center; gap: 16px 24px; padding: 28px; margin-bottom: 20px; border-radius: var(--user-radius-card); background: var(--user-surface); animation: product-card-enter var(--product-enter) var(--product-ease) backwards; }
 .creation-agent-orb { grid-row: span 2; }
 .creation-agent-eyebrow { font-size: 10px; font-weight: 650; letter-spacing: .14em; color: var(--user-accent); }
 .creation-agent-copy h2 { margin: 4px 0 8px; font-size: 21px; font-weight: 650; color: var(--user-ink); }
@@ -138,38 +142,19 @@
 .creation-submit { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
 .creation-submit-cost { display: inline-flex; align-items: center; gap: 4px; color: var(--user-ink-muted); font-size: 12px; padding-inline: 8px; }
 .creation-submit-cost svg { width: 14px; height: 14px; }
-.creation-home .creation-submit-action { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: var(--space-2); min-width: 120px; height: 40px; padding: 0 18px; border: 0; border-radius: var(--r-full); background: var(--button-primary-bg); color: var(--button-primary-fg); cursor: pointer; transition: background var(--user-motion), transform var(--user-motion); }
+.creation-home .creation-submit-action { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: var(--space-10); min-width: var(--space-10); height: var(--space-10); padding: 0; border: 0; border-radius: var(--r-full); background: var(--button-primary-bg); color: var(--button-primary-fg); cursor: pointer; transition: background var(--user-motion), transform var(--user-motion); }
 .creation-home .creation-submit-action::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 28%, rgb(255 255 255 / .28) 48%, transparent 68%); transform: translateX(-120%); pointer-events: none; }
-.creation-home .creation-submit-action span { font-size: var(--fs-body); font-weight: 600; }
 .creation-home .creation-submit-action svg { width: 17px; height: 17px; flex-shrink: 0; color: currentColor; }
 .creation-home .creation-submit-action:disabled:not([aria-busy="true"]) { background: var(--user-surface-hover); color: var(--user-ink-muted); cursor: not-allowed; }
 .creation-home .creation-submit-action[aria-busy="true"] { cursor: wait; }
 .creation-home .creation-submit-action:not(:disabled):hover { background: var(--button-primary-hover-bg); transform: translateY(-1px); }
 .creation-home .creation-submit-action:not(:disabled):hover::after { animation: creation-submit-sheen 640ms cubic-bezier(.16, 1, .3, 1); }
 .creation-home .creation-submit-action:not(:disabled):active { background: var(--button-primary-active-bg); transform: scale(.97); }
-.creation-inspiration-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-.creation-inspiration-filters button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; min-height: 36px; border: 0; border-radius: 999px; color: var(--user-ink-muted); background: transparent; font-size: 13px; transition: background var(--user-motion), color var(--user-motion); }
-.creation-inspiration-filters button span { font-size: 11px; opacity: .65; font-variant-numeric: tabular-nums; }
-.creation-inspiration-filters button:hover { background: var(--user-surface-hover); }
-.creation-inspiration-filters button[aria-pressed="true"] { background: var(--user-ink); color: var(--user-surface); }
-.creation-inspiration-filters button:focus-visible { outline: 2px solid var(--user-accent); outline-offset: 2px; }
-.creation-inspiration-overlay { position: absolute; inset: auto 12px 12px; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border-radius: var(--user-radius-control); background: var(--user-surface); color: var(--user-ink); font-size: 12px; transform: translateY(6px); opacity: 0; transition: opacity var(--user-motion), transform var(--user-motion); }
-.creation-inspiration-overlay svg { width: 14px; height: 14px; transform: rotate(45deg); }
-.creation-featured-card:hover .creation-inspiration-overlay, .creation-featured-card:focus-visible .creation-inspiration-overlay { opacity: 1; transform: translateY(0); }
-.creation-inspiration-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-top: 24px; color: var(--user-ink-muted); font-size: 12px; }
-.creation-inspiration-footer details { max-width: 60ch; }
-.creation-inspiration-footer summary { cursor: pointer; padding-block: 8px; }
-.creation-inspiration-footer p { line-height: 1.7; margin: 8px 0; }
-.creation-inspiration-footer a { color: var(--user-accent); }
 @media (max-width: 620px) {
     .creation-mode-button { padding-inline: 6px; font-size: 12px; gap: 6px; }
-    .creation-agent-entry { grid-template-columns: 1fr; padding: 20px; gap: 12px; }
     .creation-agent-orb { display: none; }
     .creation-agent-copy h2 { font-size: 18px; }
     .creation-agent-actions > .ant-btn { width: 100%; }
-    .creation-inspiration-filters { gap: 4px; }
-    .creation-inspiration-filters button { padding-inline: 10px; }
-    .creation-inspiration-footer { align-items: flex-start; flex-direction: column; }
     .creation-home .creation-chat-dock { flex-wrap: wrap; gap: 12px; }
     .creation-home .creation-chat-controls { flex: 1 1 100%; width: 100%; }
 }
@@ -205,7 +190,6 @@
 @media (prefers-reduced-motion: reduce) {
     .creation-mode-button:active:not([aria-pressed="true"]) { transform: none; }
     .creation-mode-indicator { transition: none; }
-    .creation-agent-entry { animation: none; }
     .app-user-workspace .creation-chat-composer,
     .app-user-workspace .creation-chat-control,
     .app-user-workspace .creation-voice-trigger.ant-btn,
@@ -378,3 +362,249 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
 .creation-home .creation-chat-mention-container {
     min-height: 0 !important;
 }
+
+/* -------------------------------------------------------------------------
+   创作启动台与输入框流光边框 (Border Beam)
+   - 随创作模式 (图片/视频/文本/Agent) 色彩联动；
+   - 聚焦 (:focus-within) 激活流光旋转环绕与高级微光晕；
+   - 悬停 (:hover) 柔和微显；
+   ------------------------------------------------------------------------- */
+@property --border-beam-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes border-beam-spin {
+    from {
+        --border-beam-angle: 0deg;
+    }
+    to {
+        --border-beam-angle: 360deg;
+    }
+}
+
+.creation-composer-stage {
+    --beam-color-1: #f2ad4d;
+    --beam-color-2: #3d66ff;
+}
+
+.creation-composer-stage[data-creation-mode="video"] {
+    --beam-color-1: #ec4899;
+    --beam-color-2: #6366f1;
+}
+
+.creation-composer-stage[data-creation-mode="text"] {
+    --beam-color-1: #0ea5e9;
+    --beam-color-2: #10b981;
+}
+
+.creation-composer-stage.is-agent-mode {
+    --beam-color-1: #10b981;
+    --beam-color-2: #8b5cf6;
+}
+
+/* 输入框外壳流光边框 */
+.creation-composer-stage .creation-composer-shell {
+    position: relative;
+    border-radius: 22px;
+    transition: box-shadow 350ms ease, border-color 350ms ease;
+}
+
+.creation-composer-stage .creation-composer-shell::before {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 23px;
+    background: conic-gradient(
+        from var(--border-beam-angle, 0deg) at 50% 50%,
+        transparent 0%,
+        transparent 65%,
+        var(--beam-color-2, #3d66ff) 80%,
+        #ffffff 92%,
+        var(--beam-color-1, #f2ad4d) 98%,
+        transparent 100%
+    );
+    animation: border-beam-spin 4.5s linear infinite;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 300ms ease;
+}
+
+.creation-composer-stage .creation-composer-shell:hover::before {
+    opacity: 0.45;
+}
+
+.creation-composer-stage .creation-composer-shell:has(:focus-within)::before {
+    opacity: 1;
+}
+
+.creation-composer-stage .creation-composer-shell:has(:focus-within) {
+    box-shadow: 0 0 32px -4px color-mix(in srgb, var(--beam-color-1, #f2ad4d) 30%, transparent),
+                0 10px 28px -6px color-mix(in srgb, var(--beam-color-2, #3d66ff) 24%, transparent) !important;
+}
+
+.dark .creation-composer-stage .creation-composer-shell:has(:focus-within) {
+    box-shadow: 0 0 36px -4px color-mix(in srgb, var(--beam-color-1, #f2ad4d) 36%, transparent),
+                0 10px 32px -6px color-mix(in srgb, var(--beam-color-2, #3d66ff) 28%, transparent) !important;
+}
+
+/* 保留外壳组件的内容层级，避免被内部白色遮罩覆盖。 */
+.creation-composer-stage .creation-composer-shell-inner,
+.creation-composer-stage .creation-chat-composer {
+    position: relative;
+    border-radius: 21px !important;
+}
+
+/* 模式胶囊边框流光呼应 */
+.creation-mode-tabs::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 999px;
+    background: conic-gradient(
+        from var(--border-beam-angle, 0deg) at 50% 50%,
+        transparent 0%,
+        transparent 70%,
+        var(--beam-color-1, #f2ad4d) 88%,
+        #ffffff 95%,
+        var(--beam-color-2, #3d66ff) 99%,
+        transparent 100%
+    );
+    animation: border-beam-spin 5.5s linear infinite;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 300ms ease;
+}
+
+.creation-mode-tabs:hover::after {
+    opacity: 0.55;
+}
+
+/* -------------------------------------------------------------------------
+   输入框左下角胶囊下拉模式选择器 (ModePicker Trigger & Dropdown)
+   ------------------------------------------------------------------------- */
+.creation-mode-dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--user-border);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--user-surface-muted) 84%, transparent);
+    color: var(--user-ink);
+    font-size: 12px;
+    font-weight: 520;
+    line-height: 1;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 180ms ease, border-color 180ms ease;
+    user-select: none;
+}
+
+.creation-mode-dropdown-trigger:hover,
+.creation-mode-dropdown-trigger[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--user-surface-hover) 92%, transparent);
+    border-color: color-mix(in srgb, var(--user-ink) 25%, transparent);
+}
+
+.creation-mode-trigger-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--user-accent, #3d66ff);
+}
+
+.creation-mode-trigger-label {
+    white-space: nowrap;
+}
+
+.creation-mode-trigger-arrow {
+    width: 12px;
+    height: 12px;
+    opacity: 0.6;
+    transition: transform 200ms ease;
+}
+
+.creation-mode-trigger-arrow.is-open {
+    transform: rotate(180deg);
+}
+
+/* 下拉菜单面板 */
+.creation-mode-dropdown-popover .ant-popover-inner {
+    padding: 6px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--user-border) !important;
+    background: color-mix(in srgb, var(--user-surface) 92%, transparent) !important;
+    backdrop-filter: blur(16px) saturate(1.3) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22) !important;
+}
+
+.creation-mode-dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 190px;
+}
+
+.creation-mode-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--user-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+    width: 100%;
+}
+
+.creation-mode-dropdown-item:hover {
+    background: var(--user-surface-hover);
+}
+
+.creation-mode-dropdown-item.is-selected {
+    background: color-mix(in srgb, var(--user-accent, #3d66ff) 12%, var(--user-surface));
+}
+
+.creation-mode-dropdown-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--user-accent, #3d66ff);
+}
+
+.creation-mode-dropdown-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
+
+.creation-mode-dropdown-label {
+    font-size: 13px;
+    font-weight: 560;
+    line-height: 1.25;
+}
+
+.creation-mode-dropdown-desc {
+    font-size: 11px;
+    color: var(--user-ink-muted);
+    line-height: 1.25;
+}
+
+.creation-mode-dropdown-check {
+    font-size: 12px;
+    color: var(--user-accent, #3d66ff);
+    font-weight: 700;
+}
+
+
+

@@ -4,7 +4,8 @@ import { ImageParameterFields, ImageParameterSchemaEditor, ImagePixelMappingEdit
 import { ModelCapabilityEditor } from "../src/components/model-capability-editor";
 import { imagePresetForRatio } from "../src/lib/image-size-presets";
 import { imageParameterConstraints, imageParameterRequest, initializeImageRatioDefaults, normalizeImageParameters, projectImageParameters, updateImageParameterSchema, updateImageParameterSize, type ImageParameter } from "../src/lib/image-parameters";
-import { defaultImageCapabilityConfig } from "../src/lib/model-capabilities";
+import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageValue } from "../src/lib/model-capabilities";
+import { defaultImageParamsForModel } from "../src/lib/model-selection";
 import { projectLogicalCapability } from "../src/lib/user-session";
 import { capabilitySpecFromChannelModel, mergeCapabilitySpecs, normalizeCapabilitySpecForSources } from "../src/pages/admin/logical-models/model-routing-capabilities";
 import { defaultPriceTier, skuSelectorFromForm } from "../src/pages/admin/components/channel-model-price-tier-form";
@@ -32,6 +33,32 @@ function fixture(fields = parameters) {
 }
 
 describe("plugin image parameters across model configuration and generation", () => {
+    test.each([null, undefined])("absent parameter schema %p keeps image mode defaults and standard controls", (schema) => {
+        const image = defaultImageCapabilityConfig();
+        const channel = createModelChannel({
+            id: "ordinary",
+            models: ["image-model"],
+            modelCosts: [{ model: "image-model", capability: "image", capabilityConfig: JSON.parse(JSON.stringify({ version: 1, image: { ...image, parameters: schema } })) }],
+        });
+        const model = encodeChannelModel(channel.id, "image-model");
+        const config = { ...defaultConfig, channels: [channel], model, imageModel: model };
+        const profile = modelCapabilityConfigFor(config, model).image!;
+
+        expect(normalizeImageParameters(profile.parameters, '{"staleOption":true}')).toEqual({});
+        expect(defaultImageParamsForModel(config, model)).toMatchObject({ size: image.size.default, quality: image.quality.default, imageParameters: "{}" });
+        expect(profile.parameters).toBeUndefined();
+        expect(profile.size).toEqual(image.size);
+        expect(profile.quality).toEqual(image.quality);
+        expect(normalizeImageValue(profile, { size: "16:9", quality: "high", count: "1" })).toMatchObject({ size: "16:9", quality: "high", count: "1" });
+        expect(imageParameterRequest(profile, { size: "16:9" })).toBeUndefined();
+    });
+    test("an explicitly empty parameter schema still submits an empty parameter contract", () => {
+        const { config } = fixture([]);
+        const profile = modelCapabilityConfigFor(config, config.model).image!;
+        expect(profile.parameters).toEqual([]);
+        expect(profile.size.parameter).toBe("none");
+        expect(imageParameterRequest(profile, { size: "16:9" })).toEqual({});
+    });
     test("new resolution selects the six preferred ratios without changing existing choices", () => {
         const fields: ImageParameter[] = [
             { name: "size", label: "画幅", type: "string", encoding: "pixels" },

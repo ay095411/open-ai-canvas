@@ -1,0 +1,372 @@
+/* 这一带与上方画廊同宽（跟着 .creation-empty-workspace 的内容列走），
+   不跟 960px 的输入框对齐：输入框是"打字的那一列"，这里是内容带，
+   和画廊连成同一条边才不会在视觉上多出一道台阶。 */
+.creation-feature-matrix {
+    width: 100%;
+    margin: 28px auto 48px;
+    user-select: none;
+}
+
+/* 左窄右宽：右侧要在一个面板里摊开 2×2 四个入口，比左侧大卡需要更多横向空间。 */
+.creation-feature-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) minmax(0, 2.05fr);
+    gap: 14px;
+    align-items: stretch;
+}
+
+.creation-feature-lead {
+    position: relative;
+    display: flex;
+    min-height: 196px;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
+    border-radius: 18px;
+    background: var(--user-surface-muted);
+    cursor: pointer;
+    outline: none;
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+/* 大卡底图恒为深色照片，悬停描边用固定白色透明度，不跟主题 token 走。 */
+.creation-feature-lead:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.42);
+    box-shadow: 0 16px 38px -22px rgba(9, 10, 13, 0.55);
+}
+
+.creation-feature-lead:focus-visible,
+.creation-cap-card:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+}
+
+.creation-feature-lead-media,
+.creation-feature-lead-scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.creation-feature-lead-media {
+    z-index: -2;
+    background-image: url("/short-drama-styles/black-white-noir.jpg");
+    background-size: cover;
+    background-position: 56% 50%;
+    transform: scale(1.01);
+    transition: transform 420ms ease;
+}
+
+.creation-feature-lead:hover .creation-feature-lead-media {
+    transform: scale(1.045);
+}
+
+.creation-feature-lead-scrim {
+    z-index: -1;
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--background) 18%, #090a0d 82%) 0%, rgba(9, 10, 13, 0.72) 52%, rgba(9, 10, 13, 0.18) 100%),
+        linear-gradient(0deg, rgba(9, 10, 13, 0.8), transparent 72%);
+}
+
+.creation-feature-lead-content {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    min-width: 0;
+    gap: 14px;
+    padding: clamp(18px, 1.8vw, 24px);
+    color: #fff;
+}
+
+.creation-feature-lead-copy {
+    max-width: 380px;
+}
+
+.creation-feature-lead-copy h2 {
+    margin: 0 0 7px;
+    color: #fff;
+    font-size: clamp(18px, 1.7vw, 22px);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+}
+
+.creation-feature-lead-copy p {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.creation-feature-lead-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 9px;
+}
+
+.creation-feature-lead-primary,
+.creation-feature-lead-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 34px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.creation-feature-lead-primary {
+    padding: 0 13px;
+    border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
+    background: var(--accent);
+    color: var(--accent-foreground, #fff);
+}
+
+.creation-feature-lead-secondary {
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(10, 11, 14, 0.26);
+    color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+}
+
+.creation-feature-lead-primary:hover,
+.creation-feature-lead-secondary:hover {
+    transform: translateY(-1px);
+}
+
+.creation-feature-lead-primary:hover {
+    background: color-mix(in srgb, var(--accent) 88%, white);
+}
+
+.creation-feature-lead-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(10, 11, 14, 0.48);
+}
+
+/* 四个入口共用一块面板：边框只画外面一圈，行内不再各自描边，
+   整条带子就只有"左边一张照片 + 右边一块清单"两个块，不是五块零散卡片。 */
+.creation-capability-panel {
+    display: flex;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--user-border);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--user-surface) 86%, transparent);
+    backdrop-filter: blur(14px);
+}
+
+.creation-capability-list {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    min-width: 0;
+}
+
+.creation-cap-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 180ms ease;
+}
+
+.creation-cap-card:hover {
+    background: var(--user-surface-hover);
+}
+
+/* 缩略图取横版，和上方画廊的照片语言一致。图标缩成右下角小角标：
+   照片要露得出来才和画廊连成一条内容带，但光靠照片认不出是哪个入口，
+   所以留一枚带品类色的角标压在上面。 */
+.creation-cap-card-thumb {
+    position: relative;
+    overflow: hidden;
+    width: 62px;
+    height: 44px;
+    flex: 0 0 62px;
+    border-radius: 9px;
+    background: var(--user-surface-muted);
+}
+
+.creation-cap-card-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 320ms ease;
+}
+
+.creation-cap-card:hover .creation-cap-card-thumb img {
+    transform: scale(1.07);
+}
+
+.creation-cap-card-thumb-icon {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    color: #fff;
+    background: rgba(9, 10, 13, 0.62);
+    backdrop-filter: blur(4px);
+}
+
+.creation-cap-card-thumb-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* 角标用 palette 里的固定色号，不用 --accent：深色主题下 --accent 是中性深灰，
+   压在照片上会直接糊掉。混一层深底是为了白图标在四种色号上都读得出来。
+   四个色号刻意拉开色相（橙 / 翠绿 / 品红 / 蓝），缩到 20px 也分得清谁是谁。 */
+.creation-cap-card-thumb.is-skills .creation-cap-card-thumb-icon {
+    background: color-mix(in srgb, var(--palette-node-skill, #f97316) 62%, rgba(9, 10, 13, 0.82));
+}
+
+.creation-cap-card-thumb.is-assets .creation-cap-card-thumb-icon {
+    background: color-mix(in srgb, var(--palette-node-frame, #10b981) 62%, rgba(9, 10, 13, 0.82));
+}
+
+.creation-cap-card-thumb.is-plugins .creation-cap-card-thumb-icon {
+    background: color-mix(in srgb, var(--palette-node-video, #8b5cf6) 62%, rgba(9, 10, 13, 0.82));
+}
+
+.creation-cap-card-thumb.is-tasks .creation-cap-card-thumb-icon {
+    background: color-mix(in srgb, var(--palette-status-loading, #2563eb) 62%, rgba(9, 10, 13, 0.82));
+}
+
+.creation-cap-card-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.creation-cap-card-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+    margin-bottom: 4px;
+}
+
+.creation-cap-card-heading h3 {
+    overflow: hidden;
+    margin: 0;
+    color: var(--user-ink);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.creation-cap-card-tag {
+    flex: 0 0 auto;
+    color: var(--user-ink-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.creation-cap-card-desc {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 0;
+    color: var(--user-ink-muted);
+    font-size: 11px;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+/* 箭头平时不占视觉重量，悬停那一行才亮起来，和参考图一致。
+   颜色用 --user-ink 而不是 --accent：--accent 在这套 token 里是中性表面色
+   （浅色近白、深色近黑），当前景色用会和面板糊成一片。 */
+.creation-cap-card-arrow {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    color: var(--user-ink-muted);
+    opacity: 0;
+    transition: opacity 180ms ease, transform 180ms ease, color 180ms ease;
+}
+
+.creation-cap-card:hover .creation-cap-card-arrow,
+.creation-cap-card:focus-visible .creation-cap-card-arrow {
+    transform: translate(1px, -1px);
+    color: var(--user-ink);
+    opacity: 1;
+}
+
+/* 这一带最窄能撑住"左照片 + 右两列"大约到 1024px，再窄就上下摆。 */
+@media (max-width: 1024px) {
+    .creation-feature-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .creation-feature-lead {
+        min-height: 220px;
+    }
+}
+
+@media (max-width: 560px) {
+    .creation-feature-matrix {
+        margin-top: 22px;
+        margin-bottom: 36px;
+    }
+
+    .creation-feature-lead {
+        min-height: 230px;
+        border-radius: 16px;
+    }
+
+    .creation-capability-panel {
+        padding: 8px;
+        border-radius: 16px;
+    }
+
+    .creation-capability-list {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: none;
+    }
+
+    .creation-cap-card-arrow {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .creation-feature-lead,
+    .creation-feature-lead-media,
+    .creation-feature-lead-primary,
+    .creation-feature-lead-secondary,
+    .creation-cap-card,
+    .creation-cap-card-thumb img,
+    .creation-cap-card-arrow {
+        transition-duration: 0.01ms;
+    }
+}

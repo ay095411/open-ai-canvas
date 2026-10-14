@@ -23,7 +23,7 @@
     --skills-button-ink: #242424;
     --skills-border: #39393e;
 }
-.app-user-workspace .skills-market-page > div { width: min(1312px, calc(100% - 64px)); margin-inline: auto; padding: 20px 0 48px; }
+.app-user-workspace .skills-market-page > div { width: min(1440px, calc(100% - 48px)); margin-inline: auto; padding: 20px 0 48px; }
 .skills-market-page button { cursor: pointer; }
 .skills-market-page button:disabled { cursor: wait; }
 .skills-market-page :is(button, a):focus-visible { outline: 2px solid var(--skills-accent); outline-offset: 3px; }

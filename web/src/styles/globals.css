@@ -2061,7 +2061,7 @@
     .app-workspace-sidebar,
     .app-workspace-stage {
         border: 0;
-        border-radius: var(--r-xl);
+        border-radius: 0;
         box-shadow: none;
     }
 
@@ -5823,7 +5823,7 @@ html:not(.dark) .creation-studio-control[aria-expanded="true"] { background: #e7
     .library-toolbar .ant-btn:hover { background: color-mix(in srgb, var(--foreground) 7%, transparent); color: var(--foreground); }
     .library-grid { display: grid; align-items: start; gap: 26px 18px; }
     .library-card { position: relative; min-width: 0; overflow: hidden; cursor: pointer; border: 0; border-radius: var(--r-2xl); background: transparent; color: var(--foreground); transition: transform var(--motion-state) var(--motion-ease-out), background-color var(--motion-state) ease-out; }
-    /* 库页图标瓦片共享基础：grid 居中 + 浅底；尺寸/圆角/颜色由各用例类覆盖（skill-card-icon、wallet-balance-icon、suggest-icon 共用）。 */
+    /* 库页图标瓦片共享基础：grid 居中 + 浅底；尺寸/圆角/颜色由各用例类覆盖（skill-card-icon、wallet-balance-icon 共用）。 */
     .library-icon-tile { display: grid; flex: 0 0 auto; place-items: center; background: var(--library-icon-surface); }
     .library-card-surface { background: var(--library-surface); box-shadow: none; }
     .library-card-surface:hover, .library-card-surface:focus-within { background: var(--library-surface-hover); box-shadow: none; }
@@ -12567,32 +12567,6 @@ html:not(.dark) .creation-history-drawer-root {
     padding-top: clamp(28px, 7vh, 84px);
     padding-bottom: clamp(28px, 6vh, 72px);
 }
-
-.creation-empty-art {
-    position: relative;
-    width: min(440px, 78vw);
-    height: 172px;
-    margin: 0 auto 18px;
-    isolation: isolate;
-}
-
-.creation-empty-art-frame {
-    position: absolute;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--creation-text) 12%, transparent);
-    border-radius: var(--r-md);
-    background: var(--creation-surface);
-    box-shadow: var(--shadow-lg);
-}
-
-.creation-empty-art-frame img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(.86) contrast(.96); }
-.creation-empty-art-frame.is-back { top: 15px; left: 3%; width: 29%; height: 122px; transform: rotate(-8deg); opacity: .42; }
-.creation-empty-art-frame.is-main { z-index: 2; top: 0; left: 25%; width: 50%; height: 156px; transform: rotate(1deg); }
-.creation-empty-art-frame.is-front { top: 22px; right: 3%; width: 29%; height: 122px; transform: rotate(7deg); opacity: .48; }
-.creation-empty-art-frame.is-main::after { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 38%, color-mix(in srgb, #111 44%, transparent)); content: ""; }
-.creation-empty-art-frame span { position: absolute; z-index: 1; right: 13px; bottom: 12px; color: #fff; font-size: var(--fs-micro); letter-spacing: .08em; text-shadow: 0 1px 8px rgba(0, 0, 0, .45); }
-.creation-empty-art-caption { position: absolute; right: 25%; bottom: -3px; display: flex; align-items: center; gap: 8px; color: var(--creation-faint); font-size: var(--fs-micro); letter-spacing: .12em; }
-.creation-empty-art-caption span:first-child { color: var(--creation-text); font-variant-numeric: tabular-nums; }
 .creation-empty-workspace .creation-chat-intro { margin-bottom: 24px; }
 
 /* 素材选择器是创作页、自由画布和项目画布的唯一视觉入口。 */
@@ -13059,9 +13033,6 @@ html:not(.dark) .creation-history-drawer-root {
 
 @media (max-width: 680px) {
     .creation-empty-workspace { width: calc(100% - 28px); padding-top: 28px; }
-    .creation-empty-art { width: min(390px, 90vw); height: 142px; }
-    .creation-empty-art-frame.is-main { height: 130px; }
-    .creation-empty-art-frame.is-back, .creation-empty-art-frame.is-front { height: 102px; }
     .asset-picker-shell { min-height: 0; height: min(640px, calc(100vh - var(--space-8))); }
     .asset-picker-toolbar { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 10px 42px 10px 12px; }
     .asset-picker-heading { gap: 6px; }
@@ -13082,31 +13053,11 @@ html:not(.dark) .creation-history-drawer-root {
 
 /* 轮播承担首屏视觉主角，工作区只保留很窄的安全边距。 */
 .creation-empty-workspace { width: min(1320px, calc(100% - 24px)); padding-top: clamp(18px, 3vh, 40px); }
-.creation-empty-art { width: min(1060px, calc(100% - 72px)); height: 300px; margin-bottom: 22px; }
-.creation-empty-art-frame.is-back { top: 28px; left: 2%; width: 23%; height: 220px; }
-.creation-empty-art-frame.is-main { top: 0; left: 19%; width: 62%; height: 270px; }
-.creation-empty-art-frame.is-front { top: 34px; right: 2%; width: 23%; height: 220px; }
-.creation-empty-art-frame img { animation: creation-empty-art-image-in 500ms var(--motion-ease-out) both; }
-.creation-empty-art-caption { right: 19%; bottom: -4px; }
 .creation-empty-workspace .creation-chat-intro { margin-top: 42px; }
 .creation-empty-composer { width: min(1120px, calc(100% - 48px)); }
 
-@keyframes creation-empty-art-image-in {
-    from { opacity: .35; transform: scale(1.035); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .creation-empty-art-frame img { animation: none; }
-}
-
 @media (max-width: 680px) {
     .creation-empty-workspace { width: calc(100% - 16px); padding-top: 18px; }
-    .creation-empty-art { width: calc(100% - 10px); height: 210px; margin-bottom: 20px; }
-    .creation-empty-art-frame.is-back { top: 18px; height: 150px; }
-    .creation-empty-art-frame.is-main { left: 14%; width: 72%; height: 190px; }
-    .creation-empty-art-frame.is-front { top: 23px; height: 150px; }
-    .creation-empty-art-caption { right: 14%; }
     .creation-empty-workspace .creation-chat-intro { margin-top: 28px; }
     .creation-empty-composer { width: 100%; }
 }
@@ -14192,105 +14143,20 @@ html:not(.dark) .creation-history-drawer-root {
     .creation-empty-workspace .creation-empty-composer { width: 100%; }
 }
 
-
-.creation-home .creation-empty-suggest {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    width: min(820px, calc(100% - 28px));
-    margin: 24px auto 0;
-}
-
-
-.creation-home .creation-empty-suggest .suggest-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    min-height: 72px;
-    padding: 14px 16px;
-    border: 1px solid var(--creation-border);
-    border-radius: var(--r-lg);
-    background: var(--creation-surface);
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-    box-shadow: var(--elevation-card);
-    transition: background var(--motion-state) var(--motion-ease-out), border-color var(--motion-state) var(--motion-ease-out), box-shadow var(--motion-state) var(--motion-ease-out), transform var(--motion-state) var(--motion-ease-out);
-}
-
-.creation-home .creation-empty-suggest .suggest-card:hover {
-    border-color: var(--creation-border-strong);
-    transform: translateY(-2px);
-    background: var(--creation-surface-hover);
-    box-shadow: var(--elevation-card-hover);
-}
-
-.creation-home .creation-empty-suggest .suggest-card:focus-visible {
-    outline: 2px solid var(--creation-accent);
-    outline-offset: 2px;
-}
-
-.creation-home .creation-empty-suggest .suggest-icon {
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--creation-border);
-    border-radius: var(--r-md);
-    background: color-mix(in srgb, var(--creation-surface-muted) 68%, transparent);
-    color: var(--creation-muted);
-}
-.creation-home .creation-empty-suggest .suggest-icon svg { width: 16px; height: 16px; stroke-width: 2; }
-.creation-home .creation-empty-suggest .suggest-card:hover .suggest-icon,
-.creation-home .creation-hero-prompt:hover .suggest-icon { border-color: var(--creation-border-strong); background: var(--creation-surface-hover); color: var(--creation-text); }
-.dark .creation-home .creation-empty-suggest .suggest-icon { border-color: rgba(255, 255, 255, .07); background: rgba(38, 41, 48, .44); }
-
-.creation-home .creation-empty-suggest .suggest-copy strong {
-    display: block;
-    color: var(--creation-text);
-    font-size: var(--fs-body);
-    font-weight: 600;
-    line-height: 1.5;
-    margin-bottom: 2px;
-}
-
-.creation-home .creation-empty-suggest .suggest-copy span {
-    display: block;
-    color: var(--creation-muted);
-    font-size: var(--fs-label);
-    line-height: 1.5;
-}
-
-/* 空态布局收敛：保持图片区、文案和输入区的文档流顺序，内容超高时由主区滚动承载。 */
+/* 空态布局收敛：保持文案和输入区的文档流顺序，内容超高时由主区滚动承载。 */
 .creation-home .creation-empty-workspace {
     justify-content: flex-start;
 }
 
-.creation-home .creation-empty-workspace > .creation-empty-art,
 .creation-home .creation-empty-workspace > .creation-chat-intro,
-.creation-home .creation-empty-workspace > .creation-empty-composer,
-.creation-home .creation-empty-workspace > .creation-empty-suggest {
+.creation-home .creation-empty-workspace > .creation-empty-composer {
     flex: 0 0 auto;
 }
-.creation-empty-workspace > .creation-empty-art {
-    width: min(820px, calc(100% - 28px));
-    height: 200px;
-    margin: 0 auto 20px;
-}
-
-.creation-empty-workspace .creation-empty-art-frame.is-back { top: 18px; height: 146px; }
-.creation-empty-workspace .creation-empty-art-frame.is-main { top: 0; height: 182px; }
-.creation-empty-workspace .creation-empty-art-frame.is-front { top: 24px; height: 146px; }
 
 .creation-empty-workspace .creation-chat-intro { margin: 0 auto 18px; }
 
-.creation-empty-workspace > .creation-empty-suggest { margin: 26px auto 0; }
-
 @media (max-width: 800px) {
-    .creation-empty-workspace > .creation-empty-art { height: 168px; margin-bottom: 16px; }
-    .creation-empty-workspace .creation-empty-art-frame.is-back { top: 14px; height: 122px; }
-    .creation-empty-workspace .creation-empty-art-frame.is-main { top: 0; height: 152px; }
-    .creation-empty-workspace .creation-empty-art-frame.is-front { top: 18px; height: 122px; }
     .creation-empty-workspace .creation-chat-intro { margin-top: 0; margin-bottom: 14px; }
-    .creation-empty-workspace > .creation-empty-suggest { margin-top: 20px; }
 }
 
 /* ===== 素材库 · 重构（Navo AI 影视资产） =====
@@ -15340,62 +15206,6 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     .creation-home .creation-media-error { width: 100%; margin-left: 0; }
 }
 
-/* —— 创建页空态推荐主卡（吸收 boardui pro-prompt 光晕卡形态）—— */
-.creation-home .creation-hero-prompt {
-    position: relative;
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: var(--space-3);
-    overflow: hidden;
-    border: 1px solid var(--creation-border);
-    border-radius: var(--r-lg);
-    background: var(--creation-surface);
-    padding: var(--space-4) var(--space-5);
-    text-align: left;
-    cursor: pointer;
-    transition: border-color var(--motion-state) ease, transform var(--motion-state) ease, box-shadow var(--motion-state) ease;
-}
-.creation-home .creation-hero-prompt:hover { border-color: var(--creation-border-strong); box-shadow: 0 10px 30px -16px color-mix(in srgb, var(--creation-accent) 46%, transparent); transform: translateY(-1px); }
-.creation-home .creation-hero-prompt:focus-visible { outline: 2px solid var(--creation-accent); outline-offset: 2px; }
-.creation-home .creation-hero-prompt-ray {
-    position: absolute;
-    inset: -60% -22% auto auto;
-    width: 72%;
-    aspect-ratio: 1;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--creation-accent) 17%, transparent), transparent 72%);
-    filter: blur(2px);
-    pointer-events: none;
-}
-.creation-home .creation-hero-prompt-copy { position: relative; display: flex; min-width: 0; flex-direction: column; gap: 2px; }
-.creation-home .creation-hero-prompt-copy strong { color: var(--creation-text); font-size: var(--fs-body); font-weight: 640; }
-.creation-home .creation-hero-prompt-hint { color: var(--creation-muted); font-size: var(--fs-caption); }
-.creation-home .creation-hero-prompt-text {
-    max-width: 100%;
-    overflow: hidden;
-    margin-top: var(--space-1);
-    color: color-mix(in srgb, var(--creation-text) 78%, var(--creation-accent));
-    font-size: var(--fs-caption);
-    font-style: normal;
-    line-height: 1.6;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.creation-home .creation-hero-prompt .suggest-icon { position: relative; flex: 0 0 auto; }
-.creation-home .creation-hero-prompt-spark {
-    position: relative;
-    flex: 0 0 auto;
-    margin-left: auto;
-    color: color-mix(in srgb, var(--creation-accent) 80%, var(--creation-muted));
-    width: var(--space-4);
-    height: var(--space-4);
-    opacity: .85;
-}
-.creation-home .creation-empty-suggest-grid { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
-@media (max-width: 760px) {
-    .creation-home .creation-empty-suggest-grid { grid-template-columns: 1fr; }
-}
-
 
 /* —— 创建页历史抽屉：新建置顶卡 + 时间分组（吸收 boardui agent-chat-history）—— */
 .creation-history-new {
@@ -16337,82 +16147,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     border-radius: 9px;
 }
 
-.app-user-workspace .creation-empty-suggest {
-    display: grid;
-    width: min(820px, 100%);
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    margin: 16px auto 0;
-}
-
-.app-user-workspace .creation-empty-suggest-grid {
-    display: contents;
-}
-
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-.app-user-workspace .creation-empty-suggest .suggest-card {
-    display: flex;
-    min-width: 0;
-    min-height: 74px;
-    align-items: flex-start;
-    gap: 9px;
-    padding: 12px;
-    border: 1px solid rgba(0, 0, 0, .07);
-    border-radius: 13px;
-    background: #ffffff;
-    box-shadow: 0 3px 12px rgba(31, 35, 42, .035);
-    text-align: left;
-}
-
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt:hover,
-.app-user-workspace .creation-empty-suggest .suggest-card:hover {
-    border-color: rgba(91, 78, 224, .28);
-    background: #fcfbff;
-    box-shadow: 0 8px 20px rgba(31, 35, 42, .07);
-    transform: translateY(-1px);
-}
-
-.app-user-workspace .creation-empty-suggest .suggest-icon {
-    width: 28px;
-    height: 28px;
-    flex: 0 0 auto;
-    border-radius: 8px;
-    background: var(--user-surface-muted);
-    color: var(--user-ink-muted);
-}
-
-.app-user-workspace .creation-empty-suggest .suggest-copy,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-copy {
-    min-width: 0;
-}
-
-.app-user-workspace .creation-empty-suggest .suggest-copy strong,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-copy strong {
-    overflow: hidden;
-    font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.app-user-workspace .creation-empty-suggest .suggest-copy span,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-hint,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-text {
-    display: -webkit-box;
-    overflow: hidden;
-    font-size: 11px;
-    line-height: 1.5;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-ray,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-spark {
-    display: none;
-}
-
 @media (max-width: 900px) {
     .app-user-workspace .app-workspace-topbar-announcement { display: none; }
-    .app-user-workspace .creation-empty-suggest { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1023px) {
@@ -16433,17 +16169,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 @media (max-width: 560px) {
     .app-user-workspace .creation-home-heading { margin-top: 8px; }
     .app-user-workspace .creation-home-heading h1 { font-size: 24px; }
-    .app-user-workspace .creation-empty-suggest { grid-template-columns: 1fr; }
-    .app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-    .app-user-workspace .creation-empty-suggest .suggest-card { min-height: 58px; }
 }
 
 .dark .app-user-workspace .app-workspace-sidebar,
 .dark .app-user-workspace .app-workspace-sidebar-nav { background: var(--workspace-sidebar-bg); }
 .dark .app-user-workspace .creation-home,
-.dark .app-user-workspace .creation-composer,
-.dark .app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-.dark .app-user-workspace .creation-empty-suggest .suggest-card { background: #18181a; }
+.dark .app-user-workspace .creation-composer { background: #18181a; }
 /* 顶栏不参与上面这组：它保持透明（见 .app-workspace-topbar 的注释），
    深色下如果跟着涂 #18181a，会和页面底色拼出一条可滚动的横带。 */
 .dark .app-user-workspace .app-workspace-sidebar-footer { border-top-color: rgba(255,255,255,.08); }
@@ -16485,207 +16216,13 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .app-user-workspace .creation-home-heading,
 .app-user-workspace .creation-empty-workspace > .creation-mode-capsule,
-.app-user-workspace .creation-empty-composer,
-.app-user-workspace .creation-empty-suggest {
+.app-user-workspace .creation-empty-composer {
     width: min(860px, 100%);
     margin-inline: auto;
 }
 
 .app-user-workspace .creation-home-heading {
     margin-bottom: 20px;
-}
-
-.app-user-workspace .creation-empty-suggest {
-    margin-top: 14px;
-}
-
-.creation-featured-works {
-    width: 100%;
-    margin-top: clamp(42px, 6vh, 72px);
-    text-align: left;
-}
-
-.creation-featured-heading {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 16px;
-    padding: 0 2px;
-}
-
-.creation-featured-heading > div {
-    min-width: 0;
-}
-
-.creation-featured-heading span {
-    display: block;
-    margin-bottom: 5px;
-    color: color-mix(in srgb, var(--foreground) 42%, transparent);
-    font-size: 11px;
-    font-weight: 650;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-}
-
-.creation-featured-heading h2 {
-    margin: 0;
-    color: var(--foreground);
-    font-size: clamp(20px, 2vw, 26px);
-    font-weight: 690;
-    letter-spacing: -.035em;
-}
-
-.creation-featured-heading p {
-    max-width: 430px;
-    margin: 0 0 2px;
-    color: color-mix(in srgb, var(--foreground) 43%, transparent);
-    font-size: 12px;
-    line-height: 1.6;
-    text-align: right;
-}
-
-.creation-featured-layout {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 16px;
-}
-
-.creation-featured-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.creation-featured-card {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid rgba(28, 28, 32, .075);
-    border-radius: 18px;
-    background: #fff;
-    padding: 0;
-    color: #18181b;
-    text-align: left;
-    box-shadow: 0 1px 1px rgba(24, 24, 28, .02);
-    transition: transform 220ms cubic-bezier(.16, 1, .3, 1), border-color 220ms cubic-bezier(.16, 1, .3, 1), box-shadow 220ms cubic-bezier(.16, 1, .3, 1);
-}
-
-.creation-featured-card:hover,
-.creation-featured-card:focus-visible {
-    border-color: rgba(28, 28, 32, .14);
-    box-shadow: 0 16px 36px -22px rgba(20, 20, 28, .35);
-    transform: translateY(-3px);
-}
-
-.creation-featured-card:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--workspace-accent) 58%, transparent);
-    outline-offset: 3px;
-}
-
-.creation-featured-media {
-    position: relative;
-    display: block;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    background: #ececef;
-}
-
-.creation-featured-card.is-hero .creation-featured-media {
-    flex: 1 1 auto;
-    min-height: 322px;
-}
-
-.creation-featured-media::after {
-    position: absolute;
-    inset: auto 0 0;
-    height: 34%;
-    background: linear-gradient(transparent, rgba(0, 0, 0, .18));
-    content: "";
-    opacity: .6;
-    pointer-events: none;
-}
-
-.creation-featured-media img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 500ms cubic-bezier(.16, 1, .3, 1), filter 220ms ease;
-}
-
-.creation-featured-card:hover .creation-featured-media img,
-.creation-featured-card:focus-visible .creation-featured-media img {
-    filter: saturate(1.04) contrast(1.02);
-    transform: scale(1.035);
-}
-
-.creation-featured-badge {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    z-index: 1;
-    border: 1px solid rgba(255, 255, 255, .25);
-    border-radius: 999px;
-    background: var(--glass-scrim-media);
-    padding: 5px 9px;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 620;
-    backdrop-filter: blur(12px);
-}
-
-.creation-featured-copy {
-    display: grid;
-    min-width: 0;
-    gap: 4px;
-    padding: 13px 14px 14px;
-}
-
-.creation-featured-card.is-hero .creation-featured-copy {
-    gap: 6px;
-    padding: 17px 18px 18px;
-}
-
-.creation-featured-copy strong {
-    overflow: hidden;
-    color: inherit;
-    font-size: 14px;
-    font-weight: 650;
-    letter-spacing: -.015em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.creation-featured-card.is-hero .creation-featured-copy strong {
-    font-size: 18px;
-}
-
-.creation-featured-copy > span {
-    overflow: hidden;
-    color: rgba(24, 24, 27, .48);
-    font-size: 11px;
-    line-height: 1.5;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.creation-featured-copy em {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 4px;
-    color: #6b5ee7;
-    font-size: 10px;
-    font-style: normal;
-    font-weight: 620;
-}
-
-.creation-featured-copy em svg {
-    width: 12px;
-    height: 12px;
 }
 
 /* 顶栏积分中心：真实余额、充值、兑换与流水集中在一个消费型弹窗中。 */
@@ -17185,14 +16722,9 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 @media (max-width: 980px) {
     .app-user-workspace .creation-empty-workspace { width: min(100% - 28px, 860px); }
-    .creation-featured-layout { grid-template-columns: 1fr; }
-    .creation-featured-card.is-hero .creation-featured-media { min-height: 0; aspect-ratio: 16 / 8; }
 }
 
 @media (max-width: 700px) {
-    .creation-featured-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
-    .creation-featured-heading p { text-align: left; }
-    .creation-featured-grid { grid-template-columns: 1fr; }
     .workspace-wallet-header { align-items: stretch; flex-direction: column; padding: 26px 22px 20px; }
     .workspace-wallet-balance { min-width: 0; }
     .workspace-wallet-tabs { margin: 8px 14px 0; }
@@ -17207,11 +16739,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .creation-featured-card,
-.creation-featured-media img,
-.workspace-wallet-product { transition: none !important; }
-    .creation-featured-card:hover,
-    .creation-featured-card:focus-visible,
+    .workspace-wallet-product { transition: none !important; }
     .workspace-wallet-product:hover,
     .workspace-wallet-product:focus-visible { transform: none; }
 }
@@ -17950,6 +17478,11 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 }
 
 .app-user-workspace .app-workspace-stage,
+.app-user-workspace .app-workspace-sidebar {
+    border-radius: 0 !important;
+}
+
+.app-user-workspace .app-workspace-stage,
 .app-user-workspace .app-user-content,
 .app-user-workspace .app-workspace-grid {
     background: var(--user-page-bg);
@@ -18023,13 +17556,28 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 }
 
 /* One scroll owner on the creation route. */
+:root {
+    --home-background-desktop: url(/images/home-background-desktop.svg);
+    --home-background-mobile: url(/images/home-background-mobile.webp);
+}
+
 .app-user-workspace .creation-home {
     --creation-stage-max-width: 960px;
     min-height: 0 !important;
     height: 100% !important;
     overflow: hidden !important;
-    background: var(--user-page-bg) !important;
+    background-color: var(--user-page-bg) !important;
+    background-image: var(--home-background-desktop) !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+    background-size: cover !important;
     color: var(--user-ink) !important;
+}
+
+@media (max-width: 768px) {
+    .app-user-workspace .creation-home {
+        background-image: var(--home-background-mobile) !important;
+    }
 }
 .app-user-workspace .creation-home > .creation-empty-workspace,
 .app-user-workspace .creation-home > .creation-thread-workbench {
@@ -18053,89 +17601,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 }
 .app-user-workspace .creation-home > .creation-empty-workspace::-webkit-scrollbar { display: none; width: 0; }
 
-/* 首页舞台氛围底片 ————————————————————————————————————————————————
-   一段暖白雾气的湖景，铺在「标题 → 模式胶囊」这一段舞台后面。
-   目标是「看不出这里有个视频」，所以不靠透明度硬压，而是让边界真的不存在：
-
-   1) 纵横分层羽化。单条渐变只能渐变两个对边，做不到四边都虚，因此用嵌套遮罩相乘：
-      外层 .creation-home-ambient 负责纵向（顶端快速淡入、底部拖长淡出），
-      内层的 video 与 veil 共用 --creation-ambient-fade-x 做横向羽化。
-      两层都只用单条 linear-gradient，任何支持 mask-image 的浏览器都成立，
-      不需要 mask-composite（那玩意儿的兼容性还得再开一个 @supports 分支）。
-   2) 页面底色薄纱压在视频上，把素材的暖白往 --user-page-bg 上拉，
-      顺带抬高标题的对比度 —— 视频最亮处接近白纸，但树影那一档会吃掉深色字的余量。
-   3) 底片顶到工作区**最上沿**，垫在透明顶栏下面。顶栏（logo / 积分 / 主题）是透明的，
-      内容从它下方滚过，所以底片若从顶栏下沿才开始，顶栏那一行就会留出一条干净的横带，
-      雾气看起来像是从半空中开始的。做法不是把整条带子往上平移（那样底部边界也会跟着上移，
-      已经调好的「下缘落在不透明输入框后面」就废了），而是**只向上补**：
-      top 归 0、高度补回 clearance，遮罩的每一档都写成
-      `clearance + 带高 × 百分比`，于是顶栏以下的部分与改动前逐像素一致，
-      顶栏那 56px 从全透明线性升到全不透明（雾气从最顶上渗出来，不是从中间截断）。
-   4) 高度故意给到 260–360px（+ 顶栏），明显大于可视带（实测 1440 下标题到胶囊底约 200px）。
-      底部那截靠遮罩羽化到全透明，真正的边界落在被不透明输入框挡住的位置，
-      这样就不用去追各断点下量出来的像素高度，窄屏也不会露边。
-   5) 深色主题不能直接换底色了事：素材本身是亮暖白，在 #151517 上会像贴了一块灯箱。
-      薄纱加厚到 76% 并降饱和，让它退成一层很淡的雾，只留呼吸感。 */
-.app-user-workspace .creation-home-ambient {
-    --creation-ambient-height: clamp(260px, 32vh, 360px);
-    /* 透明顶栏占掉的高度：底片要向上把这一段补回来，所以它同时是
-       「顶栏下沿」和「遮罩不透明起点」。 */
-    --creation-ambient-top: var(--workspace-topbar-clearance, 0px);
-    /* 兜底：万一当前布局里没有顶栏（clearance 解析成 0），第一档就会和 0 重合，
-       遮罩在带子顶边直接截断成一条硬边。给一个最小淡入距离，两种情况都不露边。 */
-    --creation-ambient-top-fade: max(var(--creation-ambient-top), 40px);
-    --creation-ambient-veil: color-mix(in srgb, var(--user-page-bg) 62%, transparent);
-    --creation-ambient-fade-x: linear-gradient(to right, transparent 0%, #000 15%, #000 85%, transparent 100%);
-    position: absolute;
-    inset: 0 0 auto 0;
-    z-index: 0;
-    width: min(100%, var(--creation-stage-max-width));
-    margin-inline: auto;
-    height: calc(var(--creation-ambient-height) + var(--creation-ambient-top));
-    overflow: hidden;
-    pointer-events: none;
-    user-select: none;
-    /* 每一档都用 clearance + 带高 × 百分比 表达：顶栏以下的分档与「带子只占可视带」
-       时的旧写法完全等价，但整体被抬高了一层，顶栏那一段自己从透明升到不透明。 */
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0,
-        #000 var(--creation-ambient-top-fade),
-        #000 calc(var(--creation-ambient-top) + var(--creation-ambient-height) * .52),
-        transparent calc(var(--creation-ambient-top) + var(--creation-ambient-height))
-    );
-    mask-image: linear-gradient(
-        to bottom,
-        transparent 0,
-        #000 var(--creation-ambient-top-fade),
-        #000 calc(var(--creation-ambient-top) + var(--creation-ambient-height) * .52),
-        transparent calc(var(--creation-ambient-top) + var(--creation-ambient-height))
-    );
-}
-.dark .app-user-workspace .creation-home-ambient {
-    --creation-ambient-veil: color-mix(in srgb, var(--user-page-bg) 82%, transparent);
-}
-.app-user-workspace .creation-home-ambient-video,
-.app-user-workspace .creation-home-ambient-veil {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    -webkit-mask-image: var(--creation-ambient-fade-x);
-    mask-image: var(--creation-ambient-fade-x);
-}
-/* object-position 偏上：cover 在 2.8:1 的窄带里会纵向裁掉大半，
-   取 40% 刚好把树线、湖面和地平线收进带内，下缘留的是几乎纯白的水面。 */
-.app-user-workspace .creation-home-ambient-video {
-    display: block;
-    object-fit: cover;
-    object-position: center 40%;
-}
-.dark .app-user-workspace .creation-home-ambient-video { filter: saturate(.6) brightness(.82); }
-.app-user-workspace .creation-home-ambient-veil { background: var(--creation-ambient-veil); }
-
-/* 氛围底片是定位元素，会盖在同为静态定位的标题与舞台之上；把这两层提到 z-index 1。
-   输入框卡片本身不透明，不需要额外处理；模式胶囊是玻璃材质，正好让雾透上来一点。 */
+/* 标题与舞台保持定位 + z-index 1。灵感隧道（上一个兄弟节点）的卡片是绝对定位的，
+   若这两层退回 static，隧道那些定位元素就会压到输入框卡片上面。 */
 .app-user-workspace .creation-home-heading,
 .app-user-workspace .creation-launchpad {
     position: relative;
@@ -18307,89 +17774,10 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     transition: background var(--user-motion), border-color var(--user-motion), color var(--user-motion), transform var(--user-motion);
 }
 
-.app-user-workspace .creation-launchpad .creation-mode-capsule .creation-chat-control:focus-visible,
-.app-user-workspace .creation-launchpad .suggest-card:focus-visible {
+.app-user-workspace .creation-launchpad .creation-mode-capsule .creation-chat-control:focus-visible {
     outline: 2px solid var(--user-accent);
     outline-offset: 3px;
 }
-
-.app-user-workspace .creation-empty-suggest {
-    display: grid !important;
-    width: 100% !important;
-    margin: 0 0 0 !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-}
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-.app-user-workspace .creation-empty-suggest .suggest-card {
-    position: relative;
-    isolation: isolate;
-    min-height: 80px !important;
-    margin: 0 !important;
-    padding: 12px !important;
-    border: 1px solid transparent !important;
-    border-radius: var(--user-radius-card) !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    color: var(--user-ink) !important;
-    transition: transform var(--user-motion), background var(--user-motion), box-shadow var(--user-motion), border-color var(--user-motion) !important;
-}
-.app-user-workspace .creation-empty-suggest .suggest-card-hover {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: inherit;
-    background: var(--user-surface-hover);
-    pointer-events: none;
-}
-.app-user-workspace .creation-empty-suggest .suggest-card > .suggest-icon,
-.app-user-workspace .creation-empty-suggest .suggest-card > .suggest-copy { position: relative; z-index: 1; }
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt { grid-column: auto !important; }
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt:hover,
-.app-user-workspace .creation-empty-suggest .suggest-card:hover,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt:focus-visible,
-.app-user-workspace .creation-empty-suggest .suggest-card:focus-visible { transform: none !important; border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
-.app-user-workspace .creation-empty-suggest .suggest-icon { width: 32px !important; height: 32px !important; margin-bottom: 0 !important; flex-shrink: 0; border: 0 !important; border-radius: 12px !important; background: var(--user-surface-muted) !important; color: var(--user-ink-muted) !important; }
-.app-user-workspace .creation-empty-suggest .suggest-copy,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-copy { gap: 4px !important; }
-.app-user-workspace .creation-empty-suggest .suggest-copy strong,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-copy strong { color: var(--user-ink) !important; font-size: 14px !important; }
-.app-user-workspace .creation-empty-suggest .suggest-copy span,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-hint,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-text { color: var(--user-ink-muted) !important; font-size: 12px !important; }
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-spark,
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-ray { display: none !important; }
-
-/* Featured works are part of the home page rhythm, not an afterthought. */
-.app-user-workspace .creation-featured-works { margin-top: 40px !important; }
-.app-user-workspace .creation-featured-heading { margin-bottom: 24px !important; }
-.app-user-workspace .creation-featured-heading span { color: var(--user-ink-soft) !important; font-size: 13px !important; }
-.app-user-workspace .creation-featured-heading h2 { color: var(--user-ink) !important; font-size: 22px !important; letter-spacing: -.025em !important; }
-.app-user-workspace .creation-featured-heading p { color: var(--user-ink-muted) !important; }
-.app-user-workspace .creation-featured-layout { gap: 18px !important; }
-.app-user-workspace .creation-featured-card { border: 0 !important; border-radius: var(--user-radius-card) !important; background: var(--user-surface) !important; box-shadow: var(--user-shadow-card) !important; }
-.app-user-workspace .creation-featured-card:hover,
-.app-user-workspace .creation-featured-card:focus-visible { border-color: var(--user-border-strong) !important; box-shadow: var(--user-shadow-hover) !important; transform: translateY(-2px) !important; }
-.app-user-workspace .creation-featured-copy strong { color: var(--user-ink) !important; }
-.app-user-workspace .creation-featured-copy > span { color: var(--user-ink-muted) !important; }
-.app-user-workspace .creation-featured-copy em { color: var(--user-accent) !important; }
-
-/* 首页精选灵感：一张主推荐带动右侧节奏，避免机械等宽网格。 */
-.app-user-workspace .creation-featured-layout {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    grid-auto-rows: auto;
-    align-items: stretch;
-}
-.app-user-workspace .creation-featured-card.is-featured-hero { grid-column: span 2; grid-row: span 2; }
-.app-user-workspace .creation-featured-card.is-featured-hero .creation-featured-media { flex: 1 1 auto; min-height: 0; aspect-ratio: auto; }
-.app-user-workspace .creation-featured-card.is-featured-hero .creation-featured-media img { position: absolute; inset: 0; }
-.app-user-workspace .creation-featured-card:not(.is-featured-hero) .creation-featured-media { aspect-ratio: 1.55 / 1; }
-.app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) { grid-column: span 2; min-height: clamp(160px, 14vw, 210px); flex-direction: row; }
-.app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) .creation-featured-media { width: 48%; height: 100%; flex: 0 0 48%; aspect-ratio: auto; }
-.app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) .creation-featured-media img { position: absolute; inset: 0; }
-.app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) .creation-featured-copy { align-content: center; flex: 1; padding: 18px 22px; }
-.app-user-workspace .creation-featured-card:not(.is-featured-hero) .creation-featured-copy { padding: 12px 14px 14px; }
-.app-user-workspace .creation-featured-card:not(.is-featured-hero) .creation-featured-copy > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* 对话记录统一成窄而有层次的工作区，不让输入区吞掉首屏。 */
 .app-user-workspace .creation-thread-toolbar,
@@ -18417,10 +17805,6 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     min-height: 32px !important;
     height: 32px !important;
 }
-.app-user-workspace .creation-home .creation-chat-composer.is-thread .creation-submit-action {
-    height: 36px;
-    padding: 0 14px;
-}
 .app-user-workspace .creation-home .creation-user-message { width: min(676px, 82%); margin-bottom: 28px; gap: 8px; }
 .app-user-workspace .creation-user-message-copy-wrap { border: 1px solid color-mix(in srgb, var(--user-accent) 12%, var(--user-border)); border-radius: 18px 18px 5px 18px; padding: 11px 14px; background: color-mix(in srgb, var(--user-accent) 7%, var(--user-surface)); box-shadow: 0 8px 24px color-mix(in srgb, var(--user-ink) 5%, transparent); }
 .app-user-workspace .creation-assistant-message { width: min(910px, 100%); margin-bottom: 28px; }
@@ -18432,13 +17816,6 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .app-user-workspace .creation-history-drawer .ant-drawer-body { background: var(--user-bg); }
 
 @media (max-width: 720px) {
-    .app-user-workspace .creation-featured-layout { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-auto-rows: auto; }
-    .app-user-workspace .creation-featured-card.is-featured-hero { grid-column: 1 / -1; grid-row: auto; }
-    .app-user-workspace .creation-featured-card.is-featured-hero .creation-featured-media { flex: none; aspect-ratio: 1.7 / 1; }
-    .app-user-workspace .creation-featured-card.is-featured-hero .creation-featured-media img { position: static; }
-    .app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) { grid-column: auto; min-height: 0; flex-direction: column; }
-    .app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) .creation-featured-media { width: 100%; height: auto; flex: none; aspect-ratio: 1.55 / 1; }
-    .app-user-workspace .creation-featured-layout > .creation-featured-card:nth-child(4) .creation-featured-media img { position: static; }
     .app-user-workspace .creation-thread-toolbar,
     .app-user-workspace .creation-thread-stage,
     .app-user-workspace .creation-thread-composer { width: calc(100% - 28px); }
@@ -18468,7 +17845,6 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 @media (max-width: 1100px) {
     .app-user-workspace .creation-home > .creation-empty-workspace { width: min(100% - 40px, 900px) !important; }
-    .app-user-workspace .creation-empty-suggest { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 @media (max-width: 680px) {
     .app-user-workspace .app-workspace-topbar { padding-inline: 12px !important; gap: 8px; }
@@ -18482,39 +17858,10 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     .app-user-workspace .creation-launchpad .creation-chat-composer.is-empty .creation-chat-writing-surface { padding: var(--space-6) var(--space-5) var(--space-3) !important; }
     .app-user-workspace .creation-chat-editor textarea,
     .app-user-workspace .creation-chat-mention-editor { min-height: 120px !important; font-size: 17px !important; }
-    .app-user-workspace .creation-empty-suggest { grid-template-columns: 1fr !important; }
-    .app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-    .app-user-workspace .creation-empty-suggest .suggest-card { min-height: 80px !important; }
-    .app-user-workspace .creation-featured-works { margin-top: 48px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .app-user-workspace .app-workspace-sidebar,
-    .app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-    .app-user-workspace .creation-empty-suggest .suggest-card,
-    .app-user-workspace .creation-featured-card { transition: none !important; }
-    .app-user-workspace .creation-empty-suggest .creation-hero-prompt:hover,
-    .app-user-workspace .creation-empty-suggest .suggest-card:hover,
-    .app-user-workspace .creation-featured-card:hover { transform: none !important; }
+    .app-user-workspace .app-workspace-sidebar { transition: none !important; }
 }
-
-/* Quick actions are four independent tiles, not a nested list. */
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt,
-.app-user-workspace .creation-empty-suggest .suggest-card {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 12px !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
-}
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-copy,
-.app-user-workspace .creation-empty-suggest .suggest-copy {
-    display: flex !important;
-    min-width: 0 !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-}
-.app-user-workspace .creation-empty-suggest .creation-hero-prompt-text { display: block !important; margin-top: 6px !important; }
 
 /* Keep list/detail pages in the same semantic palette in dark mode. */
 .app-user-workspace .library-page,

@@ -9,6 +9,7 @@ import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-p
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
 import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
+import { declaredInspirationSources } from "@/lib/inspirations/catalog";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useExternalAssetSources } from "@/hooks/use-external-asset-sources";
@@ -22,7 +23,6 @@ import { resolveModelChannel, resolveModelRequestConfig, selectableModelsByCapab
 import { useCreationPreferencesStore } from "@/stores/use-creation-preferences-store";
 import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
-import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/use-user-store";
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { promptOptimizerPlugin, PROMPT_OPTIMIZER_PLUGIN_ID } from "@/lib/plugins/builtin/prompt-optimizer";
@@ -32,12 +32,9 @@ import { buildCreationMentionReferences, expandCreationPrompt, reconcileCreation
 import { creationAttachmentFromAsset, creationAttachmentFromAudio, creationAttachmentFromAudioAsset, creationAttachmentFromDocument, creationAttachmentFromExternalAsset, creationAttachmentFromImage, creationAttachmentFromVideo, creationAttachmentFromVideoAsset, creationAttachmentKind, creationAudioAsset, creationFileAccepted, creationImageAsset, creationMediaAspectRatio, creationUploadAccept, creationVideoAsset, removeCreationAttachment, splitCreationAttachments, type CreationAttachment } from "./creation-assets";
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
 import { attachCreationTaskContexts, completedCreationGenerationTask, conversationTimestamp, creationShotRail, creationVideoShotOrdinal, isImageAttachment, isVideoAttachment, materializeCreationTaskResults, newConversation, newMessage, reconcileCreationTaskMessages } from "./creation-conversations";
-import { CreationComposer, CreationEmptySuggest, CreationHistoryDrawer, CreationMessageView, CreationModeTabs, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
-import { CreationInspirationWaterfall } from "./creation-inspiration-waterfall";
+import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
 import { CreationInspirationTunnel } from "./creation-inspiration-tunnel";
-import { declaredInspirationSources } from "@/lib/inspirations/catalog";
-import { CreationAgentEntry } from "./creation-agent-entry";
-import { HomeAmbientShader } from "@/components/ui/shaders/home-ambient-shader";
+import { CreationHomeFeatureMatrix } from "./creation-home-feature-matrix";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialog } from "./creation-login-dialog";
@@ -77,11 +74,11 @@ function writeComposerPref(key: string, value: boolean) {
 }
 
 export default function CreatePage() {
-    const [agentMode, setAgentMode] = useState(false);
     const { message: toast, modal } = App.useApp();
     const navigate = useNavigate();
     const location = useLocation();
     const user = useUserStore((state) => state.user);
+    const inspirationSourcesVisible = useUserStore((state) => state.features.inspirationSourcesVisible);
     // 创作首页对游客开放（浏览模型目录、通知与公告），
     // 但创作 / Agent / 参考内容 / 历史对话都需要登录；统一从这里跳登录页并携带回跳地址。
     const openLogin = useCallback(() => {
@@ -95,7 +92,6 @@ export default function CreatePage() {
     const rememberMode = useCreationPreferencesStore((state) => state.rememberMode);
     const rememberImageSettings = useCreationPreferencesStore((state) => state.rememberImageSettings);
     const rememberVideoSettings = useCreationPreferencesStore((state) => state.rememberVideoSettings);
-    const initialComposerPreferences = useCreationPreferencesStore.getState().preferences;
     const promptOptimizerInstallation = usePluginStore((state) => state.installations.find((item) => item.manifest.id === PROMPT_OPTIMIZER_PLUGIN_ID));
     const promptOptimizerEnabled = usePluginStore((state) => state.pluginStates[PROMPT_OPTIMIZER_PLUGIN_ID]?.effectiveEnabled ?? Boolean(state.installations.find((item) => item.manifest.id === PROMPT_OPTIMIZER_PLUGIN_ID)?.enabled));
     const promptOptimizerProvider = useMemo<PromptOptimizerProvider | null>(() => {
@@ -112,9 +108,8 @@ export default function CreatePage() {
     const [hydrated, setHydrated] = useState(false);
     const userId = useUserStore((state) => state.user?.id || null);
     const userSessionHydrated = useUserStore((state) => state.hydrated);
-    const inspirationSourcesVisible = useUserStore((state) => state.features.inspirationSourcesVisible);
     const [conversationScope, setConversationScope] = useState<string | null>(null);
-    const [mode, setMode] = useState<CreationMode>(() => initialComposerPreferences.mode || defaultCreationMode);
+    const [mode, setMode] = useState<CreationMode>(() => defaultCreationMode);
     const [prompt, setPrompt] = useState("");
     const [attachments, setAttachments] = useState<CreationAttachment[]>([]);
     const promptRef = useRef(prompt);
@@ -222,19 +217,8 @@ export default function CreatePage() {
     }, [textStreaming, textThinking]);
     useEffect(() => {
         if (!composerPreferencesHydrated || composerPreferencesInitialized) return;
-        const saved = useCreationPreferencesStore.getState().preferences;
-        const nextMode = saved.mode || defaultCreationMode;
-        setMode(nextMode);
-        if (nextMode === "image" && saved.image) {
-            if (saved.image.ratio) setRatio(saved.image.ratio);
-            if (saved.image.quality) setQuality(saved.image.quality);
-            if (saved.image.count) setCount(saved.image.count);
-        }
-        if (nextMode === "video" && saved.video) {
-            if (saved.video.ratio) setRatio(saved.video.ratio);
-            if (saved.video.seconds) setSeconds(saved.video.seconds);
-            if (saved.video.videoQuality) setVideoQuality(saved.video.videoQuality);
-        }
+        // 首页固定以「文本生成」打开；图片 / 视频的记忆参数由 selectMode 在切入对应模式时恢复。
+        setMode(defaultCreationMode);
         setComposerPreferencesInitialized(true);
     }, [composerPreferencesHydrated, composerPreferencesInitialized]);
 
@@ -439,7 +423,6 @@ export default function CreatePage() {
     useEffect(() => {
         const handoffPrompt = inspirationHandoff?.inspirationPrompt;
         if (!handoffPrompt) return;
-        setAgentMode(false);
         if (inspirationHandoff?.inspirationMode) selectMode(inspirationHandoff.inspirationMode);
         setPrompt(handoffPrompt);
         navigate(".", { replace: true, state: null });
@@ -1112,13 +1095,12 @@ export default function CreatePage() {
 
     return <>
         <div className="creation-home relative flex h-full min-h-0 flex-col overflow-hidden">
-            <HomeAmbientShader />
             {isEmpty ? <>
                 <div className="creation-top-actions">
                     <Tooltip title="历史对话"><button type="button" aria-label="查看历史对话" aria-expanded={historyOpen} className="creation-top-action" onClick={() => (user ? setHistoryOpen(true) : openLogin())}><History /></button></Tooltip>
                 </div>
                 <AnimatePresence>
-                    {launchpadCondensed && !agentMode ? <motion.div className="creation-floating-prompt" key="floating-prompt"
+                    {launchpadCondensed ? <motion.div className="creation-floating-prompt" key="floating-prompt"
                         style={{ x: "-50%" }}
                         initial={{ opacity: 0, y: -12, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: .98 }}
                         transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 32, mass: .8 }}>
@@ -1136,22 +1118,31 @@ export default function CreatePage() {
                 </div>
                 <CreationInspirationTunnel
                     mode={mode}
-                    onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
+                    onStartPrompt={(nextMode, prompt) => { selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
                 />
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
-                    <div className={cn("creation-composer-stage is-home-mode", agentMode && "is-agent-mode")}>
-                        <CreationModeTabs mode={mode} agentActive={agentMode} onAgentSelect={() => (user ? setAgentMode(true) : openLogin())} onModeChange={(next) => { setAgentMode(false); selectMode(next); }} />
-                        {agentMode ? <CreationAgentEntry /> : <div className="creation-empty-composer"><CreationComposer {...composerProps} variant="empty" /></div>}
+                    <div className="creation-composer-stage is-home-mode" data-creation-mode={mode}>
+                        <div className="creation-empty-composer"><CreationComposer {...composerProps} variant="empty" /></div>
                     </div>
-                    <CreationEmptySuggest
-                        onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
-                        onOpenLibrary={() => { if (!user) { openLogin(); return; } setAgentMode(false); selectMode("image"); setLibraryOpen(true); }}
-                    />
                 </section>
-                {/* 灵感瀑布流放在创作区下方：先给出输入框，再铺开一整个库让人挑。 */}
-                <CreationInspirationWaterfall
-                    onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
+                <CreationHomeFeatureMatrix
+                    onOpenAgent={() => {
+                        if (!user) {
+                            openLogin();
+                            return;
+                        }
+                        navigate("/projects");
+                    }}
+                    onCreateCanvas={() => {
+                        if (!user) {
+                            openLogin();
+                            return;
+                        }
+                        navigate("/canvas");
+                    }}
                 />
+                {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，
+                    所以这条跟着首页走：画廊换成纵深轮播后它一度掉了，这里补回来。 */}
                 {inspirationSourcesVisible ? <div className="creation-inspiration-credit">
                     <details>
                         <summary>素材来源</summary>

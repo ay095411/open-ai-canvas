@@ -1,6 +1,7 @@
 import { ImageSizePicker } from "@/components/image-size-picker";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
+import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { App, Button, Dropdown, Popover } from "antd";
@@ -46,7 +47,6 @@ import { CreationAttachmentThumbnail, CreationMediaPreviewModal } from "./creati
 
 export { CreationHistoryDrawer } from "./creation-workspace-history";
 export { CreationMessageView } from "./creation-workspace-messages";
-export { CreationEmptyBanner, CreationEmptySuggest, CreationFeaturedWorks } from "./creation-workspace-empty";
 
 const CanvasPromptOptimizerDrawer = lazy(() => import("@/components/canvas/canvas-prompt-optimizer-drawer").then((module) => ({ default: module.CanvasPromptOptimizerDrawer })));
 
@@ -201,7 +201,7 @@ export function CreationComposer(props: ComposerProps) {
         : props.mode === "image"
             ? "描述画面、人物、场景、构图与风格"
             : "描述镜头内容、运动、光线与节奏";
-    const emptyPlaceholder = "输入你的镜头、画面或故事。也可以添加参考图开始创作";
+    const emptyPlaceholder = "写下一瞬灵感，让故事从这里开始";
     const imageReferencesSupported = props.imageProfile.references.maxImages > 0;
     const referencesSupported = props.mode === "image" ? imageReferencesSupported : props.mode !== "video" || props.maxReferences > 0;
     const canAddMoreReferences = referencesSupported && props.attachments.length < props.maxReferences;
@@ -380,7 +380,8 @@ export function CreationComposer(props: ComposerProps) {
         </div>
         <footer className="creation-chat-dock">
             <div className="creation-chat-controls">
-                {props.variant === "thread" ? <ModePicker mode={props.mode} onModeChange={props.onModeChange} /> : null}
+                {/* 模式切换固定在输入框左下角：首页与对话流共用同一位置，不再占用输入框上方的独立一行。 */}
+                <ModePicker mode={props.mode} onModeChange={props.onModeChange} />
                 <VoiceRecordingButton
                     className="creation-voice-trigger"
                     disabled={interactionBusy}
@@ -420,7 +421,6 @@ export function CreationComposer(props: ComposerProps) {
                     title={!canSubmit && !showWorkingSpinner ? "输入创作想法后即可生成" : actionLabel}
                 >
                     {showWorkingSpinner ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" /> : <ArrowUp className="size-4" aria-hidden="true" />}
-                    <span>{showWorkingSpinner ? "生成中" : "开始创作"}</span>
                 </button>
             </div>
         </footer>
@@ -452,15 +452,14 @@ export function CreationComposer(props: ComposerProps) {
 type CreationModeTabBox = { x: number; y: number; w: number; h: number };
 
 /**
- * 创作模式切换：测量当前 aria-pressed 按钮以定位胶囊指示器，
- * 首页四列、dock 紧凑条和垂直轨道共用同一套定位逻辑。
+ * 创作模式切换：测量当前 aria-pressed 按钮以定位胶囊指示器。
+ * 首页与对话流都把紧凑版放进输入框左下角的 dock，尺寸由 `.creation-chat-dock` 的上下文规则收口。
  */
-export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAgentSelect, orientation = "horizontal" }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void; agentActive?: boolean; onAgentSelect?: () => void; orientation?: "horizontal" | "vertical" }) {
+export function CreationModeTabs({ mode, onModeChange, orientation = "horizontal" }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void; orientation?: "horizontal" | "vertical" }) {
     const tabsRef = useRef<HTMLDivElement | null>(null);
     const [tabBox, setTabBox] = useState<CreationModeTabBox | null>(null);
     const [ready, setReady] = useState(false);
-    const activeModeKey = agentActive ? "agent" : mode;
-    const columnCount = onAgentSelect ? 4 : 3;
+    const columnCount = 3;
     const items: { mode: CreationMode; icon: ReactNode; label: string }[] = [
         { mode: "video", icon: <Film />, label: "视频" },
         { mode: "image", icon: <ImageIcon />, label: "图片" },
@@ -487,7 +486,7 @@ export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAg
         const observer = new ResizeObserver(measure);
         observer.observe(container);
         return () => observer.disconnect();
-    }, [activeModeKey, orientation, columnCount]);
+    }, [mode, orientation, columnCount]);
 
     const visualStyle = {
         gridTemplateColumns: orientation === "vertical" ? "minmax(0, 1fr)" : `repeat(${columnCount}, minmax(0, 1fr))`,
@@ -502,24 +501,83 @@ export function CreationModeTabs({ mode, onModeChange, agentActive = false, onAg
         className="creation-mode-tabs"
         role="group"
         aria-label="创作模式"
-        data-active-mode={activeModeKey}
+        data-active-mode={mode}
         data-orientation={orientation}
         data-ready={ready ? "true" : "false"}
         style={visualStyle}
     >
         <span className="creation-mode-indicator" aria-hidden />
         {items.map((item) => (
-            <button key={item.mode} type="button" className="creation-mode-button" data-mode={item.mode} aria-pressed={!agentActive && item.mode === mode} aria-label={`${item.label}生成`} onClick={() => onModeChange(item.mode)}>
+            <button key={item.mode} type="button" className="creation-mode-button" data-mode={item.mode} aria-pressed={item.mode === mode} aria-label={`${item.label}生成`} onClick={() => onModeChange(item.mode)}>
                 {item.icon}
                 <span>{item.label}</span>
             </button>
         ))}
-        {onAgentSelect ? <button type="button" className="creation-mode-button" data-mode="agent" aria-pressed={agentActive} onClick={onAgentSelect}><Brain /><span>Agent</span><i className="creation-mode-spark" aria-hidden /></button> : null}
     </div>;
 }
 
+const MODE_DROPDOWN_ITEMS: { mode: CreationMode; icon: ReactNode; label: string; desc: string }[] = [
+    { mode: "text", icon: <MessageSquareText className="size-3.5" />, label: "生文本", desc: "写剧本、大纲与对话思路" },
+    { mode: "image", icon: <ImageIcon className="size-3.5" />, label: "生图片", desc: "文生图、图生图与分镜原画" },
+    { mode: "video", icon: <Film className="size-3.5" />, label: "生视频", desc: "镜头运动与动态视频生成" },
+];
+
+/**
+ * 输入框左下角的紧凑型模式切换下拉胶囊（对齐用户参考图）。
+ */
 function ModePicker({ mode, onModeChange }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void }) {
-    return <CreationModeTabs mode={mode} onModeChange={onModeChange} />;
+    const [open, setOpen] = useState(false);
+    const active = MODE_DROPDOWN_ITEMS.find((item) => item.mode === mode) || MODE_DROPDOWN_ITEMS[0];
+
+    const menuContent = (
+        <div className="creation-mode-dropdown-menu" role="menu">
+            {MODE_DROPDOWN_ITEMS.map((item) => {
+                const isSelected = item.mode === mode;
+                return (
+                    <button
+                        key={item.mode}
+                        type="button"
+                        role="menuitem"
+                        className={cn("creation-mode-dropdown-item", isSelected && "is-selected")}
+                        onClick={() => {
+                            onModeChange(item.mode);
+                            setOpen(false);
+                        }}
+                    >
+                        <span className="creation-mode-dropdown-icon">{item.icon}</span>
+                        <div className="creation-mode-dropdown-text">
+                            <span className="creation-mode-dropdown-label">{item.label}</span>
+                            <span className="creation-mode-dropdown-desc">{item.desc}</span>
+                        </div>
+                        {isSelected ? <span className="creation-mode-dropdown-check">✓</span> : null}
+                    </button>
+                );
+            })}
+        </div>
+    );
+
+    return (
+        <Popover
+            open={open}
+            onOpenChange={setOpen}
+            trigger="click"
+            placement="topLeft"
+            arrow={false}
+            overlayClassName="creation-mode-dropdown-popover"
+            content={menuContent}
+        >
+            <button
+                type="button"
+                className="creation-mode-dropdown-trigger"
+                aria-label={`当前生成模式：${active.label}，点击切换`}
+                aria-expanded={open}
+            >
+                <span className="creation-mode-trigger-icon">{active.icon}</span>
+                <span className="creation-mode-trigger-label">{active.label}</span>
+                <ChevronDown className={cn("creation-mode-trigger-arrow", open && "is-open")} />
+            </button>
+        </Popover>
+    );
 }
 
 function GenerationSettingsMenu(props: ComposerProps) {
