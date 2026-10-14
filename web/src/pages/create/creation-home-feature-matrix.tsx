@@ -1,10 +1,10 @@
-import { ArrowUpRight, Clock3, FolderOpen, LayoutGrid, PlugZap, WandSparkles } from "lucide-react";
+import { ArrowUpRight, Clock3, FolderOpen, PlugZap, Sparkles, WandSparkles } from "lucide-react";
 import { useNavigate } from "react-router";
 import "./creation-home-feature-matrix.css";
 
 interface CreationHomeFeatureMatrixProps {
-    onOpenAgent: () => void;
-    onCreateCanvas: () => void;
+    onOpenAgentNewCanvas: () => void;
+    onOpenExistingCanvas: () => void;
 }
 
 /**
@@ -51,8 +51,8 @@ const capabilities = [
 ] as const;
 
 export function CreationHomeFeatureMatrix({
-    onOpenAgent,
-    onCreateCanvas,
+    onOpenAgentNewCanvas,
+    onOpenExistingCanvas,
 }: CreationHomeFeatureMatrixProps) {
     const navigate = useNavigate();
 
@@ -70,15 +70,15 @@ export function CreationHomeFeatureMatrix({
                     className="creation-feature-lead"
                     role="button"
                     tabIndex={0}
-                    onClick={onOpenAgent}
-                    onKeyDown={(event) => handleKeyboardAction(event, onOpenAgent)}
+                    onClick={onOpenAgentNewCanvas}
+                    onKeyDown={(event) => handleKeyboardAction(event, onOpenAgentNewCanvas)}
                 >
                     <div className="creation-feature-lead-media" aria-hidden="true" />
                     <div className="creation-feature-lead-scrim" aria-hidden="true" />
                     <div className="creation-feature-lead-content">
                         <div className="creation-feature-lead-copy">
                             <h2>短剧 Agent 创作助手</h2>
-                            <p>从一句想法拆解剧本大纲、角色画像与多镜头分镜，全流程智能化影视协同。</p>
+                            <p>使用画布里的同一个 Agent，结合素材、技能与创作上下文协作。从一句想法拆解大纲分镜，自动推进成片。</p>
                         </div>
                         <div className="creation-feature-lead-actions">
                             <button
@@ -86,10 +86,11 @@ export function CreationHomeFeatureMatrix({
                                 className="creation-feature-lead-primary"
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    onOpenAgent();
+                                    onOpenAgentNewCanvas();
                                 }}
                             >
-                                <span>与 Agent 开启创作</span>
+                                <Sparkles className="size-3.5" />
+                                <span>新建画布，与 Agent 创作</span>
                                 <ArrowUpRight className="size-4" />
                             </button>
                             <button
@@ -97,11 +98,11 @@ export function CreationHomeFeatureMatrix({
                                 className="creation-feature-lead-secondary"
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    onCreateCanvas();
+                                    onOpenExistingCanvas();
                                 }}
                             >
-                                <LayoutGrid className="size-3.5" />
-                                <span>新建空白画布</span>
+                                <FolderOpen className="size-3.5" />
+                                <span>在已有画布中打开</span>
                             </button>
                         </div>
                     </div>

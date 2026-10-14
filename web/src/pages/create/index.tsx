@@ -22,7 +22,7 @@ import { loadCreationConversations, pendingCreationTaskIds, removeCreationConver
 import { resolveModelChannel, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useCreationPreferencesStore } from "@/stores/use-creation-preferences-store";
 import { useAssetStore, type Asset } from "@/stores/use-asset-store";
-import { loadAssetsForUse } from "@/services/user-data-sync";
+import { createCanvasProjectWithRemoteSync, loadAssetsForUse } from "@/services/user-data-sync";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
@@ -1114,19 +1114,28 @@ export default function CreatePage() {
                     </div>
                 </section>
                 <CreationHomeFeatureMatrix
-                    onOpenAgent={() => {
+                    onOpenAgentNewCanvas={async () => {
                         if (!user) {
                             openLogin();
                             return;
                         }
-                        navigate("/projects");
+                        try {
+                            const result = await createCanvasProjectWithRemoteSync("Agent 创作");
+                            if (result.id) {
+                                navigate(`/canvas/${encodeURIComponent(result.id)}?agent=1`);
+                                return;
+                            }
+                        } catch {
+                            // 降级：若直接创建异常则打开画布列表
+                        }
+                        navigate("/canvas?agent=1");
                     }}
-                    onCreateCanvas={() => {
+                    onOpenExistingCanvas={() => {
                         if (!user) {
                             openLogin();
                             return;
                         }
-                        navigate("/canvas");
+                        navigate("/canvas?agent=1");
                     }}
                 />
                 {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，
