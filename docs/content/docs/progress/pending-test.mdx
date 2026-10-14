@@ -5,6 +5,14 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## main 主分支代码同步（v1.6.8.1 合并）
+
+- 已完成：通过 `git fetch origin main` 与 `git merge origin/main` 成功将主分支最新提交（至 `4e2d7e69`，含 v1.6.8.1 版本、千问 AI 平台 MAAS 图像协议插件、局部重绘模型同步、远端素材参考优化等）合入当前分支。
+- 零代码回退强保证：
+  - 合并前已创建独立本地备份分支 `backup/ui-redesign-before-sync-main`；
+  - 本地实现的首页全新大卡功能矩阵、输入框左下角 `[💬 生文本 ▼]` 模式下拉切换器、首页全屏 WebGPU 动态光晕、新建画布黑白星尘光场以及侧栏舞台直角规则**100% 完整保留，无任何回退**。
+- [x] 开发服务器真实浏览器验证：在端口 3100 访问 `/create` 与 `/canvas`，实机探针确认主分支的新功能支持与本地所有最新 UI 改动（5 卡片轮播、模式下拉、大卡矩阵、黑白主题自适应）均正常工作。
+
 ## 工作台侧栏与舞台圆角移除（消除 border-radius: var(--r-xl)）
 
 - 已调整：在 `web/src/styles/globals.css` 中将 `.app-workspace-sidebar, .app-workspace-stage` 原有的 `border-radius: var(--r-xl)`（14px 圆角）调整为 `border-radius: 0;`，并在 `.app-user-workspace` 明确声明 `border-radius: 0 !important;`。
