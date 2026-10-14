@@ -194,9 +194,12 @@ export function AssetLibraryPickerModal({
     // 仅在远端空而本地仍有素材、或远端总数>0 但本页全被排除时回退本地，避免合法空搜索被缓存铺满。
     const remoteTotal = remoteQuery.data?.total ?? 0;
     const remoteReady = remoteEnabled && remoteQuery.isSuccess;
-    const preferLocalUnsynced = remoteReady && remoteTotal === 0 && localItems.length > 0;
-    const remoteEntityOnlyPage = remoteReady && remoteItems.length === 0 && remoteTotal > 0;
-    const useRemoteItems = remoteReady && !preferLocalUnsynced && !remoteEntityOnlyPage && (remoteItems.length > 0 || remoteTotal === 0);
+    // 只有在未做任何分类/类型筛选（全量状态）、且远端总数为 0 但本地有未同步条目时，才回退未同步数据。
+    // 用户一旦主动筛选了媒体类型、分类或输入了搜索词，必须严格信赖服务端的精准查询结果，绝不把其他类型的本地缓存糊上来！
+    const isFiltered = mediaKind !== "all" || category !== "all" || Boolean(remoteKeyword);
+    const preferLocalUnsynced = remoteReady && !isFiltered && remoteTotal === 0 && localItems.length > 0;
+    const remoteEntityOnlyPage = remoteReady && remoteItems.length === 0 && remoteTotal > 0 && !allowCharacters;
+    const useRemoteItems = remoteReady && !preferLocalUnsynced && !remoteEntityOnlyPage;
     const effectivePagination = useRemoteItems
         ? {
               current: remotePage,
@@ -210,11 +213,17 @@ export function AssetLibraryPickerModal({
         : pagination;
     const pluginItems = useMemo(() => allItems.filter((item) => Boolean(item.external)), [allItems]);
     const hasPluginSource = useMemo(() => Object.keys(categoryLabels).some((value) => value.startsWith("external:")) || pluginItems.some((item) => item.category.startsWith("external:")), [categoryLabels, pluginItems]);
-    // 媒体类型在分类之前收窄数据源，让左侧分类计数、网格和分页始终描述同一批素材。
+    // 媒体类型数据源：远端模式下服务端已按 remoteQueryKind 过滤，本地模式在前端按 mediaKind 过滤。
     const sourceItems = useMemo(() => {
-        const base = source === "plugin" ? pluginItems : useRemoteItems ? remoteItems : localItems;
-        if (mediaKind === "all") return base;
-        return base.filter((item) => pickerItemMediaKind(item) === mediaKind);
+        if (source === "plugin") {
+            if (mediaKind === "all") return pluginItems;
+            return pluginItems.filter((item) => pickerItemMediaKind(item) === mediaKind);
+        }
+        if (useRemoteItems) {
+            return remoteItems;
+        }
+        if (mediaKind === "all") return localItems;
+        return localItems.filter((item) => pickerItemMediaKind(item) === mediaKind);
     }, [localItems, mediaKind, pluginItems, useRemoteItems, remoteItems, source]);
     const activeSourceItems = useMemo(() => sourceItems.filter((item) => !item.archived), [sourceItems]);
     const archivedItems = useMemo(() => sourceItems.filter((item) => item.archived), [sourceItems]);
@@ -449,6 +458,19 @@ export function AssetLibraryPickerModal({
         if (remoteCategoryCounts) return value === "all" ? Object.values(remoteCategoryCounts).reduce((sum, count) => sum + count, 0) : remoteCategoryCounts[value] || 0;
         return value === "all" ? activeSourceItems.length : activeSourceItems.filter((item) => item.category === value).length;
     };
+
+    const kindCountFor = (value: AssetPickerMediaKind | "all") => {
+        if (source === "plugin") {
+            if (value === "all") return pluginItems.length;
+            return pluginItems.filter((item) => pickerItemMediaKind(item) === value).length;
+        }
+        if (useRemoteItems && remoteQuery.data?.kindCounts) {
+            if (value === "all") return remoteQuery.data.total;
+            return remoteQuery.data.kindCounts[value] || 0;
+        }
+        if (value === "all") return activeSourceItems.length;
+        return localItems.filter((item) => !item.archived && pickerItemMediaKind(item) === value).length;
+    };
     const sourceLabel = source === "plugin" ? "插件来源" : "本地素材";
     const sourceMenuItems: MenuProps["items"] = [
         {
@@ -536,6 +558,7 @@ export function AssetLibraryPickerModal({
                                 {(["all", ...mediaKindOptions] as const).map((value) => (
                                     <button key={value} type="button" className={cn("assets-filter-item", mediaKind === value && "is-active")} aria-pressed={mediaKind === value} onClick={() => setMediaKind(value)}>
                                         <span className="assets-filter-item-label">{value === "all" ? "全部类型" : ASSET_PICKER_MEDIA_KIND_LABELS[value]}</span>
+                                        <span className="assets-filter-count">{kindCountFor(value)}</span>
                                     </button>
                                 ))}
                             </>
@@ -690,12 +713,17 @@ export function AssetLibraryPickerModal({
 }
 
 export function remoteAssetToPickerItem(asset: Asset, known: AssetLibraryPickerItem | undefined, acceptRemoteItems: boolean, disabledReason?: string): AssetLibraryPickerItem {
+    const inferredKind: AssetPickerMediaKind | undefined =
+        asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "text"
+            ? asset.kind
+            : undefined;
     return {
         id: asset.id,
         title: asset.title,
         category: asset.category || "other",
         archived: asset.status === "archived",
         kindLabel: asset.kind === "image" ? "图片" : asset.kind === "video" ? "视频" : asset.kind === "audio" ? "音频" : asset.kind === "entity" ? "角色" : "文本",
+        mediaKind: inferredKind,
         searchText: (asset.tags ?? []).join(" "),
         ...known,
         disabledReason: known?.disabledReason || (!known && !acceptRemoteItems ? "此素材不适用于当前操作" : disabledReason),
