@@ -225,8 +225,8 @@ export function AssetLibraryPickerModal({
         () =>
             useRemoteItems
                 ? Object.keys(categoryLabels).filter((value) => value !== "archived" && !value.startsWith("external:"))
-                : ["all", ...Array.from(new Set(activeSourceItems.map((item) => item.category || "other"))).filter((value) => value !== "all")],
-        [activeSourceItems, categoryLabels, useRemoteItems],
+                : ["all", ...Array.from(new Set(localItems.filter((item) => !item.archived).map((item) => item.category || "other"))).filter((value) => value !== "all")],
+        [categoryLabels, localItems, useRemoteItems],
     );
     const archivedCount = archivedItems.length;
     const isRecycleBin = category === "archived";
@@ -240,18 +240,28 @@ export function AssetLibraryPickerModal({
                 return false;
             }
             if (folderId !== "all" && (item.folderId || "") !== folderId) return false;
-            return useRemoteItems || !query || [item.title, item.searchText || "", item.description || ""].join(" ").toLowerCase().includes(query);
+            return !query || [item.title, item.searchText || "", item.description || ""].join(" ").toLowerCase().includes(query);
         });
-    }, [category, folderId, keyword, sourceItems, useRemoteItems]);
+    }, [category, folderId, keyword, sourceItems]);
+
+    // 汇总已知所有可用条目字典，确保跨分页远端条目的选中与有效性校验无遗漏
+    const itemLookup = useMemo(() => {
+        const map = new Map<string, AssetLibraryPickerItem>();
+        for (const item of allItems) map.set(item.id, item);
+        for (const item of remoteItems) map.set(item.id, item);
+        for (const item of pickedRemoteRef.current.values()) map.set(item.id, item);
+        return map;
+    }, [allItems, remoteItems, selected]);
+
     const selectedIds = useMemo(
         () =>
             Array.from(selected).filter((id) => {
-                const item = allItems.find((entry) => entry.id === id);
+                const item = itemLookup.get(id);
                 return !item?.disabledReason;
             }),
-        [allItems, selected],
+        [itemLookup, selected],
     );
-    const archivedSelectedIds = useMemo(() => selectedIds.filter((id) => allItems.find((item) => item.id === id)?.archived), [allItems, selectedIds]);
+    const archivedSelectedIds = useMemo(() => selectedIds.filter((id) => itemLookup.get(id)?.archived), [itemLookup, selectedIds]);
 
     useEffect(() => {
         if (!open) return;
@@ -297,16 +307,39 @@ export function AssetLibraryPickerModal({
 
     const toggle = (item: AssetLibraryPickerItem) => {
         if (item.disabledReason || working) return;
-        // 远端分页条目翻页后就不在列表里了；选中时记下来，确认时仍能转成插入内容。
-        if (item.asset && !allItems.some((known) => known.id === item.id)) pickedRemoteRef.current.set(item.id, item);
         setError("");
         setSelected((current) => {
-            if (!multiple) return current.has(item.id) ? new Set() : new Set([item.id]);
+            if (!multiple) {
+                if (current.has(item.id)) {
+                    pickedRemoteRef.current.delete(item.id);
+                    return new Set();
+                }
+                pickedRemoteRef.current.clear();
+                if (item.asset && !allItems.some((known) => known.id === item.id)) {
+                    pickedRemoteRef.current.set(item.id, item);
+                }
+                return new Set([item.id]);
+            }
             const next = new Set(current);
-            if (next.has(item.id)) next.delete(item.id);
-            else next.add(item.id);
+            if (next.has(item.id)) {
+                next.delete(item.id);
+                pickedRemoteRef.current.delete(item.id);
+            } else {
+                next.add(item.id);
+                // 远端分页条目翻页后就不在列表里了；选中时记下来，确认时仍能转成插入内容。
+                if (item.asset && !allItems.some((known) => known.id === item.id)) {
+                    pickedRemoteRef.current.set(item.id, item);
+                }
+            }
             return next;
         });
+    };
+
+    const clearSelection = () => {
+        if (working) return;
+        setSelected(new Set());
+        pickedRemoteRef.current.clear();
+        setError("");
     };
 
     const confirm = async () => {
@@ -630,6 +663,16 @@ export function AssetLibraryPickerModal({
                                     <Button type="text" icon={<FolderOpen />} disabled={working} onClick={() => void runFolderAction()}>
                                         {folderActionLabel}
                                     </Button>
+                                ) : null}
+                                {selectedIds.length > 0 ? (
+                                    <button
+                                        type="button"
+                                        className="asset-picker-clear-selection-btn"
+                                        onClick={clearSelection}
+                                        disabled={working}
+                                    >
+                                        清空已选 ({selectedIds.length})
+                                    </button>
                                 ) : null}
                                 <Button type="text" onClick={onClose} disabled={working}>
                                     取消

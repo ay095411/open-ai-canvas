@@ -1234,7 +1234,12 @@
     --picker-on-accent: #171717;
 }
 
-/* 弹窗外壳：圆角与柔和阴影 */
+/* 弹窗外壳：尺寸、圆角与柔和阴影 */
+.asset-library-picker-modal {
+    width: min(1080px, calc(100vw - 32px)) !important;
+    max-width: 1080px !important;
+}
+
 .asset-library-picker-modal .ant-modal-container,
 .asset-library-picker-modal .ant-modal-content {
     border-radius: 20px !important;
@@ -1242,6 +1247,11 @@
     border: 1px solid var(--picker-border) !important;
     background: var(--picker-bg) !important;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28) !important;
+}
+
+.asset-library-picker-modal .asset-picker-shell {
+    height: min(720px, calc(100vh - 48px)) !important;
+    min-height: 520px !important;
 }
 
 .asset-library-picker-modal .ant-modal-close {
@@ -1338,13 +1348,34 @@
 
 /* 中间素材卡片网格 */
 .asset-library-picker-modal .asset-picker-body {
+    grid-template-columns: 204px minmax(0, 1fr) !important;
     padding: 0 20px !important;
     gap: 20px !important;
 }
 
 .asset-library-picker-modal .asset-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)) !important;
     gap: 14px !important;
     padding-bottom: 20px !important;
+}
+
+.asset-picker-clear-selection-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--picker-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 150ms ease, background-color 150ms ease;
+}
+
+.asset-picker-clear-selection-btn:hover {
+    background: var(--picker-hover);
+    color: var(--user-ink);
 }
 
 .asset-library-picker-modal .asset-picker-card {
