@@ -5,6 +5,12 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 创作输入框底部重复「参考内容」按钮移除
+
+- 已调整：在 `web/src/pages/create/creation-workspace.tsx` 中彻底移除了输入框底部工具栏（`creation-chat-dock` / `creation-chat-controls`）中由历史合并引入的重复「+ 参考内容」按钮，保留输入编辑区内部原生的参考内容槽位。
+- 界面优化：输入框底部左侧仅保留 `[💬 生文本 ▼]` 模式胶囊下拉切换器与语音输入按钮，消除双重“参考内容”按钮导致的视觉冗余。
+- [x] 开发服务器真实浏览器验证：在端口 3100 访问首页 `/`，实机 DOM 探针检测确认底部控制栏内 `hasRefBtnInDock: false`，仅输入区内部保留正常的参考槽位，布局纯净整洁。
+
 ## main 主分支代码三次同步（提交 466d9a5c 合并）
 
 - 已完成：通过 `git fetch origin main` 与 `git merge origin/main` 成功将主分支最新提交（`466d9a5c`，含 MiniMax H3 与秘塔 H3 最长 30 秒生成支持等后端模型能力）合入当前分支。
