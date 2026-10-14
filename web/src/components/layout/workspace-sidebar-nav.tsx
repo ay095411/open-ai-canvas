@@ -326,6 +326,16 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
     );
 }
 
+// 菜单项 id 与实际路由不一定同名：/toolbox/image 和 /toolbox/video 共用 toolbox 前缀，
+// 只取首段会让两者都匹配不到任何菜单项，侧栏因此没有高亮。
+export function workspaceNavActiveId(pathname: string, section?: string | null) {
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments[0] === "toolbox" && segments[1]) return `toolbox-${segments[1]}`;
+    const slug = segments[0] || "home";
+    if (slug === "create") return "home";
+    return slug === "settings" && section ? `settings:${section}` : slug;
+}
+
 export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExpand, onCollapse }: { collapsed: boolean; onNavigate: () => void; onOpenSearch: () => void; onExpand: () => void; onCollapse: () => void }) {
     const { pathname } = useLocation();
     const [searchParams] = useSearchParams();

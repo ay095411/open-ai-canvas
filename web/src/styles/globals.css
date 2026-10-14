@@ -17750,12 +17750,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     padding: var(--space-8) var(--space-8) var(--space-4) !important;
 }
 .app-user-workspace .creation-launchpad .creation-chat-composer.is-empty .creation-chat-mention-editor {
-    min-height: 64px !important;
+    min-height: 48px !important;
     font-size: 16px !important;
 }
 .app-user-workspace .creation-launchpad .creation-chat-dock {
-    min-height: 64px !important;
-    padding: 8px 16px 16px !important;
+    min-height: 52px !important;
+    padding: var(--space-2) var(--space-4) var(--space-3) !important;
     border-top: 0 !important;
 }
 .app-user-workspace .creation-launchpad .creation-chat-controls .creation-chat-control {

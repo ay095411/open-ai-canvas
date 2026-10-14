@@ -382,6 +382,7 @@ export function CreationComposer(props: ComposerProps) {
             <div className="creation-chat-controls">
                 {/* 模式切换固定在输入框左下角：首页与对话流共用同一位置，不再占用输入框上方的独立一行。 */}
                 <ModePicker mode={props.mode} onModeChange={props.onModeChange} />
+                {referencesSupported && !props.attachments.length ? <Tooltip title={addReferenceLabel}><button type="button" className="creation-chat-control" onClick={props.onOpenLibrary} disabled={interactionBusy || !canAddMoreReferences} aria-label={addReferenceLabel}><Plus aria-hidden="true" /><span>参考内容</span></button></Tooltip> : null}
                 <VoiceRecordingButton
                     className="creation-voice-trigger"
                     disabled={interactionBusy}

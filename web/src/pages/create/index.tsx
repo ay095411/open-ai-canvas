@@ -42,6 +42,7 @@ import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialog } from "./creation-login-dialog";
 
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
+const InspirationHall = lazy(() => import("@/pages/inspirations"));
 const loadCreationRuntime = () => import("./creation-runtime");
 type CreationRuntime = Awaited<ReturnType<typeof loadCreationRuntime>>;
 
@@ -421,7 +422,6 @@ export default function CreatePage() {
         // selectMode 每次渲染都是新函数，放进依赖会让本效果反复触发；靠 state 置空来收敛即可。
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inspirationHandoff, navigate]);
-
     const setComposerRatio = (value: string) => {
         setRatio(value);
         if (mode === "image") rememberImageSettings({ ratio: value });
@@ -1029,6 +1029,13 @@ export default function CreatePage() {
 
 
     const generationActive = activeConversation.messages.some((message) => message.role === "assistant" && message.status === "pending");
+    const startPrompt = (nextMode: CreationMode, nextPrompt: string) => {
+        setAgentMode(false);
+        selectMode(nextMode);
+        setPrompt(nextPrompt);
+        threadScrollRef.current?.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+        window.requestAnimationFrame(() => composerFocusRef.current?.focus({ preventScroll: true }));
+    };
 
     const composerProps = {
         mode,
@@ -1106,7 +1113,7 @@ export default function CreatePage() {
                 </div>
                 <CreationInspirationTunnel
                     mode={mode}
-                    onStartPrompt={(nextMode, prompt) => { selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
+                    onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
                 />
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className="creation-composer-stage is-home-mode" data-creation-mode={mode}>
