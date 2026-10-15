@@ -124,16 +124,19 @@ export function CreationRecentCanvases({ onRequireLogin }: { onRequireLogin: () 
                 ) : recentProjects.length ? (
                     recentProjects.map((project) => {
                         const time = canvasTimeLabel(project);
+                        // 卡面只留建立时间：格子宽度约 214px，再塞节点数会把时间挤成省略号；
+                        // 节点数放进 title，悬停仍能看到完整信息。
+                        const title = `${project.title || "未命名画布"} · ${project.nodeCount} 个节点 · 创建于 ${time.label}`;
                         return (
                             <div className="creation-canvas-strip-item" role="listitem" key={project.id}>
-                                <Link to={`/canvas/${project.id}`} className="creation-canvas-tile" onPointerEnter={preload} onFocus={preload} title={project.title}>
+                                <Link to={`/canvas/${project.id}`} className="creation-canvas-tile" onPointerEnter={preload} onFocus={preload} title={title}>
                                     <span className="creation-canvas-thumbnail" aria-hidden="true">
                                         <ProjectPreview project={{ id: project.id, nodes: project.previewNodes }} preferLatestImage />
                                     </span>
                                     <span className="creation-canvas-copy">
                                         <strong>{project.title || "未命名画布"}</strong>
                                         <small>
-                                            {project.nodeCount} 个节点 · 创建于 <time dateTime={time.dateTime}>{time.label}</time>
+                                            创建于 <time dateTime={time.dateTime}>{time.label}</time>
                                         </small>
                                     </span>
                                 </Link>
