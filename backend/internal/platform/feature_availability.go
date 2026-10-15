@@ -52,6 +52,7 @@ type PublicFeatureAvailability struct {
 
 func DefaultFeatureAvailability() FeatureAvailability {
 	// 缺少配置代表尚未由运维接管；前台模型需要明确配置后才开放。
+	// 首页素材来源署名默认不展示，署名义务仍由灵感库条目的来源标识承担，需要时由管理员开启。
 	return FeatureAvailability{
 		WelcomeEnabled:               true,
 		ShortDramaEnabled:            true,
@@ -61,7 +62,7 @@ func DefaultFeatureAvailability() FeatureAvailability {
 		FrontendModelsEnabled:        false,
 		PluginCenterEnabled:          true,
 		SystemPluginsVisibleToUsers:  true,
-		InspirationSourcesVisible:    true,
+		InspirationSourcesVisible:    false,
 		TimelineTranscriptionEnabled: true,
 		ImageWorkbenchEnabled:        false,
 		VideoWorkbenchEnabled:        false,

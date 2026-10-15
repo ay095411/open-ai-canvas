@@ -55,7 +55,7 @@ export const defaultFeatureAvailability: FeatureAvailability = {
     frontendModelsEnabled: false,
     pluginCenterEnabled: true,
     systemPluginsVisibleToUsers: true,
-    inspirationSourcesVisible: true,
+    inspirationSourcesVisible: false,
     imageWorkbenchEnabled: false,
     videoWorkbenchEnabled: false,
 };
