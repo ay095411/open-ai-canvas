@@ -17,7 +17,7 @@ import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { WorkspaceAccountCard } from "./workspace-account-card";
 import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
-import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, InspirationNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon } from "./workspace-sidebar-icons";
+import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon } from "./workspace-sidebar-icons";
 
 export type WorkspaceNavItem = {
     id: string;
@@ -37,7 +37,6 @@ type WorkspaceNavGroup = {
 
 const sidebarIcons: Partial<Record<NavigationToolSlug, WorkspaceNavItem["icon"]>> = {
     create: CreateNavIcon,
-    inspirations: InspirationNavIcon,
     projects: ProjectNavIcon,
     canvas: CanvasNavIcon,
     assets: AssetsNavIcon,
