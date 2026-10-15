@@ -1030,7 +1030,6 @@ export default function CreatePage() {
 
     const generationActive = activeConversation.messages.some((message) => message.role === "assistant" && message.status === "pending");
     const startPrompt = (nextMode: CreationMode, nextPrompt: string) => {
-        setAgentMode(false);
         selectMode(nextMode);
         setPrompt(nextPrompt);
         threadScrollRef.current?.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
@@ -1113,7 +1112,7 @@ export default function CreatePage() {
                 </div>
                 <CreationInspirationTunnel
                     mode={mode}
-                    onStartPrompt={(nextMode, prompt) => { setAgentMode(false); selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
+                    onStartPrompt={(nextMode, prompt) => { selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
                 />
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className="creation-composer-stage is-home-mode" data-creation-mode={mode}>
