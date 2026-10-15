@@ -1145,7 +1145,8 @@ export default function CreatePage() {
                         navigate("/canvas?agent=1");
                     }}
                 />
-                <CreationRecentCanvases onRequireLogin={() => setLoginDialogOpen(true)} />
+                {/* 未登录时与首页其它入口一致走跳转登录页，不再弹登录弹窗。 */}
+                <CreationRecentCanvases onRequireLogin={openLogin} />
                 {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，
                     所以这条跟着首页走：画廊换成纵深轮播后它一度掉了，这里补回来。 */}
                 {inspirationSourcesVisible ? <div className="creation-inspiration-credit">
