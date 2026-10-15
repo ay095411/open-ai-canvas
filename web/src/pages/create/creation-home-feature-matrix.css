@@ -51,11 +51,21 @@
 
 .creation-feature-lead-media {
     z-index: -2;
-    background-image: url("/short-drama-styles/black-white-noir.jpg");
-    background-size: cover;
-    background-position: 56% 50%;
+    /* 动态底片：近黑底 + 压暗的循环雾气视频（原来的静态黑色电影风格照换成动的）。
+       poster 同时兜底视频未就绪 / 降低动态效果时的静态画面，与视频同色调所以不跳。 */
+    background: #0b0d10 url("/create/hero-ambient-poster.jpg") center / cover no-repeat;
     transform: scale(1.01);
     transition: transform 420ms ease;
+}
+
+.creation-feature-lead-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* 素材本身是暖白雾景：压暗 + 降饱和后当底纹用，卡片整体仍是深色，白字与按钮才立得住。
+       亮度别压太狠——低于 0.5 时雾几乎看不见，动效就等于白做；左侧文字由 scrim 单独兜底。 */
+    filter: brightness(0.62) saturate(0.72) contrast(1.04);
 }
 
 .creation-feature-lead:hover .creation-feature-lead-media {
@@ -69,13 +79,15 @@
         linear-gradient(0deg, rgba(9, 10, 13, 0.8), transparent 72%);
 }
 
+/* 文案 + 按钮作为一个整体垂直居中：原先贴底（flex-end），卡片底部有底纹可依，
+   但内容整体偏下、离顶部太远；卡片本身只有 196px 高，居中后上下留白才均衡。 */
 .creation-feature-lead-content {
     position: relative;
     display: flex;
     flex: 1;
     flex-direction: column;
     align-items: flex-start;
-    justify-content: flex-end;
+    justify-content: center;
     min-width: 0;
     gap: 14px;
     padding: clamp(18px, 1.8vw, 24px);
