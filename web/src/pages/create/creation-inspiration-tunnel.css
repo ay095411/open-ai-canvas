@@ -48,6 +48,13 @@
    两侧卡探出主卡后仍完整落在工作区可视宽度内，圆角与卡面不被边界裁切。 */
 .creation-inspiration-tunnel {
     --gallery-card-width: clamp(320px, calc((100vw - 282px) * 0.38), 760px);
+    /* 卡片高度只在这里定义一次，舞台高度和箭头定位都引用它。
+       比例原本在三处各写了一遍，改高度时漏掉箭头那处就会不居中。
+       基准 2.4:1 并封顶 280px：图片已改为 cover 裁剪填充，不再需要为留白预留高度。
+       想再矮只改这一处——把 / 2.4 换大，或调小 280px 封顶。 */
+    --gallery-card-height: min(calc(var(--gallery-card-width) / 2.4), 280px);
+    /* 上下各留 22px 给侧卡探出的圆角，主卡本身按 translate(-50%, -50%) 居中。 */
+    --gallery-stage-height: calc(var(--gallery-card-height) + 44px);
     /* 5 张卡排布：层距 0.58 倍卡宽，主卡居中突出，左右各 2 张错落排布，层次分明。 */
     --gallery-step: calc(var(--gallery-card-width) * 0.58);
     position: relative;
@@ -60,7 +67,8 @@
 
 .creation-gallery-stage {
     position: relative;
-    height: calc(var(--gallery-card-width) * 5 / 16 + 44px);
+    /* 高度由 --gallery-stage-height 统一给出，与卡片高度同源。 */
+    height: var(--gallery-stage-height);
     /* 触屏上横向拖拽归画廊、纵向滑动仍滚页面。 */
     touch-action: pan-y;
     cursor: grab;
@@ -71,7 +79,9 @@
     top: 50%;
     left: 50%;
     width: var(--gallery-card-width);
-    aspect-ratio: 16 / 5;
+    /* 封面池的实际比例分布：1:1 约占 1/3，16:9 约 1/5，竖版（0.43~0.89）约 1/3。
+       高度由 --gallery-card-height 统一给出；画面怎么填满卡框见下方 img 规则。 */
+    height: var(--gallery-card-height);
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -157,6 +167,9 @@
     display: block;
     width: 100%;
     height: 100%;
+    /* 裁剪填充（用户 2026-10-15 明确要求）：不留白，画面填满整个卡框。
+       代价是竖版（池里约 33%）与方图会被裁掉两侧/上下，卡框越宽裁得越多。
+       若想回到「完整显示、留白当裱框」，把这里换回 contain 即可。 */
     object-fit: cover;
 }
 
@@ -217,7 +230,9 @@
 /* ── 左右切换按钮：半透明深色圆钮，贴横幅两侧垂直居中，常驻可见 ── */
 .creation-gallery-arrow {
     position: absolute;
-    top: calc((var(--gallery-card-width) * 5 / 16 + 44px) / 2);
+    /* 箭头是舞台的兄弟节点，所以相对整个 tunnel 定位；直接引用舞台高度变量对半，
+       不要在这里再按卡宽算一遍比例——那正是上次改高度后箭头掉出中心的成因。 */
+    top: calc(var(--gallery-stage-height) / 2);
     z-index: 180;
     display: grid;
     place-items: center;
