@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"yingce/backend/internal/model"
 )
@@ -41,6 +42,41 @@ func TestUserCanvasLibraryPageIsBoundedAndScoped(t *testing.T) {
 	filtered, err := service.UserCanvasProjectsPage("owner", 1, 40, "", "Title 04", "name")
 	if err != nil || filtered.Total != 1 || filtered.Projects[0].NodeCount != 1 {
 		t.Fatalf("filter: %+v %v", filtered, err)
+	}
+}
+
+// 「最近创建」区块走 sort=created：口径必须只看建立时间，不能被最后编辑时间影响。
+func TestUserCanvasLibraryPageSortsByCreationTime(t *testing.T) {
+	service, db := newProjectWorkbenchReadTestService(t)
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	for index := 0; index < 3; index++ {
+		id := fmt.Sprintf("canvas-%d", index)
+		project := model.CanvasProject{ID: id, UserID: "owner", Title: fmt.Sprintf("Title %d", index), PayloadJSON: `{"nodes":[]}`}
+		if err := db.Create(&project).Error; err != nil {
+			t.Fatal(err)
+		}
+		// 建立顺序与最后编辑顺序刻意相反：先建的反而最后被编辑，两种口径才区分得开。
+		stamps := map[string]any{
+			"created_at": base.Add(time.Duration(index) * time.Hour),
+			"updated_at": base.Add(time.Duration(2-index) * time.Hour),
+		}
+		if err := db.Model(&model.CanvasProject{}).Where("id = ?", id).UpdateColumns(stamps).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	created, err := service.UserCanvasProjectsPage("owner", 1, 10, "", "", "created")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(created.Projects) != 3 || created.Projects[0].ID != "canvas-2" || created.Projects[2].ID != "canvas-0" {
+		t.Fatalf("created sort must follow creation time: %+v", created.Projects)
+	}
+	updated, err := service.UserCanvasProjectsPage("owner", 1, 10, "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Projects) != 3 || updated.Projects[0].ID != "canvas-0" {
+		t.Fatalf("default sort must follow last edit: %+v", updated.Projects)
 	}
 }
 

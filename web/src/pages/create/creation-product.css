@@ -104,7 +104,7 @@
 .creation-history-entry { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--space-2); min-height: var(--user-control-height); border: 0; border-radius: var(--user-radius-control); padding: var(--space-2) var(--space-3); background: var(--user-surface-muted); color: var(--user-ink-muted); font-size: var(--fs-caption); cursor: pointer; }
 .creation-history-entry:hover { background: var(--user-surface-hover); color: var(--user-ink); }
 .creation-history-entry svg { width: var(--user-icon-size); height: var(--user-icon-size); }
-.creation-recent-canvases { margin-top: var(--space-6); }
+.creation-recent-canvases { width: 100%; margin-top: var(--space-6); }
 .creation-section-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .creation-section-heading h2 { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--user-ink); font-size: var(--fs-body); font-weight: 600; }
 .creation-section-heading h2 svg { width: var(--user-icon-size); height: var(--user-icon-size); color: var(--user-ink-muted); }

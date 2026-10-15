@@ -37,6 +37,7 @@ import { attachCreationTaskContexts, completedCreationGenerationTask, conversati
 import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
 import { CreationInspirationTunnel } from "./creation-inspiration-tunnel";
 import { CreationHomeFeatureMatrix } from "./creation-home-feature-matrix";
+import { CreationRecentCanvases } from "./creation-recent-canvases";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialog } from "./creation-login-dialog";
@@ -1144,6 +1145,7 @@ export default function CreatePage() {
                         navigate("/canvas?agent=1");
                     }}
                 />
+                <CreationRecentCanvases onRequireLogin={() => setLoginDialogOpen(true)} />
                 {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，
                     所以这条跟着首页走：画廊换成纵深轮播后它一度掉了，这里补回来。 */}
                 {inspirationSourcesVisible ? <div className="creation-inspiration-credit">

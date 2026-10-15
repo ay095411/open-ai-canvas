@@ -191,6 +191,9 @@ func (r *Repository) UserCanvasProjectsPage(userID string, page int, pageSize in
 		if r.db.Dialector.Name() == "postgres" {
 			order = "COALESCE(jsonb_array_length(payload_json::jsonb->'nodes'), 0) desc, id asc"
 		}
+	} else if sort == "created" {
+		// 首页「最近创建」区块用：按建立时间而不是最后编辑时间排，刚建的空画布也能立刻出现。
+		order = "created_at desc, id asc"
 	}
 	err := query.Order(order).Offset((page - 1) * pageSize).Limit(pageSize).Find(&projects).Error
 	return projects, total, err
