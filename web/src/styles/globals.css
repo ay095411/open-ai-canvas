@@ -12576,6 +12576,10 @@ html:not(.dark) .creation-history-drawer-root {
 }
 .workspace-modal.workspace-modal-compact { width: min(var(--modal-width-compact), calc(100vw - var(--space-6))) !important; }
 .workspace-modal.workspace-modal-wide { width: min(var(--modal-width-wide), calc(100vw - var(--space-6))) !important; }
+/* 协议阅读弹窗按视口 50% 取宽：条款是长列表，640px 的默认列宽要频繁换行。
+   下限压到 standard（640px）而不是直接 50vw，否则 1280px 以下的桌面反而比默认弹窗还窄；
+   更窄的窗口由 max 的下限接管，最终退回「视口宽 - 边距」。 */
+.workspace-modal.auth-agreement-modal { width: min(calc(100vw - var(--space-6)), max(50vw, var(--modal-width-standard))) !important; }
 :is(.workspace-modal, .library-modal) .ant-modal-container {
     overflow: hidden;
     border: 0 !important;
