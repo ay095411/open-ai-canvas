@@ -1,15 +1,49 @@
 @layer utilities {
     /* Editor workbench scrolling and range controls belong to the editor plugin, not the app shell.
-       注意导演台是**反色**材质：--director-dock-surface 在浅色主题下是深色面板，
+       注意导演台是**反色**材质：--previs-dock-surface 在浅色主题下是深色面板，
        在深色主题下反而是白面板（见 globals.css 的 :root / .dark .editor-workbench 两处定义）。
        所以滑块不能写死白色 —— 深色主题下白面板 + 白滑块等于隐形，与侧栏滚动条踩的是同一个坑。
-       改由面板自身前景色 --director-dock-fg-strong 派生：两个主题下都自动取到对比色。
-       同文件的 .editor-slider 滑块本来就用的这个来源，此处对齐即可。 */
+       改由面板自身前景色 --previs-dock-fg-strong 派生：两个主题下都自动取到对比色。
+       同文件的 .editor-slider 滑块本来就用的这个来源，此处对齐即可。
+       派生值直接写在消费属性上，不再引入插件内的自定义变量：主题变量只在 globals.css 定义，
+       插件另立变量会让主题检查（editor-theme-tokens）判为游离 token。 */
+    .editor-clip-label {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        height: 18px;
+        padding: 0 var(--space-2);
+        font-size: var(--fs-tiny);
+        line-height: 18px;
+        pointer-events: none;
+        background: var(--previs-sequencer-surface-raised);
+        color: var(--previs-dock-fg-strong);
+    }
+    .editor-filmstrip {
+        position: absolute;
+        inset: 18px 0 0;
+        overflow: hidden;
+        pointer-events: none;
+        background: var(--previs-control-hover);
+    }
+    .editor-filmstrip-tile {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        display: grid;
+        place-items: center;
+    }
+    .editor-filmstrip-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
     .director-scroll {
-        --director-scroll-thumb: color-mix(in srgb, var(--director-dock-fg-strong) 22%, transparent);
-        --director-scroll-thumb-hover: color-mix(in srgb, var(--director-dock-fg-strong) 36%, transparent);
         scrollbar-width: thin;
-        scrollbar-color: var(--director-scroll-thumb) transparent;
+        scrollbar-color: color-mix(in srgb, var(--previs-dock-fg-strong) 22%, transparent) transparent;
     }
     .director-scroll::-webkit-scrollbar {
         width: 8px;
@@ -19,13 +53,13 @@
         background: transparent;
     }
     .director-scroll::-webkit-scrollbar-thumb {
-        background: var(--director-scroll-thumb);
+        background: color-mix(in srgb, var(--previs-dock-fg-strong) 22%, transparent);
         border-radius: 9999px;
         border: 2px solid transparent;
         background-clip: padding-box;
     }
     .director-scroll::-webkit-scrollbar-thumb:hover {
-        background: var(--director-scroll-thumb-hover);
+        background: color-mix(in srgb, var(--previs-dock-fg-strong) 36%, transparent);
         background-clip: padding-box;
         border: 2px solid transparent;
     }
@@ -45,7 +79,7 @@
     .editor-slider::-webkit-slider-runnable-track {
         height: 4px;
         border-radius: 2px;
-        background: var(--director-sequencer-border);
+        background: var(--previs-sequencer-border);
         box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.3);
     }
     .editor-slider::-webkit-slider-thumb {
@@ -55,8 +89,8 @@
         height: 14px;
         width: 14px;
         border-radius: 9999px;
-        background: var(--director-dock-fg-strong);
-        border: 2px solid var(--director-sequencer-surface);
+        background: var(--previs-dock-fg-strong);
+        border: 2px solid var(--previs-sequencer-surface);
         box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
         transition: transform 0.12s ease;
     }
@@ -66,15 +100,15 @@
     .editor-slider::-moz-range-track {
         height: 4px;
         border-radius: 2px;
-        background: var(--director-sequencer-border);
+        background: var(--previs-sequencer-border);
         box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.3);
     }
     .editor-slider::-moz-range-thumb {
         height: 14px;
         width: 14px;
         border-radius: 9999px;
-        background: var(--director-dock-fg-strong);
-        border: 2px solid var(--director-sequencer-surface);
+        background: var(--previs-dock-fg-strong);
+        border: 2px solid var(--previs-sequencer-surface);
         box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
     }
 }
