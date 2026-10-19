@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
-FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS payment-package-build
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS payment-package-build
 
 ARG GOPROXY=https://proxy.golang.org,direct
 ENV GOPROXY=$GOPROXY
+ENV GOTOOLCHAIN=auto
 
 RUN apk add --no-cache nodejs unzip zip
 
@@ -31,10 +32,11 @@ COPY --from=payment-package-build /src/plugin-packages /app/plugin-packages
 RUN PAYMENT_PLUGIN_SMOKE_TEST=1 \
     sh /app/plugin-packages/verify-payment-packages.sh "$TARGETOS" "$TARGETARCH"
 
-FROM golang:1.23-alpine AS backend-build
+FROM golang:1.25-alpine AS backend-build
 
 ARG GOPROXY=https://proxy.golang.org,direct
 ENV GOPROXY=$GOPROXY
+ENV GOTOOLCHAIN=auto
 
 RUN apk add --no-cache build-base
 
