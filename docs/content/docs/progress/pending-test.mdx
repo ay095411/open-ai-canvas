@@ -5,6 +5,13 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 前后端端口避开常用端口
+
+- 已调整：宿主机侧前端端口 `3100` → `28600`，后端默认监听 `8180` → `28601`。涉及 `web` 的 `dev` / `start` 脚本、Vite 代理默认目标、后端 `CANVAS_BACKEND_ADDR` 默认值、Host Updater 健康检查地址、Compose 宿主机端口映射、安装脚本 `CANVAS_HTTP_PORT` 默认值、本地启动脚本，以及 README、`.env.example` 与本地开发文档。
+- 容器内部端口保持 `3100` / `8180`：官方 Release 的 web 镜像把 `/api` 固定代理到 `backend:8180`，改容器内端口会让官方镜像与本仓库编排不匹配。因此只改宿主机映射（web `28600:3100`，开发编排后端 `28601:8180`）与宿主机直跑进程的端口。
+- 已验证：`cd backend && go build ./...`、`go vet ./internal/hostupdate ./cmd/server`、`cd web && bun run typecheck` 通过；未启动开发服务器或容器做端到端验收。
+- [ ] 浏览器验收：`bun run dev` 后访问 `http://localhost:28600`，确认登录、画布与 `/api` 代理正常；Docker 侧确认 `28600` 可访问且后端未直接暴露。
+
 ## 创作输入框底部重复「参考内容」按钮移除
 
 - 已调整：在 `web/src/pages/create/creation-workspace.tsx` 中彻底移除了输入框底部工具栏（`creation-chat-dock` / `creation-chat-controls`）中由历史合并引入的重复「+ 参考内容」按钮，保留输入编辑区内部原生的参考内容槽位。

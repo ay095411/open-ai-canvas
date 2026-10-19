@@ -606,9 +606,9 @@ func (m *Manager) healthURL() string {
 	}
 	values, err := readEnvFile(m.envPath())
 	if err != nil {
-		return "http://127.0.0.1:3100/api/health/ready"
+		return "http://127.0.0.1:28600/api/health/ready"
 	}
-	return "http://127.0.0.1:" + firstNonEmpty(values["CANVAS_HTTP_PORT"], "3100") + "/api/health/ready"
+	return "http://127.0.0.1:" + firstNonEmpty(values["CANVAS_HTTP_PORT"], "28600") + "/api/health/ready"
 }
 
 func (m *Manager) checkHealthOnce(healthURL, targetVersion string) error {
