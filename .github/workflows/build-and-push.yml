@@ -15,7 +15,7 @@ on:
 env:
   DOCKER_REGISTRY: docker.io
   IMAGE_PREFIX: ay095411
-  GOPROXY: https://goproxy.cn,direct
+  GOPROXY: https://proxy.golang.org,direct
 
 jobs:
   build-and-push:
