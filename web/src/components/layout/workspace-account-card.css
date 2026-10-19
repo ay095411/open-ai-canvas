@@ -37,9 +37,9 @@
     .workspace-account-card-actions > .workspace-account-card-entry:active { transform: none; }
 }
 
-/* 积分礼盒：弹窗走 portal，不在 .app-user-workspace 作用域内，因此这里自带尺寸与投影。 */
-.workspace-account-card .app-workspace-credit-gift { width: 18px; height: 18px; flex: none; filter: drop-shadow(0 1px 1px rgba(92, 42, 0, .22)); }
-.workspace-account-card .app-workspace-credit-gift svg { width: 18px; height: 18px; overflow: visible; }
+/* 积分金币：弹窗走 portal，不在 .app-user-workspace 作用域内，因此这里自带尺寸与投影。 */
+.workspace-account-card .app-workspace-credit-mark { width: 18px; height: 18px; flex: none; line-height: 0; filter: drop-shadow(0 0.5px 1.5px rgba(122, 58, 0, .2)); }
+.workspace-account-card .app-workspace-credit-mark svg { display: block; width: 18px; height: 18px; overflow: visible; }
 /* 主题偏好与更新日志：与账户操作同一套行高与圆角。 */
 .workspace-account-card-preferences { display: grid; gap: 2px; padding: 0 2px 10px; }
 .workspace-account-card-theme,

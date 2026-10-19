@@ -2250,8 +2250,8 @@
         background: var(--dock-command-hover) !important;
     }
 
-    .canvas-topbar-action:hover:not(:disabled) .app-workspace-credit-gift {
-        transform: translateY(-1px) rotate(-8deg);
+    .canvas-topbar-action:hover:not(:disabled) .app-workspace-credit-mark {
+        transform: translateY(-1px) scale(1.05);
     }
 
     .canvas-topbar-project-cluster {
@@ -15514,32 +15514,37 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     z-index: 80;
 }
 
-.app-user-workspace .app-workspace-credit-gift {
+/* 可用积分的产品标记（金币）：只负责尺寸与居中，形状由组件内的 SVG 决定。
+   图标在 32×32 视口内上下对称，因此容器只要保证自身在行内居中即可，
+   不要再用 translate/rotate 补偿视觉重心。 */
+.app-user-workspace .app-workspace-credit-mark {
     display: grid;
     width: 24px;
     height: 24px;
     flex: none;
     place-items: center;
-    filter: drop-shadow(0 1px 1px rgba(92, 42, 0, .22));
-    transform-origin: 50% 70%;
+    line-height: 0;
+    filter: drop-shadow(0 0.5px 1.5px rgba(122, 58, 0, .2));
+    transform-origin: 50% 50%;
     transition: transform .18s ease;
 }
 
-.app-user-workspace .app-workspace-credit-gift svg {
+.app-user-workspace .app-workspace-credit-mark svg {
+    display: block;
     width: 24px;
     height: 24px;
     overflow: visible;
     color: unset;
 }
 
-.app-user-workspace .app-workspace-credit-gift.is-compact,
-.app-user-workspace .app-workspace-credit-gift.is-compact svg {
+.app-user-workspace .app-workspace-credit-mark.is-compact,
+.app-user-workspace .app-workspace-credit-mark.is-compact svg {
     width: 18px;
     height: 18px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .app-user-workspace .app-workspace-credit-gift {
+    .app-user-workspace .app-workspace-credit-mark {
         transform: none;
         transition: none;
     }
@@ -15584,8 +15589,8 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
 }
 
 /* 比 is-compact(18px) 再大一档，撑住 36px 胶囊的行高重心。 */
-.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-gift,
-.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-gift svg {
+.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-mark,
+.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-mark svg {
     width: 20px;
     height: 20px;
 }

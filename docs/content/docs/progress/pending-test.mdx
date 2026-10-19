@@ -5,6 +5,15 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 可用积分标记由礼盒改为金币
+
+- 已调整：`WorkspaceCreditGiftMark`（渐变礼盒）换成 `WorkspaceCreditMark`（金币），文件与样式类一并改名为 `workspace-credit-mark.tsx` / `.app-workspace-credit-mark`；顶栏胶囊、侧栏账户弹窗、画布顶栏三处共用同一枚标记。
+- 已调整（垂直居中）：金币在 32×32 视口里以 `(16,16)` 为圆心绘制，容器改为 `grid + place-items:center + line-height:0`，不再用 `transform-origin: 50% 70%` 或 `rotate(-8deg)` 补偿视觉重心；悬停改为轻微 `scale(1.05)`。
+- 已验证（几何）：登录态实测顶栏胶囊 `pill / mark / 文字` 三者纵向中心同为 `68px`（差值 0）；账户弹窗内 `is-compact` 18px 金币与「可用积分」文字中心差值同为 0。
+- 已验证（浏览器）：浅色与深色主题下顶栏胶囊、账户弹窗截图确认金币与数字视觉对齐；`bun run typecheck` 通过；`bun test ./test/workspace-credit-mark.test.ts` 2 项通过；全量 `bun test` 为 39 项失败，与改动前的既有失败集合一致（新增用例通过，无新增失败）。
+- [ ] 待确认：画布顶栏（`canvas-project-top-bar`）的 18px 金币只用同一套样式规则，未在真实画布页面截图核对。
+- [ ] 待确认：若后续想要宝石、纯文字等其它形态，只需替换 `workspace-credit-mark.tsx` 内的 SVG，尺寸与居中样式无需再改。
+
 ## 前后端端口避开常用端口
 
 - 已调整：宿主机侧前端端口 `3100` → `28600`，后端默认监听 `8180` → `28601`。涉及 `web` 的 `dev` / `start` 脚本、Vite 代理默认目标、后端 `CANVAS_BACKEND_ADDR` 默认值、Host Updater 健康检查地址、Compose 宿主机端口映射、安装脚本 `CANVAS_HTTP_PORT` 默认值、本地启动脚本，以及 README、`.env.example` 与本地开发文档。
