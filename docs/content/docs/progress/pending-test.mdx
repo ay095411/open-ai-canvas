@@ -9,8 +9,9 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 - 已调整：宿主机侧前端端口 `3100` → `28600`，后端默认监听 `8180` → `28601`。涉及 `web` 的 `dev` / `start` 脚本、Vite 代理默认目标、后端 `CANVAS_BACKEND_ADDR` 默认值、Host Updater 健康检查地址、Compose 宿主机端口映射、安装脚本 `CANVAS_HTTP_PORT` 默认值、本地启动脚本，以及 README、`.env.example` 与本地开发文档。
 - 容器内部端口保持 `3100` / `8180`：官方 Release 的 web 镜像把 `/api` 固定代理到 `backend:8180`，改容器内端口会让官方镜像与本仓库编排不匹配。因此只改宿主机映射（web `28600:3100`，开发编排后端 `28601:8180`）与宿主机直跑进程的端口。
-- 已验证：`cd backend && go build ./...`、`go vet ./internal/hostupdate ./cmd/server`、`cd web && bun run typecheck` 通过；未启动开发服务器或容器做端到端验收。
-- [ ] 浏览器验收：`bun run dev` 后访问 `http://localhost:28600`，确认登录、画布与 `/api` 代理正常；Docker 侧确认 `28600` 可访问且后端未直接暴露。
+- 已验证：`cd backend && go build ./...`、`go vet ./internal/hostupdate ./cmd/server`、`cd web && bun run typecheck` 通过。
+- [x] 浏览器验收：本机同时启动后端（`127.0.0.1:28601`，schema 57 ready）与 `bun run dev`（`0.0.0.0:28600`），用无头 Chrome 打开 `http://localhost:28600/`：首页完整渲染（侧栏、灵感轮播、输入框、能力卡），页面内 `fetch("/api/health")` 返回 `ready: true`，无 console 报错与失败请求；后端只监听 `127.0.0.1`，未对局域网暴露。
+- [ ] Docker 侧验收：`docker compose -f docker-compose.local.yml up` 后确认宿主机 `28600` 可访问、后端未直接暴露（本机未安装 Docker CLI，未执行）。
 
 ## 创作输入框底部重复「参考内容」按钮移除
 
