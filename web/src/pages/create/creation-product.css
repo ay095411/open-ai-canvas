@@ -95,6 +95,9 @@
     cursor: pointer;
     transition: color var(--user-motion), transform var(--user-motion);
 }
+/* 首页根容器：确保浅色/暗色模式背景正确 */
+.creation-home { background: var(--user-page-bg); color: var(--user-ink); }
+
 .creation-home-scroll { display: block; width: 100%; min-height: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain; padding: var(--space-6) var(--space-8) var(--space-12); }
 .creation-home-scroll > * { width: 100%; max-width: 1280px; margin-inline: auto; }
 .creation-home-scroll > .creation-launchpad { width: min(960px, 100%); margin-inline: auto; }

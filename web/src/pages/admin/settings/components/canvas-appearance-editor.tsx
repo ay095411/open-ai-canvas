@@ -3,7 +3,7 @@ import { Alert, App, Button, Form, Input, InputNumber, Radio } from "antd";
 import { ExternalLink, Upload } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { Live2DAvatar } from "@/components/canvas/live2d-avatar";
-import { FluidOrb } from "@/components/ui/fluid-orb";
+import { AgentAvatarMark } from "@/components/canvas/agent-avatar-mark";
 import { agentCopy, type CanvasAppearance } from "@/lib/canvas/agent-appearance";
 import { live2DModelURL, uploadLive2D } from "@/services/api/appearance";
 
@@ -127,7 +127,7 @@ export function CanvasAppearanceEditor({ value, onChange, disabled, onUploading 
                             width={Math.round(value.avatarHeight * 0.75)}
                             height={value.avatarHeight}
                             reducedMotion={reducedMotion}
-                            fallback={<FluidOrb size={60} color="#7164f6" />}
+                            fallback={<AgentAvatarMark size={60} />}
                             onReady={() => {
                                 setReadyURL(url);
                                 setError("");
@@ -138,7 +138,7 @@ export function CanvasAppearanceEditor({ value, onChange, disabled, onUploading 
                             }}
                         />
                     ) : (
-                        <FluidOrb size={60} color="#7164f6" />
+                        <AgentAvatarMark size={60} />
                     )}
                     <strong>{agentCopy(value.welcomeTitle, value.agentName)}</strong>
                     <p className="text-sm text-foreground/60">{agentCopy(value.welcomeDescription, value.agentName)}</p>

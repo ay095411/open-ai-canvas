@@ -15456,8 +15456,10 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     justify-content: flex-end;
     gap: 12px;
     padding: 0 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, .055);
-    background: transparent;
+    border-bottom: 1px solid var(--user-border);
+    background: color-mix(in srgb, var(--user-surface) 75%, transparent);
+    backdrop-filter: blur(24px) saturate(1.2);
+    color: var(--user-ink);
 }
 
 .app-user-workspace .app-workspace-topbar-announcement {
@@ -15742,13 +15744,16 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     transform: none;
 }
 
+/* 折叠态是纯图标按钮：用 flex 居中，避免 inline-block + 基线把金币压到底部。 */
 .app-user-workspace .app-workspace-sidebar-checkin.is-collapsed {
+    display: inline-flex;
     width: 48px;
     height: 48px;
+    align-items: center;
     justify-content: center;
     padding: 0;
     border-radius: 12px;
-    font-size: 13px;
+    box-shadow: none;
 }
 
 .dark .app-user-workspace .app-workspace-sidebar-checkin {
@@ -15765,6 +15770,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .dark .app-user-workspace .app-workspace-sidebar-checkin.is-collapsed {
     background: #171717;
     color: #fff;
+    box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -17375,12 +17381,6 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     color: #6b6b73;
 }
 
-.app-user-workspace.settings-page .settings-nav-item.is-active {
-    background: #ecebff;
-    color: #5148c2;
-    font-weight: 650;
-}
-
 .app-user-workspace.settings-page .settings-content {
     background: var(--user-surface);
 }
@@ -18258,28 +18258,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .settings-modal-shell .settings-preference-heading h3,
 .settings-modal-shell .settings-preference-heading p { color: var(--user-ink-muted); }
 
-/* 激活分区的颜色：设置页一直是紫的（#ecebff 底 / #5148c2 字），但那组字面值
-   在深色主题下不反色——浅紫底配深紫字，在深色面板上几乎看不出是选中项。
-   这里把紫色收成一对语义 token，亮色沿用原色值、深色换成「深紫底 + 浅紫字」，
-   弹窗和页面共用同一组。不要改成 --user-accent：那是项目的无彩主色（黑/白），
-   换过去等于把设置导航的高亮从紫变成灰。 */
-.app-user-workspace.settings-page,
-.settings-modal-shell {
-    --settings-accent: #5148c2;
-    --settings-accent-soft: #ecebff;
-}
-
-.dark .app-user-workspace.settings-page,
-.dark .settings-modal-shell {
-    --settings-accent: #a9a2f5;
-    --settings-accent-soft: rgba(121, 110, 232, .26);
-}
-
-/* 本条位于原有规则之后，同特异性下后来者生效。 */
+/* 激活分区只用默认的中性选中态：底色取工作台的软选中色、文字回到正文色。
+   设置导航不是主操作，不借用主题强调色；深色主题沿用同一组 --user-* token 自动反色。 */
 .app-user-workspace.settings-page .settings-nav-item.is-active,
 .settings-modal-shell .settings-nav-item.is-active {
-    background: var(--settings-accent-soft);
-    color: var(--settings-accent);
+    background: var(--user-accent-soft);
+    color: var(--user-ink);
     font-weight: 650;
 }
 

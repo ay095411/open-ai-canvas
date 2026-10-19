@@ -1,6 +1,8 @@
 import { App } from "antd";
 import { useState } from "react";
+import { LoaderCircle } from "lucide-react";
 
+import { WorkspaceCreditMark } from "@/components/layout/workspace-credit-mark";
 import { formatCredits } from "@/constant/credits";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { sidebarCheckinTitle, shouldShowSidebarCheckin } from "@/lib/sidebar-checkin";
@@ -50,8 +52,8 @@ export function WorkspaceSidebarCheckin({ collapsed }: { collapsed: boolean }) {
 
     if (collapsed) {
         return (
-            <button type="button" className="app-workspace-sidebar-checkin is-collapsed" title={summary} aria-label={`立即领取今日 ${amount} 积分`} disabled={claiming} onClick={() => void claim()}>
-                {claiming ? "…" : "领"}
+            <button type="button" className="app-workspace-sidebar-checkin is-collapsed" title={summary} aria-label={`立即领取今日 ${amount} 积分`} aria-busy={claiming} disabled={claiming} onClick={() => void claim()}>
+                {claiming ? <LoaderCircle className="size-5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <WorkspaceCreditMark className="is-compact" />}
             </button>
         );
     }
@@ -61,7 +63,7 @@ export function WorkspaceSidebarCheckin({ collapsed }: { collapsed: boolean }) {
             <div className="app-workspace-sidebar-checkin-copy">
                 <strong className="app-workspace-sidebar-checkin-title">{title}</strong>
                 <span className="app-workspace-sidebar-checkin-offer">
-                    今日可领<em>{amount}</em>积分
+                    今日<em>{amount}</em>积分
                 </span>
             </div>
             <button type="button" className={cn("app-workspace-sidebar-checkin-claim", claiming && "is-loading")} disabled={claiming} aria-label={`立即领取 ${amount} 积分`} onClick={() => void claim()}>

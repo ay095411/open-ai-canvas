@@ -40,7 +40,8 @@ import { CreationHomeFeatureMatrix } from "./creation-home-feature-matrix";
 import { CreationRecentCanvases } from "./creation-recent-canvases";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
-import { CreationLoginDialog } from "./creation-login-dialog";
+import { CreationLoginDialogPixTV as CreationLoginDialog } from "./creation-login-dialog-pixtv";
+import "./creation-login-dialog-pixtv.css";
 
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
 const InspirationHall = lazy(() => import("@/pages/inspirations"));

@@ -11,8 +11,8 @@ import { useAgentLauncherPosition } from "./use-agent-launcher-position";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Live2DAvatar } from "./live2d-avatar";
+import { AgentAvatarMark } from "./agent-avatar-mark";
 import { live2DModelURL } from "@/services/api/appearance";
-import { FluidOrb } from "@/components/ui/fluid-orb";
 import { ArrowLeft, Check, CircleDot, Clock3, Download, History, LoaderCircle, MessageSquarePlus, RotateCcw, Settings2, ShieldCheck, Sparkles, Trash2, X } from "lucide-react";
 import { Button, Dropdown, Input, Popover } from "antd";
 import type { AgentContextPhase, AgentContextUsageView } from "@/lib/canvas/agent-context-usage";
@@ -70,12 +70,12 @@ export function AgentLauncher({ theme, statusColor, approvalPending, reducedMoti
                     width={width}
                     height={height}
                     reducedMotion={reducedMotion}
-                    fallback={<FluidOrb size={60} color="#7164f6" />}
+                    fallback={<AgentAvatarMark size={54} />}
                     onReady={() => setLive2DError("")}
                     onError={setLive2DError}
                 />
             ) : appearanceResolved ? (
-                <FluidOrb size={60} color="#7164f6" />
+                <AgentAvatarMark size={54} />
             ) : (
                 <span role="status" aria-busy="true">
                     <LoaderCircle className={reducedMotion ? "size-6" : "size-6 motion-safe:animate-spin"} aria-hidden="true" />
