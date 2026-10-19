@@ -1,0 +1,127 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - ui-redesign      # 推送到 ui-redesign 分支时触发
+    paths-ignore:
+      - '**.md'          # 忽略文档变更
+      - 'docs/**'
+  pull_request:
+    branches:
+      - ui-redesign
+  workflow_dispatch:      # 允许手动触发
+
+env:
+  DOCKER_REGISTRY: docker.io
+  IMAGE_PREFIX: ay095411
+  GOPROXY: https://goproxy.cn,direct
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，用于版本号
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Extract metadata
+        id: meta
+        run: |
+          # 读取版本号
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_VERSION="${VERSION}-${COMMIT}"
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "commit=${COMMIT}" >> $GITHUB_OUTPUT
+          echo "build_version=${BUILD_VERSION}" >> $GITHUB_OUTPUT
+          echo "build_time=${BUILD_TIME}" >> $GITHUB_OUTPUT
+          
+          # 构建 Docker 标签
+          TAGS="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_PREFIX }}/open-ai-canvas"
+          if [ "${{ github.ref }}" = "refs/heads/ui-redesign" ]; then
+            echo "tags_backend=${TAGS}-backend:latest,${TAGS}-backend:${BUILD_VERSION}" >> $GITHUB_OUTPUT
+            echo "tags_web=${TAGS}-web:latest,${TAGS}-web:${BUILD_VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "tags_backend=${TAGS}-backend:${BUILD_VERSION}" >> $GITHUB_OUTPUT
+            echo "tags_web=${TAGS}-web:${BUILD_VERSION}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags_backend }}
+          build-args: |
+            BUILD_VERSION=${{ steps.meta.outputs.build_version }}
+            BUILD_COMMIT=${{ steps.meta.outputs.commit }}
+            BUILD_TIME=${{ steps.meta.outputs.build_time }}
+            GOPROXY=${{ env.GOPROXY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Build and push web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags_web }}
+          build-args: |
+            BUILD_VERSION=${{ steps.meta.outputs.build_version }}
+            BUILD_COMMIT=${{ steps.meta.outputs.commit }}
+            BUILD_TIME=${{ steps.meta.outputs.build_time }}
+            VITE_TLDRAW_LICENSE_KEY=${{ secrets.VITE_TLDRAW_LICENSE_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Create release summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🎉 镜像构建成功
+          
+          **版本信息:**
+          - 版本: \`${{ steps.meta.outputs.build_version }}\`
+          - 提交: \`${{ steps.meta.outputs.commit }}\`
+          - 时间: \`${{ steps.meta.outputs.build_time }}\`
+          
+          **后端镜像:**
+          \`\`\`
+          ${{ steps.meta.outputs.tags_backend }}
+          \`\`\`
+          
+          **前端镜像:**
+          \`\`\`
+          ${{ steps.meta.outputs.tags_web }}
+          \`\`\`
+          
+          **服务器更新命令:**
+          \`\`\`bash
+          cd /opt/canvas-prod
+          ./deploy.sh backup  # 先备份
+          ./deploy.sh update  # 更新服务
+          \`\`\`
+          EOF
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::镜像构建失败，请检查日志"
