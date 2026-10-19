@@ -5,6 +5,14 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## main 主分支代码同步（提交 48543609 合并）
+
+- 已完成：通过 `git fetch origin main` 与 `git merge origin/main` 成功将主分支最新提交（至 `48543609`，含百炼 MiniMax H3 视频协议插件、创建页与素材档案优化等）合入当前分支。
+- 零代码回退保证：
+  - 合并前建立安全备份分支 `backup/ui-redesign-sync-safety-20261019`；
+  - 严格解决冲突并 100% 保留本地全部前端最新成果（首页短剧 Agent 双入口、输入框模式下拉切换器、首页全屏 WebGPU 动态背景、新建画布黑白星尘光场、侧栏直角平铺等）。
+- [x] 开发服务器真实浏览器验证：在端口 3100 访问首页 `/create`，实机 DOM 探针检测确认全功能组件渲染完整，交互响应敏捷，无任何 Vite 编译与 React 运行时异常。
+
 ## 百炼 MiniMax H3 视频插件
 
 - 已实现：独立 `dashscope-minimax-video` 声明式插件、接口文档和 `.yingce-plugin` 分发包；使用业务空间 MAAS 地址、Bearer 和异步任务接口，不复用原生 MiniMax 或 Wan 协议。
