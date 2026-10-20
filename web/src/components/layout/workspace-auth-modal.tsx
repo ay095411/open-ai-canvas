@@ -7,7 +7,6 @@ import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
-import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -109,12 +108,12 @@ export function WorkspaceAuthHost() {
             mode: modeOfPathname(pathname),
             next: safeAuthNext(params.get("next")),
         });
-        // 回跳目标必须是游客也能停留的页面。若它本身要登录（例如 `/tasks` 被 RequireAuth
-        // 弹到 `/login`），这里再把 URL 换回去就会立刻被弹回 `/login`，与本次「换回来」
-        // 凑成来回跳转的死循环——实测页面会卡住、持续闪烁。此时落回首页。
-        const target = returnToRef.current;
-        navigate(user || isGuestWorkspacePath(target) ? target : "/", { replace: true });
-    }, [navigate, pathname, search, user]);
+        // 深链落地（直接访问 `/login` 等）：URL 必须换回一个能正常渲染的页面，否则关掉弹窗
+        // 就只剩空壳。统一换回首页，不走 `returnToRef`——那个目标可能需要登录，换回去会被
+        // `RequireAuth` 立刻弹回 `/login`，与本行凑成来回跳转的死循环（页面会卡死）。
+        // 登录成功后照样按 `next` / 打开弹窗前那一页跳，这里只决定「背景页」。
+        navigate("/", { replace: true });
+    }, [navigate, pathname, search]);
 
     // `next` 优先；没带就回到打开弹窗时所在的那一页。
     const next = state.next ?? returnToRef.current;
@@ -188,9 +187,9 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
                             {mode === "login" ? (
                                 <LoginForm next={next} onSuccess={onSuccess} />
                             ) : mode === "recovery" ? (
-                                // 找回密码成功后自己会跳 `/login?next=…`，宿主接住它就回到登录表单。
-                                // next 必须显式传：就地切模式时 URL 还停在原页面，查询参数里没有它。
-                                <ForgotPasswordPage next={next} />
+                                // 重置成功后就地切回登录表单，不再跳 `/login?next=…`：
+                                // 找回密码整条链路都留在弹窗里，不换页面。
+                                <ForgotPasswordPage next={next} onCompleted={() => onModeChange("login")} />
                             ) : (
                                 <RegisterForm next={next} onSuccess={onSuccess} />
                             )}

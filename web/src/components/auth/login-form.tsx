@@ -15,7 +15,7 @@ import { interceptAuthLink } from "@/lib/workspace-auth";
  * 原先它是 `/login` 独立页（`pages/auth/login.tsx`）的全部内容，页面自己 `navigate(next)`
  * 决定去向；现在由工作台的登录弹窗承载，所以这里**不再碰路由**：
  * - 成功后只回调 `onSuccess()`，去哪儿由宿主按 `next` / 来源页决定；
- * - 「忘记密码？」要离开弹窗，找回密码仍是独立页，所以点它时先 `onClose()`；
+ * - 「忘记密码？」也不跳页面，就地切到弹窗里的找回密码表单（`interceptAuthLink` 带 `mode: "recovery"`）；
  * - 「已登录就别再看这张表单」的兜底也上移到宿主（那是弹窗的开关语义，不是表单的）。
  */
 export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => void }) {
