@@ -50,6 +50,49 @@ func TestAppearanceDefaultsPreserveBuiltInBrand(t *testing.T) {
 	}
 }
 
+func TestAppearanceListsSerializeAsArraysNeverNull(t *testing.T) {
+	// 前端把 authCarousel / skinThemes 声明为数组并直接 .map，而 Go 的 nil slice 会序列化成 null，
+	// 一旦下发 null 就抛 Cannot read properties of null (reading 'map')，外观页整页退化成
+	// 「无法读取外观配置」。三种来源都要覆盖：空库默认值、存量 JSON 里写着 null、老版本省略字段。
+	cases := map[string]string{
+		"empty-store":    "",
+		"explicit-null":  `{"authCarousel":null,"skinThemes":null,"updates":{"releases":null}}`,
+		"omitted-fields": `{"brandName":"Legacy"}`,
+	}
+	for name, stored := range cases {
+		t.Run(name, func(t *testing.T) {
+			svc, db, _, admin := newAppearanceTestService(t)
+			if stored != "" {
+				if err := db.Create(&model.SystemSetting{Key: appearanceSettingKey, ValueJSON: stored}).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+			adminAppearance, err := svc.AdminAppearance(admin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			publicAppearance, err := svc.Appearance()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for label, payload := range map[string]any{"admin": adminAppearance, "public": publicAppearance} {
+				encoded, marshalErr := json.Marshal(payload)
+				if marshalErr != nil {
+					t.Fatal(marshalErr)
+				}
+				for _, field := range []string{`"authCarousel":null`, `"skinThemes":null`, `"releases":null`} {
+					if strings.Contains(string(encoded), field) {
+						t.Fatalf("%s appearance must serialize list fields as arrays, got %s in %s", label, field, encoded)
+					}
+				}
+				if !strings.Contains(string(encoded), `"authCarousel":[`) {
+					t.Fatalf("%s appearance must always carry authCarousel as an array: %s", label, encoded)
+				}
+			}
+		})
+	}
+}
+
 func TestBuiltInAppearanceSkinAuthPalettesFollowMode(t *testing.T) {
 	for _, skin := range defaultAppearanceSkinThemes() {
 		if skin.Tokens.Light.AuthBackground == skin.Tokens.Dark.AuthBackground || skin.Tokens.Light.AuthCard == skin.Tokens.Dark.AuthCard {

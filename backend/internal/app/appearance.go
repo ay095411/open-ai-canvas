@@ -179,11 +179,13 @@ type AdminAppearanceSetting struct {
 
 func defaultAppearanceSetting() AppearanceSetting {
 	return AppearanceSetting{
+		Updates:           UpdateAnnouncement{Releases: []UpdateRelease{}},
 		Canvas:            defaultCanvasAppearance(),
 		SchemaVersion:     appearanceSchemaVersion,
 		BrandName:         defaultAppearanceBrandName,
 		BrandSlug:         defaultAppearanceBrandSlug,
 		AuthHeroTitle:     defaultAppearanceHeroTitle,
+		AuthCarousel:      []AppearanceCarouselItem{},
 		AuthVideoAutoplay: true,
 		LogoFrameEnabled:  true,
 		SkinID:            defaultAppearanceSkinID,
@@ -575,7 +577,13 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 		value.AuthCarousel = carousel
 	} else {
 		// 存量配置里出现非法条目时整段丢弃，不让一条坏数据把登录弹窗打空。
-		value.AuthCarousel = nil
+		// 用空切片而不是 nil：nil 序列化成 null，前端拿到 null 直接 .map 就崩，
+		// 整页退化成「无法读取外观配置」。
+		value.AuthCarousel = []AppearanceCarouselItem{}
+	}
+	// 存量 JSON 里可能写着 "releases":null，解码后是 nil slice，同样会下发成 null。
+	if value.Updates.Releases == nil {
+		value.Updates.Releases = []UpdateRelease{}
 	}
 	value.SkinID = strings.TrimSpace(value.SkinID)
 	if value.SkinID == "" {
@@ -650,7 +658,8 @@ func (s *Service) appearanceAssetAvailable(slot string, resourceID string) bool 
 // 还没上传媒体的条目留在配置里（管理员可能先写标题再补素材），下发给访客时再按空地址过滤。
 func normalizeAppearanceCarousel(items []AppearanceCarouselItem) ([]AppearanceCarouselItem, error) {
 	if len(items) == 0 {
-		return nil, nil
+		// 空轮播一律用空切片（不是 nil）：nil 序列化成 null，落库与下发都会让前端 .map 崩。
+		return []AppearanceCarouselItem{}, nil
 	}
 	if len(items) > appearanceCarouselMaxItems {
 		return nil, BadAuthRequest(fmt.Sprintf("登录轮播最多 %d 条", appearanceCarouselMaxItems))
@@ -922,7 +931,8 @@ func appearanceResourceID(value AppearanceSetting, slot string) string {
 // 于是「配了一半」的条目不会在访客那里占一格空白。
 func publicAppearanceCarousel(items []AppearanceCarouselItem, revision string) []PublicAppearanceCarouselItem {
 	if len(items) == 0 {
-		return nil
+		// 用空切片而不是 nil：nil 会被序列化成 null，前端 carousel.map 立刻崩溃。
+		return []PublicAppearanceCarouselItem{}
 	}
 	result := make([]PublicAppearanceCarouselItem, 0, len(items))
 	for _, item := range items {
@@ -946,7 +956,7 @@ func publicAppearanceCarousel(items []AppearanceCarouselItem, revision string) [
 		result = append(result, entry)
 	}
 	if len(result) == 0 {
-		return nil
+		return []PublicAppearanceCarouselItem{}
 	}
 	return result
 }
