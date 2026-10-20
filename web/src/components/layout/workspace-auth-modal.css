@@ -151,13 +151,16 @@
 
 .workspace-auth-close {
     position: absolute;
-    top: 14px;
-    right: 14px;
+    /* 关闭按钮要为「顶栏切换条和输入框共用同一条右边界」让位：它 28px 宽、
+       距右 10px，左缘落在 38px 处，而内容右边界由 .workspace-auth-scroll 的
+       40px 内边距给出——两者留 2px 空气，正好不打架。 */
+    top: 12px;
+    right: 10px;
     z-index: 2;
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border: 1px solid color-mix(in srgb, var(--user-ink, var(--foreground)) 14%, transparent);
     border-radius: 999px;
     background: transparent;
@@ -169,8 +172,8 @@
 }
 
 .workspace-auth-close svg {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
 }
 
 .workspace-auth-close:hover {
@@ -200,24 +203,24 @@
     gap: 16px;
     /* 上下留白只给到「不贴边」的程度：内容比容器矮时由 safe center 居中，
        这层 padding 只在内容撑满时起作用，所以它实际决定了「最齐注册表单」
-       能不能一屏放下。40/32 会让提交按钮掉到折线以下，多出一屏滚动。 */
-    padding: 18px clamp(20px, 4.2%, 44px);
+       能不能一屏放下。40/32 会让提交按钮掉到折线以下，多出一屏滚动。
+       横向 40px 不是随手定的：右上角关闭按钮距右 10px、宽 28px，左缘落在
+       38px 处；40px 让输入框右缘停在它左边 2px，于是顶栏切换条和输入框能
+       共用同一条右边界（关闭按钮不必再单独挤占顶栏的右边距）。 */
+    padding: 18px 40px;
     overflow-y: auto;
 }
 
 /* 表单区顶栏：项目标题在左、登录/注册切换在右。
    两者同一行是刻意的——标题单独占一行会把这层高度从表单本体里挤出去，
-   而表单条目最多时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量。 */
+   而表单条目最多时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量。
+   这里不再单独给右内边距：切换条跟着滚动区走，右缘自然与输入框齐平。 */
 .workspace-auth-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     min-width: 0;
-    /* 右上角那颗关闭按钮是绝对定位的（right:14 + 30 宽），顶栏内容右缘只让到 20px
-       时会和切换条压在一起。这里给它的宽度再让 16px 余量，两不打扰。
-       下面输入框仍按原来的边距走，所以切换条会比输入框右缘缩进一点。 */
-    padding-right: 36px;
 }
 
 .workspace-auth-title {
@@ -308,6 +311,8 @@
         left: 18px;
     }
 
+    /* 单列时关闭按钮落在上方媒体块里（表单位于第二行），横向不必再为它让位，
+       边距回到 20px 就能把输入框撑回原来的宽度。 */
     .workspace-auth-scroll {
         padding: 30px 20px 24px;
     }
