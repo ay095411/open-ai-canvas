@@ -15,7 +15,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router";
 import { cloneSkinDefinition, DEFAULT_CLASSIC_SKIN, normalizeSkinDefinition, type SkinDefinition, duplicateSkinDefinition } from "@/lib/skin-themes";
 import { DEFAULT_CANVAS_APPEARANCE, type CanvasAppearance } from "@/lib/canvas/agent-appearance";
-import { getAdminAppearance, type AdminAppearance, type AppearanceAssetSlot, resetAdminAppearance, uploadAppearanceAsset, updateAdminAppearance } from "@/services/api/appearance";
+import { getAdminAppearance, type AdminAppearance, type AdminAppearanceCarouselItem, type AppearanceAssetSlot, resetAdminAppearance, uploadAppearanceAsset, updateAdminAppearance } from "@/services/api/appearance";
+import { AuthCarouselEditor } from "./auth-carousel-editor";
 import { normalizeDraftCopy, normalizeSingleLine, hasUnsupportedControlCharacter, validateSkinDrafts, useAppearancePreviews, AppearanceSkeleton, AssetPicker, LogoThemePreview } from "./appearance-settings-parts";
 import { type DraftFiles, FILE_RULES, type ResetState } from "./appearance-settings-parts";
 
@@ -36,6 +37,7 @@ export default function AppearanceSettingsPage() {
     const [authHeroTitle, setAuthHeroTitle] = useState("");
     const [authHeroDescription, setAuthHeroDescription] = useState("");
     const [authVideoAutoplay, setAuthVideoAutoplay] = useState(true);
+    const [authCarousel, setAuthCarousel] = useState<AdminAppearanceCarouselItem[]>([]);
     const [logoFrameEnabled, setLogoFrameEnabled] = useState(true);
     const [skinId, setSkinId] = useState("classic");
     const [skinThemes, setSkinThemes] = useState<SkinDefinition[]>([DEFAULT_CLASSIC_SKIN]);
@@ -71,6 +73,7 @@ export default function AppearanceSettingsPage() {
             normalizeDraftCopy(authHeroTitle) !== setting?.authHeroTitle ||
             normalizeDraftCopy(authHeroDescription) !== setting?.authHeroDescription ||
             authVideoAutoplay !== setting?.authVideoAutoplay ||
+            JSON.stringify(authCarousel) !== JSON.stringify(setting?.authCarousel || []) ||
             logoFrameEnabled !== setting?.logoFrameEnabled ||
             skinId !== setting?.skinId ||
             JSON.stringify(skinThemes) !== JSON.stringify(setting?.skinThemes) ||
@@ -96,6 +99,7 @@ export default function AppearanceSettingsPage() {
         setAuthHeroTitle(value.authHeroTitle);
         setAuthHeroDescription(value.authHeroDescription);
         setAuthVideoAutoplay(value.authVideoAutoplay);
+        setAuthCarousel(value.authCarousel.map((item) => ({ ...item })));
         setLogoFrameEnabled(value.logoFrameEnabled);
         setSkinThemes(themes);
         setSkinId(selectedID);
@@ -208,6 +212,7 @@ export default function AppearanceSettingsPage() {
         setAuthHeroTitle(setting.authHeroTitle);
         setAuthHeroDescription(setting.authHeroDescription);
         setAuthVideoAutoplay(setting.authVideoAutoplay);
+        setAuthCarousel((setting.authCarousel || []).map((item) => ({ ...item })));
         setLogoFrameEnabled(setting.logoFrameEnabled);
         setSkinId(setting.skinId);
         setSkinThemes(setting.skinThemes.map((theme) => cloneSkinDefinition(theme)));
@@ -377,6 +382,8 @@ title: "恢复 Navo AI 默认品牌标识？",
                 authVideoResourceId: ids.video,
                 authVideoPosterResourceId: ids.poster,
                 authVideoAutoplay,
+                // PATCH 会整体覆盖配置：轮播草稿必须随本次保存一起提交，否则会被清空。
+                authCarousel,
                 skinId,
                 skinThemes,
                 seoTitle: nextSeoTitle,
@@ -652,6 +659,7 @@ title: "恢复 Navo AI 默认品牌标识？",
                                                         disabled={saving || refreshing || restoring}
                                                     />
                                                 </div>
+                                                <AuthCarouselEditor items={authCarousel} onChange={setAuthCarousel} disabled={saving || refreshing || restoring} />
                                             </div>
                                             <div className="admin-appearance-preview" aria-label="登录页实时预览">
                                                 <div className="admin-appearance-preview-heading">

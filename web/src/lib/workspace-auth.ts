@@ -1,6 +1,6 @@
 export const WORKSPACE_AUTH_OPEN_EVENT = "workspace-auth:open";
 
-export type WorkspaceAuthMode = "login" | "register";
+export type WorkspaceAuthMode = "login" | "register" | "recovery";
 
 export type WorkspaceAuthOpenDetail = {
     /** 打开后停在哪个表单；不传按登录处理。 */

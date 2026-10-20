@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState, type ReactNode } from "react";
 import { App, Button, Input } from "antd";
-import { ArrowLeft, LockKeyhole, Mail, ShieldCheck, TriangleAlert } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { LockKeyhole, Mail, ShieldCheck, TriangleAlert } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
 
 import { getAuthSettings, resetPassword, sendPasswordResetEmailCode } from "@/services/api/auth";
 
@@ -111,7 +111,6 @@ export default function ForgotPasswordPage() {
                 <Button type="primary" htmlType="submit" size="large" block loading={sendingCode} disabled={emailEnabled === false}>
                     发送验证码
                 </Button>
-                <BackToLogin to={loginURL} />
             </form>
         );
     }
@@ -173,7 +172,6 @@ export default function ForgotPasswordPage() {
             <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
                 重置密码
             </Button>
-            <BackToLogin to={loginURL} />
         </form>
     );
 }
@@ -185,17 +183,6 @@ function AuthField({ label, htmlFor, children }: { label: string; htmlFor: strin
                 {label}
             </label>
             {children}
-        </div>
-    );
-}
-
-function BackToLogin({ to }: { to: string }) {
-    return (
-        <div className="text-center">
-            <Link to={to} className="auth-scene-link inline-flex min-h-8 items-center gap-1.5 rounded-sm text-xs transition-colors">
-                <ArrowLeft className="size-3.5" />
-                返回登录
-            </Link>
         </div>
     );
 }

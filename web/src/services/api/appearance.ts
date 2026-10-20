@@ -18,6 +18,8 @@ export type PublicAppearance = {
     authVideoUrl: string;
     authVideoPosterUrl: string;
     authVideoAutoplay: boolean;
+    /** 登录弹窗左侧轮播；为空时前端回退到 authVideoUrl / authVideoPosterUrl 那一张。 */
+    authCarousel?: PublicAppearanceCarouselItem[];
     skinId: string;
     activeSkin: SkinDefinition;
     seoTitle: string;
@@ -36,6 +38,28 @@ export type PublicAppearance = {
     updatedAt?: string;
 };
 
+export type AppearanceCarouselKind = "image" | "video";
+
+/** 下发给访客的轮播条目：地址已经是可直接播放/展示的 URL。 */
+export type PublicAppearanceCarouselItem = {
+    id: string;
+    kind: AppearanceCarouselKind;
+    url: string;
+    posterUrl: string;
+    title: string;
+    subtitle: string;
+};
+
+/** 后台编辑用的轮播条目：持有资源 ID，媒体通过 carousel-<id>-<kind> 槽位上传。 */
+export type AdminAppearanceCarouselItem = {
+    id: string;
+    kind: AppearanceCarouselKind;
+    mediaResourceId: string;
+    posterResourceId: string;
+    title: string;
+    subtitle: string;
+};
+
 export type AdminAppearance = {
     updates?: UpdateAnnouncement;
     canvas?: CanvasAppearance;
@@ -50,6 +74,7 @@ export type AdminAppearance = {
     authVideoResourceId: string;
     authVideoPosterResourceId: string;
     authVideoAutoplay: boolean;
+    authCarousel: AdminAppearanceCarouselItem[];
     skinId: string;
     skinThemes: SkinDefinition[];
     seoTitle: string;
@@ -107,6 +132,7 @@ export async function updateAdminAppearance(
         | "authVideoResourceId"
         | "authVideoPosterResourceId"
         | "authVideoAutoplay"
+        | "authCarousel"
         | "skinId"
         | "skinThemes"
         | "seoTitle"
@@ -127,7 +153,7 @@ export async function resetAdminAppearance() {
     return result.setting;
 }
 
-export async function uploadAppearanceAsset(slot: AppearanceAssetUploadSlot | "update-image" | "update-video", file: File) {
+export async function uploadAppearanceAsset(slot: AppearanceAssetUploadSlot | "update-image" | "update-video" | string, file: File) {
     const body = new FormData();
     body.append("file", file);
     const result = await http.post<{ resource: AppearanceResource }>(`/admin/settings/appearance/assets/${slot}`, body);

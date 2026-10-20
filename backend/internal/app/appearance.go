@@ -40,6 +40,62 @@ const (
 	appearanceVideoMaxBytes  int64 = 256 << 20
 )
 
+// 登录弹窗左侧轮播。媒体不进固定枚举槽位，而是按「条目 ID + 类型」拼出来，
+// 例如 carousel-8f3a1c-video：这样既不用给每个条目单独开一条下发路由，
+// 又能直接复用现有的上传校验、Range 下发与 CDN 中转。
+const (
+	appearanceCarouselSlotPrefix = "carousel-"
+	appearanceCarouselKindImage  = "image"
+	appearanceCarouselKindVideo  = "video"
+	appearanceCarouselMaxItems   = 8
+)
+
+// AppearanceCarouselItem 是登录弹窗轮播里的一条内容：一张图或一段视频，配标题与副标题。
+// 图片条目只用 MediaResourceID；视频条目可以再配一张 PosterResourceID 作为首帧，
+// 视频尚未起播（或用户偏好减少动效）时顶上。
+type AppearanceCarouselItem struct {
+	ID               string `json:"id"`
+	Kind             string `json:"kind"`
+	MediaResourceID  string `json:"mediaResourceId"`
+	PosterResourceID string `json:"posterResourceId"`
+	Title            string `json:"title"`
+	Subtitle         string `json:"subtitle"`
+}
+
+// PublicAppearanceCarouselItem 是下发给匿名访客的形态：资源 ID 换成可直接播放的地址。
+type PublicAppearanceCarouselItem struct {
+	ID        string `json:"id"`
+	Kind      string `json:"kind"`
+	URL       string `json:"url"`
+	PosterURL string `json:"posterUrl"`
+	Title     string `json:"title"`
+	Subtitle  string `json:"subtitle"`
+}
+
+// parseAppearanceCarouselSlot 解开 carousel-<id>-<image|video|poster>。
+// 条目 ID 由前端生成（crypto.randomUUID 截断），这里只要求非空、无连字符冲突。
+func parseAppearanceCarouselSlot(slot string) (itemID string, kind string, ok bool) {
+	if !strings.HasPrefix(slot, appearanceCarouselSlotPrefix) {
+		return "", "", false
+	}
+	rest := strings.TrimPrefix(slot, appearanceCarouselSlotPrefix)
+	for _, candidate := range []string{appearanceCarouselKindImage, appearanceCarouselKindVideo, "poster"} {
+		suffix := "-" + candidate
+		if strings.HasSuffix(rest, suffix) {
+			id := strings.TrimSuffix(rest, suffix)
+			if id == "" {
+				return "", "", false
+			}
+			return id, candidate, true
+		}
+	}
+	return "", "", false
+}
+
+func appearanceCarouselSlot(itemID string, kind string) string {
+	return appearanceCarouselSlotPrefix + itemID + "-" + kind
+}
+
 const (
 	defaultAppearanceBrandName = "Navo AI"
 	defaultAppearanceBrandSlug = "open-ai-canvas"
@@ -54,60 +110,62 @@ const (
 )
 
 type AppearanceSetting struct {
-	Updates                   UpdateAnnouncement    `json:"updates"`
-	Canvas                    CanvasAppearance      `json:"canvas"`
-	SchemaVersion             int                   `json:"schemaVersion"`
-	BrandName                 string                `json:"brandName"`
-	BrandSlug                 string                `json:"brandSlug"`
-	AuthHeroTitle             string                `json:"authHeroTitle"`
-	AuthHeroDescription       string                `json:"authHeroDescription"`
-	LogoResourceID            string                `json:"logoResourceId"`
-	DarkLogoResourceID        string                `json:"darkLogoResourceId"`
-	LogoFrameEnabled          bool                  `json:"logoFrameEnabled"`
-	AuthVideoResourceID       string                `json:"authVideoResourceId"`
-	AuthVideoPosterResourceID string                `json:"authVideoPosterResourceId"`
-	AuthVideoAutoplay         bool                  `json:"authVideoAutoplay"`
-	SkinID                    string                `json:"skinId"`
-	SkinThemes                []AppearanceSkinTheme `json:"skinThemes"`
-	SEOTitle                  string                `json:"seoTitle"`
-	SEODescription            string                `json:"seoDescription"`
-	SEOKeywords               string                `json:"seoKeywords"`
-	FooterCopyright           string                `json:"footerCopyright"`
-	ICPFilingEnabled          bool                  `json:"icpFilingEnabled"`
-	ICPFilingNumber           string                `json:"icpFilingNumber"`
-	RedeemPurchaseURL         string                `json:"redeemPurchaseUrl"`
+	Updates                   UpdateAnnouncement       `json:"updates"`
+	Canvas                    CanvasAppearance         `json:"canvas"`
+	SchemaVersion             int                      `json:"schemaVersion"`
+	BrandName                 string                   `json:"brandName"`
+	BrandSlug                 string                   `json:"brandSlug"`
+	AuthHeroTitle             string                   `json:"authHeroTitle"`
+	AuthHeroDescription       string                   `json:"authHeroDescription"`
+	LogoResourceID            string                   `json:"logoResourceId"`
+	DarkLogoResourceID        string                   `json:"darkLogoResourceId"`
+	LogoFrameEnabled          bool                     `json:"logoFrameEnabled"`
+	AuthVideoResourceID       string                   `json:"authVideoResourceId"`
+	AuthVideoPosterResourceID string                   `json:"authVideoPosterResourceId"`
+	AuthCarousel              []AppearanceCarouselItem `json:"authCarousel"`
+	AuthVideoAutoplay         bool                     `json:"authVideoAutoplay"`
+	SkinID                    string                   `json:"skinId"`
+	SkinThemes                []AppearanceSkinTheme    `json:"skinThemes"`
+	SEOTitle                  string                   `json:"seoTitle"`
+	SEODescription            string                   `json:"seoDescription"`
+	SEOKeywords               string                   `json:"seoKeywords"`
+	FooterCopyright           string                   `json:"footerCopyright"`
+	ICPFilingEnabled          bool                     `json:"icpFilingEnabled"`
+	ICPFilingNumber           string                   `json:"icpFilingNumber"`
+	RedeemPurchaseURL         string                   `json:"redeemPurchaseUrl"`
 }
 
 type PublicAppearanceSetting struct {
-	Updates                   UpdateAnnouncement  `json:"updates"`
-	Canvas                    CanvasAppearance    `json:"canvas"`
-	SchemaVersion             int                 `json:"schemaVersion"`
-	BrandName                 string              `json:"brandName"`
-	BrandSlug                 string              `json:"brandSlug"`
-	AuthHeroTitle             string              `json:"authHeroTitle"`
-	AuthHeroDescription       string              `json:"authHeroDescription"`
-	LogoURL                   string              `json:"logoUrl"`
-	DarkLogoURL               string              `json:"darkLogoUrl"`
-	LogoFrameEnabled          bool                `json:"logoFrameEnabled"`
-	AuthVideoURL              string              `json:"authVideoUrl"`
-	AuthVideoPosterURL        string              `json:"authVideoPosterUrl"`
-	AuthVideoAutoplay         bool                `json:"authVideoAutoplay"`
-	SkinID                    string              `json:"skinId"`
-	ActiveSkin                AppearanceSkinTheme `json:"activeSkin"`
-	SEOTitle                  string              `json:"seoTitle"`
-	SEODescription            string              `json:"seoDescription"`
-	SEOKeywords               string              `json:"seoKeywords"`
-	FooterCopyright           string              `json:"footerCopyright"`
-	ICPFilingEnabled          bool                `json:"icpFilingEnabled"`
-	ICPFilingNumber           string              `json:"icpFilingNumber"`
-	RedeemPurchaseURL         string              `json:"redeemPurchaseUrl"`
-	LogoConfigured            bool                `json:"logoConfigured"`
-	DarkLogoConfigured        bool                `json:"darkLogoConfigured"`
-	AuthVideoConfigured       bool                `json:"authVideoConfigured"`
-	AuthVideoPosterConfigured bool                `json:"authVideoPosterConfigured"`
-	Configured                bool                `json:"configured"`
-	Revision                  string              `json:"revision"`
-	UpdatedAt                 time.Time           `json:"updatedAt,omitempty"`
+	Updates                   UpdateAnnouncement             `json:"updates"`
+	Canvas                    CanvasAppearance               `json:"canvas"`
+	SchemaVersion             int                            `json:"schemaVersion"`
+	BrandName                 string                         `json:"brandName"`
+	BrandSlug                 string                         `json:"brandSlug"`
+	AuthHeroTitle             string                         `json:"authHeroTitle"`
+	AuthHeroDescription       string                         `json:"authHeroDescription"`
+	LogoURL                   string                         `json:"logoUrl"`
+	DarkLogoURL               string                         `json:"darkLogoUrl"`
+	LogoFrameEnabled          bool                           `json:"logoFrameEnabled"`
+	AuthVideoURL              string                         `json:"authVideoUrl"`
+	AuthVideoPosterURL        string                         `json:"authVideoPosterUrl"`
+	AuthCarousel              []PublicAppearanceCarouselItem `json:"authCarousel"`
+	AuthVideoAutoplay         bool                           `json:"authVideoAutoplay"`
+	SkinID                    string                         `json:"skinId"`
+	ActiveSkin                AppearanceSkinTheme            `json:"activeSkin"`
+	SEOTitle                  string                         `json:"seoTitle"`
+	SEODescription            string                         `json:"seoDescription"`
+	SEOKeywords               string                         `json:"seoKeywords"`
+	FooterCopyright           string                         `json:"footerCopyright"`
+	ICPFilingEnabled          bool                           `json:"icpFilingEnabled"`
+	ICPFilingNumber           string                         `json:"icpFilingNumber"`
+	RedeemPurchaseURL         string                         `json:"redeemPurchaseUrl"`
+	LogoConfigured            bool                           `json:"logoConfigured"`
+	DarkLogoConfigured        bool                           `json:"darkLogoConfigured"`
+	AuthVideoConfigured       bool                           `json:"authVideoConfigured"`
+	AuthVideoPosterConfigured bool                           `json:"authVideoPosterConfigured"`
+	Configured                bool                           `json:"configured"`
+	Revision                  string                         `json:"revision"`
+	UpdatedAt                 time.Time                      `json:"updatedAt,omitempty"`
 }
 
 type AdminAppearanceSetting struct {
@@ -136,6 +194,12 @@ func defaultAppearanceSetting() AppearanceSetting {
 
 func AppearanceAssetMaxBytes(slot string) (int64, error) {
 	slot = strings.TrimSpace(slot)
+	if _, kind, ok := parseAppearanceCarouselSlot(slot); ok {
+		if kind == appearanceCarouselKindVideo {
+			return appearanceVideoMaxBytes, nil
+		}
+		return appearancePosterMaxBytes, nil
+	}
 	switch strings.TrimSpace(slot) {
 	case AppearanceAssetLogo, AppearanceAssetDarkLogo:
 		return appearanceLogoMaxBytes, nil
@@ -149,11 +213,23 @@ func AppearanceAssetMaxBytes(slot string) (int64, error) {
 }
 
 func appearanceSlotIsVideo(slot string) bool {
+	if _, kind, ok := parseAppearanceCarouselSlot(slot); ok {
+		return kind == appearanceCarouselKindVideo
+	}
 	return slot == AppearanceAssetVideo || slot == AppearanceAssetUpdateVideo
 }
 
-func appearanceAssetSlots() []string {
-	return []string{AppearanceAssetLogo, AppearanceAssetDarkLogo, AppearanceAssetVideo, AppearanceAssetPoster}
+func appearanceAssetSlots(value AppearanceSetting) []string {
+	slots := []string{AppearanceAssetLogo, AppearanceAssetDarkLogo, AppearanceAssetVideo, AppearanceAssetPoster}
+	for _, item := range value.AuthCarousel {
+		if item.MediaResourceID != "" {
+			slots = append(slots, appearanceCarouselSlot(item.ID, item.Kind))
+		}
+		if item.PosterResourceID != "" && item.Kind == appearanceCarouselKindVideo {
+			slots = append(slots, appearanceCarouselSlot(item.ID, "poster"))
+		}
+	}
+	return slots
 }
 
 func (s *Service) Appearance() (*PublicAppearanceSetting, error) {
@@ -211,6 +287,11 @@ func (s *Service) UpdateAppearance(actor *model.User, value AppearanceSetting) (
 	value.DarkLogoResourceID = strings.TrimSpace(value.DarkLogoResourceID)
 	value.AuthVideoResourceID = strings.TrimSpace(value.AuthVideoResourceID)
 	value.AuthVideoPosterResourceID = strings.TrimSpace(value.AuthVideoPosterResourceID)
+	carousel, carouselErr := normalizeAppearanceCarousel(value.AuthCarousel)
+	if carouselErr != nil {
+		return nil, carouselErr
+	}
+	value.AuthCarousel = carousel
 	value.SkinID = strings.TrimSpace(value.SkinID)
 	if len(value.SkinThemes) == 0 {
 		value.SkinThemes = defaultAppearanceSkinThemes()
@@ -265,6 +346,23 @@ func (s *Service) UpdateAppearance(actor *model.User, value AppearanceSetting) (
 	} {
 		if err := s.validateAppearanceResource(actor, candidate.slot, candidate.resourceID, candidate.currentID); err != nil {
 			return nil, err
+		}
+	}
+	// 轮播条目数量可变，塞不进上面那个固定字面量，单独走一遍同样的校验。
+	for _, item := range value.AuthCarousel {
+		currentMedia, currentPoster := "", ""
+		for _, existing := range before.AuthCarousel {
+			if existing.ID == item.ID {
+				currentMedia, currentPoster = existing.MediaResourceID, existing.PosterResourceID
+			}
+		}
+		if err := s.validateAppearanceResource(actor, appearanceCarouselSlot(item.ID, item.Kind), item.MediaResourceID, currentMedia); err != nil {
+			return nil, err
+		}
+		if item.Kind == appearanceCarouselKindVideo {
+			if err := s.validateAppearanceResource(actor, appearanceCarouselSlot(item.ID, "poster"), item.PosterResourceID, currentPoster); err != nil {
+				return nil, err
+			}
 		}
 	}
 	encoded, err := json.Marshal(value)
@@ -415,6 +513,20 @@ func (s *Service) appearanceResourceReferences(resourceIDs []string) map[string]
 			}
 		}
 	}
+	for index, item := range value.AuthCarousel {
+		if item.MediaResourceID != "" {
+			candidates = append(candidates, struct {
+				resourceID string
+				title      string
+			}{item.MediaResourceID, fmt.Sprintf("登录轮播第 %d 项", index+1)})
+		}
+		if item.PosterResourceID != "" {
+			candidates = append(candidates, struct {
+				resourceID string
+				title      string
+			}{item.PosterResourceID, fmt.Sprintf("登录轮播第 %d 项封面", index+1)})
+		}
+	}
 	wanted := make(map[string]struct{}, len(resourceIDs))
 	for _, resourceID := range resourceIDs {
 		wanted[resourceID] = struct{}{}
@@ -459,6 +571,12 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 		value.AuthHeroTitle = defaultAppearanceHeroTitle
 	}
 	value.AuthHeroDescription = normalizeAppearanceCopy(value.AuthHeroDescription)
+	if carousel, carouselErr := normalizeAppearanceCarousel(value.AuthCarousel); carouselErr == nil {
+		value.AuthCarousel = carousel
+	} else {
+		// 存量配置里出现非法条目时整段丢弃，不让一条坏数据把登录弹窗打空。
+		value.AuthCarousel = nil
+	}
 	value.SkinID = strings.TrimSpace(value.SkinID)
 	if value.SkinID == "" {
 		value.SkinID = defaultAppearanceSkinID
@@ -481,19 +599,32 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 // Remote objects are not probed on every appearance request; the frontend has
 // its own load-error fallback for objects that disappear outside the system.
 func (s *Service) resolveAvailableAppearanceAssets(value AppearanceSetting) AppearanceSetting {
-	for _, slot := range appearanceAssetSlots() {
+	for _, slot := range appearanceAssetSlots(value) {
 		resourceID := appearanceResourceID(value, slot)
 		if resourceID == "" || s.appearanceAssetAvailable(slot, resourceID) {
 			continue
 		}
-		switch slot {
-		case AppearanceAssetLogo:
+		itemID, kind, carousel := parseAppearanceCarouselSlot(slot)
+		switch {
+		case carousel:
+			// 轮播里失效的那一条只清掉自己的资源引用，其余条目照常下发。
+			for index := range value.AuthCarousel {
+				if value.AuthCarousel[index].ID != itemID {
+					continue
+				}
+				if kind == "poster" {
+					value.AuthCarousel[index].PosterResourceID = ""
+				} else {
+					value.AuthCarousel[index].MediaResourceID = ""
+				}
+			}
+		case slot == AppearanceAssetLogo:
 			value.LogoResourceID = ""
-		case AppearanceAssetDarkLogo:
+		case slot == AppearanceAssetDarkLogo:
 			value.DarkLogoResourceID = ""
-		case AppearanceAssetVideo:
+		case slot == AppearanceAssetVideo:
 			value.AuthVideoResourceID = ""
-		case AppearanceAssetPoster:
+		case slot == AppearanceAssetPoster:
 			value.AuthVideoPosterResourceID = ""
 		}
 	}
@@ -513,6 +644,52 @@ func (s *Service) appearanceAssetAvailable(slot string, resourceID string) bool 
 	}
 	info, err := os.Stat(filepath.Join(s.dataDir, "resources", filepath.FromSlash(resource.ObjectKey)))
 	return err == nil && !info.IsDir()
+}
+
+// normalizeAppearanceCarousel 收口登录轮播条目：类型白名单、文案长度、ID 唯一。
+// 还没上传媒体的条目留在配置里（管理员可能先写标题再补素材），下发给访客时再按空地址过滤。
+func normalizeAppearanceCarousel(items []AppearanceCarouselItem) ([]AppearanceCarouselItem, error) {
+	if len(items) == 0 {
+		return nil, nil
+	}
+	if len(items) > appearanceCarouselMaxItems {
+		return nil, BadAuthRequest(fmt.Sprintf("登录轮播最多 %d 条", appearanceCarouselMaxItems))
+	}
+	result := make([]AppearanceCarouselItem, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for index, item := range items {
+		item.ID = strings.TrimSpace(item.ID)
+		if item.ID == "" {
+			item.ID = fmt.Sprintf("item-%d", index+1)
+		}
+		if _, exists := seen[item.ID]; exists {
+			item.ID = fmt.Sprintf("%s-%d", item.ID, index+1)
+		}
+		seen[item.ID] = struct{}{}
+		item.Kind = strings.ToLower(strings.TrimSpace(item.Kind))
+		if item.Kind == "" {
+			item.Kind = appearanceCarouselKindImage
+		}
+		if item.Kind != appearanceCarouselKindImage && item.Kind != appearanceCarouselKindVideo {
+			return nil, BadAuthRequest("登录轮播条目类型只能是图片或视频")
+		}
+		item.MediaResourceID = strings.TrimSpace(item.MediaResourceID)
+		item.PosterResourceID = strings.TrimSpace(item.PosterResourceID)
+		if item.Kind != appearanceCarouselKindVideo {
+			// 图片条目没有首帧概念，残留的封面引用一并清掉，免得下发出用不上的地址。
+			item.PosterResourceID = ""
+		}
+		item.Title = normalizeAppearanceSingleLine(item.Title)
+		item.Subtitle = normalizeAppearanceSingleLine(item.Subtitle)
+		if utf8.RuneCountInString(item.Title) > 40 {
+			return nil, BadAuthRequest(fmt.Sprintf("登录轮播第 %d 条标题不能超过 40 个字符", index+1))
+		}
+		if utf8.RuneCountInString(item.Subtitle) > 60 {
+			return nil, BadAuthRequest(fmt.Sprintf("登录轮播第 %d 条副标题不能超过 60 个字符", index+1))
+		}
+		result = append(result, item)
+	}
+	return result, nil
 }
 
 func validateAppearanceSetting(value AppearanceSetting) error {
@@ -686,6 +863,16 @@ func appearanceAllowedMIMETypes(slot string) map[string]struct{} {
 }
 
 func appearanceAssetLabel(slot string) string {
+	if _, kind, ok := parseAppearanceCarouselSlot(slot); ok {
+		switch kind {
+		case appearanceCarouselKindVideo:
+			return "登录轮播视频"
+		case "poster":
+			return "登录轮播视频封面"
+		default:
+			return "登录轮播图片"
+		}
+	}
 	switch slot {
 	case AppearanceAssetLogo:
 		return "浅色模式品牌 Logo"
@@ -705,6 +892,18 @@ func appearanceAssetLabel(slot string) string {
 }
 
 func appearanceResourceID(value AppearanceSetting, slot string) string {
+	if itemID, kind, ok := parseAppearanceCarouselSlot(slot); ok {
+		for _, item := range value.AuthCarousel {
+			if item.ID != itemID {
+				continue
+			}
+			if kind == "poster" {
+				return item.PosterResourceID
+			}
+			return item.MediaResourceID
+		}
+		return ""
+	}
 	switch slot {
 	case AppearanceAssetLogo:
 		return value.LogoResourceID
@@ -717,6 +916,39 @@ func appearanceResourceID(value AppearanceSetting, slot string) string {
 	default:
 		return ""
 	}
+}
+
+// publicAppearanceCarousel 把资源 ID 换成可直接播放的地址；还没上传媒体的条目直接跳过，
+// 于是「配了一半」的条目不会在访客那里占一格空白。
+func publicAppearanceCarousel(items []AppearanceCarouselItem, revision string) []PublicAppearanceCarouselItem {
+	if len(items) == 0 {
+		return nil
+	}
+	result := make([]PublicAppearanceCarouselItem, 0, len(items))
+	for _, item := range items {
+		if item.MediaResourceID == "" {
+			continue
+		}
+		kind := appearanceCarouselKindImage
+		if item.Kind == appearanceCarouselKindVideo {
+			kind = appearanceCarouselKindVideo
+		}
+		entry := PublicAppearanceCarouselItem{
+			ID:       item.ID,
+			Kind:     kind,
+			URL:      appearanceAssetURL(appearanceCarouselSlot(item.ID, kind), revision),
+			Title:    item.Title,
+			Subtitle: item.Subtitle,
+		}
+		if kind == appearanceCarouselKindVideo && item.PosterResourceID != "" {
+			entry.PosterURL = appearanceAssetURL(appearanceCarouselSlot(item.ID, "poster"), revision)
+		}
+		result = append(result, entry)
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
 
 func publicAppearanceSetting(setting *model.SystemSetting, value AppearanceSetting) *PublicAppearanceSetting {
@@ -753,6 +985,7 @@ func publicAppearanceSetting(setting *model.SystemSetting, value AppearanceSetti
 	if setting != nil {
 		result.UpdatedAt = setting.UpdatedAt
 	}
+	result.AuthCarousel = publicAppearanceCarousel(value.AuthCarousel, revision)
 	if value.LogoResourceID != "" || value.DarkLogoResourceID != "" {
 		result.LogoConfigured = true
 		if value.LogoResourceID != "" {
