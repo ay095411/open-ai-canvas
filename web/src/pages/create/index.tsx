@@ -35,12 +35,12 @@ import { creationLibraryDisabledReason, creationLibrarySelectionToAttachments } 
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
 import { attachCreationTaskContexts, completedCreationGenerationTask, conversationTimestamp, creationShotRail, creationVideoShotOrdinal, isImageAttachment, isVideoAttachment, materializeCreationTaskResults, newConversation, newMessage, reconcileCreationTaskMessages } from "./creation-conversations";
 import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
-import { CreationInspirationTunnel } from "./creation-inspiration-tunnel";
 import { CreationHomeFeatureMatrix } from "./creation-home-feature-matrix";
 import { CreationRecentCanvases } from "./creation-recent-canvases";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialogPixTV as CreationLoginDialog } from "./creation-login-dialog-pixtv";
+import "./creation-home-layout.css";
 import "./creation-login-dialog-pixtv.css";
 
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
@@ -1113,10 +1113,6 @@ export default function CreatePage() {
                 <div className="creation-home-heading">
                     <h1>让灵感，在 {brandName} 成为作品</h1>
                 </div>
-                <CreationInspirationTunnel
-                    mode={mode}
-                    onStartPrompt={(nextMode, prompt) => { selectMode(nextMode); setPrompt(prompt); window.requestAnimationFrame(() => composerFocusRef.current?.focus()); }}
-                />
                 <section ref={launchpadRef} className="creation-launchpad" aria-label="开始创作">
                     <div className="creation-composer-stage is-home-mode" data-creation-mode={mode}>
                         <div className="creation-empty-composer"><CreationComposer {...composerProps} variant="empty" /></div>
