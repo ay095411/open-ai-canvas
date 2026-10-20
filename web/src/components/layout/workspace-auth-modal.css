@@ -205,8 +205,40 @@
     overflow-y: auto;
 }
 
+/* 表单区顶栏：项目标题在左、登录/注册切换在右。
+   两者同一行是刻意的——标题单独占一行会把这层高度从表单本体里挤出去，
+   而表单条目最多时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量。 */
+.workspace-auth-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    /* 右上角那颗关闭按钮是绝对定位的（right:14 + 30 宽），顶栏内容右缘只让到 20px
+       时会和切换条压在一起。这里给它的宽度再让 16px 余量，两不打扰。
+       下面输入框仍按原来的边距走，所以切换条会比输入框右缘缩进一点。 */
+    padding-right: 36px;
+}
+
+.workspace-auth-title {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--user-ink, var(--foreground));
+    /* 20px 是能给到的上限：切换条本身 34px 高，标题行高 26px 不额外撑高这一行，
+       再大就会大于切换条、把顶栏顶高。 */
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    /* 项目名由后台配置，长起来不该把切换条挤走：单行省略，完整值在 title 属性里。 */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .workspace-auth-tabs {
     display: flex;
+    flex: 0 0 auto;
     align-self: center;
     gap: 4px;
     padding: 3px;

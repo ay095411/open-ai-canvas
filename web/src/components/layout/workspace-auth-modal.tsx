@@ -168,6 +168,8 @@ export function WorkspaceAuthHost() {
 
 export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, onSuccess }: { open: boolean; mode: WorkspaceAuthMode; next: string; onModeChange: (mode: WorkspaceAuthMode) => void; onClose: () => void; onSuccess: () => void }) {
     const appearance = useAppearanceStore((state) => state.appearance);
+    // 顶栏标题用后台「站点及外观」里的项目名，与浏览器标题、侧栏品牌保持同一来源。
+    const brandName = appearance.brandName || "平台";
 
     return (
         <AppModal
@@ -197,22 +199,30 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
 
                 <section className="workspace-auth-pane" aria-label={mode === "register" ? "注册" : mode === "recovery" ? "找回密码" : "登录"}>
                     <div className="workspace-auth-scroll">
-                        {mode === "recovery" ? (
-                            <div className="workspace-auth-tabs" role="tablist" aria-label="找回密码">
-                                <button type="button" role="tab" aria-selected onClick={() => onModeChange("login")}>
-                                    ← 返回登录
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
-                                <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
-                                    登录
-                                </button>
-                                <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
-                                    注册
-                                </button>
-                            </div>
-                        )}
+                        {/* 顶栏：左项目标题、右登录/注册切换。放同一行是为了不吃高度——
+                            表单最挤时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量，
+                            标题单独占一行会把提交按钮顶到折线以下。 */}
+                        <div className="workspace-auth-head">
+                            <h2 className="workspace-auth-title" title={brandName}>
+                                {brandName}
+                            </h2>
+                            {mode === "recovery" ? (
+                                <div className="workspace-auth-tabs" role="tablist" aria-label="找回密码">
+                                    <button type="button" role="tab" aria-selected onClick={() => onModeChange("login")}>
+                                        ← 返回登录
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
+                                    <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
+                                        登录
+                                    </button>
+                                    <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
+                                        注册
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         {/* 复用 `.auth-scene-card`：输入框高度、圆角、主按钮这些控件规则都挂在它下面，
                             弹窗与登录页因此共用同一套样式，不必再维护第二份。 */}
                         <div className="auth-scene-card">
