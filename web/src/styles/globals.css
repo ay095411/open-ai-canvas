@@ -365,7 +365,7 @@
     --auth-page-bg: #ffffff;
     --auth-panel-bg: #f7f7f7;
     --auth-card-bg: #ffffff;
-    --auth-accent: #2563eb;
+    --auth-accent: #171717;
     --auth-muted: #737373;
     /* 协议勾选框的填充色与对勾色。必须成对维护：两者相近会在某一主题下
        退化成看不见的勾选态。深色主题下这里与 --foreground 的白色相反。 */
@@ -1058,7 +1058,7 @@
     --auth-page-bg: #08090c;
     --auth-panel-bg: #0b0c10;
     --auth-card-bg: #121318;
-    --auth-accent: #93c5fd;
+    --auth-accent: #f5f5f5;
     --auth-muted: #8a8b91;
     /* 深色主题下勾选框用浅底 + 深勾，与浅色主题的深底 + 白勾形成互补；
        直接复用 --foreground 会得到白底白勾。 */

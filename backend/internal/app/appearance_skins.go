@@ -116,13 +116,13 @@ type AppearanceSkinButtonFill struct {
 	Foreground  string `json:"foreground"`
 }
 
-func defaultAppearanceSkinButtons(gradient bool) AppearanceSkinButtons {
+// defaultAppearanceSkinButtons 返回项目默认的按钮填充：跟随皮肤的 primary token
+// （classic 为近黑 #171717），不再用蓝色做主题。Start/End 系列仅在管理员把模式
+// 切回渐变时作为兜底色值保留。
+func defaultAppearanceSkinButtons() AppearanceSkinButtons {
 	fill := AppearanceSkinButtonFill{
-		Mode: "solid", Angle: 115, Start: "#6554df", End: "#386fbc",
-		HoverStart: "#5744cf", HoverEnd: "#356bbb", ActiveStart: "#4938b8", ActiveEnd: "#2c5da5", Foreground: "#ffffff",
-	}
-	if gradient {
-		fill.Mode = "gradient"
+		Mode: "solid", Angle: 115, Start: "#171717", End: "#171717",
+		HoverStart: "#303030", HoverEnd: "#303030", ActiveStart: "#404040", ActiveEnd: "#404040", Foreground: "#ffffff",
 	}
 	return AppearanceSkinButtons{Light: fill, Dark: fill}
 }
@@ -188,9 +188,9 @@ func defaultAppearanceSkinThemes() []AppearanceSkinTheme {
 	})
 	violet.Tokens.Components = appearanceSkinComponentPreset(7, 7, 12, 14, 9, 4)
 
-	studio.Tokens.Buttons = defaultAppearanceSkinButtons(false)
-	warm.Tokens.Buttons = defaultAppearanceSkinButtons(false)
-	violet.Tokens.Buttons = defaultAppearanceSkinButtons(false)
+	studio.Tokens.Buttons = defaultAppearanceSkinButtons()
+	warm.Tokens.Buttons = defaultAppearanceSkinButtons()
+	violet.Tokens.Buttons = defaultAppearanceSkinButtons()
 	return []AppearanceSkinTheme{classic, studio, warm, violet}
 }
 
@@ -203,17 +203,17 @@ func defaultClassicAppearanceSkin() AppearanceSkinTheme {
 				Control: "#ffffff", ControlHover: "#f5f5f5", ControlActive: "#ececec", ControlBorder: "#d1d1d1", ControlFocus: "#171717", ControlDisabledBackground: "#f2f2f2", ControlDisabledForeground: "#a3a3a3", SwitchChecked: "#16a34a", SwitchCheckedHover: "#15803d", SwitchCheckedHandle: "#ffffff", SwitchUnchecked: "#b8b8b8", SwitchUncheckedHover: "#9f9f9f", SwitchUncheckedHandle: "#ffffff",
 				Primary: "#171717", PrimaryHover: "#303030", PrimaryActive: "#404040", PrimaryForeground: "#ffffff", Selected: "#e8e8e8", SelectedHover: "#dedede", SelectedActive: "#d5d5d5", SelectedForeground: "#171717",
 				Icon: "#3f3f46", IconMuted: "#a1a1aa", IconActive: "#171717", Success: "#16a34a", Warning: "#d97706", Danger: "#dc2626", DangerHover: "#b91c1c", DangerActive: "#991b1b", DangerForeground: "#ffffff", Info: "#2563eb", Workspace: "#ffffff", WorkspaceGrid: "#f3f3f3",
-				AdminBackground: "#f3f4f6", AdminSurface: "#ffffff", AdminSubtle: "#f7f8fa", AdminStrong: "#eceff3", AuthBackground: "#ffffff", AuthPanel: "#f7f7f7", AuthCard: "#ffffff", AuthAccent: "#2563eb", AuthMuted: "#737373",
+				AdminBackground: "#f3f4f6", AdminSurface: "#ffffff", AdminSubtle: "#f7f8fa", AdminStrong: "#eceff3", AuthBackground: "#ffffff", AuthPanel: "#f7f7f7", AuthCard: "#ffffff", AuthAccent: "#171717", AuthMuted: "#737373",
 			},
 			Dark: AppearanceSkinModeTokens{
 				Canvas: "#0a0a0a", Surface: "#181818", SurfaceSubtle: "#202020", SurfaceRaised: "#2a2a2a", Overlay: "#1f1f20", Text: "#f5f5f5", TextMuted: "#a3a3a3", Border: "#2d2d2d",
 				Control: "#202020", ControlHover: "#292929", ControlActive: "#333333", ControlBorder: "#4a4a4a", ControlFocus: "#f5f5f5", ControlDisabledBackground: "#252525", ControlDisabledForeground: "#737373", SwitchChecked: "#22c55e", SwitchCheckedHover: "#4ade80", SwitchCheckedHandle: "#071a0f", SwitchUnchecked: "#525252", SwitchUncheckedHover: "#686868", SwitchUncheckedHandle: "#f5f5f5",
 				Primary: "#f5f5f5", PrimaryHover: "#ffffff", PrimaryActive: "#e5e5e5", PrimaryForeground: "#171717", Selected: "#2b2b2b", SelectedHover: "#343434", SelectedActive: "#3d3d3d", SelectedForeground: "#f5f5f5",
 				Icon: "#d4d4d8", IconMuted: "#71717a", IconActive: "#ffffff", Success: "#4ade80", Warning: "#fbbf24", Danger: "#f87171", DangerHover: "#fca5a5", DangerActive: "#ef4444", DangerForeground: "#2b0808", Info: "#60a5fa", Workspace: "#181818", WorkspaceGrid: "#222222",
-				AdminBackground: "#101010", AdminSurface: "#181818", AdminSubtle: "#202020", AdminStrong: "#2a2a2a", AuthBackground: "#08090c", AuthPanel: "#0b0c10", AuthCard: "#121318", AuthAccent: "#93c5fd", AuthMuted: "#8a8b91",
+				AdminBackground: "#101010", AdminSurface: "#181818", AdminSubtle: "#202020", AdminStrong: "#2a2a2a", AuthBackground: "#08090c", AuthPanel: "#0b0c10", AuthCard: "#121318", AuthAccent: "#f5f5f5", AuthMuted: "#8a8b91",
 			},
 			Components: appearanceSkinComponentPreset(6, 6, 12, 12, 8, 4),
-			Buttons:    defaultAppearanceSkinButtons(true),
+			Buttons:    defaultAppearanceSkinButtons(),
 		},
 	}
 }
@@ -279,7 +279,7 @@ func normalizeAppearanceSkinThemes(themes []AppearanceSkinTheme) []AppearanceSki
 		// Only a wholly absent legacy button block is upgraded. Partial or
 		// malformed submitted parameters remain invalid on the write path.
 		if result[index].Tokens.Buttons == (AppearanceSkinButtons{}) {
-			result[index].Tokens.Buttons = defaultAppearanceSkinButtons(result[index].Locked)
+			result[index].Tokens.Buttons = defaultAppearanceSkinButtons()
 		}
 		var fallback AppearanceSkinTokens
 		for _, builtin := range builtins {

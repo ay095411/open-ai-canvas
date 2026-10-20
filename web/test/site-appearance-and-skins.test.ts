@@ -24,7 +24,8 @@ describe("site appearance and editable skin library", () => {
         applySkinTheme(DEFAULT_CLASSIC_SKIN, "light", target);
         expect(removed.length).toBeGreaterThan(60);
         expect(assigned.size).toBe(4);
-        expect(assigned.get("--button-primary-bg")).toBe("linear-gradient(115deg, #6554df, #386fbc)");
+        // 项目默认按钮填充是「跟随皮肤 primary 的纯色」（classic 近黑 #171717），不再用蓝紫渐变。
+        expect(assigned.get("--button-primary-bg")).toBe("#171717");
         expect(assigned.has("--background")).toBe(false);
         expect(target.documentElement.dataset.skin).toBe("classic");
     });
