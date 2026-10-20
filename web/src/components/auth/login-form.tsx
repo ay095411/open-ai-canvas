@@ -74,7 +74,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
      * 尾部看上去像没收住。
      */
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-2.5">
             {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} className="bg-white/5 border border-white/5" />}
             {method !== "password" ? <VerificationFields key={method} purpose="login" method={method} value={verification} onChange={setVerification} disabled={submitting} /> : <>
                 <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4 text-white/40" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
@@ -87,7 +87,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     忘记密码？
                 </Link>
             </div>
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0 mt-2">
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0 mt-1">
                 登录并进入创作
             </Button>
             {/* 第三方登录不再配「或」分隔线：只有两个区块时，一条分割线带来的

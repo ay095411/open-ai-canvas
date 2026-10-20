@@ -13,12 +13,14 @@
 .workspace-auth-frame {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* 左宽右窄：左侧是品牌影片，宽一点更有画面感；右侧表单本身不需要那么宽，
+       收窄后输入框仍是单列、不会挤，反而让两栏比例更接近参考图的横版卡片。 */
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
     /* 高度固定，不跟表单内容走：登录 / 注册 / 找回密码三张表单高度差很多，
        跟着内容走弹窗会一跳一跳的。装不下时由右侧滚动区接管。
-       760px 是按「注册表单（含首个管理员提示 + 验证方式切换）不滚动就能看全」定的；
+       700px 是按「注册表单（含首个管理员提示 + 验证方式切换）不滚动就能看全」定的；
        视口更矮时退到 calc(100dvh - 40px)，上下各留 20px 呼吸位。 */
-    height: min(760px, calc(100dvh - 40px));
+    height: min(700px, calc(100dvh - 40px));
     overflow: hidden;
     border-radius: 16px;
     background: var(--user-surface, var(--background));
@@ -195,8 +197,11 @@
        不认 safe 关键字的浏览器退回上一行的 center。 */
     justify-content: center;
     justify-content: safe center;
-    gap: 18px;
-    padding: 40px clamp(20px, 4.2%, 44px) 32px;
+    gap: 16px;
+    /* 上下留白只给到「不贴边」的程度：内容比容器矮时由 safe center 居中，
+       这层 padding 只在内容撑满时起作用，所以它实际决定了「最齐注册表单」
+       能不能一屏放下。40/32 会让提交按钮掉到折线以下，多出一屏滚动。 */
+    padding: 18px clamp(20px, 4.2%, 44px);
     overflow-y: auto;
 }
 
@@ -248,8 +253,8 @@
     .workspace-auth-frame {
         grid-template-columns: minmax(0, 1fr);
         /* 窄屏单列：媒体在上、表单在下，同样给固定高度，溢出走滚动。
-           单列时表单被媒体挤走了一块高度，所以上限给得更宽一点。 */
-        height: min(780px, calc(100dvh - 24px));
+           单列时表单被媒体挤走了一块高度，所以上限比横版更宽一点。 */
+        height: min(730px, calc(100dvh - 24px));
     }
 
     .workspace-auth-media {
