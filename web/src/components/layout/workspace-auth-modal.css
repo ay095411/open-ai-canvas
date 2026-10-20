@@ -225,11 +225,14 @@
     margin: 0;
     overflow: hidden;
     color: var(--user-ink, var(--foreground));
-    /* 20px 是能给到的上限：切换条本身 34px 高，标题行高 26px 不额外撑高这一行，
-       再大就会大于切换条、把顶栏顶高。 */
-    font-size: 20px;
+    /* 品牌展示体 Fredoka（SIL OFL 1.1，`main.tsx` 已引入、`--font-brand` 里配好回落）。
+       圆几何、开圆角，拉丁字母在这个尺寸下比正文体有辨识度得多；中文字符没有覆盖，
+       会按 `--font-brand` 的回落落到 --font-sans，不会出现豆腐块。
+       22px 仍是「不撑高这一行」的上限：行高 28.6px < 切换条 34px。 */
+    font-family: var(--font-brand);
+    font-size: 22px;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     line-height: 1.3;
     /* 项目名由后台配置，长起来不该把切换条挤走：单行省略，完整值在 title 属性里。 */
     text-overflow: ellipsis;
