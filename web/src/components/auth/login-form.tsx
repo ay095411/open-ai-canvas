@@ -7,6 +7,7 @@ import { getAuthSession, getAuthSettings, linuxDOLoginURL, login } from "@/servi
 import { LinuxDOIcon } from "@/components/auth/linuxdo-icon";
 import { VerificationFields } from "@/components/auth/verification-fields";
 import { emptyVerification, loginVerification, methodLabels, verificationMethods, type VerificationMethod } from "@/services/api/verification";
+import { interceptAuthLink } from "@/lib/workspace-auth";
 
 /**
  * 登录表单本体。
@@ -17,7 +18,7 @@ import { emptyVerification, loginVerification, methodLabels, verificationMethods
  * - 「忘记密码？」要离开弹窗，找回密码仍是独立页，所以点它时先 `onClose()`；
  * - 「已登录就别再看这张表单」的兜底也上移到宿主（那是弹窗的开关语义，不是表单的）。
  */
-export function LoginForm({ next, onSuccess, onClose }: { next: string; onSuccess: () => void; onClose?: () => void }) {
+export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => void }) {
     const [params] = useSearchParams();
     const { message } = App.useApp();
     const [username, setUsername] = useState("");
@@ -80,7 +81,9 @@ export function LoginForm({ next, onSuccess, onClose }: { next: string; onSucces
                 <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
             </>}
             <div className="-my-1 flex justify-end">
-                <Link to={forgotPasswordURL} onClick={onClose} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors text-white/50 hover:text-white/90">
+                {/* 就地切到找回密码表单：`/forgot-password` 是空壳路由，真跳过去会卸载
+                    整棵页面树再被宿主换回来（空白几帧）。href 保留给中键 / 新标签页。 */}
+                <Link to={forgotPasswordURL} onClick={(event) => interceptAuthLink(event, { mode: "recovery", next })} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors text-white/50 hover:text-white/90">
                     忘记密码？
                 </Link>
             </div>

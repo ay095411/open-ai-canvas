@@ -1,8 +1,8 @@
 import { App } from "antd";
 import { useState } from "react";
-import { useNavigate } from "react-router";
 
 import { applyUserSession } from "@/lib/user-session";
+import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { logout } from "@/services/api/auth";
 
 /**
@@ -10,7 +10,6 @@ import { logout } from "@/services/api/auth";
  * 写路径强校验：失败必须明确提示，不得静默吞错。
  */
 export function useWorkspaceLogout() {
-    const navigate = useNavigate();
     const { message } = App.useApp();
     const [loggingOut, setLoggingOut] = useState(false);
 
@@ -21,7 +20,8 @@ export function useWorkspaceLogout() {
             await logout();
             await applyUserSession({ user: null });
             message.success("已退出登录");
-            navigate("/login", { replace: true });
+            // 走事件而不是 `navigate("/login")`：跳转会让整页卸载重建，空白几帧看得见。
+            openWorkspaceAuth();
         } catch (error) {
             message.error(error instanceof Error ? error.message : "退出失败");
         } finally {

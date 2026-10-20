@@ -7,7 +7,7 @@ import { getAuthSettings, resetPassword, sendPasswordResetEmailCode } from "@/se
 
 type RecoveryStage = "request" | "reset";
 
-export default function ForgotPasswordPage() {
+export default function ForgotPasswordPage({ next: nextProp }: { next?: string } = {}) {
     const navigate = useNavigate();
     const [params] = useSearchParams();
     const { message } = App.useApp();
@@ -20,7 +20,9 @@ export default function ForgotPasswordPage() {
     const [sendingCode, setSendingCode] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [countdown, setCountdown] = useState(0);
-    const next = safeNext(params.get("next"));
+    // 就地切到找回密码表单时 URL 还停在原页面，只能由弹窗宿主把 next 传进来；
+    // 直接访问 `/forgot-password?next=…` 深链时仍从查询参数取。
+    const next = safeNext(nextProp ?? params.get("next"));
     const loginURL = `/login?next=${encodeURIComponent(next)}`;
 
     useEffect(() => {

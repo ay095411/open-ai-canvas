@@ -15,8 +15,10 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     /* 高度固定，不跟表单内容走：登录 / 注册 / 找回密码三张表单高度差很多，
-       跟着内容走弹窗会一跳一跳的。装不下时由右侧滚动区接管。 */
-    height: min(620px, calc(100dvh - 48px));
+       跟着内容走弹窗会一跳一跳的。装不下时由右侧滚动区接管。
+       760px 是按「注册表单（含首个管理员提示 + 验证方式切换）不滚动就能看全」定的；
+       视口更矮时退到 calc(100dvh - 40px)，上下各留 20px 呼吸位。 */
+    height: min(760px, calc(100dvh - 40px));
     overflow: hidden;
     border-radius: 16px;
     background: var(--user-surface, var(--background));
@@ -135,8 +137,12 @@
 .workspace-auth-pane {
     position: relative;
     display: flex;
+    /* 网格子项默认 min-height: auto，内容比行高时会把面板顶出弹窗、被父级裁掉
+       （表现为「表单下面几行看不到也滚不到」）。必须显式归零，滚动才交给 .workspace-auth-scroll。 */
     min-width: 0;
+    min-height: 0;
     flex-direction: column;
+    overflow: hidden;
     background: var(--user-surface, var(--background));
     color: var(--user-ink, var(--foreground));
 }
@@ -184,9 +190,13 @@
     flex: 1;
     min-height: 0;
     flex-direction: column;
+    /* `safe center` 不能省：内容比容器高时，普通 center 会把顶部推到滚动区之外，
+       表单最上面几行永远滚不到（窄屏 / 缩放时就是「表单显示不全」的那种半边问题）。
+       不认 safe 关键字的浏览器退回上一行的 center。 */
     justify-content: center;
+    justify-content: safe center;
     gap: 18px;
-    padding: 52px clamp(20px, 5%, 40px) 32px;
+    padding: 40px clamp(20px, 4.2%, 44px) 32px;
     overflow-y: auto;
 }
 
@@ -237,8 +247,9 @@
 @media (max-width: 820px) {
     .workspace-auth-frame {
         grid-template-columns: minmax(0, 1fr);
-        /* 窄屏单列：媒体在上、表单在下，同样给固定高度，溢出走滚动。 */
-        height: min(720px, calc(100dvh - 32px));
+        /* 窄屏单列：媒体在上、表单在下，同样给固定高度，溢出走滚动。
+           单列时表单被媒体挤走了一块高度，所以上限给得更宽一点。 */
+        height: min(780px, calc(100dvh - 24px));
     }
 
     .workspace-auth-media {

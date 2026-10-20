@@ -11,6 +11,7 @@ import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-par
 import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
 import { declaredInspirationSources } from "@/lib/inspirations/catalog";
 import { getActiveUserScope } from "@/lib/user-scope";
+import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useExternalAssetSources } from "@/hooks/use-external-asset-sources";
 import { modelCapabilityConfigFor, normalizeImageValue, normalizeVideoValue, videoDurationAllowed, videoDurationOptions } from "@/lib/model-capabilities";
@@ -74,10 +75,13 @@ export default function CreatePage() {
     const user = useUserStore((state) => state.user);
     const inspirationSourcesVisible = useUserStore((state) => state.features.inspirationSourcesVisible);
     // 创作首页对游客开放（浏览模型目录、通知与公告），
-    // 但创作 / Agent / 参考内容 / 历史对话都需要登录；统一从这里跳登录页并携带回跳地址。
+    // 但创作 / Agent / 参考内容 / 历史对话都需要登录；统一从这里打开登录弹窗并携带回跳地址。
     const openLogin = useCallback(() => {
-        navigate(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-    }, [location.pathname, location.search, navigate]);
+        // 派发事件打开弹窗，**不要** `navigate("/login")`：`/login` 只是一个空壳路由，
+        // 宿主接住地址后再把 URL 换回来，这一来一回会卸载并重建整棵页面树
+        // （实测有 4 帧主内容缺失），观感就是「闪一下」。
+        openWorkspaceAuth({ next: `${location.pathname}${location.search}` });
+    }, [location.pathname, location.search]);
     const [openingCanvas, setOpeningCanvas] = useState(false);
     const openingCanvasRef = useRef(false);
     const brandName = useAppearanceStore((state) => state.appearance.brandName);

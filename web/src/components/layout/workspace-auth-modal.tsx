@@ -7,6 +7,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
+import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -108,8 +109,12 @@ export function WorkspaceAuthHost() {
             mode: modeOfPathname(pathname),
             next: safeAuthNext(params.get("next")),
         });
-        navigate(returnToRef.current, { replace: true });
-    }, [navigate, pathname, search]);
+        // 回跳目标必须是游客也能停留的页面。若它本身要登录（例如 `/tasks` 被 RequireAuth
+        // 弹到 `/login`），这里再把 URL 换回去就会立刻被弹回 `/login`，与本次「换回来」
+        // 凑成来回跳转的死循环——实测页面会卡住、持续闪烁。此时落回首页。
+        const target = returnToRef.current;
+        navigate(user || isGuestWorkspacePath(target) ? target : "/", { replace: true });
+    }, [navigate, pathname, search, user]);
 
     // `next` 优先；没带就回到打开弹窗时所在的那一页。
     const next = state.next ?? returnToRef.current;
@@ -144,7 +149,8 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
             centered
             // 参考图是左右等分的横版卡片（约 1.5:1）。高度固定，不跟表单内容走：
             // 登录 / 注册 / 找回密码三张表单高度差很多，跟着内容走弹窗会一跳一跳的。
-            width="min(1040px, calc(100vw - 32px))"
+            // 宽度与高度都按「注册表单不用滚就能一次看全」定的，见 workspace-auth-modal.css。
+            width="min(1120px, calc(100vw - 32px))"
             rootClassName="workspace-auth-modal"
             onCancel={onClose}
         >
@@ -180,10 +186,11 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
                             弹窗与登录页因此共用同一套样式，不必再维护第二份。 */}
                         <div className="auth-scene-card">
                             {mode === "login" ? (
-                                <LoginForm next={next} onSuccess={onSuccess} onClose={onClose} />
+                                <LoginForm next={next} onSuccess={onSuccess} />
                             ) : mode === "recovery" ? (
                                 // 找回密码成功后自己会跳 `/login?next=…`，宿主接住它就回到登录表单。
-                                <ForgotPasswordPage />
+                                // next 必须显式传：就地切模式时 URL 还停在原页面，查询参数里没有它。
+                                <ForgotPasswordPage next={next} />
                             ) : (
                                 <RegisterForm next={next} onSuccess={onSuccess} />
                             )}
