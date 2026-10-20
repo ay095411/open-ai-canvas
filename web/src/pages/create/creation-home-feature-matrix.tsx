@@ -3,6 +3,7 @@ import { useReducedMotion } from "motion/react";
 import { useNavigate } from "react-router";
 
 import { useAmbientVideoPlayback } from "@/hooks/use-ambient-video-playback";
+import { mayNavigateWithAuth } from "@/lib/guard-navigation";
 import "./creation-home-feature-matrix.css";
 
 interface CreationHomeFeatureMatrixProps {
@@ -143,7 +144,11 @@ export function CreationHomeFeatureMatrix({
                     <div className="creation-capability-list">
                         {capabilities.map((capability) => {
                             const Icon = capability.icon;
-                            const openCapability = () => navigate(capability.route);
+                            // 四张卡的目标页（/skills /assets /plugins /tasks）全要登录：
+                            // 未登录时由闸门换成弹登录框，别先跳过去再被 RequireAuth 弹回来。
+                            const openCapability = () => {
+                                if (mayNavigateWithAuth(capability.route)) navigate(capability.route);
+                            };
                             return (
                                 <div
                                     key={capability.route}

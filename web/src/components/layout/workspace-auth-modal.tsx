@@ -7,6 +7,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
+import { isProtectedWorkspacePath } from "@/lib/guest-workspace";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -98,6 +99,37 @@ export function WorkspaceAuthHost() {
         };
         window.addEventListener(WORKSPACE_AUTH_OPEN_EVENT, handleOpen);
         return () => window.removeEventListener(WORKSPACE_AUTH_OPEN_EVENT, handleOpen);
+    }, []);
+
+    /**
+     * 点向「要登录才能看的页面」的链接，在**导航发生前**截住。
+     *
+     * 不拦的话链路是这样的：`pushState /skills` → `RequireAuth` 拦下 → `replaceState
+     * /login?next=%2Fskills` → 本宿主接住地址 → `replaceState /`。实测 32ms 内 5 次 history
+     * 变更，`UserLayout` 整棵（含侧栏）卸载重建，主内容有 2 帧是空的——这就是用户说的「闪烁」。
+     *
+     * 拦下来之后一步导航都不发生：弹窗直接盖在当前页上，登录成功后按 `next` 去原本要去的页面。
+     * capture 阶段挂在 document 上：要比 React 的事件委托（挂在根容器）更早，
+     * 这样 `preventDefault()` 能让 react-router 的 `<Link>` 处理器直接放弃导航。
+     */
+    useEffect(() => {
+        const handleClick = (event: MouseEvent) => {
+            // 中键 / Ctrl+点击 / 右键一律放行：那些是「在新标签页打开」的语义。
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const anchor = (event.target as Element | null)?.closest?.("a[href]");
+            if (!(anchor instanceof HTMLAnchorElement)) return;
+            if (anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
+            const url = new URL(anchor.href, window.location.href);
+            if (url.origin !== window.location.origin) return;
+            if (!isProtectedWorkspacePath(url.pathname)) return;
+            const { hydrated, user } = useUserStore.getState();
+            // 还没水合完就交给 RequireAuth 决定（它会先显示 loading），已登录则照常放行。
+            if (!hydrated || user) return;
+            event.preventDefault();
+            openWorkspaceAuth({ next: `${url.pathname}${url.search}${url.hash}` });
+        };
+        document.addEventListener("click", handleClick, true);
+        return () => document.removeEventListener("click", handleClick, true);
     }, []);
 
     useEffect(() => {
