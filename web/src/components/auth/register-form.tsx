@@ -131,24 +131,26 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
             {/* 显示名称不再在注册时收集：它和用户名 90% 的情况下是同一个词，
                 多一个框只换来一次「要不要改昵称」的犹豫。后端
                 NormalizeDisplayName 在空值时回退成用户名，不传即可。 */}
+            {/* 输入框的配色由 globals.css 的 `.auth-scene-card` 段按主题给出，不要在这里挂
+                `text-white` / `bg-white/5`：它们是旧独立注册页（深色）的遗留，那段选择器用了
+                `:where()`（特异性 0），浅色主题下会被工具类反过来盖成白底白字。 */}
             <AuthField label="用户名">
-                <Input size="large" prefix={<UserRound className="auth-scene-icon size-4 text-white/40" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
+                <Input size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} />
             </AuthField>
 
             {settings?.firstUser ? <AuthField label="邮箱（可选）">
                 <Input
                     size="large"
-                    prefix={<Mail className="auth-scene-icon size-4 text-white/40" />}
+                    prefix={<Mail className="auth-scene-icon size-4" />}
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="用于登录与安全验证"
                     autoComplete="email"
                     required={!settings?.firstUser}
                     disabled={disabled}
-                    className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30"
                 />
             </AuthField> : <>
-                {methods.length > 1 && <Segmented block aria-label="注册验证方式" options={methods.map((value) => ({ value, label: methodLabels[value] }))} value={method} disabled={submitting} onChange={(value) => { setMethod(value as VerificationMethod); setVerification({ ...emptyVerification }); }} className="bg-white/5 border border-white/5" />}
+                {methods.length > 1 && <Segmented block aria-label="注册验证方式" options={methods.map((value) => ({ value, label: methodLabels[value] }))} value={method} disabled={submitting} onChange={(value) => { setMethod(value as VerificationMethod); setVerification({ ...emptyVerification }); }} />}
                 {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
             </>}
 
@@ -157,27 +159,25 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
             <AuthField label="密码">
                 <Input.Password
                     size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />}
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="至少 8 位"
                     autoComplete="new-password"
                     required
                     disabled={disabled}
-                    className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30"
                 />
             </AuthField>
             <AuthField label="确认密码">
                 <Input.Password
                     size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />}
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="再次输入密码"
                     autoComplete="new-password"
                     required
                     disabled={disabled}
-                    className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30"
                 />
             </AuthField>
 

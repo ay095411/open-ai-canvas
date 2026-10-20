@@ -75,10 +75,13 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
      */
     return (
         <form onSubmit={submit} className="flex flex-col gap-2.5">
-            {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} className="bg-white/5 border border-white/5" />}
+            {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} />}
             {method !== "password" ? <VerificationFields key={method} purpose="login" method={method} value={verification} onChange={setVerification} disabled={submitting} /> : <>
-                <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4 text-white/40" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
-                <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
+                {/* 输入框的底色 / 描边 / 文字色 / 占位符全部由 globals.css 的 `.auth-scene-card` 段按主题给出，
+                    这里不要再挂 `text-white`、`bg-white/5` 这类工具类：它们是旧独立登录页（深色）的遗留，
+                    而那段选择器用了 `:where()`（特异性 0），浅色主题下会被工具类反过来盖成白底白字。 */}
+                <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required />
+                <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required />
             </>}
             <div className="-my-1 flex justify-end">
                 {/* 就地切到找回密码表单：`/forgot-password` 是空壳路由，真跳过去会卸载

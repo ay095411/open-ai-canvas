@@ -18321,9 +18321,29 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     background: var(--auth-card-bg) !important;
     box-shadow: none !important;
     font-size: 14px !important;
+    /* 文字色必须显式给，而且必须待在 !important 里：这条选择器用了 `:where()`，
+       特异性是 0，与表单上残留的单个工具类（`text-white`，旧独立登录页是深色的）
+       打平后跟着级联走，实测输掉了——浅色主题下就是白底白字、对比度 1:1，
+       用户只看得见占位符，一输入就像输入框被清空了。 */
+    color: var(--foreground) !important;
     transition:
         border-color var(--motion-instant) ease-out,
         box-shadow var(--motion-instant) ease-out !important;
+}
+
+/* 禁用态（注册关闭 / 没有可用验证方式）：antd 给的「灰底 + 弱文字」被上面那两条
+   !important 一起盖掉了——底色被强制成卡片白、文字色被强制成前景色，于是
+   「不能输入的框」和「能输入的框」长得一模一样，用户只会觉得点了没反应。
+   这里把禁用态压回一档：淡底、8% 描边、50% 文字、禁用光标。 */
+.auth-scene-card :where(.ant-input[disabled], .ant-input-disabled, .ant-input-affix-wrapper-disabled) {
+    border-color: color-mix(in srgb, var(--foreground) 8%, transparent) !important;
+    background: color-mix(in srgb, var(--foreground) 4%, var(--auth-card-bg)) !important;
+    cursor: not-allowed;
+}
+
+.auth-scene-card :where(.ant-input[disabled], .ant-input-disabled, .ant-input-affix-wrapper-disabled),
+.auth-scene-card .ant-input-affix-wrapper-disabled > .ant-input {
+    color: color-mix(in srgb, var(--foreground) 50%, transparent) !important;
 }
 
 .auth-scene-card .ant-input-affix-wrapper { gap: 8px; }
@@ -18354,6 +18374,47 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     height: 16px;
     stroke-width: 1.7;
     color: var(--auth-muted);
+}
+
+/* 密码框的「眼睛」图标自己没有颜色，继承的是 wrapper（同样被 `text-white` 刷白过），
+   浅色主题下和白底融成一片，等于没有这个开关。 */
+.auth-scene-card .ant-input-password-icon {
+    color: var(--auth-muted) !important;
+}
+
+.auth-scene-card .ant-input-password-icon:hover {
+    color: var(--foreground) !important;
+}
+
+/* 验证方式切换（短信 / 邮件）：未选中项取的是 antd 的 36% 前景色——浅色下 2.3:1、
+   深色下 3.5:1，都到不了可读；轨道本身又被 `bg-white/5` 刷成几乎透明，
+   在浅色里和白底连成一片，整行像一段灰字而不是一个可点的切换器。
+   这里按 `.auth-card-tabs` 那套「凹陷轨道 + 浮起选中项」补齐两个主题的取值。 */
+.auth-scene-card .ant-segmented {
+    border-color: transparent !important;
+    background: color-mix(in srgb, var(--foreground) 5.5%, transparent) !important;
+}
+
+.auth-scene-card .ant-segmented-item,
+.auth-scene-card .ant-segmented-item-label {
+    color: var(--auth-muted) !important;
+}
+
+/* 底色只画在 item 上：label 铺满整个 item，再给它上底色会盖掉圆角（看起来是个方角块）。 */
+.auth-scene-card .ant-segmented-item-selected {
+    background: var(--auth-card-bg) !important;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.auth-scene-card .ant-segmented-item-selected,
+.auth-scene-card .ant-segmented-item-selected .ant-segmented-item-label {
+    color: var(--foreground) !important;
+}
+
+/* 深色下卡片底比轨道暗，选中项继续取卡片底色会读成「轨道里凹下去一个洞」，
+   与浅色主题「选中项浮起」的方向相反；提亮一档保持同一种读法。 */
+.dark .auth-scene-card .ant-segmented-item-selected {
+    background: color-mix(in srgb, var(--foreground) 12%, var(--auth-card-bg)) !important;
 }
 
 .auth-scene-card input::placeholder {
