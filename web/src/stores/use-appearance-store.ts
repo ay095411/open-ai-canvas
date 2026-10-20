@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { DEFAULT_CANVAS_APPEARANCE } from "@/lib/canvas/agent-appearance";
 import { DEFAULT_UPDATE_ANNOUNCEMENT, normalizeUpdateAnnouncement } from "@/lib/update-announcement";
 
-import type { PublicAppearance } from "@/services/api/appearance";
+import type { PublicAppearance, PublicAppearanceCarouselItem } from "@/services/api/appearance";
 import { applySkinTheme, DEFAULT_CLASSIC_SKIN, normalizeSkinDefinition } from "@/lib/skin-themes";
 
 export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
@@ -19,6 +19,7 @@ schemaVersion: 10,
     authVideoUrl: "/auth/login-hero.mp4",
     authVideoPosterUrl: "/auth/login-hero-poster.jpg",
     authVideoAutoplay: true,
+    authCarousel: [],
     skinId: "classic",
     activeSkin: DEFAULT_CLASSIC_SKIN,
     seoTitle: "Navo AI",
@@ -47,6 +48,25 @@ export const useAppearanceStore = create<AppearanceStore>((set) => ({
     resolved: false,
     setAppearance: (appearance) => set({ appearance, resolved: true }),
 }));
+
+/**
+ * 轮播条目来自后端，形状不可信：地址不合法或为空的直接丢掉，
+ * 否则弹窗左侧会出现一整屏空白（比少一张严重得多）。
+ */
+export function normalizeAppearanceCarousel(items?: PublicAppearanceCarouselItem[] | null): PublicAppearanceCarouselItem[] {
+    if (!Array.isArray(items)) return [];
+    return items
+        .filter((item) => item && typeof item.url === "string")
+        .map((item) => ({
+            id: String(item.id ?? "").trim(),
+            kind: item.kind === "video" ? ("video" as const) : ("image" as const),
+            url: safeAppearanceURL(item.url, ""),
+            posterUrl: safeAppearanceURL(item.posterUrl, ""),
+            title: String(item.title ?? "").trim(),
+            subtitle: String(item.subtitle ?? "").trim(),
+        }))
+        .filter((item) => item.url);
+}
 
 export function normalizePublicAppearance(value?: Partial<PublicAppearance> | null): PublicAppearance {
     const brandName = String(value?.brandName || "").trim();
@@ -79,6 +99,7 @@ export function normalizePublicAppearance(value?: Partial<PublicAppearance> | nu
         authVideoUrl: safeAppearanceURL(value?.authVideoUrl, DEFAULT_PUBLIC_APPEARANCE.authVideoUrl),
         authVideoPosterUrl: safeAppearanceURL(value?.authVideoPosterUrl, customVideo ? "" : DEFAULT_PUBLIC_APPEARANCE.authVideoPosterUrl),
         authVideoAutoplay: value?.authVideoAutoplay !== false,
+        authCarousel: normalizeAppearanceCarousel(value?.authCarousel),
         skinId: normalizeSkinDefinition(value?.activeSkin).id,
         activeSkin: normalizeSkinDefinition(value?.activeSkin),
         seoTitle,

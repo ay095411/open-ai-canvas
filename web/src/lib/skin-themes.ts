@@ -13,11 +13,15 @@ export type SkinButtonFill = {
     foreground: string;
 };
 
-export const DEFAULT_BUTTON_GRADIENT: SkinButtonFill = {
-    mode: "gradient", angle: 115,
-    start: "#6554df", end: "#386fbc",
-    hoverStart: "#5744cf", hoverEnd: "#356bbb",
-    activeStart: "#4938b8", activeEnd: "#2c5da5", foreground: "#ffffff",
+/**
+ * 项目默认的按钮填充：跟随皮肤的 primary token（classic 为近黑 #171717，深色 #f5f5f5），
+ * 不再用蓝色做主题。start/end 系列仅在管理员把模式切回「渐变」时作为兜底色值保留。
+ */
+export const DEFAULT_BUTTON_FILL: SkinButtonFill = {
+    mode: "solid", angle: 115,
+    start: "#171717", end: "#171717",
+    hoverStart: "#303030", hoverEnd: "#303030",
+    activeStart: "#404040", activeEnd: "#404040", foreground: "#ffffff",
 };
 
 export const SKIN_BUTTON_COLOR_FIELDS = [
@@ -343,7 +347,7 @@ export const DEFAULT_CLASSIC_SKIN: SkinDefinition = {
             authBackground: "#ffffff",
             authPanel: "#f7f7f7",
             authCard: "#ffffff",
-            authAccent: "#2563eb",
+            authAccent: "#171717",
             authMuted: "#737373",
         },
         dark: {
@@ -395,10 +399,10 @@ export const DEFAULT_CLASSIC_SKIN: SkinDefinition = {
             authBackground: "#08090c",
             authPanel: "#0b0c10",
             authCard: "#121318",
-            authAccent: "#93c5fd",
+            authAccent: "#f5f5f5",
             authMuted: "#8a8b91",
         },
-        buttons: { light: { ...DEFAULT_BUTTON_GRADIENT }, dark: { ...DEFAULT_BUTTON_GRADIENT } },
+        buttons: { light: { ...DEFAULT_BUTTON_FILL }, dark: { ...DEFAULT_BUTTON_FILL } },
         components: {
             buttonRadius: 6,
             inputRadius: 6,
@@ -534,8 +538,8 @@ export function normalizeSkinDefinition(value: unknown, fallback: SkinDefinition
         description: typeof candidate.description === "string" ? candidate.description.trim().slice(0, 100) : fallback.description,
         locked: id === "classic",
         tokens: { light, dark, components: { ...modes.components }, buttons: {
-            light: normalizeButtonFill(modes.buttons?.light, id),
-            dark: normalizeButtonFill(modes.buttons?.dark, id),
+            light: normalizeButtonFill(modes.buttons?.light),
+            dark: normalizeButtonFill(modes.buttons?.dark),
         } },
     };
 }
@@ -705,12 +709,12 @@ export function isSkinButtonFill(value: unknown): value is SkinButtonFill {
         && SKIN_BUTTON_COLOR_FIELDS.every(({ key }) => typeof fill[key] === "string" && HEX_COLOR.test(fill[key]));
 }
 
-function normalizeButtonFill(value: unknown, skinID: string): SkinButtonFill {
-    return isSkinButtonFill(value) ? { ...value } : { ...DEFAULT_BUTTON_GRADIENT, mode: skinID === "classic" ? "gradient" : "solid" };
+function normalizeButtonFill(value: unknown): SkinButtonFill {
+    return isSkinButtonFill(value) ? { ...value } : { ...DEFAULT_BUTTON_FILL };
 }
 
 export function getSkinButtonAppearance(skin: SkinDefinition, mode: SkinThemeMode) {
-    const fill = normalizeButtonFill(skin.tokens.buttons?.[mode], skin.id);
+    const fill = normalizeButtonFill(skin.tokens.buttons?.[mode]);
     const color = skin.tokens[mode];
     const gradient = (start: string, end: string) => `linear-gradient(${fill.angle}deg, ${start}, ${end})`;
     return fill.mode === "gradient" ? {

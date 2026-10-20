@@ -3,7 +3,7 @@ import { ArrowUpRight, LogOut, Moon, RefreshCw, Settings, ShieldCheck, Sun } fro
 import { Link } from "react-router";
 
 import { AppChangelogButton } from "@/components/layout/app-changelog-modal";
-import { WorkspaceCreditGiftMark } from "@/components/layout/workspace-credit-gift-mark";
+import { WorkspaceCreditMark } from "@/components/layout/workspace-credit-mark";
 import { Switch } from "@/components/ui/base/switch";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
@@ -43,7 +43,7 @@ export function WorkspaceAccountCard({ onWallet, onNavigate }: { onWallet: () =>
             <em>{user.role === "admin" ? "管理员" : "创作者"}</em>
         </header>
         {creditsEnabled ? <div className="workspace-account-card-wallet">
-            <div className="workspace-account-card-balance"><span><WorkspaceCreditGiftMark className="is-compact" />可用积分</span><strong>{availableMicrocredits === null ? "—" : (availableMicrocredits / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}</strong></div>
+            <div className="workspace-account-card-balance"><span><WorkspaceCreditMark className="is-compact" />可用积分</span><strong>{availableMicrocredits === null ? "—" : (availableMicrocredits / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}</strong></div>
             {availableMicrocredits === null ? <Button size="small" loading={refreshing} icon={<RefreshCw />} onClick={() => void refresh()}>刷新余额</Button> : <button type="button" onClick={onWallet}>充值 / 兑换<ArrowUpRight /></button>}
         </div> : null}
         <div className="workspace-account-card-preferences">

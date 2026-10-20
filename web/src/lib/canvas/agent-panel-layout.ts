@@ -33,9 +33,22 @@ export function restoreAgentPanelLayout(raw: string | null, viewport: AgentPanel
     return clampAgentPanelLayout(fallback, viewport);
 }
 
+/**
+ * 默认窗口按视口比例给尺寸：宽度约占 26%、高度约占 90%，再收进可读区间。
+ *
+ * 参考的是画布内实测效果：1920×919 下约 500×827、贴右下 12px；
+ * 固定 420×640 在大屏上偏小，而写死大尺寸又会在 1366 笔记本上压住画布。
+ */
+const DEFAULT_WIDTH_RATIO = 0.26;
+const DEFAULT_HEIGHT_RATIO = 0.9;
+const DEFAULT_MIN_WIDTH = 420;
+const DEFAULT_MAX_WIDTH = 560;
+const DEFAULT_MIN_HEIGHT = 640;
+const DEFAULT_MAX_HEIGHT = 860;
+
 export function defaultAgentPanelLayout(viewport: AgentPanelViewport): AgentPanelLayout {
-    const width = 420;
-    const height = 640;
+    const width = clamp(Math.round(viewport.width * DEFAULT_WIDTH_RATIO), DEFAULT_MIN_WIDTH, DEFAULT_MAX_WIDTH);
+    const height = clamp(Math.round(viewport.height * DEFAULT_HEIGHT_RATIO), DEFAULT_MIN_HEIGHT, DEFAULT_MAX_HEIGHT);
     return clampAgentPanelLayout({ width, height, left: viewport.width - width - MARGIN, top: viewport.height - height - MARGIN }, viewport);
 }
 

@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 
-import { WorkspaceCreditGiftMark } from "@/components/layout/workspace-credit-gift-mark";
+import { WorkspaceCreditMark } from "@/components/layout/workspace-credit-mark";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { formatCredits } from "@/constant/credits";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
@@ -50,7 +50,7 @@ export function WorkspaceTopBarActions() {
                     aria-label={`可用积分 ${balanceLabel}，打开积分中心`}
                     onClick={() => openWorkspaceWallet()}
                 >
-                    {refreshing && availableMicrocredits === null ? <LoaderCircle className="app-workspace-topbar-credit-spinner" aria-hidden="true" /> : <WorkspaceCreditGiftMark className="is-compact" />}
+                    {refreshing && availableMicrocredits === null ? <LoaderCircle className="app-workspace-topbar-credit-spinner" aria-hidden="true" /> : <WorkspaceCreditMark className="is-compact" />}
                     <span className="app-workspace-topbar-credit-value" aria-hidden="true">{availableMicrocredits === null ? "--" : formatCredits(availableMicrocredits, 2)}</span>
                 </button>
             ) : null}

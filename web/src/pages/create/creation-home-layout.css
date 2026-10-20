@@ -1,0 +1,58 @@
+/* 创作页空态的外壳样式。
+   纵深图片画廊（首页轮播图）下线后，原来与它同处一个文件的规则只留下这里两块：
+   空态的排版方向，以及素材来源署名。
+
+   为什么还留着 flex-start：globals.css 里 .creation-empty-workspace 的默认是
+   justify-content: center（内容垂直居中）。画廊在的时候必须从顶部起排，否则画廊
+   会被居中挤到输入框下面；画廊走了之后这个起点仍然是设计上的选择——标题贴着顶部、
+   下面的内容顺序展开，不在高屏上悬到中间。 */
+
+.creation-home .creation-empty-workspace {
+    position: relative;
+    justify-content: flex-start;
+}
+
+/* main 是 flex: 1 0 auto，窗口不够高时要靠滚动，而不是把子项压扁。 */
+.creation-home .creation-empty-workspace > * {
+    flex-shrink: 0;
+}
+
+/* 素材来源署名：CC BY 4.0 要求可追溯，画廊形态下不再有灵感分区页脚。
+   受 features.inspirationSourcesVisible 控制，默认不渲染。 */
+.creation-inspiration-credit {
+    align-self: flex-end;
+    margin-top: var(--space-4);
+    max-width: min(62ch, 100%);
+    padding: 7px 10px;
+    border: 1px solid color-mix(in srgb, var(--user-ink, #fff) 16%, transparent);
+    border-radius: var(--r-md, 10px);
+    background: color-mix(in srgb, var(--user-surface, #101214) 86%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, #000 16%, transparent);
+    backdrop-filter: blur(10px);
+    color: var(--user-ink, #fff);
+    font-size: var(--fs-caption, 12px);
+    line-height: 1.6;
+}
+
+.creation-inspiration-credit summary {
+    cursor: pointer;
+    list-style: none;
+    opacity: 0.72;
+    transition: opacity var(--user-motion, 180ms) ease;
+}
+
+.creation-inspiration-credit summary:hover {
+    opacity: 1;
+}
+
+.creation-inspiration-credit summary::-webkit-details-marker {
+    display: none;
+}
+
+.creation-inspiration-credit p {
+    margin: 6px 0;
+}
+
+.creation-inspiration-credit a {
+    color: var(--creation-accent, var(--user-accent));
+}

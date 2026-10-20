@@ -4,6 +4,7 @@ FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS payment-package-build
 
 ARG GOPROXY=https://proxy.golang.org,direct
 ENV GOPROXY=$GOPROXY
+ENV GOTOOLCHAIN=auto
 
 RUN apk add --no-cache nodejs unzip zip
 
@@ -35,6 +36,7 @@ FROM golang:1.25-alpine AS backend-build
 
 ARG GOPROXY=https://proxy.golang.org,direct
 ENV GOPROXY=$GOPROXY
+ENV GOTOOLCHAIN=auto
 
 RUN apk add --no-cache build-base
 

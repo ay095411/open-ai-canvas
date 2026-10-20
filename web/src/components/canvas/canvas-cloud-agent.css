@@ -604,18 +604,17 @@
     text-align: center;
 }
 
+/* 默认形象改作品牌 N 徽标后，这个圆底只负责承托与投影；字形由 AgentAvatarMark 提供。 */
 .agent-welcome-orb {
-    display: inline-block;
+    display: inline-grid;
     width: 52px;
     height: 52px;
+    place-items: center;
     margin-bottom: var(--space-5);
+    border: 1px solid color-mix(in srgb, var(--agent-ink) 10%, transparent);
     border-radius: 50%;
-    background:
-        radial-gradient(circle at 32% 24%, var(--color-neutral-0), transparent 36%), radial-gradient(circle at 70% 80%, var(--palette-node-audio), transparent 64%),
-        radial-gradient(circle at 35% 65%, color-mix(in srgb, var(--agent-accent) 65%, var(--color-neutral-0)), var(--agent-accent));
-    box-shadow:
-        inset -4px -6px 14px color-mix(in srgb, var(--agent-accent) 28%, transparent),
-        0 8px 32px color-mix(in srgb, var(--agent-accent) 14%, transparent);
+    background: color-mix(in srgb, var(--agent-surface-base) 88%, transparent);
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--agent-accent) 12%, transparent);
 }
 
 .agent-welcome-intro h2 {
@@ -1727,13 +1726,9 @@
     cursor: grabbing;
 }
 
-.canvas-agent-launcher > .fluid-orb {
-    position: absolute;
-    top: 50%;
-    left: 50%;
+.canvas-agent-launcher > .agent-avatar-mark {
+    position: relative;
     z-index: 1;
-    margin: 0;
-    transform: translate(-50%, -50%);
 }
 
 .canvas-agent-launcher::before {
@@ -1750,7 +1745,7 @@
 
 .canvas-agent-launcher-label {
     position: absolute;
-    bottom: -17px;
+    bottom: -34px;
     left: 50%;
     padding: 3px 7px;
     border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
@@ -1775,6 +1770,45 @@
     display: none;
 }
 
+.canvas-agent-launcher.canvas-agent-launcher-media {
+    position: fixed;
+    overflow: visible;
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.canvas-agent-launcher-media::before {
+    display: none;
+}
+
+.canvas-agent-launcher-media > img,
+.canvas-agent-launcher-media > .canvas-agent-keyed-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.canvas-agent-launcher-media > .canvas-agent-keyed-video {
+    border-radius: 12px;
+    transform: scale(1.18);
+}
+
+.canvas-agent-keyed-video {
+    position: absolute;
+    inset: 0;
+}
+
+.canvas-agent-video-source {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .canvas-agent-launcher-status {
     position: absolute;
     top: 6px;
@@ -1785,6 +1819,11 @@
     border-radius: 50%;
     background: #57b786;
     box-shadow: 0 2px 7px rgba(23, 90, 61, 0.28);
+}
+
+.canvas-agent-launcher-media > .canvas-agent-launcher-status {
+    top: 28%;
+    right: 22%;
 }
 
 .canvas-agent-launcher-status.is-pending {

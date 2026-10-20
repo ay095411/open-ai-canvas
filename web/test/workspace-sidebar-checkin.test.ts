@@ -20,6 +20,23 @@ describe("sidebar checkin offer", () => {
 });
 
 describe("workspace sidebar checkin card", () => {
+    test("collapsed offer uses a centered credit coin instead of a clipped text label", () => {
+        const card = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-checkin.tsx"), "utf8");
+        const css = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
+        const collapsed = card.slice(card.indexOf("if (collapsed)"), card.indexOf("<aside"));
+        // 签到与可用积分共用同一枚金币标记，不再各用一套图标。
+        expect(collapsed).toContain("<WorkspaceCreditMark");
+        expect(collapsed).not.toContain("<Gift");
+        expect(collapsed).toContain("<LoaderCircle");
+        expect(collapsed).toContain("aria-busy={claiming}");
+        expect(collapsed).not.toContain(': "领"');
+        // 折叠态有两条同选择器规则（共用高度的一条 + 48px 方形按钮的一条），这里取后者。
+        const rule = css.match(/^\.app-user-workspace \.app-workspace-sidebar-checkin\.is-collapsed \{([^}]*width: 48px;[^}]*)\}/m)?.[1] || "";
+        expect(rule).toContain("justify-content: center;");
+        expect(rule).toContain("align-items: center;");
+        expect(rule).toContain("padding: 0;");
+        expect(rule).toContain("box-shadow: none;");
+    });
     test("sits above account storage and uses the claim card colors without a light-blue stage", () => {
         const sidebar = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-nav.tsx"), "utf8");
         const card = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-checkin.tsx"), "utf8");
@@ -33,7 +50,7 @@ describe("workspace sidebar checkin card", () => {
         expect(checkinIndex).toBeGreaterThan(-1);
         expect(storageIndex).toBeGreaterThan(checkinIndex);
         expect(card).toContain("立即领取");
-        expect(card).toContain("今日可领");
+        expect(card).toContain("今日<em>{amount}</em>积分");
         expect(card).toContain("checkinCredits()");
         expect(block).toContain("background: #fff;");
         expect(block).toContain("background: #171717;");

@@ -1,7 +1,8 @@
 import { App } from "antd";
-import { Gift, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
 
+import { WorkspaceCreditMark } from "@/components/layout/workspace-credit-mark";
 import { formatCredits } from "@/constant/credits";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { sidebarCheckinTitle, shouldShowSidebarCheckin } from "@/lib/sidebar-checkin";
@@ -68,7 +69,7 @@ export function WorkspaceTopBarCheckin() {
             data-claiming={claiming ? "true" : undefined}
             onClick={() => void claim()}
         >
-            {claiming ? <LoaderCircle className="animate-spin" aria-hidden /> : <Gift aria-hidden />}
+            {claiming ? <LoaderCircle className="animate-spin" aria-hidden /> : <WorkspaceCreditMark className="is-compact" />}
         </button>
     );
 }

@@ -5,7 +5,6 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { FullScreenLoader, WorkspaceRouteLoader } from "@/components/ui/aceternity/full-screen-loader";
 import { loadAssetsPage, loadCanvasPage, loadCanvasProjectPage, loadCreatePage, loadProjectDetailPage, loadProjectsPage } from "@/lib/workspace-route-modules";
 import { CanvasRefreshShell } from "@/pages/canvas/canvas-refresh-shell";
-import { AuthScene } from "@/pages/auth/auth-scene";
 import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 
@@ -40,9 +39,6 @@ const SystemPerformancePage = lazy(() => import("@/pages/admin/settings/system-p
 const StoryboardPromptsPage = lazy(() => import("@/pages/admin/storyboard-prompts/storyboard-prompts-page"));
 const UsersPage = lazy(() => import("@/pages/admin/users/users-page"));
 const AssetsPage = lazy(loadAssetsPage);
-const LoginPage = lazy(() => import("@/pages/auth/login"));
-const RegisterPage = lazy(() => import("@/pages/auth/register"));
-const ForgotPasswordPage = lazy(() => import("@/pages/auth/forgot-password"));
 const CanvasPage = lazy(loadCanvasPage);
 const CanvasProjectPage = lazy(loadCanvasProjectPage);
 const SharedCanvasPage = lazy(() => import("@/pages/canvas/shared"));
@@ -105,22 +101,24 @@ function devRoutes() {
     ];
 }
 
+/** 登录 / 注册不再是页面：这里只留空壳，界面由 `WorkspaceAuthHost` 顶成全局弹窗。 */
+function AuthRouteShell() {
+    return null;
+}
+
 export const router = createBrowserRouter([
-    {
-        element: <AuthScene />,
-        errorElement: <RouteErrorPage />,
-        children: [
-            { path: "/login", element: fullScreenDeferred(<LoginPage />) },
-            { path: "/register", element: fullScreenDeferred(<RegisterPage />) },
-            { path: "/forgot-password", element: fullScreenDeferred(<ForgotPasswordPage />) },
-        ],
-    },
     { path: "/share/canvas/:token", element: fullScreenDeferred(<SharedCanvasPage />), errorElement: <RouteErrorPage /> },
     ...(import.meta.env.DEV ? devRoutes() : []),
     {
         element: <WorkspaceLayout />,
         errorElement: <RouteErrorPage />,
         children: [
+            // `/login` `/register` 只是「把登录弹窗顶起来」的深链：渲染空壳，由
+            // `WorkspaceAuthHost` 接住地址、开弹窗，再把 URL 换回打开前那一页。
+            // 必须放在 WorkspaceLayout 分支里——弹窗宿主挂在工作台外壳上。
+            { path: "/login", element: <AuthRouteShell /> },
+            { path: "/register", element: <AuthRouteShell /> },
+            { path: "/forgot-password", element: <AuthRouteShell /> },
             // 创作首页对游客开放：可看模型目录、常驻通知与公告；
             // 页面内的创作 / Agent / 参考内容 / 历史对话动作在组件内做登录门。
             { path: "/", element: deferred(<CreatePage />) },

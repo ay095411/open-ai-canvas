@@ -39,11 +39,11 @@ docker compose -f docker-compose.deploy.yml logs --since=15m -f backend
 - 创建 `.local/cache/go-build` 和 `.local/cache/go-mod` 缓存目录；
 - 首次启动时，如果 `web/node_modules` 不存在，执行 `bun install --frozen-lockfile`；
 - 打开两个 PowerShell 窗口，分别运行后端和前端；
-- 将前端 `/api` 请求代理到 `http://127.0.0.1:8180`。
+- 将前端 `/api` 请求代理到 `http://127.0.0.1:28601`。
 
-启动后访问 [http://localhost:3100](http://localhost:3100)。后端健康检查地址是 [http://127.0.0.1:8180/api/health](http://127.0.0.1:8180/api/health)。
+启动后访问 [http://localhost:28600](http://localhost:28600)。后端健康检查地址是 [http://127.0.0.1:28601/api/health](http://127.0.0.1:28601/api/health)。
 
-脚本使用固定的本地开发端口：前端 `3100`，后端 `8180`。如果端口被占用，脚本会先退出，不会关闭已有进程。请分别在两个开发窗口中按 `Ctrl+C` 停止服务。
+脚本使用固定的本地开发端口：前端 `28600`，后端 `28601`。这两个端口刻意避开 `3000`/`3100`/`5173`/`8080`/`8180` 等常用端口，减少与本机其他服务冲突。如果端口被占用，脚本会先退出，不会关闭已有进程。请分别在两个开发窗口中按 `Ctrl+C` 停止服务。
 
 如果 PowerShell 的执行策略阻止脚本运行，可以只对当前进程临时放行：
 
@@ -59,7 +59,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```bash
 mkdir -p .local/project-workbench-debug .local/cache/go-build .local/cache/go-mod
 cd backend
-CANVAS_BACKEND_ADDR=127.0.0.1:8180 \
+CANVAS_BACKEND_ADDR=127.0.0.1:28601 \
 CANVAS_BACKEND_DATA_DIR=../.local/project-workbench-debug \
 GOCACHE=../.local/cache/go-build \
 GOMODCACHE=../.local/cache/go-mod \
@@ -76,7 +76,7 @@ bun run dev
 
 `web/` 只使用 `bun.lock`。不要用 pnpm 或 npm 往同一套 `node_modules` 里再装一遍。
 
-前端默认监听 `0.0.0.0:3100`，Vite 将 `/api` 和 OAuth 回调代理到 `127.0.0.1:8180`。如需修改代理目标，可设置 `VITE_API_PROXY_TARGET`。
+前端默认监听 `0.0.0.0:28600`，Vite 将 `/api` 和 OAuth 回调代理到 `127.0.0.1:28601`。如需修改代理目标，可设置 `VITE_API_PROXY_TARGET`。
 
 ## 时间线字幕转写（whisper.cpp）
 
@@ -136,4 +136,6 @@ LOCAL_UID=$(id -u) LOCAL_GID=$(id -g) \
   docker compose -f docker-compose.dev.yml up --build
 ```
 
-Docker 开发编排也使用 `.local/project-workbench-debug`，并默认暴露前端 `3100` 和后端 `8180`。端口冲突时，可通过 `CANVAS_WEB_HOST_PORT` 和 `CANVAS_BACKEND_HOST_PORT` 调整宿主机端口。
+Docker 开发编排也使用 `.local/project-workbench-debug`，并默认暴露前端 `28600` 和后端 `28601`。端口冲突时，可通过 `CANVAS_WEB_HOST_PORT` 和 `CANVAS_BACKEND_HOST_PORT` 调整宿主机端口。
+
+容器内部监听端口保持不变（web 容器 `3100`、backend 容器 `8180`）：官方 Release 的 web 镜像把 `/api` 固定代理到 `backend:8180`，修改容器内端口会让官方镜像与本仓库编排不匹配。因此端口修改只发生在宿主机侧与宿主机直跑的开发进程上。

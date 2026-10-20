@@ -365,7 +365,7 @@
     --auth-page-bg: #ffffff;
     --auth-panel-bg: #f7f7f7;
     --auth-card-bg: #ffffff;
-    --auth-accent: #2563eb;
+    --auth-accent: #171717;
     --auth-muted: #737373;
     /* 协议勾选框的填充色与对勾色。必须成对维护：两者相近会在某一主题下
        退化成看不见的勾选态。深色主题下这里与 --foreground 的白色相反。 */
@@ -1058,7 +1058,7 @@
     --auth-page-bg: #08090c;
     --auth-panel-bg: #0b0c10;
     --auth-card-bg: #121318;
-    --auth-accent: #93c5fd;
+    --auth-accent: #f5f5f5;
     --auth-muted: #8a8b91;
     /* 深色主题下勾选框用浅底 + 深勾，与浅色主题的深底 + 白勾形成互补；
        直接复用 --foreground 会得到白底白勾。 */
@@ -2250,8 +2250,8 @@
         background: var(--dock-command-hover) !important;
     }
 
-    .canvas-topbar-action:hover:not(:disabled) .app-workspace-credit-gift {
-        transform: translateY(-1px) rotate(-8deg);
+    .canvas-topbar-action:hover:not(:disabled) .app-workspace-credit-mark {
+        transform: translateY(-1px) scale(1.05);
     }
 
     .canvas-topbar-project-cluster {
@@ -13001,6 +13001,18 @@ html:not(.dark) .creation-history-drawer-root {
 .asset-picker-card.is-disabled { opacity: .46; }
 .asset-picker-card-media { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--library-cover-surface); }
 .cached-resource-image-shell { display: grid; width: 100%; height: 100%; place-items: center; }
+/* 缩略图按钮覆盖 AntD 的 overflow: visible 重置；网格轨道不被原图尺寸撑开。 */
+.canvas-batch-thumbnail {
+    overflow: hidden;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+.canvas-batch-thumbnail > .cached-resource-image-shell {
+    min-width: 0;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
 .asset-picker-card-media > img, .asset-picker-card-media > video, .asset-picker-card-media > .cached-resource-image-shell > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .asset-picker-card-media > img.is-contain, .asset-picker-card-media > .cached-resource-image-shell > img.is-contain { object-fit: contain; padding: 4px; }
 .asset-picker-card-check { position: absolute; right: 8px; bottom: 8px; z-index: 3; display: grid; width: 22px; height: 22px; place-items: center; border: 1.5px solid rgba(255, 255, 255, .72); border-radius: 7px; background: var(--glass-scrim-media-soft); color: transparent; opacity: 0; backdrop-filter: blur(6px); transition: opacity 180ms ease-out, background-color 180ms ease-out, border-color 180ms ease-out; }
@@ -14489,6 +14501,11 @@ html:not(.dark) .creation-history-drawer-root {
 .asset-archive-section-title { display: block; margin-bottom: 8px; color: color-mix(in srgb, var(--foreground) 40%, transparent); font-size: var(--fs-tiny); font-weight: 560; letter-spacing: .05em; }
 .asset-archive-section-body { margin: 0; color: color-mix(in srgb, var(--foreground) 74%, transparent); font-size: var(--fs-label); line-height: 1.7; white-space: pre-wrap; }
 .asset-archive-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.library-drawer .asset-archive-tag {
+    border-color: color-mix(in srgb, var(--foreground) 14%, transparent) !important;
+    background: color-mix(in srgb, var(--foreground) 6%, transparent) !important;
+    color: color-mix(in srgb, var(--foreground) 72%, transparent) !important;
+}
 .library-drawer .ant-btn-primary { box-shadow: none; font-weight: 560; }
 
 @media (max-width: 680px) {
@@ -15456,8 +15473,10 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     justify-content: flex-end;
     gap: 12px;
     padding: 0 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, .055);
-    background: transparent;
+    border-bottom: 1px solid var(--user-border);
+    background: color-mix(in srgb, var(--user-surface) 75%, transparent);
+    backdrop-filter: blur(24px) saturate(1.2);
+    color: var(--user-ink);
 }
 
 .app-user-workspace .app-workspace-topbar-announcement {
@@ -15514,32 +15533,37 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     z-index: 80;
 }
 
-.app-user-workspace .app-workspace-credit-gift {
+/* 可用积分的产品标记（金币）：只负责尺寸与居中，形状由组件内的 SVG 决定。
+   图标在 32×32 视口内上下对称，因此容器只要保证自身在行内居中即可，
+   不要再用 translate/rotate 补偿视觉重心。 */
+.app-user-workspace .app-workspace-credit-mark {
     display: grid;
     width: 24px;
     height: 24px;
     flex: none;
     place-items: center;
-    filter: drop-shadow(0 1px 1px rgba(92, 42, 0, .22));
-    transform-origin: 50% 70%;
+    line-height: 0;
+    filter: drop-shadow(0 0.5px 1.5px rgba(122, 58, 0, .2));
+    transform-origin: 50% 50%;
     transition: transform .18s ease;
 }
 
-.app-user-workspace .app-workspace-credit-gift svg {
+.app-user-workspace .app-workspace-credit-mark svg {
+    display: block;
     width: 24px;
     height: 24px;
     overflow: visible;
     color: unset;
 }
 
-.app-user-workspace .app-workspace-credit-gift.is-compact,
-.app-user-workspace .app-workspace-credit-gift.is-compact svg {
+.app-user-workspace .app-workspace-credit-mark.is-compact,
+.app-user-workspace .app-workspace-credit-mark.is-compact svg {
     width: 18px;
     height: 18px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .app-user-workspace .app-workspace-credit-gift {
+    .app-user-workspace .app-workspace-credit-mark {
         transform: none;
         transition: none;
     }
@@ -15584,8 +15608,8 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
 }
 
 /* 比 is-compact(18px) 再大一档，撑住 36px 胶囊的行高重心。 */
-.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-gift,
-.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-gift svg {
+.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-mark,
+.app-user-workspace .app-workspace-topbar-credit .app-workspace-credit-mark svg {
     width: 20px;
     height: 20px;
 }
@@ -15737,13 +15761,16 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     transform: none;
 }
 
+/* 折叠态是纯图标按钮：用 flex 居中，避免 inline-block + 基线把金币压到底部。 */
 .app-user-workspace .app-workspace-sidebar-checkin.is-collapsed {
+    display: inline-flex;
     width: 48px;
     height: 48px;
+    align-items: center;
     justify-content: center;
     padding: 0;
     border-radius: 12px;
-    font-size: 13px;
+    box-shadow: none;
 }
 
 .dark .app-user-workspace .app-workspace-sidebar-checkin {
@@ -15760,6 +15787,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .dark .app-user-workspace .app-workspace-sidebar-checkin.is-collapsed {
     background: #171717;
     color: #fff;
+    box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -17370,12 +17398,6 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     color: #6b6b73;
 }
 
-.app-user-workspace.settings-page .settings-nav-item.is-active {
-    background: #ecebff;
-    color: #5148c2;
-    font-weight: 650;
-}
-
 .app-user-workspace.settings-page .settings-content {
     background: var(--user-surface);
 }
@@ -18253,28 +18275,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .settings-modal-shell .settings-preference-heading h3,
 .settings-modal-shell .settings-preference-heading p { color: var(--user-ink-muted); }
 
-/* 激活分区的颜色：设置页一直是紫的（#ecebff 底 / #5148c2 字），但那组字面值
-   在深色主题下不反色——浅紫底配深紫字，在深色面板上几乎看不出是选中项。
-   这里把紫色收成一对语义 token，亮色沿用原色值、深色换成「深紫底 + 浅紫字」，
-   弹窗和页面共用同一组。不要改成 --user-accent：那是项目的无彩主色（黑/白），
-   换过去等于把设置导航的高亮从紫变成灰。 */
-.app-user-workspace.settings-page,
-.settings-modal-shell {
-    --settings-accent: #5148c2;
-    --settings-accent-soft: #ecebff;
-}
-
-.dark .app-user-workspace.settings-page,
-.dark .settings-modal-shell {
-    --settings-accent: #a9a2f5;
-    --settings-accent-soft: rgba(121, 110, 232, .26);
-}
-
-/* 本条位于原有规则之后，同特异性下后来者生效。 */
+/* 激活分区只用默认的中性选中态：底色取工作台的软选中色、文字回到正文色。
+   设置导航不是主操作，不借用主题强调色；深色主题沿用同一组 --user-* token 自动反色。 */
 .app-user-workspace.settings-page .settings-nav-item.is-active,
 .settings-modal-shell .settings-nav-item.is-active {
-    background: var(--settings-accent-soft);
-    color: var(--settings-accent);
+    background: var(--user-accent-soft);
+    color: var(--user-ink);
     font-weight: 650;
 }
 

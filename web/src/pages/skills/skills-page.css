@@ -79,12 +79,12 @@
 .skills-market-page .skills-catalog-card-actions .ant-btn { height: 24px; padding-inline: 7px; border: 0; border-radius: 7px; background: var(--skills-page-bg); color: var(--skills-ink); font-size: 11px; box-shadow: none; }
 .skills-market-page .skills-catalog-card-actions .ant-btn[aria-pressed="true"] { color: var(--skills-accent); }
 .skills-owner-label, .skills-catalog-category { overflow: hidden; color: var(--skills-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.skills-catalog-cover { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: center; gap: 8px; overflow: hidden; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--skills-accent) 14%, var(--skills-page-bg)); color: var(--skills-accent); }
+.skills-catalog-cover { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: center; gap: 10px; overflow: hidden; border: 0; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--skills-accent) 18%, var(--skills-page-bg)) 0%, color-mix(in srgb, var(--skills-accent) 8%, var(--skills-page-bg)) 100%); color: var(--skills-accent); }
 .skills-catalog-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.skills-catalog-cover > svg { position: relative; width: 36px; height: 36px; stroke-width: 1.2; }
-.skills-cover-grid { position: absolute; inset: 0; background-image: linear-gradient(var(--skills-border) 1px, transparent 1px), linear-gradient(90deg, var(--skills-border) 1px, transparent 1px); background-size: 23px 23px; opacity: .35; }
-.skills-cover-label { position: relative; font-size: 10px; }
-.skills-cover-wordmark { position: absolute; right: 7px; bottom: 4px; font-size: 9px; letter-spacing: .14em; opacity: .45; }
+.skills-catalog-cover > svg { position: relative; width: 40px; height: 40px; stroke-width: 1.5; filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--skills-accent) 25%, transparent)); }
+.skills-cover-grid { position: absolute; inset: 0; background-image: linear-gradient(var(--skills-border) 1px, transparent 1px), linear-gradient(90deg, var(--skills-border) 1px, transparent 1px); background-size: 20px 20px; opacity: .2; mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, transparent 30%, black 100%); -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, transparent 30%, black 100%); }
+.skills-cover-label { position: relative; font-size: 11px; font-weight: 500; opacity: 0.85; }
+.skills-cover-wordmark { position: absolute; right: 8px; bottom: 6px; font-size: 9px; font-weight: 600; letter-spacing: .16em; opacity: .32; }
 .skills-card-skeleton { min-height: 156px; border-radius: var(--skills-card-radius); background: var(--skills-card-bg); animation: skills-loading 1.5s ease-in-out infinite; }
 .skills-personal-categories { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .skills-category-pair { display: inline-flex; align-items: center; gap: 2px; }

@@ -2,14 +2,17 @@ import { describe, expect, test } from "bun:test";
 import { applySkinTheme, DEFAULT_CLASSIC_SKIN, duplicateSkinDefinition, getSkinButtonAppearance, isSkinButtonFill, normalizeSkinDefinition } from "../src/lib/skin-themes";
 
 describe("theme primary button fills", () => {
-    test("classic uses the reference gradient in both modes without changing selection colors", () => {
+    test("classic follows the skin primary in both modes without changing selection colors", () => {
         for (const mode of ["light", "dark"] as const) {
             expect(getSkinButtonAppearance(DEFAULT_CLASSIC_SKIN, mode)).toEqual({
-                background: "linear-gradient(115deg, #6554df, #386fbc)",
-                hover: "linear-gradient(115deg, #5744cf, #356bbb)",
-                active: "linear-gradient(115deg, #4938b8, #2c5da5)", foreground: "#ffffff",
+                background: DEFAULT_CLASSIC_SKIN.tokens[mode].primary,
+                hover: DEFAULT_CLASSIC_SKIN.tokens[mode].primaryHover,
+                active: DEFAULT_CLASSIC_SKIN.tokens[mode].primaryActive, foreground: DEFAULT_CLASSIC_SKIN.tokens[mode].primaryForeground,
             });
         }
+        // 项目默认不用蓝色做主题：classic 的主按钮是近黑 / 近白，不是渐变。
+        expect(DEFAULT_CLASSIC_SKIN.tokens.buttons.light.mode).toBe("solid");
+        expect(DEFAULT_CLASSIC_SKIN.tokens.light.primary).toBe("#171717");
         expect(DEFAULT_CLASSIC_SKIN.tokens.light.selected).toBe("#e8e8e8");
     });
 
@@ -17,6 +20,9 @@ describe("theme primary button fills", () => {
         const skin = duplicateSkinDefinition(DEFAULT_CLASSIC_SKIN, ["classic"]);
         skin.tokens.buttons.light.angle = 45;
         skin.tokens.buttons.light.start = "#123456";
+        skin.tokens.buttons.light.end = "#386fbc";
+        // 默认已是 solid，这里显式切回渐变，验证渐变参数原样生效。
+        skin.tokens.buttons.light.mode = "gradient";
         expect(DEFAULT_CLASSIC_SKIN.tokens.buttons.light.angle).toBe(115);
         expect(skin.tokens.buttons.dark.angle).toBe(115);
         expect(getSkinButtonAppearance(skin, "light").background).toBe("linear-gradient(45deg, #123456, #386fbc)");
@@ -33,14 +39,15 @@ describe("theme primary button fills", () => {
         expect(values.get("--button-primary-active-bg")).toBe("#345678");
         applySkinTheme(DEFAULT_CLASSIC_SKIN, "dark", doc);
         expect(values.has("--background")).toBe(false);
-        expect(values.get("--button-primary-fg")).toBe("#ffffff");
+        // solid 模式的前景来自皮肤 token：classic 深色主按钮是近白底 + 近黑字。
+        expect(values.get("--button-primary-fg")).toBe("#171717");
     });
 
-    test("legacy custom themes retain solid actions; legacy classic gains its default gradient", () => {
+    test("legacy themes without a button block fall back to the project default solid fill", () => {
         for (const original of [DEFAULT_CLASSIC_SKIN, duplicateSkinDefinition(DEFAULT_CLASSIC_SKIN, ["classic"])]) {
             const legacy = JSON.parse(JSON.stringify(original));
             delete legacy.tokens.buttons;
-            expect(normalizeSkinDefinition(legacy).tokens.buttons.light.mode).toBe(original.id === "classic" ? "gradient" : "solid");
+            expect(normalizeSkinDefinition(legacy).tokens.buttons.light.mode).toBe("solid");
         }
     });
 

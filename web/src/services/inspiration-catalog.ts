@@ -95,28 +95,6 @@ export function loadInspirationCatalog(): Promise<InspirationCatalog> {
     return pending;
 }
 
-/** 画廊池是全量目录之外的精选子集，只服务创作首页的纵深画廊。 */
-const GALLERY_POOL_FILE = "/inspirations/gallery-pool.json";
-
-let galleryPool: Promise<CreationInspiration[]> | null = null;
-
-/**
- * 池子有几百条、几百 KB，是全量目录之外的单独一份，只服务画廊一处。
- * 拿不到就退回打包的原创条目——画廊宁可少几张，也不该空着。
- */
-export function loadGalleryPool(): Promise<CreationInspiration[]> {
-    if (!galleryPool) {
-        galleryPool = fetchJson<unknown>(GALLERY_POOL_FILE)
-            .then((payload) => [...curatedInspirations, ...readEntries(payload, GALLERY_POOL_FILE)])
-            .catch((error) => {
-                console.warn("画廊池加载失败，退回打包的原创条目", error);
-                galleryPool = null;
-                return curatedInspirations;
-            });
-    }
-    return galleryPool;
-}
-
 /**
  * `categoriesBySource` 是给筛选器用的有序数组（带条目数）；
  * 而「把条目上的分类码翻成中文」要的是 code → label 的表。

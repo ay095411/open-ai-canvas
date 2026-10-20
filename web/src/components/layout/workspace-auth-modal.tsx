@@ -1,22 +1,38 @@
-import { Infinity as InfinityIcon, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useReducedMotion } from "motion/react";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
-import { BrandLogoFrame } from "@/components/brand/brand-logo";
-import { SiteComplianceFooter } from "@/components/layout/site-compliance-footer";
+import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
 
+import "./workspace-auth-modal.css";
+
 type AuthState = { open: boolean; mode: WorkspaceAuthMode; next: string | null };
+type CarouselSlide = { id: string; kind: "image" | "video"; url: string; posterUrl: string; title: string; subtitle: string };
 
 const CLOSED: AuthState = { open: false, mode: "login", next: null };
 const AUTH_RETURN_KEY = "workspace-auth:return";
-/** `/login`、`/register` 现在只是「把弹窗顶起来」的深链，不再是可以停留的页面。 */
-const AUTH_ROUTES = new Set(["/login", "/register"]);
+/** `/login`、`/register`、`/forgot-password` 现在只是「把弹窗顶起来」的深链，不再是可以停留的页面。 */
+const AUTH_ROUTES = new Set(["/login", "/register", "/forgot-password"]);
+
+/** 深链地址 → 弹窗里的表单。 */
+function modeOfPathname(pathname: string): WorkspaceAuthMode {
+    if (pathname === "/register") return "register";
+    if (pathname === "/forgot-password") return "recovery";
+    return "login";
+}
+
+function modeOfDetail(mode: WorkspaceAuthMode | undefined): WorkspaceAuthMode {
+    return mode === "register" || mode === "recovery" ? mode : "login";
+}
+/** 自动切换间隔：与首页画廊一致，太快会让人来不及读标题。 */
+const SLIDE_INTERVAL_MS = 6000;
 
 function readReturnTarget() {
     try {
@@ -24,6 +40,21 @@ function readReturnTarget() {
     } catch {
         return "/";
     }
+}
+
+/**
+ * 弹窗左侧要放什么：优先用后台配置的轮播；一条都没配就退到内置登录影片，
+ * 这样新装实例也不至于左侧一片空白。
+ */
+function carouselSlides(carousel: CarouselSlide[] | undefined, fallbackVideo: string, fallbackPoster: string): CarouselSlide[] {
+    if (carousel && carousel.length) return carousel;
+    if (fallbackVideo) {
+        return [{ id: "builtin-video", kind: "video", url: fallbackVideo, posterUrl: fallbackPoster, title: "", subtitle: "" }];
+    }
+    if (fallbackPoster) {
+        return [{ id: "builtin-poster", kind: "image", url: fallbackPoster, posterUrl: "", title: "", subtitle: "" }];
+    }
+    return [];
 }
 
 /**
@@ -61,7 +92,7 @@ export function WorkspaceAuthHost() {
             const detail = (raw as CustomEvent<WorkspaceAuthOpenDetail>).detail || {};
             setState({
                 open: true,
-                mode: detail.mode === "register" ? "register" : "login",
+                mode: modeOfDetail(detail.mode),
                 next: safeAuthNext(detail.next ?? null),
             });
         };
@@ -74,7 +105,7 @@ export function WorkspaceAuthHost() {
         const params = new URLSearchParams(search);
         setState({
             open: true,
-            mode: pathname === "/register" ? "register" : "login",
+            mode: modeOfPathname(pathname),
             next: safeAuthNext(params.get("next")),
         });
         navigate(returnToRef.current, { replace: true });
@@ -91,41 +122,16 @@ export function WorkspaceAuthHost() {
     const close = useCallback(() => setState(CLOSED), []);
 
     // 已经登录就不该再看登录表单：Linux.do 回调返回、或另一个标签页登录完成后都会命中。
-    // 此时直接按 `finish` 的语义把人送到目标页，与旧登录页「已登录就跳走」的行为一致。
     useEffect(() => {
         if (!state.open || !hydrated || !user) return;
         finish();
     }, [state.open, hydrated, user, finish]);
 
-    return (
-        <WorkspaceAuthModal
-            open={state.open}
-            mode={state.mode}
-            next={next}
-            onModeChange={(mode) => setState((current) => ({ ...current, mode }))}
-            onClose={close}
-            onSuccess={finish}
-        />
-    );
+    return <WorkspaceAuthModal open={state.open} mode={state.mode} next={next} onModeChange={(mode) => setState((current) => ({ ...current, mode }))} onClose={close} onSuccess={finish} />;
 }
 
-export function WorkspaceAuthModal({
-    open,
-    mode,
-    next,
-    onModeChange,
-    onClose,
-    onSuccess,
-}: {
-    open: boolean;
-    mode: WorkspaceAuthMode;
-    next: string;
-    onModeChange: (mode: WorkspaceAuthMode) => void;
-    onClose: () => void;
-    onSuccess: () => void;
-}) {
-    const brandName = useAppearanceStore((state) => state.appearance.brandName) || "Navo AI";
-    const posterUrl = useAppearanceStore((state) => state.appearance.authVideoPosterUrl);
+export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, onSuccess }: { open: boolean; mode: WorkspaceAuthMode; next: string; onModeChange: (mode: WorkspaceAuthMode) => void; onClose: () => void; onSuccess: () => void }) {
+    const appearance = useAppearanceStore((state) => state.appearance);
 
     return (
         <AppModal
@@ -133,59 +139,131 @@ export function WorkspaceAuthModal({
             open={open}
             title={null}
             footer={null}
-            // 外壳自带关闭按钮（与标签栏同一行），关掉 AntD 默认那颗，否则两颗 X 会叠在一起。
+            // 外壳自带关闭按钮，关掉 AntD 默认那颗，否则两颗 X 会叠在一起。
             closable={false}
             centered
-            // 宽度与积分中心 / 账户与设置弹窗完全一致；高度矮一档（那两处是 min(90vh,900px)，
-            // 这里 min(86vh,780px)）—— 登录只有一张约 208px 的表单，同高会把它悬在一片空里。
-            // 改尺寸要同步改 chrome：globals.css 里 .workspace-auth-modal / .workspace-auth-frame
-            // 的 max-height、height，以及另一个 .tsx 的 width。
-            width="min(1320px, calc(100vw - 32px))"
+            // 参考图是左右等分的横版卡片（约 1.5:1）。高度固定，不跟表单内容走：
+            // 登录 / 注册 / 找回密码三张表单高度差很多，跟着内容走弹窗会一跳一跳的。
+            width="min(1040px, calc(100vw - 32px))"
             rootClassName="workspace-auth-modal"
             onCancel={onClose}
         >
             <div className="workspace-auth-frame">
-                {/* 左侧品牌舞台：弹窗在这一侧承接原登录页的「灵感放映厅」，
-                    窄屏直接不渲染——小屏上没有第二列的空间，硬塞只会把表单挤扁。 */}
-                <aside className="workspace-auth-brand" aria-label={`${brandName}品牌介绍`}>
-                    {posterUrl ? <div className="workspace-auth-brand-poster" style={{ backgroundImage: `url("${posterUrl}")` }} aria-hidden /> : null}
-                    <div className="workspace-auth-brand-glow" aria-hidden />
-                    <div className="workspace-auth-brand-body">
-                        <span className="workspace-auth-brand-mark">
-                            <BrandLogoFrame className="grid size-9 shrink-0 place-items-center rounded-[var(--r-md)]" logoClassName="size-5 object-contain" alt="" fallback={<InfinityIcon className="size-5" strokeWidth={2.2} />} />
-                            <span className="workspace-auth-brand-wordmark">{brandName}</span>
-                        </span>
-                        <h2>进入创作者中心</h2>
-                        <p>登录即送新用户创作额度，立即执导第一部 AI 短剧。</p>
-                    </div>
-                    <SiteComplianceFooter variant="auth" className="workspace-auth-brand-foot" />
-                </aside>
+                {/* 关闭按钮放在最前面：AntD 打开弹窗时会把焦点给第一个可聚焦元素，
+                    若让轮播指示条先拿到焦点，`onFocusCapture` 会立刻把自动播放停掉
+                    （实测就是「轮播永远停在第一张」）。它本身是绝对定位，DOM 顺序不影响观感。 */}
+                <button type="button" className="workspace-auth-close" onClick={onClose} aria-label="关闭登录">
+                    <X aria-hidden="true" />
+                </button>
 
-                <section className="workspace-auth-pane" aria-label={mode === "register" ? "注册" : "登录"}>
-                    <header className="workspace-auth-pane-head">
-                        <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
-                            <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
-                                登录
-                            </button>
-                            <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
-                                注册
-                            </button>
-                        </div>
-                        <button type="button" className="workspace-auth-close" onClick={onClose} aria-label="关闭登录">
-                            <X className="size-4" strokeWidth={2} aria-hidden />
-                        </button>
-                    </header>
+                <AuthCarousel slides={carouselSlides(appearance.authCarousel, appearance.authVideoUrl, appearance.authVideoPosterUrl)} />
 
+                <section className="workspace-auth-pane" aria-label={mode === "register" ? "注册" : mode === "recovery" ? "找回密码" : "登录"}>
                     <div className="workspace-auth-scroll">
-                        {/* 复用 `.auth-scene-card`：输入框高度、圆角、白底黑字主按钮、
-                            验证码那一行的样式都挂在它下面，弹窗与整页因此共用同一套控件规则。
-                            （弹窗是恒深色表面，token 由 .workspace-auth-modal 重新给一份。） */}
+                        {mode === "recovery" ? (
+                            <div className="workspace-auth-tabs" role="tablist" aria-label="找回密码">
+                                <button type="button" role="tab" aria-selected onClick={() => onModeChange("login")}>
+                                    ← 返回登录
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
+                                <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
+                                    登录
+                                </button>
+                                <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
+                                    注册
+                                </button>
+                            </div>
+                        )}
+                        {/* 复用 `.auth-scene-card`：输入框高度、圆角、主按钮这些控件规则都挂在它下面，
+                            弹窗与登录页因此共用同一套样式，不必再维护第二份。 */}
                         <div className="auth-scene-card">
-                            {mode === "login" ? <LoginForm next={next} onSuccess={onSuccess} onClose={onClose} /> : <RegisterForm next={next} onSuccess={onSuccess} />}
+                            {mode === "login" ? (
+                                <LoginForm next={next} onSuccess={onSuccess} onClose={onClose} />
+                            ) : mode === "recovery" ? (
+                                // 找回密码成功后自己会跳 `/login?next=…`，宿主接住它就回到登录表单。
+                                <ForgotPasswordPage />
+                            ) : (
+                                <RegisterForm next={next} onSuccess={onSuccess} />
+                            )}
                         </div>
                     </div>
                 </section>
             </div>
         </AppModal>
+    );
+}
+
+/**
+ * 左侧轮播：图片与视频混排，自动切换、悬停暂停。
+ * 视频一律静音循环播放——登录页不该突然发出声音；开了「减少动效」就只停在封面。
+ */
+function AuthCarousel({ slides }: { slides: CarouselSlide[] }) {
+    const [active, setActive] = useState(0);
+    const [paused, setPaused] = useState(false);
+    const reducedMotion = useReducedMotion();
+    const count = slides.length;
+
+    useEffect(() => {
+        if (count < 2 || paused || reducedMotion) return;
+        const timer = window.setInterval(() => setActive((current) => (current + 1) % count), SLIDE_INTERVAL_MS);
+        return () => window.clearInterval(timer);
+    }, [count, paused, reducedMotion]);
+
+    // 条目变少（后台改了配置）时把越界的下标收回来。
+    useEffect(() => {
+        if (active >= count) setActive(0);
+    }, [active, count]);
+
+    if (!count) return <div className="workspace-auth-media is-empty" aria-hidden="true" />;
+
+    const current = slides[Math.min(active, count - 1)];
+
+    return (
+        <div className="workspace-auth-media" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+            {slides.map((slide, index) => {
+                const isActive = index === active;
+                return (
+                    <div key={slide.id || index} className={`workspace-auth-slide ${isActive ? "is-active" : ""}`} aria-hidden={!isActive}>
+                        {slide.kind === "video" ? (
+                            // 只有当前这一张挂 video：否则 N 段视频同时解码，首屏直接卡住。
+                            isActive ? (
+                                <video className="workspace-auth-slide-media" src={slide.url} poster={slide.posterUrl || undefined} autoPlay={!reducedMotion} muted loop playsInline preload="metadata" />
+                            ) : slide.posterUrl ? (
+                                <img className="workspace-auth-slide-media" src={slide.posterUrl} alt="" decoding="async" />
+                            ) : null
+                        ) : (
+                            <img className="workspace-auth-slide-media" src={slide.url} alt="" decoding="async" />
+                        )}
+                    </div>
+                );
+            })}
+
+            <div className="workspace-auth-media-scrim" aria-hidden="true" />
+
+            {current.title || current.subtitle ? (
+                <div className="workspace-auth-media-caption">
+                    {current.title ? <strong>{current.title}</strong> : null}
+                    {current.subtitle ? <span>{current.subtitle}</span> : null}
+                </div>
+            ) : null}
+
+            {count > 1 ? (
+                <div className="workspace-auth-media-bars" role="tablist" aria-label="登录页轮播">
+                    {slides.map((slide, index) => (
+                        <button
+                            key={slide.id || index}
+                            type="button"
+                            role="tab"
+                            aria-selected={index === active}
+                            aria-label={slide.title || `第 ${index + 1} 张`}
+                            className={`workspace-auth-media-bar ${index === active ? "is-active" : ""}`}
+                            onClick={() => setActive(index)}
+                        />
+                    ))}
+                </div>
+            ) : null}
+        </div>
     );
 }
