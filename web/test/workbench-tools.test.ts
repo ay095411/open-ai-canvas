@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { filterWorkbenchTools, workbenchTaskSnapshot } from "../src/pages/workbench/image-workbench-page";
+import { filterWorkbenchTools, taskMediaUrls, workbenchTaskSnapshot } from "../src/pages/workbench/image-workbench-page";
 import type { GenerationTask } from "@/services/api/task-center";
 import type { WorkbenchTool } from "@/services/api/workbench";
 
@@ -63,4 +63,21 @@ describe("workspaceNavActiveId for unified toolbox entry", () => {
         expect(workspaceNavActiveId("/toolbox/video")).toBe("toolbox");
     });
 });
+
+describe("taskMediaUrls for multi-image workbench results", () => {
+    test("returns all generated image URLs from resultJson and falls back to previewUrl", () => {
+        const multiImageTask = {
+            id: "task-multi",
+            previewUrl: "/api/resources/1/file",
+            resultJson: JSON.stringify({
+                mode: "image",
+                images: [{ url: "/api/resources/1/file" }, { dataUrl: "/api/resources/2/file" }, { url: "/api/resources/3/file" }],
+            }),
+        } as GenerationTask;
+
+        expect(taskMediaUrls(multiImageTask)).toEqual(["/api/resources/1/file", "/api/resources/2/file", "/api/resources/3/file"]);
+        expect(taskMediaUrls({ id: "summary-only", previewUrl: "/api/resources/summary/file" } as GenerationTask)).toEqual(["/api/resources/summary/file"]);
+    });
+});
+
 

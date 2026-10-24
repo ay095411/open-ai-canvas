@@ -160,21 +160,27 @@ export function ImageSizePicker({
                 <>
                     <div className="image-size-label">分辨率</div>
                     <div className="image-size-tiers">
-                        {profile.resolution.values.map((value) => (
-                            <button
-                                type="button"
-                                key={value}
-                                aria-pressed={value === imageResolution || (imageResolution === undefined && size !== "auto" && active?.tier === value)}
-                                disabled={Boolean(canSelectResolution && !canSelectResolution(value))}
-                                onClick={() => {
-                                    const next = value.toLowerCase() as ImageResolutionTier;
-                                    if (size !== "auto" && visibleTiers.includes(next)) changeTier(next);
-                                    else onChange(size, undefined, value);
-                                }}
-                            >
-                                {value.toUpperCase()}
-                            </button>
-                        ))}
+                        {profile.resolution.values.map((value) => {
+                            const next = value.toLowerCase() as ImageResolutionTier;
+                            const hasTierPresets = visibleTiers.includes(next);
+                            const isPressed = hasTierPresets
+                                ? size !== "auto" && (value === imageResolution || (imageResolution === undefined && active?.tier === value))
+                                : value === imageResolution;
+                            return (
+                                <button
+                                    type="button"
+                                    key={value}
+                                    aria-pressed={isPressed}
+                                    disabled={Boolean(canSelectResolution && !canSelectResolution(value))}
+                                    onClick={() => {
+                                        if (hasTierPresets) changeTier(next);
+                                        else onChange(size, undefined, value);
+                                    }}
+                                >
+                                    {value.toUpperCase()}
+                                </button>
+                            );
+                        })}
                     </div>
                 </>
             ) : !ungrouped && visibleTiers.length && (profile.size.parameter === "size" || !profile.quality.supported || imageResolutionUsesQuality(profile)) ? (

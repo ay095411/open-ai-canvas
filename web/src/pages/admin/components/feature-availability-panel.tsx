@@ -78,7 +78,7 @@ const workspaceFeatureRows: FeatureRow[] = [
     {
         key: "globalAgentEnabled",
         title: "全局 Agent",
-        description: "控制全站与画布右下角全局 Agent 悬浮面板的展示与隐藏；默认隐藏。",
+        description: "控制除自由画布外的其他页面右下角全局 Agent 悬浮面板的展示与隐藏（画布内始终开启）；默认隐藏。",
         icon: <Bot className="size-4" aria-hidden="true" />,
     },
 ];

@@ -37,8 +37,8 @@ export default function UserLayout({ children }: { children: ReactNode }) {
         };
     }, [adminWorkspace, spatialWorkbench, productWorkspace]);
 
-    // 所有登录页面共用同一个面板实例：跨路由不卸载，对话、运行和事件流都不中断；默认隐藏，由后台功能开放开关控制。
-    const globalAgent = userId && globalAgentEnabled ? (
+    // 画布编辑器（/canvas/:id）内 Agent 始终保持开启；其他页面由后台功能开放开关 globalAgentEnabled 控制。
+    const globalAgent = userId && (canvasEditor || globalAgentEnabled) ? (
         <Suspense fallback={null}>
             <GlobalAgentPanel key={userId} />
         </Suspense>

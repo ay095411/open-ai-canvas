@@ -82,16 +82,13 @@ func Run(ctx context.Context, request ProcessRequest, bridge Bridge) error {
 	if err != nil {
 		return fmt.Errorf("encode Agent runtime request: %w", err)
 	}
-	cmd := exec.CommandContext(ctx, "node", "--max-old-space-size="+nodeMemoryMB(), filepath.Join(runtimeDir, "agent-runtime.mjs"))
+	cmd := exec.CommandContext(ctx, resolveNodeBinary(), "--max-old-space-size="+nodeMemoryMB(), filepath.Join(runtimeDir, "agent-runtime.mjs"))
 	cmd.Dir = runtimeDir
 	cmd.Stdin = strings.NewReader(string(payload))
 	// 环境变量白名单：只传 Node 运行所需的最少变量。HOME 与会话、工作目录
 	// 由运行时自己建的临时隔离目录提供，不使用服务端数据目录。
-	cmd.Env = []string{
-		"PATH=" + os.Getenv("PATH"),
-		"NODE_ENV=production",
-		"PI_OFFLINE=1",
-	}
+	// Windows 下 Node 22+ 初始化 CSPRNG (bcryptprimitives.dll)、Winsock 和 os.tmpdir() 必须保留 SystemRoot 与 TEMP/TMP。
+	cmd.Env = runtimeSafeEnv()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("open Agent runtime output: %w", err)
@@ -300,6 +297,84 @@ func nodeMemoryMB() string {
 		return strconv.Itoa(parsed)
 	}
 	return "512"
+}
+
+func runtimeSafeEnv() []string {
+	env := []string{
+		"PATH=" + os.Getenv("PATH"),
+		"NODE_ENV=production",
+		"PI_OFFLINE=1",
+	}
+	for _, key := range []string{"SystemRoot", "SYSTEMROOT", "windir", "WINDIR", "TEMP", "TMP", "TMPDIR"} {
+		if val := os.Getenv(key); val != "" {
+			env = append(env, key+"="+val)
+		}
+	}
+	return env
+}
+
+var (
+	resolvedNodeOnce   sync.Once
+	resolvedNodeBinary string
+)
+
+// resolveNodeBinary 优先选择满足 @earendil-works/pi-coding-agent 要求（Node >= 22，支持 fs.globSync）的 Node 可执行文件。
+// 当开发机全局 nvm 停留在 Node 20 时，自动从 NVM_HOME 中挑选已安装的 v22+ / v24+ 版本。
+func resolveNodeBinary() string {
+	if custom := strings.TrimSpace(os.Getenv("YINGCE_AGENT_NODE_BINARY")); custom != "" {
+		return custom
+	}
+	resolvedNodeOnce.Do(func() {
+		resolvedNodeBinary = "node"
+		if nodeMajorVersion("node") >= 22 {
+			return
+		}
+		nvmRoots := []string{strings.TrimSpace(os.Getenv("NVM_HOME")), `E:\nvm\nvm`, `C:\nvm4w\nvm`}
+		var bestPath string
+		bestMajor := 0
+		for _, root := range nvmRoots {
+			if root == "" {
+				continue
+			}
+			entries, err := os.ReadDir(root)
+			if err != nil {
+				continue
+			}
+			for _, entry := range entries {
+				if !entry.IsDir() {
+					continue
+				}
+				candidate := filepath.Join(root, entry.Name(), "node.exe")
+				if runtime.GOOS != "windows" {
+					candidate = filepath.Join(root, entry.Name(), "bin", "node")
+				}
+				if info, statErr := os.Stat(candidate); statErr != nil || info.IsDir() {
+					continue
+				}
+				if major := nodeMajorVersion(candidate); major >= 22 && major > bestMajor {
+					bestMajor = major
+					bestPath = candidate
+				}
+			}
+		}
+		if bestPath != "" {
+			resolvedNodeBinary = bestPath
+		}
+	})
+	return resolvedNodeBinary
+}
+
+func nodeMajorVersion(bin string) int {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, bin, "--version").Output()
+	if err != nil {
+		return 0
+	}
+	ver := strings.TrimPrefix(strings.TrimSpace(string(out)), "v")
+	majorStr, _, _ := strings.Cut(ver, ".")
+	major, _ := strconv.Atoi(majorStr)
+	return major
 }
 
 func firstNonEmpty(values ...string) string {

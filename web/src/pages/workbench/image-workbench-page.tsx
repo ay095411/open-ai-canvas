@@ -107,14 +107,23 @@ export function workbenchTaskSnapshot(task: GenerationTask): WorkbenchTaskSnapsh
     };
 }
 
-function taskPreview(task: GenerationTask) {
-    if (task.previewUrl) return task.previewUrl;
+export function taskMediaUrls(task: GenerationTask): string[] {
     try {
         const result = task.resultJson ? (JSON.parse(task.resultJson) as { images?: Array<{ url?: string; dataUrl?: string }>; video?: { url?: string; dataUrl?: string } }) : null;
-        return task.previewKind === "video" ? result?.video?.url || result?.video?.dataUrl || "" : result?.images?.[0]?.url || result?.images?.[0]?.dataUrl || "";
+        if (task.previewKind === "video" || result?.video) {
+            const videoUrl = result?.video?.url || result?.video?.dataUrl || task.previewUrl || "";
+            return videoUrl ? [videoUrl] : [];
+        }
+        const urls = (result?.images || []).map((item) => item?.url || item?.dataUrl || "").filter(Boolean);
+        if (urls.length) return urls;
     } catch {
-        return "";
+        // Ignore malformed resultJson and fall back to previewUrl.
     }
+    return task.previewUrl ? [task.previewUrl] : [];
+}
+
+function taskPreview(task: GenerationTask) {
+    return taskMediaUrls(task)[0] || "";
 }
 
 function elapsedLabel(task: GenerationTask) {
@@ -191,6 +200,11 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
     };
     useEffect(() => () => referencesRef.current.forEach(revokeReferencePreview), []);
     const [activeTask, setActiveTask] = useState<GenerationTask | null>(null);
+    const activeTaskIdRef = useRef<string | null>(null);
+    activeTaskIdRef.current = activeTask?.id ?? null;
+    const taskDetailsRef = useRef<Map<string, GenerationTask>>(new Map());
+    const [stageMediaIndex, setStageMediaIndex] = useState(0);
+    const [detailMediaIndex, setDetailMediaIndex] = useState(0);
     const [resultHidden, setResultHidden] = useState(false);
     const workbenchRevisionRef = useRef(0);
     const [tasks, setTasks] = useState<GenerationTask[]>([]);
@@ -404,18 +418,35 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
         return () => controller.abort();
     }, [capability, composerConfig, config, creditsEnabled, kind, quoteRequirements, seconds, selectedCount, selectedModel]);
 
+    const mergeWithCachedDetail = useCallback((item: GenerationTask): GenerationTask => {
+        const cached = taskDetailsRef.current.get(item.id);
+        if (!cached) return item;
+        return {
+            ...item,
+            ...(item.inputJson ? {} : cached.inputJson ? { inputJson: cached.inputJson } : {}),
+            ...(item.resultJson ? {} : cached.resultJson ? { resultJson: cached.resultJson } : {}),
+        };
+    }, []);
+
+    const rememberTaskDetail = useCallback((detail: GenerationTask) => {
+        taskDetailsRef.current.set(detail.id, detail);
+        setTasks((current) => current.map((item) => (item.id === detail.id ? { ...item, ...detail } : item)));
+        setActiveTask((current) => (current?.id === detail.id ? { ...current, ...detail } : current));
+    }, []);
+
     const loadTasks = useCallback(async () => {
         try {
             const result = await listWorkbenchTasks(kind, 100);
-            setTasks(result);
-            return result;
+            const merged = result.map(mergeWithCachedDetail);
+            setTasks(merged);
+            return merged;
         } catch (error) {
             message.error(error instanceof Error ? error.message : "任务列表加载失败");
             return [];
         } finally {
             setTasksLoading(false);
         }
-    }, [kind, message]);
+    }, [kind, mergeWithCachedDetail, message]);
 
     useEffect(() => {
         let stopped = false;
@@ -424,10 +455,11 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
             const revision = workbenchRevisionRef.current;
             const result = await loadTasks();
             if (stopped) return;
-            if (activeTask && revision === workbenchRevisionRef.current) {
-                const latest = result.find((item) => item.id === activeTask.id);
+            const currentActiveId = activeTaskIdRef.current;
+            if (currentActiveId && revision === workbenchRevisionRef.current) {
+                const latest = result.find((item) => item.id === currentActiveId);
                 if (latest) {
-                    setActiveTask(latest);
+                    setActiveTask((prev) => (prev && prev.id === latest.id ? mergeWithCachedDetail(latest) : latest));
                     if (latest.status === "succeeded" || latest.status === "failed" || latest.status === "cancelled") setMobileTab("result");
                 }
             }
@@ -446,7 +478,7 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
             window.clearTimeout(timer);
             document.removeEventListener("visibilitychange", onVisible);
         };
-    }, [activeTask?.id, loadTasks]);
+    }, [loadTasks, mergeWithCachedDetail]);
 
     const switchKind = (nextKind: WorkbenchKind) => {
         if (nextKind === kind) return;
@@ -715,9 +747,11 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
                           },
                       }).then((taskInput) => createGenerationTask({ ...taskInput, ...(videoOperation ? { operation: videoOperation } : {}) }));
             const task = await queryGenerationTask(createdTask.id);
+            rememberTaskDetail(task);
             setTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
             if (revision === workbenchRevisionRef.current) {
                 setResultHidden(false);
+                setStageMediaIndex(0);
                 setActiveTask(task);
                 setMobileTab("result");
             }
@@ -743,7 +777,17 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
     };
 
     const restoreTaskToComposer = async (task: GenerationTask, notify = true) => {
-        const snapshot = workbenchTaskSnapshot(task);
+        let sourceTask = mergeWithCachedDetail(task);
+        if (!sourceTask.inputJson) {
+            try {
+                const detail = await queryGenerationTask(sourceTask.id);
+                rememberTaskDetail(detail);
+                sourceTask = detail;
+            } catch {
+                // Fall back to existing task object if detail fetch fails.
+            }
+        }
+        const snapshot = workbenchTaskSnapshot(sourceTask);
         if (!snapshot || snapshot.kind !== kind) {
             if (notify) message.warning("该任务没有可恢复的工作台参数");
             return false;
@@ -772,14 +816,14 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
             if (typeof parameters.generateAudio === "boolean") updateConfig("videoGenerateAudio", String(parameters.generateAudio));
             if (typeof parameters.watermark === "boolean") updateConfig("videoWatermark", String(parameters.watermark));
         }
-        const restoredModel = task.model ? models.find((item) => item === task.model || modelOptionName(item) === task.model) : undefined;
+        const restoredModel = sourceTask.model ? models.find((item) => item === sourceTask.model || modelOptionName(item) === sourceTask.model) : undefined;
         if (restoredModel) {
             updateConfig(kind === "image" ? "imageModel" : "videoModel", restoredModel);
             updateConfig("model", restoredModel);
         }
         setTool(restoredTool);
         setPreset(restoredPreset);
-        setPrompt(task.prompt || "");
+        setPrompt(sourceTask.prompt || "");
         setUploadSlotKey(undefined);
         referencesRef.current.forEach(revokeReferencePreview);
         setReferences([]);
@@ -803,7 +847,7 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
         if (restoredPreset) params.set("preset", restoredPreset.id);
         else params.delete("preset");
         setSearchParams(params, { replace: true });
-        setActiveTask(task);
+        setActiveTask(sourceTask);
         setResultHidden(false);
         setMobileTab("generate");
         setDetailTask(null);
@@ -837,10 +881,17 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
 
     const openDetail = async (task: GenerationTask) => {
         const requestId = ++detailRequestRef.current;
-        setDetailTask(task);
+        const merged = mergeWithCachedDetail(task);
+        setDetailMediaIndex(0);
+        setDetailTask(merged);
+        if (merged.resultJson && merged.inputJson) {
+            setDetailLoading(false);
+            return;
+        }
         setDetailLoading(true);
         try {
             const detail = await queryGenerationTask(task.id);
+            rememberTaskDetail(detail);
             if (requestId === detailRequestRef.current) setDetailTask(detail);
         } catch (error) {
             if (requestId === detailRequestRef.current) message.error(error instanceof Error ? error.message : "任务详情加载失败");
@@ -866,7 +917,30 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
         return isModelIdLike(display) ? "生成模型" : display;
     };
     const resultTask = resultHidden ? null : activeTask || tasks.find((task) => task.status === "succeeded") || null;
-    const resultUrl = resultTask ? taskPreview(resultTask) : "";
+    const resultUrls = useMemo(() => (resultTask ? taskMediaUrls(resultTask) : []), [resultTask]);
+    const activeStageUrl = resultUrls[Math.min(stageMediaIndex, Math.max(0, resultUrls.length - 1))] || "";
+    const detailUrls = useMemo(() => (detailTask ? taskMediaUrls(detailTask) : []), [detailTask]);
+    const activeDetailUrl = detailUrls[Math.min(detailMediaIndex, Math.max(0, detailUrls.length - 1))] || "";
+
+    useEffect(() => {
+        setStageMediaIndex(0);
+    }, [resultTask?.id]);
+
+    // 列表接口只下发首图 previewUrl，当前舞台展示已完成任务时自动补拉一次详情，确保多张生成结果（resultJson.images）与可恢复参数（inputJson）完整就位。
+    useEffect(() => {
+        if (!resultTask || resultTask.status !== "succeeded" || (resultTask.resultJson && resultTask.inputJson)) return;
+        let cancelled = false;
+        queryGenerationTask(resultTask.id)
+            .then((detail) => {
+                if (!cancelled) rememberTaskDetail(detail);
+            })
+            .catch(() => {
+                // Keep summary preview if detail fetch fails.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [rememberTaskDetail, resultTask?.id, resultTask?.inputJson, resultTask?.resultJson, resultTask?.status]);
     const guideText = tool ? normalizeWorkbenchGuide(tool.guide) : "";
     const hasToolGuideDetails = Boolean(tool && (guideText || tool.inputContract?.slots.length || tool.resultExample?.imageUrls?.length || tool.resultExample?.videoUrl));
 
@@ -1401,7 +1475,11 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
                             <div className="workbench-section-heading">
                                 <div>
                                     <h2>生成结果</h2>
-                                    <span>{resultTask ? `${taskModelLabel(resultTask)} · ${displayTaskState(resultTask)}` : "作品会在这里呈现"}</span>
+                                    <span>
+                                        {resultTask
+                                            ? `${taskModelLabel(resultTask)} · ${displayTaskState(resultTask)}${resultUrls.length > 1 ? ` · 共 ${resultUrls.length} 张（第 ${Math.min(stageMediaIndex + 1, resultUrls.length)} 张）` : ""}`
+                                            : "作品会在这里呈现"}
+                                    </span>
                                 </div>
                                 <div className="workbench-stage-actions">
                                     {resultTask?.status === "running" || resultTask?.status === "queued" ? <LoaderCircle className="size-4 animate-spin text-foreground/45" /> : null}
@@ -1498,13 +1576,31 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
                                         取消任务
                                     </Button>
                                 </div>
-                            ) : resultTask.status === "succeeded" && resultUrl ? (
+                            ) : resultTask.status === "succeeded" && activeStageUrl ? (
                                 <div className="workbench-result-media">
                                     {resultTask.previewKind === "video" || kind === "video" ? (
-                                        <video src={resultUrl} controls playsInline />
+                                        <video src={activeStageUrl} controls playsInline />
                                     ) : (
-                                        <MediaPreview src={resultUrl} kind="image" alt="生成结果" className="size-full object-contain" fallbackLabel="结果暂不可用" />
+                                        <MediaPreview src={activeStageUrl} kind="image" alt="生成结果" className="size-full object-contain" fallbackLabel="结果暂不可用" />
                                     )}
+                                    {resultUrls.length > 1 ? (
+                                        <div className="workbench-result-thumbs" role="tablist" aria-label="多图结果切换">
+                                            {resultUrls.map((url, index) => (
+                                                <button
+                                                    key={`${index}:${url}`}
+                                                    type="button"
+                                                    role="tab"
+                                                    aria-selected={stageMediaIndex === index}
+                                                    aria-label={`查看第 ${index + 1} 张图片`}
+                                                    className={`workbench-result-thumb ${stageMediaIndex === index ? "is-active" : ""}`}
+                                                    onClick={() => setStageMediaIndex(index)}
+                                                >
+                                                    <MediaPreview src={url} kind="image" alt={`第 ${index + 1} 张`} className="size-full object-cover" />
+                                                    <span>{index + 1}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : null}
                                     {resultTask.prompt ? (
                                         <div className="workbench-result-caption">
                                             <span className="truncate" title={resultTask.prompt}>
@@ -1612,15 +1708,33 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
                 {detailTask ? (
                     <div className="workbench-detail-grid">
                         <div className="workbench-detail-media">
-                            {taskPreview(detailTask) ? (
+                            {activeDetailUrl ? (
                                 detailTask.previewKind === "video" || kind === "video" ? (
-                                    <video src={taskPreview(detailTask)} controls playsInline />
+                                    <video src={activeDetailUrl} controls playsInline />
                                 ) : (
-                                    <MediaPreview src={taskPreview(detailTask)} kind="image" alt="生成结果" className="size-full object-contain" />
+                                    <MediaPreview src={activeDetailUrl} kind="image" alt="生成结果" className="size-full object-contain" />
                                 )
                             ) : (
                                 <div className="workbench-guide-empty">{displayTaskState(detailTask)}</div>
                             )}
+                            {detailUrls.length > 1 ? (
+                                <div className="workbench-result-thumbs is-detail" role="tablist" aria-label="详情多图切换">
+                                    {detailUrls.map((url, index) => (
+                                        <button
+                                            key={`${index}:${url}`}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={detailMediaIndex === index}
+                                            aria-label={`查看第 ${index + 1} 张图片`}
+                                            className={`workbench-result-thumb ${detailMediaIndex === index ? "is-active" : ""}`}
+                                            onClick={() => setDetailMediaIndex(index)}
+                                        >
+                                            <MediaPreview src={url} kind="image" alt={`第 ${index + 1} 张`} className="size-full object-cover" />
+                                            <span>{index + 1}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
                         <div className="workbench-detail-info">
                             <span className={`workbench-status is-${detailTask.status}`}>{displayTaskState(detailTask)}</span>
