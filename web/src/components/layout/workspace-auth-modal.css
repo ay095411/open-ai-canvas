@@ -16,7 +16,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     /* 高度固定，不跟表单内容走：登录 / 注册 / 找回密码三张表单高度差很多，
        跟着内容走弹窗会一跳一跳的。装不下时由右侧滚动区接管。 */
-    height: min(620px, calc(100dvh - 48px));
+    height: min(660px, calc(100dvh - 48px));
     overflow: hidden;
     border-radius: 16px;
     background: var(--user-surface, var(--background));

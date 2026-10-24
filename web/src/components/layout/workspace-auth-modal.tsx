@@ -144,7 +144,7 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
             centered
             // 参考图是左右等分的横版卡片（约 1.5:1）。高度固定，不跟表单内容走：
             // 登录 / 注册 / 找回密码三张表单高度差很多，跟着内容走弹窗会一跳一跳的。
-            width="min(1040px, calc(100vw - 32px))"
+            width="min(1200px, calc(100vw - 32px))"
             rootClassName="workspace-auth-modal"
             onCancel={onClose}
         >
