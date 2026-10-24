@@ -56,9 +56,11 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/ui-redesign" ]; then
             echo "tags_backend=${TAGS}-backend:latest,${TAGS}-backend:${BUILD_VERSION}" >> $GITHUB_OUTPUT
             echo "tags_web=${TAGS}-web:latest,${TAGS}-web:${BUILD_VERSION}" >> $GITHUB_OUTPUT
+            echo "tags_agent=${TAGS}-yingce-agent:latest,${TAGS}-yingce-agent:${BUILD_VERSION}" >> $GITHUB_OUTPUT
           else
             echo "tags_backend=${TAGS}-backend:${BUILD_VERSION}" >> $GITHUB_OUTPUT
             echo "tags_web=${TAGS}-web:${BUILD_VERSION}" >> $GITHUB_OUTPUT
+            echo "tags_agent=${TAGS}-yingce-agent:${BUILD_VERSION}" >> $GITHUB_OUTPUT
           fi
       
       - name: Build and push backend image
@@ -74,8 +76,8 @@ jobs:
             BUILD_COMMIT=${{ steps.meta.outputs.commit }}
             BUILD_TIME=${{ steps.meta.outputs.build_time }}
             GOPROXY=${{ env.GOPROXY }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
       
       - name: Build and push web image
         uses: docker/build-push-action@v6
@@ -90,8 +92,19 @@ jobs:
             BUILD_COMMIT=${{ steps.meta.outputs.commit }}
             BUILD_TIME=${{ steps.meta.outputs.build_time }}
             VITE_TLDRAW_LICENSE_KEY=${{ secrets.VITE_TLDRAW_LICENSE_KEY }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Build and push yingce-agent image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: yingce-agent/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags_agent }}
+          cache-from: type=gha,scope=yingce-agent
+          cache-to: type=gha,mode=max,scope=yingce-agent
       
       - name: Create release summary
         run: |
@@ -111,6 +124,11 @@ jobs:
           **前端镜像:**
           \`\`\`
           ${{ steps.meta.outputs.tags_web }}
+          \`\`\`
+
+          **Agent 镜像:**
+          \`\`\`
+          ${{ steps.meta.outputs.tags_agent }}
           \`\`\`
           
           **服务器更新命令:**
