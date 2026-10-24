@@ -2435,3 +2435,133 @@
         min-height: 58px;
     }
 }
+
+/* ========================================================================
+   工作台（图片 / 视频生成）对齐 Skills 市场灰调材质：
+   页面浅灰底、面板灰卡、胶囊灰底 + 主题色激活；不引入新的阴影语言，
+   只重定义 --wb-* token 与个别混色，组件规则保持原样。
+   ======================================================================== */
+.app-user-workspace .workbench-shell {
+    --wb-page: #f5f5f5;
+    --wb-surface: #e9e9e9;
+    --wb-raised: #f5f5f5;
+    --wb-muted: #e0e0e0;
+    --wb-hover: #dcdcdc;
+    --wb-edge: #dcdcdc;
+    --wb-text: #242424;
+    --wb-text-muted: #707070;
+    --wb-text-soft: #707070;
+    --wb-shadow: none;
+    --wb-panel-glow: transparent;
+    /* --user-primary 全局从未定义，所有 var(--user-primary, --wb-accent-creative)
+       都落到这里的蓝紫 #6c82dc；收敛到中性主题色，与 Skills 的 accent 口径一致。 */
+    --wb-accent-creative: var(--user-accent, #242424);
+}
+.dark .app-user-workspace .workbench-shell {
+    --wb-page: #18181a;
+    --wb-surface: #262629;
+    --wb-raised: #2b2b2f;
+    --wb-muted: #323237;
+    --wb-hover: #323237;
+    --wb-edge: #39393e;
+    --wb-text: #f0f0f2;
+    --wb-text-muted: #ababaf;
+    --wb-text-soft: #ababaf;
+    --wb-panel-glow: transparent;
+}
+.dark .app-user-workspace .workbench-shell {
+    --wb-accent-creative: var(--user-accent, #f0f0f2);
+}
+
+/* 页面容器与外壳铺满灰底，滚动区不再透出白底。 */
+.app-user-workspace .workbench-page > div:first-child {
+    background: var(--wb-page, #f5f5f5);
+}
+.app-user-workspace .workbench-shell,
+.app-user-workspace .workbench-columns {
+    background: transparent;
+}
+
+/* 面板与工具条：灰卡 + 细灰边，去掉发光混色后的蓝紫倾向。 */
+.app-user-workspace .workbench-composer,
+.app-user-workspace .workbench-active-panel,
+.app-user-workspace .workbench-history-panel {
+    border: 1px solid color-mix(in srgb, var(--wb-edge) 72%, transparent);
+}
+.app-user-workspace .workbench-flow-steps {
+    background: var(--wb-surface);
+    border: 1px solid color-mix(in srgb, var(--wb-edge) 72%, transparent);
+}
+.app-user-workspace .workbench-tool-bar {
+    border-bottom-color: color-mix(in srgb, var(--wb-edge) 72%, transparent);
+}
+
+/* 主操作按钮与胶囊：对齐 Skills 的黑/白主按钮与主题色激活胶囊。 */
+.app-user-workspace .workbench-shell {
+    --wb-button-bg: #242424;
+    --wb-button-ink: #ffffff;
+}
+.dark .app-user-workspace .workbench-shell {
+    --wb-button-bg: #ededee;
+    --wb-button-ink: #242424;
+}
+.app-user-workspace .workbench-preset-chip {
+    border-radius: 12px;
+    background: var(--wb-muted);
+    color: var(--wb-text-muted);
+}
+.app-user-workspace .workbench-preset-chip:hover {
+    background: var(--wb-hover);
+    color: var(--wb-text);
+}
+.app-user-workspace .workbench-preset-chip.is-active {
+    background: var(--user-accent, var(--wb-button-bg));
+    color: var(--primary-foreground, var(--wb-button-ink));
+    box-shadow: none;
+}
+
+/* 流程步骤条：数字徽标灰底，完成态维持绿色语义。 */
+.app-user-workspace .workbench-flow-number {
+    border-radius: 7px;
+}
+
+/* 工具卡片（选择创作工具弹层）：灰卡 + hover 灰边，选中用主题色描边。 */
+.app-user-workspace .workbench-tool-card {
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: var(--wb-raised);
+}
+.app-user-workspace .workbench-tool-card:hover {
+    background: var(--wb-muted);
+}
+.app-user-workspace .workbench-tool-card.is-selected {
+    border-color: var(--user-accent, var(--wb-button-bg));
+}
+
+/* 目标卡片：灰底圆角 13px → 与胶囊一致的 12px，图标底色跟随灰阶。 */
+.app-user-workspace .workbench-goal-card {
+    border-radius: 12px;
+}
+
+/* 历史生成搜索框：无边框灰底，与 Skills 搜索一致。 */
+.app-user-workspace .workbench-history-panel .ant-input-affix-wrapper {
+    height: 32px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--wb-muted);
+    box-shadow: none;
+    transition: background-color 160ms ease;
+}
+.app-user-workspace .workbench-history-panel .ant-input-affix-wrapper:hover,
+.app-user-workspace .workbench-history-panel .ant-input-affix-wrapper:focus-within {
+    background: var(--wb-hover);
+}
+.app-user-workspace .workbench-history-panel .ant-input-affix-wrapper input {
+    height: 100%;
+    background: transparent;
+    color: var(--wb-text);
+    font-size: 12px;
+}
+.app-user-workspace .workbench-history-panel .ant-input-affix-wrapper input::placeholder {
+    color: var(--wb-text-muted);
+}

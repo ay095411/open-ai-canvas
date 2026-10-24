@@ -5,6 +5,16 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 图片/视频生成工作台对齐 Skills 灰调材质
+
+- 已调整：在 `web/src/pages/workbench/workbench.css` 末尾新增覆盖段，把图片生成（`/toolbox/image`）与视频生成（`/toolbox/video`）两个工作台对齐 Skills 市场灰调材质（与素材库/插件中心同一家族）：
+  - **token 重定义**：`--wb-page`（#f5f5f5 / #18181a）、`--wb-surface`（#e9e9e9 / #262629）、`--wb-raised`（#f5f5f5 / #2b2b2f）、`--wb-muted`（#e0e0e0 / #323237）、`--wb-hover`、`--wb-edge`（#dcdcdc / #39393e）、文字三级灰阶，全部组件规则不变、只换 token；
+  - **强调色收敛**：`--user-primary` 全局从未定义，所有 `var(--user-primary, --wb-accent-creative)` 实际落到蓝紫 `#6c82dc`（流程编号、重置按钮、查看更多、激活胶囊等）；现把 `--wb-accent-creative` 收敛到中性 `--user-accent`，与 Skills 的 accent 口径一致；
+  - **去发光混色**：`--wb-panel-glow` 置为 transparent，面板不再带蓝紫倾向；流程条与面板补 1px 细灰边；
+  - **胶囊与搜索框**：预设胶囊改 12px 圆角灰底、激活态主题色反白；历史生成搜索框改无边框灰底（34px→32px、hover 提亮），与 Skills 搜索一致；
+  - 工具卡片 16px 圆角灰卡、选中态主题色描边；目标卡片圆角收敛为 12px。
+- [x] 开发服务器真实浏览器验证：3100 端口分别打开 `/toolbox/image` 与 `/toolbox/video`，明暗双主题实测：浅色页面 `#f5f5f5`、面板 `#e9e9e9`、提示词表面 `#e0e0e0`；暗色页面 `#18181a`、面板 `#262629`、目标卡 `#2b2b2f`、强调色文字 `#f5f5f5`；截图核验两页与 Skills 页面材质统一，无蓝紫残留。
+
 ## auth 弹窗远端迭代合入（项目标题 / 浅色输入框修复 / 700px 高度）
 
 - 已完成：合入远端 auth 弹窗迭代线（至 `5614a280`，含弹窗表单区顶部项目标题 `fdee8046`、品牌展示体 Fredoka `c91e4efb`、注册表单一次看全的 700px 高度与 1.3:1 媒体区 `5e400db2`、受保护页面先弹登录 `d6cfb14f`、浅色主题输入框白底白字修复 `5614a280`、空列表下发空数组修复 `3f24aaef`、首页大卡雾气视频 `9447a4c6` 等），本地全部提交保留。
