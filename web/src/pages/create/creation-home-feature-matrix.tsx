@@ -1,11 +1,26 @@
 import { ArrowUpRight, Clock3, FolderOpen, PlugZap, Sparkles, WandSparkles } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import { useNavigate } from "react-router";
+
+import { useAmbientVideoPlayback } from "@/hooks/use-ambient-video-playback";
+import { mayNavigateWithAuth } from "@/lib/guard-navigation";
 import "./creation-home-feature-matrix.css";
 
 interface CreationHomeFeatureMatrixProps {
     onOpenAgentNewCanvas: () => void;
     onOpenExistingCanvas: () => void;
 }
+
+/**
+ * 大卡的动态底片。
+ *
+ * 原本是一张静态的《黑白黑色电影》风格照，换成循环雾气视频后整块会缓慢呼吸。
+ * 素材与旧的舞台底片同源（`/create/hero-ambient.mp4`，1280×720 / 15s / 无音轨 / 1.1MB），
+ * 压暗后当底纹用，不额外引入资源；`preload="metadata"` 避免首屏就抢带宽，
+ * poster 与视频同色调，所以未就绪 / 降级时观感一致。
+ */
+const LEAD_MEDIA_VIDEO = "/create/hero-ambient.mp4";
+const LEAD_MEDIA_POSTER = "/create/hero-ambient-poster.jpg";
 
 /**
  * 四个能力入口。封面复用短剧风格图：这一带与上方画廊同宽，纯图标撑不起这个尺度，
@@ -55,6 +70,8 @@ export function CreationHomeFeatureMatrix({
     onOpenExistingCanvas,
 }: CreationHomeFeatureMatrixProps) {
     const navigate = useNavigate();
+    const reducedMotion = useReducedMotion();
+    const leadVideoRef = useAmbientVideoPlayback(Boolean(reducedMotion));
 
     const handleKeyboardAction = (event: React.KeyboardEvent, action: () => void) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -73,7 +90,22 @@ export function CreationHomeFeatureMatrix({
                     onClick={onOpenAgentNewCanvas}
                     onKeyDown={(event) => handleKeyboardAction(event, onOpenAgentNewCanvas)}
                 >
-                    <div className="creation-feature-lead-media" aria-hidden="true" />
+                    <div className="creation-feature-lead-media" aria-hidden="true">
+                        <video
+                            ref={leadVideoRef}
+                            className="creation-feature-lead-video"
+                            src={LEAD_MEDIA_VIDEO}
+                            poster={LEAD_MEDIA_POSTER}
+                            muted
+                            loop
+                            playsInline
+                            preload="metadata"
+                            controls={false}
+                            disablePictureInPicture
+                            tabIndex={-1}
+                            onContextMenu={(event) => event.preventDefault()}
+                        />
+                    </div>
                     <div className="creation-feature-lead-scrim" aria-hidden="true" />
                     <div className="creation-feature-lead-content">
                         <div className="creation-feature-lead-copy">
@@ -112,7 +144,11 @@ export function CreationHomeFeatureMatrix({
                     <div className="creation-capability-list">
                         {capabilities.map((capability) => {
                             const Icon = capability.icon;
-                            const openCapability = () => navigate(capability.route);
+                            // 四张卡的目标页（/skills /assets /plugins /tasks）全要登录：
+                            // 未登录时由闸门换成弹登录框，别先跳过去再被 RequireAuth 弹回来。
+                            const openCapability = () => {
+                                if (mayNavigateWithAuth(capability.route)) navigate(capability.route);
+                            };
                             return (
                                 <div
                                     key={capability.route}

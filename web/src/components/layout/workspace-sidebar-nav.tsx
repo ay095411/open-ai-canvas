@@ -11,6 +11,7 @@ import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
 import { cn } from "@/lib/utils";
+import { interceptAuthLink } from "@/lib/workspace-auth";
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
@@ -92,9 +93,10 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
             <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
                 {/* 游客态的头像也用品牌角色「黑煤球」，与登录后的默认头像同一个盒子
                     （`.app-workspace-sidebar-profile-avatar`），尺寸与圆形裁切因此一致；
-                    斜箭头表示这是一次页面跳转（去 /login），语义同账户弹窗里的「管理员后台」。
+                    斜箭头保留「这是一次跳转」的语义（中键 / 新标签页仍走 `/login` 深链），
+                    但左键点击会被拦截成就地开弹窗 —— 真跳 `/login` 会让整页卸载重建、闪一下。
                     折叠态只留头像：文字和箭头会挤爆 42px 的方框。 */}
-                <Link to="/login" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录" title="登录">
+                <Link to="/login" onClick={(event) => interceptAuthLink(event)} className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录" title="登录">
                     <span className="app-workspace-sidebar-profile-avatar"><CoalAvatar /></span>
                     {!collapsed ? <span className="app-workspace-sidebar-profile-copy"><strong>登录</strong></span> : null}
                     {!collapsed ? <ArrowUpRight className="app-workspace-sidebar-profile-arrow" /> : null}

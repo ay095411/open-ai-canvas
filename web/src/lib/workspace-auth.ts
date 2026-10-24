@@ -22,6 +22,23 @@ export function openWorkspaceAuth(detail: WorkspaceAuthOpenDetail = {}) {
 }
 
 /**
+ * 站内指向 `/login`、`/register`、`/forgot-password` 的链接不该真的跳转。
+ *
+ * 这三个地址只渲染一个空壳（`AuthRouteShell`），宿主接住地址后再把 URL 换回来；
+ * 这一来一回会把**整棵页面树卸载重建**（实测首页有 4 帧主内容缺失、~50ms），
+ * 观感就是「打开登录弹窗时页面闪一下」。所以左键点击就地派发事件打开弹窗，
+ * 同时保留 `href` —— 中键 / ⌘+点击 / 新标签页仍然走深链，那是它该有的用途。
+ */
+export function interceptAuthLink(
+    event: { defaultPrevented: boolean; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; preventDefault: () => void },
+    detail: WorkspaceAuthOpenDetail = {},
+) {
+    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    openWorkspaceAuth(detail);
+}
+
+/**
  * `next` 参数只接受站内相对路径。
  * 必须挡掉 `//evil.com`（协议相对 URL，浏览器会当成外站）与 `http(s)://`，
  * 否则 `/login?next=https://evil.com` 就成了一条开放重定向。

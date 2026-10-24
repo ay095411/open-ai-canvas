@@ -89,7 +89,10 @@ export default function AppearanceSettingsPage() {
     const blocker = useBlocker(dirty && !saving && !restoring);
 
     const applySetting = useCallback((value: AdminAppearance) => {
-        const themes = value.skinThemes.length ? value.skinThemes.map((theme) => normalizeSkinDefinition(theme)) : [cloneSkinDefinition(DEFAULT_CLASSIC_SKIN)];
+        // 列表字段一律先确认是数组：后端曾把空列表序列化成 null（Go 的 nil slice），
+        // 直接 .length / .map 会把整页打成「无法读取外观配置」。
+        const incomingThemes = Array.isArray(value.skinThemes) ? value.skinThemes : [];
+        const themes = incomingThemes.length ? incomingThemes.map((theme) => normalizeSkinDefinition(theme)) : [cloneSkinDefinition(DEFAULT_CLASSIC_SKIN)];
         const selectedID = themes.some((theme) => theme.id === value.skinId) ? value.skinId : "classic";
         setSetting({ ...value, skinThemes: themes, skinId: selectedID });
         setBrandName(value.brandName);
@@ -99,7 +102,7 @@ export default function AppearanceSettingsPage() {
         setAuthHeroTitle(value.authHeroTitle);
         setAuthHeroDescription(value.authHeroDescription);
         setAuthVideoAutoplay(value.authVideoAutoplay);
-        setAuthCarousel(value.authCarousel.map((item) => ({ ...item })));
+        setAuthCarousel((Array.isArray(value.authCarousel) ? value.authCarousel : []).map((item) => ({ ...item })));
         setLogoFrameEnabled(value.logoFrameEnabled);
         setSkinThemes(themes);
         setSkinId(selectedID);

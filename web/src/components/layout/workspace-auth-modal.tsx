@@ -7,6 +7,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
+import { isProtectedWorkspacePath } from "@/lib/guest-workspace";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -100,6 +101,37 @@ export function WorkspaceAuthHost() {
         return () => window.removeEventListener(WORKSPACE_AUTH_OPEN_EVENT, handleOpen);
     }, []);
 
+    /**
+     * 点向「要登录才能看的页面」的链接，在**导航发生前**截住。
+     *
+     * 不拦的话链路是这样的：`pushState /skills` → `RequireAuth` 拦下 → `replaceState
+     * /login?next=%2Fskills` → 本宿主接住地址 → `replaceState /`。实测 32ms 内 5 次 history
+     * 变更，`UserLayout` 整棵（含侧栏）卸载重建，主内容有 2 帧是空的——这就是用户说的「闪烁」。
+     *
+     * 拦下来之后一步导航都不发生：弹窗直接盖在当前页上，登录成功后按 `next` 去原本要去的页面。
+     * capture 阶段挂在 document 上：要比 React 的事件委托（挂在根容器）更早，
+     * 这样 `preventDefault()` 能让 react-router 的 `<Link>` 处理器直接放弃导航。
+     */
+    useEffect(() => {
+        const handleClick = (event: MouseEvent) => {
+            // 中键 / Ctrl+点击 / 右键一律放行：那些是「在新标签页打开」的语义。
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const anchor = (event.target as Element | null)?.closest?.("a[href]");
+            if (!(anchor instanceof HTMLAnchorElement)) return;
+            if (anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
+            const url = new URL(anchor.href, window.location.href);
+            if (url.origin !== window.location.origin) return;
+            if (!isProtectedWorkspacePath(url.pathname)) return;
+            const { hydrated, user } = useUserStore.getState();
+            // 还没水合完就交给 RequireAuth 决定（它会先显示 loading），已登录则照常放行。
+            if (!hydrated || user) return;
+            event.preventDefault();
+            openWorkspaceAuth({ next: `${url.pathname}${url.search}${url.hash}` });
+        };
+        document.addEventListener("click", handleClick, true);
+        return () => document.removeEventListener("click", handleClick, true);
+    }, []);
+
     useEffect(() => {
         if (!AUTH_ROUTES.has(pathname)) return;
         const params = new URLSearchParams(search);
@@ -108,7 +140,11 @@ export function WorkspaceAuthHost() {
             mode: modeOfPathname(pathname),
             next: safeAuthNext(params.get("next")),
         });
-        navigate(returnToRef.current, { replace: true });
+        // 深链落地（直接访问 `/login` 等）：URL 必须换回一个能正常渲染的页面，否则关掉弹窗
+        // 就只剩空壳。统一换回首页，不走 `returnToRef`——那个目标可能需要登录，换回去会被
+        // `RequireAuth` 立刻弹回 `/login`，与本行凑成来回跳转的死循环（页面会卡死）。
+        // 登录成功后照样按 `next` / 打开弹窗前那一页跳，这里只决定「背景页」。
+        navigate("/", { replace: true });
     }, [navigate, pathname, search]);
 
     // `next` 优先；没带就回到打开弹窗时所在的那一页。
@@ -132,6 +168,8 @@ export function WorkspaceAuthHost() {
 
 export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, onSuccess }: { open: boolean; mode: WorkspaceAuthMode; next: string; onModeChange: (mode: WorkspaceAuthMode) => void; onClose: () => void; onSuccess: () => void }) {
     const appearance = useAppearanceStore((state) => state.appearance);
+    // 顶栏标题用后台「站点及外观」里的项目名，与浏览器标题、侧栏品牌保持同一来源。
+    const brandName = appearance.brandName || "平台";
 
     return (
         <AppModal
@@ -144,7 +182,8 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
             centered
             // 参考图是左右等分的横版卡片（约 1.5:1）。高度固定，不跟表单内容走：
             // 登录 / 注册 / 找回密码三张表单高度差很多，跟着内容走弹窗会一跳一跳的。
-            width="min(1200px, calc(100vw - 32px))"
+            // 宽度与高度都按「注册表单不用滚就能一次看全」定的，见 workspace-auth-modal.css。
+            width="min(1120px, calc(100vw - 32px))"
             rootClassName="workspace-auth-modal"
             onCancel={onClose}
         >
@@ -160,30 +199,39 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
 
                 <section className="workspace-auth-pane" aria-label={mode === "register" ? "注册" : mode === "recovery" ? "找回密码" : "登录"}>
                     <div className="workspace-auth-scroll">
-                        {mode === "recovery" ? (
-                            <div className="workspace-auth-tabs" role="tablist" aria-label="找回密码">
-                                <button type="button" role="tab" aria-selected onClick={() => onModeChange("login")}>
-                                    ← 返回登录
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
-                                <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
-                                    登录
-                                </button>
-                                <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
-                                    注册
-                                </button>
-                            </div>
-                        )}
+                        {/* 顶栏：左项目标题、右登录/注册切换。放同一行是为了不吃高度——
+                            表单最挤时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量，
+                            标题单独占一行会把提交按钮顶到折线以下。 */}
+                        <div className="workspace-auth-head">
+                            <h2 className="workspace-auth-title" title={brandName}>
+                                {brandName}
+                            </h2>
+                            {mode === "recovery" ? (
+                                <div className="workspace-auth-tabs" role="tablist" aria-label="找回密码">
+                                    <button type="button" role="tab" aria-selected onClick={() => onModeChange("login")}>
+                                        ← 返回登录
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
+                                    <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
+                                        登录
+                                    </button>
+                                    <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
+                                        注册
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         {/* 复用 `.auth-scene-card`：输入框高度、圆角、主按钮这些控件规则都挂在它下面，
                             弹窗与登录页因此共用同一套样式，不必再维护第二份。 */}
                         <div className="auth-scene-card">
                             {mode === "login" ? (
-                                <LoginForm next={next} onSuccess={onSuccess} onClose={onClose} />
+                                <LoginForm next={next} onSuccess={onSuccess} />
                             ) : mode === "recovery" ? (
-                                // 找回密码成功后自己会跳 `/login?next=…`，宿主接住它就回到登录表单。
-                                <ForgotPasswordPage />
+                                // 重置成功后就地切回登录表单，不再跳 `/login?next=…`：
+                                // 找回密码整条链路都留在弹窗里，不换页面。
+                                <ForgotPasswordPage next={next} onCompleted={() => onModeChange("login")} />
                             ) : (
                                 <RegisterForm next={next} onSuccess={onSuccess} />
                             )}

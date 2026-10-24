@@ -7,6 +7,7 @@ import { getAuthSession, getAuthSettings, linuxDOLoginURL, login } from "@/servi
 import { LinuxDOIcon } from "@/components/auth/linuxdo-icon";
 import { VerificationFields } from "@/components/auth/verification-fields";
 import { emptyVerification, loginVerification, methodLabels, verificationMethods, type VerificationMethod } from "@/services/api/verification";
+import { interceptAuthLink } from "@/lib/workspace-auth";
 
 /**
  * 登录表单本体。
@@ -14,10 +15,10 @@ import { emptyVerification, loginVerification, methodLabels, verificationMethods
  * 原先它是 `/login` 独立页（`pages/auth/login.tsx`）的全部内容，页面自己 `navigate(next)`
  * 决定去向；现在由工作台的登录弹窗承载，所以这里**不再碰路由**：
  * - 成功后只回调 `onSuccess()`，去哪儿由宿主按 `next` / 来源页决定；
- * - 「忘记密码？」要离开弹窗，找回密码仍是独立页，所以点它时先 `onClose()`；
+ * - 「忘记密码？」也不跳页面，就地切到弹窗里的找回密码表单（`interceptAuthLink` 带 `mode: "recovery"`）；
  * - 「已登录就别再看这张表单」的兜底也上移到宿主（那是弹窗的开关语义，不是表单的）。
  */
-export function LoginForm({ next, onSuccess, onClose }: { next: string; onSuccess: () => void; onClose?: () => void }) {
+export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => void }) {
     const [params] = useSearchParams();
     const { message } = App.useApp();
     const [username, setUsername] = useState("");
@@ -73,18 +74,23 @@ export function LoginForm({ next, onSuccess, onClose }: { next: string; onSucces
      * 尾部看上去像没收住。
      */
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
-            {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} className="bg-white/5 border border-white/5" />}
+        <form onSubmit={submit} className="flex flex-col gap-2.5">
+            {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} />}
             {method !== "password" ? <VerificationFields key={method} purpose="login" method={method} value={verification} onChange={setVerification} disabled={submitting} /> : <>
-                <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4 text-white/40" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
-                <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
+                {/* 输入框的底色 / 描边 / 文字色 / 占位符全部由 globals.css 的 `.auth-scene-card` 段按主题给出，
+                    这里不要再挂 `text-white`、`bg-white/5` 这类工具类：它们是旧独立登录页（深色）的遗留，
+                    而那段选择器用了 `:where()`（特异性 0），浅色主题下会被工具类反过来盖成白底白字。 */}
+                <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required />
+                <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required />
             </>}
             <div className="-my-1 flex justify-end">
-                <Link to={forgotPasswordURL} onClick={onClose} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors text-white/50 hover:text-white/90">
+                {/* 就地切到找回密码表单：`/forgot-password` 是空壳路由，真跳过去会卸载
+                    整棵页面树再被宿主换回来（空白几帧）。href 保留给中键 / 新标签页。 */}
+                <Link to={forgotPasswordURL} onClick={(event) => interceptAuthLink(event, { mode: "recovery", next })} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors text-white/50 hover:text-white/90">
                     忘记密码？
                 </Link>
             </div>
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0 mt-2">
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0 mt-1">
                 登录并进入创作
             </Button>
             {/* 第三方登录不再配「或」分隔线：只有两个区块时，一条分割线带来的

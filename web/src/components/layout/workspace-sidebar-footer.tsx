@@ -2,7 +2,7 @@ import { App, Popover } from "antd";
 import { Switch } from "@/components/ui/base/switch";
 import { ChevronRight, LogIn, LogOut, Moon, ShieldCheck, Sun } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
 import { AppChangelogButton } from "@/components/layout/app-changelog-modal";
 import { IdentityProviderBadge } from "@/components/layout/identity-provider-badge";
@@ -11,6 +11,7 @@ import { SystemAnnouncementCenter } from "@/components/layout/system-announcemen
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { applyUserSession } from "@/lib/user-session";
 import { cn } from "@/lib/utils";
+import { interceptAuthLink, openWorkspaceAuth } from "@/lib/workspace-auth";
 import { logout } from "@/services/api/auth";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { useUserStore, type LocalUser } from "@/stores/use-user-store";
@@ -28,7 +29,6 @@ export function WorkspaceSidebarFooter({ expandedClassName, collapsedClassName, 
     const user = useUserStore((state) => state.user);
     const hydrated = useUserStore((state) => state.hydrated);
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
-    const navigate = useNavigate();
     const { message } = App.useApp();
     const [menuOpen, setMenuOpen] = useState(false);
     const { availableMicrocredits } = useWalletBalance(user?.id, creditsEnabled);
@@ -42,7 +42,9 @@ export function WorkspaceSidebarFooter({ expandedClassName, collapsedClassName, 
             await applyUserSession({ user: null });
             setMenuOpen(false);
             message.success("已退出登录");
-            navigate("/login", { replace: true });
+            // 退出后照旧把登录弹窗顶起来，但走事件而不是 `navigate("/login")`：
+            // 后者会让整页卸载重建（空白几帧），观感是闪一下。
+            openWorkspaceAuth();
         } catch (error) {
             message.error(error instanceof Error ? error.message : "退出失败");
         }
@@ -106,7 +108,7 @@ export function WorkspaceSidebarFooter({ expandedClassName, collapsedClassName, 
                     </button>
                 </Popover>
             ) : (
-                <Link to="/login" className={cn("flex h-10 items-center rounded-md text-xs text-foreground/65 hover:bg-surface-hover hover:text-foreground", collapsedClassName)} title="登录">
+                <Link to="/login" onClick={(event) => interceptAuthLink(event)} className={cn("flex h-10 items-center rounded-md text-xs text-foreground/65 hover:bg-surface-hover hover:text-foreground", collapsedClassName)} title="登录">
                     <LogIn className="size-4 shrink-0" /><span className={expandedClassName}>登录</span>
                 </Link>
             )}

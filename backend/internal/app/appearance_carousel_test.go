@@ -92,9 +92,10 @@ func TestNormalizeAppearanceCarousel(t *testing.T) {
 	if _, err := normalizeAppearanceCarousel(many); err == nil {
 		t.Fatal("over-limit item count accepted")
 	}
+	// 空输入必须是空切片而不是 nil：nil slice 会序列化成 null，前端拿到 null 直接 .map 就崩。
 	empty, err := normalizeAppearanceCarousel(nil)
-	if err != nil || empty != nil {
-		t.Fatalf("nil input should yield nil, got %v, %v", empty, err)
+	if err != nil || empty == nil || len(empty) != 0 {
+		t.Fatalf("nil input should yield an empty (non-nil) slice, got %#v, %v", empty, err)
 	}
 }
 
@@ -116,8 +117,9 @@ func TestPublicAppearanceCarousel(t *testing.T) {
 	if public_[1].Kind != appearanceCarouselKindVideo || !strings.Contains(public_[1].URL, "carousel-b-video") || !strings.Contains(public_[1].PosterURL, "carousel-b-poster") {
 		t.Errorf("video entry wrong: %+v", public_[1])
 	}
-	if public_ := publicAppearanceCarousel(nil, "rev1"); public_ != nil {
-		t.Fatalf("nil input should yield nil, got %+v", public_)
+	// 同理：空轮播下发空数组，不能是 null。
+	if empty := publicAppearanceCarousel(nil, "rev1"); empty == nil || len(empty) != 0 {
+		t.Fatalf("nil input should yield an empty (non-nil) slice, got %#v", empty)
 	}
 }
 

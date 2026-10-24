@@ -108,8 +108,10 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
     const verificationUnavailable = Boolean(settings && !settings.firstUser && methods.length === 0);
     const disabled = !settings || registrationClosed || verificationUnavailable;
 
+    // 纵向节奏收到 gap-2.5：注册是条目最多的一张表单（验证方式切换 + 4~5 个输入 +
+    // 协议 + 两个按钮），在弹窗的固定高度里 gap-4 会把提交按钮挤出可视区。
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-2.5">
             {settings?.firstUser ? (
                 <Notice icon={<Info className="size-3.5" />} tone="blue">
                     首个账号自动成为管理员，邮箱验证码暂不要求。
@@ -129,24 +131,26 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
             {/* 显示名称不再在注册时收集：它和用户名 90% 的情况下是同一个词，
                 多一个框只换来一次「要不要改昵称」的犹豫。后端
                 NormalizeDisplayName 在空值时回退成用户名，不传即可。 */}
+            {/* 输入框的配色由 globals.css 的 `.auth-scene-card` 段按主题给出，不要在这里挂
+                `text-white` / `bg-white/5`：它们是旧独立注册页（深色）的遗留，那段选择器用了
+                `:where()`（特异性 0），浅色主题下会被工具类反过来盖成白底白字。 */}
             <AuthField label="用户名">
-                <Input size="large" prefix={<UserRound className="auth-scene-icon size-4 text-white/40" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30" />
+                <Input size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} />
             </AuthField>
 
             {settings?.firstUser ? <AuthField label="邮箱（可选）">
                 <Input
                     size="large"
-                    prefix={<Mail className="auth-scene-icon size-4 text-white/40" />}
+                    prefix={<Mail className="auth-scene-icon size-4" />}
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="用于登录与安全验证"
                     autoComplete="email"
                     required={!settings?.firstUser}
                     disabled={disabled}
-                    className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30"
                 />
             </AuthField> : <>
-                {methods.length > 1 && <Segmented block aria-label="注册验证方式" options={methods.map((value) => ({ value, label: methodLabels[value] }))} value={method} disabled={submitting} onChange={(value) => { setMethod(value as VerificationMethod); setVerification({ ...emptyVerification }); }} className="bg-white/5 border border-white/5" />}
+                {methods.length > 1 && <Segmented block aria-label="注册验证方式" options={methods.map((value) => ({ value, label: methodLabels[value] }))} value={method} disabled={submitting} onChange={(value) => { setMethod(value as VerificationMethod); setVerification({ ...emptyVerification }); }} />}
                 {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
             </>}
 
@@ -155,27 +159,25 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
             <AuthField label="密码">
                 <Input.Password
                     size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />}
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="至少 8 位"
                     autoComplete="new-password"
                     required
                     disabled={disabled}
-                    className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30"
                 />
             </AuthField>
             <AuthField label="确认密码">
                 <Input.Password
                     size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4 text-white/40" />}
+                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="再次输入密码"
                     autoComplete="new-password"
                     required
                     disabled={disabled}
-                    className="h-12 rounded-2xl bg-white/5 border-white/10 hover:border-white/20 focus:border-white/30 text-white placeholder:text-white/30"
                 />
             </AuthField>
 
@@ -201,7 +203,7 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
                 </div>
             ) : null}
 
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={disabled || registerCountdown > 0 || !agreementAccepted} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0 mt-2">
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={disabled || registerCountdown > 0 || !agreementAccepted} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0">
                 {registerCountdown > 0 ? `${registerCountdown} 秒后可重试` : "创建账号并体验"}
             </Button>
             {/* 第三方入口不再配「或」分隔线，与登录表单保持一致：满宽按钮自带分组，
@@ -251,7 +253,7 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
 
 function AuthField({ label, children }: { label: string; children: ReactNode }) {
     return (
-        <label className="block space-y-2">
+        <label className="block space-y-1.5">
             <span className="auth-scene-label text-xs font-medium">{label}</span>
             {children}
         </label>

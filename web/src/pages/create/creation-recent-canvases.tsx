@@ -143,17 +143,16 @@ export function CreationRecentCanvases({ onRequireLogin }: { onRequireLogin: () 
                             </div>
                         );
                     })
-                ) : (
+                ) : userId ? (
                     <div className="creation-canvas-strip-state" role="listitem">
                         <PanelsTopLeft aria-hidden="true" />
-                        <span>{userId ? "还没有画布，把第一个想法留在这里。" : "登录后，最近创建的画布会显示在这里。"}</span>
-                        {!userId ? (
-                            <button type="button" onClick={onRequireLogin}>
-                                登录
-                            </button>
-                        ) : null}
+                        <span>还没有画布，把第一个想法留在这里。</span>
                     </div>
-                )}
+                ) : null}
+                {/* 未登录时这一栏只留左边那张「创建画布」：原来这里还有一段
+                    「登录后，最近创建的画布会显示在这里。」加一颗登录按钮，
+                    和创建卡说的是同一件事，两个入口反而让人犹豫点哪个。
+                    点创建卡本身就会弹登录框（见 createCanvas 里的 !userId 分支）。 */}
             </div>
         </section>
     );

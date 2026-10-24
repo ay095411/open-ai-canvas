@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Avatar, Button, Form, Input, Skeleton } from "antd";
 import { BadgeCheck, Crop, ImagePlus, KeyRound, Mail, RefreshCw, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { ImageCropDialog, type ImageCropRect } from "@/components/image-crop-dialog";
@@ -13,6 +13,7 @@ import { DEFAULT_USER_AVATARS } from "@/lib/default-user-avatars";
 import { cropProfileAvatar } from "@/services/profile-avatar";
 import { loadProfileSession } from "@/services/profile-session";
 import { applyUserSession } from "@/lib/user-session";
+import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { invalidateAuthSessionCache, type LocalUser } from "@/services/api/auth";
 import { changeProfileEmail, changeProfilePassword, profileLinuxDOReauthURL, requestProfileEmailCode, selectDefaultProfileAvatar, uploadProfileAvatar, type UserProfile } from "@/services/api/profile";
 import { ApiError } from "@/services/api/request";
@@ -30,7 +31,6 @@ const errorMessage = (error: unknown, fallback: string) => (error instanceof Err
 
 export function ProfilePane() {
     const { message } = App.useApp();
-    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const userId = useUserStore((state) => state.user?.id);
@@ -209,7 +209,9 @@ export function ProfilePane() {
             useUserStore.getState().setHydrated(true);
             message.error({ content: `${notice} 清理本地会话失败：${errorMessage(error, "请重新登录")}`, duration: 8 });
         } finally {
-            navigate("/login", { replace: true });
+            // 邮箱改动后会话已失效，直接把登录弹窗顶起来；用事件而不是跳 `/login`，
+            // 否则整页卸载重建会有几帧空白（看起来像闪一下）。
+            openWorkspaceAuth();
         }
     };
 

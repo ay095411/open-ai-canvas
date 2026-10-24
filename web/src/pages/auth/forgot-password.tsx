@@ -7,7 +7,15 @@ import { getAuthSettings, resetPassword, sendPasswordResetEmailCode } from "@/se
 
 type RecoveryStage = "request" | "reset";
 
-export default function ForgotPasswordPage() {
+/**
+ * 找回密码表单。
+ *
+ * 只作为登录弹窗里的一个模式渲染，**不再是可以停留的页面**：
+ * - `next`：重置成功后本该回到哪个页面。弹窗内就地切换时 URL 上没有查询参数，由宿主传入。
+ * - `onCompleted`：重置成功后的去向。宿主用它切回登录表单；不传时才退回旧的
+ *   `navigate("/login?next=…")`，避免有朝一日它被当成独立页用时行为丢失。
+ */
+export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { next?: string; onCompleted?: () => void } = {}) {
     const navigate = useNavigate();
     const [params] = useSearchParams();
     const { message } = App.useApp();
@@ -20,7 +28,9 @@ export default function ForgotPasswordPage() {
     const [sendingCode, setSendingCode] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [countdown, setCountdown] = useState(0);
-    const next = safeNext(params.get("next"));
+    // 就地切到找回密码表单时 URL 还停在原页面，只能由弹窗宿主把 next 传进来；
+    // 直接访问 `/forgot-password?next=…` 深链时仍从查询参数取。
+    const next = safeNext(nextProp ?? params.get("next"));
     const loginURL = `/login?next=${encodeURIComponent(next)}`;
 
     useEffect(() => {
@@ -74,7 +84,9 @@ export default function ForgotPasswordPage() {
         try {
             await resetPassword({ email: email.trim(), emailCode, password });
             message.success("密码已重置，请使用新密码登录");
-            navigate(loginURL, { replace: true });
+            // 有宿主就留在弹窗里切回登录表单；没有才退回跳转（保留独立页用法的语义）。
+            if (onCompleted) onCompleted();
+            else navigate(loginURL, { replace: true });
         } catch (error) {
             message.error(error instanceof Error ? error.message : "密码重置失败");
         } finally {

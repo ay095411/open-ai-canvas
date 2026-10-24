@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 
 import { navigationTools } from "@/constant/navigation-tools";
 import { Kbd } from "@/components/ui/base/kbd";
+import { mayNavigateWithAuth } from "@/lib/guard-navigation";
 import { cn } from "@/lib/utils";
 import { openWorkspaceSettings } from "@/lib/workspace-settings";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
@@ -54,7 +55,11 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
             entry.run();
             return;
         }
-        if (entry.to) navigate(entry.to);
+        if (!entry.to) return;
+        // 命令面板是真跳转，不经过 `<a>`，宿主那层全局点击拦截管不到：走同一个闸门，
+        // 未登录时就地弹登录框，否则会先跳到受保护页、再被 RequireAuth 弹回，中途闪一下。
+        if (!mayNavigateWithAuth(entry.to)) return;
+        navigate(entry.to);
     };
 
     useEffect(() => {
