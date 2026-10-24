@@ -362,7 +362,8 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     // 空值时占位文案统一叠在编辑器下层：原生 placeholder 无法逐字刷新，且各浏览器垂直对齐规则不一致。
     // 打字机模式下颜色与透明度交给 CSS 类，避免调用方传入的正文色把占位语义顶掉。
     const placeholderText = props.placeholder;
-    const placeholderOverlay = !value && placeholderText ? (
+    const effectiveValue = compositionValue ?? value;
+    const placeholderOverlay = !effectiveValue && placeholderText ? (
         <div
             aria-hidden
             className={`${className || ""}${animatedPlaceholder ? " creation-typing-placeholder" : ""} pointer-events-none absolute inset-0 z-0`}
@@ -554,7 +555,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
 
     return (
         <div ref={containerRef} data-canvas-no-zoom className={`relative w-full min-h-0 overflow-hidden ${containerClassName || "h-full"}`}>
-            {placeholderOverlay}
+            {animatedPlaceholder ? placeholderOverlay : null}
             <textarea
                 {...props}
                 placeholder={animatedPlaceholder ? undefined : props.placeholder}

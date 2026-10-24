@@ -6,6 +6,7 @@
  * 走的是独立布局、也不在这里。
  */
 const PROTECTED_WORKSPACE_PREFIXES = [
+    "/toolbox",
     "/toolbox/image",
     "/toolbox/video",
     "/tasks",

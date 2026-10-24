@@ -1,5 +1,5 @@
 import { Popover } from "antd";
-import { ArrowUpRight, Bell, ChevronDown, ChevronRight, Image as ImageIcon, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus, Video } from "lucide-react";
+import { ArrowUpRight, Bell, ChevronDown, ChevronRight, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
@@ -18,7 +18,7 @@ import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { WorkspaceAccountCard } from "./workspace-account-card";
 import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
-import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon } from "./workspace-sidebar-icons";
+import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon, ToolboxNavIcon } from "./workspace-sidebar-icons";
 
 export type WorkspaceNavItem = {
     id: string;
@@ -52,26 +52,25 @@ function toolItem(slug: NavigationToolSlug, to: string): WorkspaceNavItem {
 }
 
 function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[]; footer: WorkspaceNavItem[] } {
+    const toolboxTo = features.imageWorkbenchEnabled ? "/toolbox/image" : features.videoWorkbenchEnabled ? "/toolbox/video" : "";
     const groups: WorkspaceNavGroup[] = [
         {
             items: [
                 { ...toolItem("create", "/"), id: "home", title: "创作" },
-                { ...toolItem("projects", "/projects"), title: "短剧 Agent" },
+                ...(toolboxTo ? [{ id: "toolbox", title: "生成工坊", icon: ToolboxNavIcon, to: toolboxTo }] : []),
                 { ...toolItem("canvas", "/canvas"), title: "自由画布" },
+                { ...toolItem("projects", "/projects"), title: "短剧 Agent" },
             ],
         },
         {
             heading: "资源与工具",
             items: [
-                // 独立生图 / 生视频工作台入口随 main 的 v1.6.6 移植进来，沿用平台特性开关。
-                ...(features.imageWorkbenchEnabled ? [{ id: "toolbox-image", title: "图片生成", icon: ImageIcon, to: "/toolbox/image" }] : []),
-                ...(features.videoWorkbenchEnabled ? [{ id: "toolbox-video", title: "视频生成", icon: Video, to: "/toolbox/video" }] : []),
                 { ...toolItem("assets", "/assets"), title: "资产" },
+                ...(features.taskCenterEnabled ? [{ ...toolItem("tasks", "/tasks"), title: "创作历史" }] : []),
                 { ...toolItem("skills", "/skills"), title: "Skills" },
                 ...(features.pluginCenterEnabled ? [{ ...toolItem("plugins", "/plugins"), title: "插件" }] : []),
             ],
         },
-        ...(features.taskCenterEnabled ? [{ items: [{ ...toolItem("tasks", "/tasks"), title: "创作历史" }] }] : []),
     ];
 
     // 管理、设置和退出登录不再占据参考站式侧栏底部，而是通过用户卡片菜单进入。
@@ -194,7 +193,7 @@ function NavItem({
     const Icon = item.icon;
     const rowStyle = collapsed ? undefined : ({ paddingLeft: `${level * 12 + 10}px` } as CSSProperties);
 
-    const collapsedTitle = item.id === "home" ? "创作" : item.id === "projects" ? "短剧" : item.id === "canvas" ? "画布" : item.id === "assets" ? "资产" : item.id === "skills" ? "Skills" : item.id === "plugins" ? "插件" : item.id === "tasks" ? "历史" : item.title.slice(0, 2);
+    const collapsedTitle = item.id === "home" ? "创作" : item.id === "projects" ? "短剧" : item.id === "canvas" ? "画布" : item.id === "toolbox" ? "工坊" : item.id === "assets" ? "资产" : item.id === "skills" ? "Skills" : item.id === "plugins" ? "插件" : item.id === "tasks" ? "历史" : item.title.slice(0, 2);
     const rowContent = (
         <>
             <span className="app-workspace-nav-main flex min-w-0 items-center gap-2.5">
@@ -316,11 +315,10 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
     );
 }
 
-// 菜单项 id 与实际路由不一定同名：/toolbox/image 和 /toolbox/video 共用 toolbox 前缀，
-// 只取首段会让两者都匹配不到任何菜单项，侧栏因此没有高亮。
+// /toolbox、/toolbox/image 和 /toolbox/video 统一命中侧栏「生成工坊」单入口。
 export function workspaceNavActiveId(pathname: string, section?: string | null) {
     const segments = pathname.split("/").filter(Boolean);
-    if (segments[0] === "toolbox" && segments[1]) return `toolbox-${segments[1]}`;
+    if (segments[0] === "toolbox") return "toolbox";
     const slug = segments[0] || "home";
     if (slug === "create") return "home";
     return slug === "settings" && section ? `settings:${section}` : slug;
@@ -334,9 +332,8 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
     const { handleLogout } = useWorkspaceLogout();
     const { groups, footer } = useMemo(() => buildNav(features), [features]);
 
-    const slug = pathname === "/create" ? "home" : pathname.split("/").filter(Boolean)[0] || "home";
     const section = searchParams.get("section");
-    const activeId = slug === "settings" && section ? `settings:${section}` : slug;
+    const activeId = workspaceNavActiveId(pathname, section);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [scrollState, setScrollState] = useState({ hasTopFade: false, hasBottomFade: false });

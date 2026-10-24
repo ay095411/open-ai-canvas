@@ -1,11 +1,11 @@
 .workbench-count-picker {
     display: grid;
-    gap: 10px;
+    gap: 6px;
 }
 .workbench-count-picker > span {
     font-size: 12px;
-    font-weight: 580;
-    color: var(--wb-text);
+    font-weight: 560;
+    color: var(--wb-text-muted);
 }
 .workbench-count-picker > div {
     display: grid;
@@ -18,26 +18,26 @@
     min-width: 0;
     height: 32px;
     padding: 0;
-    border: 1px solid var(--wb-edge);
-    border-radius: 8px;
-    background: var(--wb-surface);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--wb-muted);
     color: var(--wb-text);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 550;
     cursor: pointer;
-    transition: all 120ms ease;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .workbench-count-picker button:hover {
-    border-color: var(--wb-text-muted);
     background: var(--wb-hover);
 }
 .workbench-count-picker button.is-active {
-    border-color: var(--user-primary, #5b5fc7);
-    background: var(--user-primary, #5b5fc7);
-    color: white;
+    border-color: var(--user-accent, var(--wb-button-bg, #242424));
+    background: var(--user-accent, var(--wb-button-bg, #242424));
+    color: var(--primary-foreground, var(--wb-button-ink, #ffffff));
+    font-weight: 650;
 }
 
 .workbench-count-stepper {
@@ -47,22 +47,21 @@
     width: 100%;
     min-width: 0;
     height: 32px;
-    border: 1px solid var(--wb-edge);
-    border-radius: 8px;
-    background: var(--wb-surface);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--wb-muted);
     color: var(--wb-text);
     overflow: hidden;
-    transition: all 120ms ease;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
     cursor: pointer;
 }
 .workbench-count-stepper:hover {
-    border-color: var(--wb-text-muted);
     background: var(--wb-hover);
 }
 .workbench-count-stepper.is-active {
-    border-color: var(--user-primary, #5b5fc7);
-    background: var(--user-primary, #5b5fc7);
-    color: white;
+    border-color: var(--user-accent, var(--wb-button-bg, #242424));
+    background: var(--user-accent, var(--wb-button-bg, #242424));
+    color: var(--primary-foreground, var(--wb-button-ink, #ffffff));
 }
 .workbench-count-stepper input {
     width: 100%;
@@ -73,8 +72,8 @@
     border: none;
     outline: none;
     text-align: center;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 560;
     color: inherit;
     padding: 0 2px 0 8px;
     -moz-appearance: textfield;
@@ -95,7 +94,7 @@
     align-items: center;
 }
 .workbench-count-stepper.is-active .workbench-count-stepper-controls {
-    border-left-color: rgba(255, 255, 255, 0.25);
+    border-left-color: color-mix(in srgb, currentColor 22%, transparent);
 }
 .workbench-count-stepper-btn {
     display: flex;
@@ -112,7 +111,7 @@
     transition: background-color 100ms ease;
 }
 .workbench-count-stepper-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15) !important;
+    background: color-mix(in srgb, currentColor 14%, transparent) !important;
 }
 .workbench-count-stepper-btn:disabled {
     opacity: 0.35;

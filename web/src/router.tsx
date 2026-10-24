@@ -125,6 +125,10 @@ export const router = createBrowserRouter([
             { path: "/", element: deferred(<CreatePage />) },
             { path: "/create", element: deferred(<CreatePage />) },
             {
+                path: "/toolbox",
+                element: <Navigate to="/toolbox/image" replace />,
+            },
+            {
                 path: "/toolbox/image",
                 element: (
                     <RequireAuth>

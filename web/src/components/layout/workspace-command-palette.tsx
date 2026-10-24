@@ -2,6 +2,7 @@ import { Command, Home, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router";
 
+import { ToolboxNavIcon } from "@/components/layout/workspace-sidebar-icons";
 import { navigationTools } from "@/constant/navigation-tools";
 import { Kbd } from "@/components/ui/base/kbd";
 import { mayNavigateWithAuth } from "@/lib/guard-navigation";
@@ -31,10 +32,12 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
             const tool = navigationTools.find((item) => item.slug === slug);
             return { id: slug, title: tool?.label ?? slug, icon: tool?.icon ?? Home, to };
         };
+        const toolboxTo = features.imageWorkbenchEnabled ? "/toolbox/image" : features.videoWorkbenchEnabled ? "/toolbox/video" : "";
         return [
             { id: "home", title: "首页", icon: Home, to: "/" },
             ...(features.shortDramaEnabled ? [toolEntry("projects", "/projects")] : []),
             toolEntry("canvas", "/canvas"),
+            ...(toolboxTo ? [{ id: "toolbox", title: "生成工坊", icon: ToolboxNavIcon, to: toolboxTo }] : []),
             ...(features.taskCenterEnabled ? [toolEntry("tasks", "/tasks")] : []),
             toolEntry("assets", "/assets"),
             toolEntry("skills", "/skills"),

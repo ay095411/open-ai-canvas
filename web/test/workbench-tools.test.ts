@@ -4,6 +4,8 @@ import { filterWorkbenchTools, workbenchTaskSnapshot } from "../src/pages/workbe
 import type { GenerationTask } from "@/services/api/task-center";
 import type { WorkbenchTool } from "@/services/api/workbench";
 
+(globalThis as Record<string, unknown>).__APP_VERSION__ ??= "0.0.0";
+
 const tools: WorkbenchTool[] = [
     { id: "face", kind: "image", categoryId: "people", name: "脸部三视图", subtitle: "生成正脸、侧脸", description: "角色参考", sortOrder: 0, enabled: true, supportedModes: ["image"], presets: [] },
     { id: "product", kind: "image", categoryId: "product", name: "商品白底图", subtitle: "生成商品图", description: "电商产品", sortOrder: 1, enabled: true, supportedModes: ["image"], presets: [] },
@@ -52,3 +54,13 @@ describe("filterWorkbenchTools", () => {
         expect(filterWorkbenchTools(tools, "all", "  ")).toHaveLength(2);
     });
 });
+
+describe("workspaceNavActiveId for unified toolbox entry", () => {
+    test("highlights the unified toolbox entry for image and video workbench routes", async () => {
+        const { workspaceNavActiveId } = await import("../src/components/layout/workspace-sidebar-nav");
+        expect(workspaceNavActiveId("/toolbox")).toBe("toolbox");
+        expect(workspaceNavActiveId("/toolbox/image")).toBe("toolbox");
+        expect(workspaceNavActiveId("/toolbox/video")).toBe("toolbox");
+    });
+});
+

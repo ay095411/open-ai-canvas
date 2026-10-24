@@ -22,6 +22,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     const canvasEditor = /^\/canvas\/[^/]+(?:\/|$)/.test(pathname);
     const productWorkspace = !adminWorkspace && !canvasEditor;
     const userId = useUserStore((state) => state.user?.id);
+    const globalAgentEnabled = useUserStore((state) => state.features.globalAgentEnabled);
     useWorkspaceButtonFeedback(productWorkspace);
 
     useLayoutEffect(() => {
@@ -36,8 +37,8 @@ export default function UserLayout({ children }: { children: ReactNode }) {
         };
     }, [adminWorkspace, spatialWorkbench, productWorkspace]);
 
-    // 所有登录页面共用同一个面板实例：跨路由不卸载，对话、运行和事件流都不中断。
-    const globalAgent = userId ? (
+    // 所有登录页面共用同一个面板实例：跨路由不卸载，对话、运行和事件流都不中断；默认隐藏，由后台功能开放开关控制。
+    const globalAgent = userId && globalAgentEnabled ? (
         <Suspense fallback={null}>
             <GlobalAgentPanel key={userId} />
         </Suspense>

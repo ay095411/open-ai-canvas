@@ -41,6 +41,7 @@ export type FeatureAvailability = {
     inspirationSourcesVisible: boolean;
     imageWorkbenchEnabled: boolean;
     videoWorkbenchEnabled: boolean;
+    globalAgentEnabled: boolean;
     configured?: boolean;
     updatedBy?: string;
     updatedAt?: string;
@@ -58,6 +59,7 @@ export const defaultFeatureAvailability: FeatureAvailability = {
     inspirationSourcesVisible: false,
     imageWorkbenchEnabled: false,
     videoWorkbenchEnabled: false,
+    globalAgentEnabled: false,
 };
 
 type UserStore = {
