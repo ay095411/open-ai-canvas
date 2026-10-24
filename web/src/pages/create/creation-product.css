@@ -236,40 +236,29 @@
 .app-user-workspace .creation-chat-control:hover > svg:first-child { transform: scale(1.06); }
 .app-user-workspace .creation-chat-control.is-clear:hover { background: color-mix(in srgb, var(--status-error, #c45b5b) 12%, var(--user-surface)) !important; color: var(--status-error, #c45b5b) !important; }
 
-/* 思考与流式等开关在开启时的显目高亮样式（彻底解决暗色下开关不明显的问题） */
+/* 思考与流式等开关在开启时的选中高亮样式：对齐系统主色调，彻底消除生硬的电光蓝硬编码 */
 .app-user-workspace .creation-chat-controls .creation-chat-control[aria-pressed="true"],
 .creation-home .creation-chat-controls .creation-chat-control[aria-pressed="true"],
 .creation-chat-composer .creation-chat-controls .creation-chat-control[aria-pressed="true"] {
-    background: rgba(59, 130, 246, 0.22) !important;
-    border: 1px solid rgba(96, 165, 250, 0.6) !important;
-    color: #60a5fa !important;
+    background: var(--button-primary-bg, var(--user-accent, var(--user-ink))) !important;
+    border: 1px solid transparent !important;
+    color: var(--button-primary-fg, var(--primary-foreground, #ffffff)) !important;
     font-weight: 600 !important;
-    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3) !important;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--user-ink, #1b1b1f) 18%, transparent) !important;
 }
 .app-user-workspace .creation-chat-controls .creation-chat-control[aria-pressed="true"] > svg,
 .creation-home .creation-chat-controls .creation-chat-control[aria-pressed="true"] > svg,
 .creation-chat-composer .creation-chat-controls .creation-chat-control[aria-pressed="true"] > svg {
-    color: #60a5fa !important;
-    transform: scale(1.08);
+    color: inherit !important;
+    transform: scale(1.06);
 }
 .app-user-workspace .creation-chat-controls .creation-chat-control[aria-pressed="true"]:hover,
 .creation-home .creation-chat-controls .creation-chat-control[aria-pressed="true"]:hover,
 .creation-chat-composer .creation-chat-controls .creation-chat-control[aria-pressed="true"]:hover {
-    background: rgba(59, 130, 246, 0.32) !important;
-    border-color: rgba(147, 197, 253, 0.85) !important;
-    color: #bfdbfe !important;
-}
-
-html:not(.dark) .app-user-workspace .creation-chat-controls .creation-chat-control[aria-pressed="true"],
-html:not(.dark) .creation-home .creation-chat-controls .creation-chat-control[aria-pressed="true"] {
-    background: rgba(37, 99, 235, 0.12) !important;
-    border: 1px solid rgba(37, 99, 235, 0.45) !important;
-    color: #1d4ed8 !important;
-    box-shadow: 0 0 10px rgba(37, 99, 235, 0.18) !important;
-}
-html:not(.dark) .app-user-workspace .creation-chat-controls .creation-chat-control[aria-pressed="true"] > svg,
-html:not(.dark) .creation-home .creation-chat-controls .creation-chat-control[aria-pressed="true"] > svg {
-    color: #1d4ed8 !important;
+    background: var(--button-primary-hover-bg, var(--button-primary-bg, var(--user-ink))) !important;
+    color: var(--button-primary-fg, var(--primary-foreground, #ffffff)) !important;
+    opacity: 0.94;
+    transform: translateY(-1px);
 }
 .app-user-workspace .creation-launchpad .creation-reference-add-button:hover:not(:disabled) {
     border-style: solid;

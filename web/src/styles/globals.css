@@ -17799,7 +17799,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     box-shadow: 0 8px 18px color-mix(in srgb, var(--user-ink) 8%, transparent);
 }
 .app-user-workspace .creation-chat-control.is-streaming[aria-pressed="true"] > svg {
-    color: var(--control-switch-checked-bg);
+    color: inherit;
 }
 .app-user-workspace .creation-home .canvas-node-composer-submit-action { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; }
 
