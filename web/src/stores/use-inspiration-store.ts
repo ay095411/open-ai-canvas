@@ -9,6 +9,7 @@
  * 判定口径与页面共用 `lib/inspirations/permissions.ts`，页面负责不出入口，这里负责兜底
  * ——新加一个入口时忘了判角色，也不会真的写进去。
  */
+import { createClientUUID } from "@/lib/client-id";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -117,7 +118,7 @@ function normalizeImportedEntry(input: unknown): CreationInspiration | null {
     try {
         const draft = normalizeDraft(input);
         const raw = input as Record<string, unknown>;
-        const id = typeof raw.id === "string" && raw.id.trim() ? raw.id.trim() : `${CUSTOM_ID_PREFIX}${crypto.randomUUID()}`;
+        const id = typeof raw.id === "string" && raw.id.trim() ? raw.id.trim() : `${CUSTOM_ID_PREFIX}${createClientUUID()}`;
         return {
             ...draft,
             id: id.startsWith(CUSTOM_ID_PREFIX) ? id : `${CUSTOM_ID_PREFIX}${id}`,
@@ -144,7 +145,7 @@ export const useInspirationStore = create<InspirationStore>()(
                     warnBlocked("新建灵感");
                     return "";
                 }
-                const id = `${CUSTOM_ID_PREFIX}${crypto.randomUUID()}`;
+                const id = `${CUSTOM_ID_PREFIX}${createClientUUID()}`;
                 const entry: CreationInspiration = { ...normalizeDraft(draft), id, sourceId: "original" };
                 set((state) => ({ custom: [entry, ...state.custom] }));
                 return id;

@@ -10,6 +10,7 @@ import { WorkspaceTopBarExtensionProvider } from "@/components/layout/workspace-
 import { WorkspaceAuthHost } from "@/components/layout/workspace-auth-modal";
 import { WorkspaceSettingsHost } from "@/components/layout/workspace-settings-modal";
 import { WorkspaceWalletHost } from "@/components/layout/workspace-wallet-modal";
+import { FloatingFeedbackWidget } from "@/components/feedback/floating-feedback-widget";
 import { cn } from "@/lib/utils";
 import { isSpatialWorkbenchPath } from "@/lib/workspace-routes";
 
@@ -118,6 +119,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
             <WorkspaceWalletHost />
             <WorkspaceSettingsHost />
             <ModelSetupGuide hidden={pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin")} />
+            {!hideChrome && pathname !== "/login" && pathname !== "/register" ? <FloatingFeedbackWidget /> : null}
         </>
     );
 }
