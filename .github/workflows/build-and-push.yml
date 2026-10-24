@@ -133,9 +133,9 @@ jobs:
           
           **服务器更新命令:**
           \`\`\`bash
-          cd /opt/canvas-prod
-          ./deploy.sh backup  # 先备份
-          ./deploy.sh update  # 更新服务
+          cd /opt/open-ai-canvas
+          docker compose pull web backend yingce-agent
+          docker compose up -d web backend yingce-agent
           \`\`\`
           EOF
       
