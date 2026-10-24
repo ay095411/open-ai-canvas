@@ -1,0 +1,44 @@
+/* 反馈弹窗内的复选框主题兼容。
+   AntD 6 把方框样式渲染在 .ant-checkbox 本体（.ant-checkbox-inner 已被移除），
+   主题 token Checkbox.colorPrimary 取皮肤 primary：暗色下是近白 #f5f5f5，
+   而对勾 ::after 默认取 colorWhite，会退化成「白底白勾」，勾选状态完全不可见。
+   这里沿用登录页协议勾选框的修补口径：方框 16px 圆角、勾选态用主题实底 +
+   --primary-foreground 反色对勾，明暗主题一次到位；只作用于本弹窗。 */
+
+.feedback-dialog-modal .ant-checkbox {
+    width: 16px !important;
+    height: 16px !important;
+    border-color: color-mix(in srgb, var(--foreground) 32%, transparent) !important;
+    border-radius: var(--checkbox-radius, 4px);
+    background: color-mix(in srgb, var(--foreground) 3%, transparent) !important;
+    transition:
+        border-color 140ms ease-out,
+        background-color 140ms ease-out;
+}
+
+.feedback-dialog-modal .ant-checkbox::after {
+    border-color: var(--primary-foreground, #fff) !important;
+    border-width: 2px !important;
+}
+
+.feedback-dialog-modal .ant-checkbox-wrapper:hover .ant-checkbox:not(.ant-checkbox-checked),
+.feedback-dialog-modal .ant-checkbox:hover:not(.ant-checkbox-checked) {
+    border-color: color-mix(in srgb, var(--foreground) 55%, transparent) !important;
+    background: color-mix(in srgb, var(--foreground) 6%, transparent) !important;
+}
+
+.feedback-dialog-modal .ant-checkbox-checked,
+.feedback-dialog-modal .ant-checkbox-wrapper:hover .ant-checkbox-checked,
+.feedback-dialog-modal .ant-checkbox-checked:hover {
+    border-color: var(--user-accent, var(--primary)) !important;
+    background: var(--user-accent, var(--primary)) !important;
+}
+
+.feedback-dialog-modal .ant-checkbox:has(.ant-checkbox-input:focus-visible) {
+    outline: 2px solid var(--ring, var(--primary));
+    outline-offset: 2px;
+}
+
+.feedback-dialog-modal .ant-checkbox-disabled {
+    opacity: 0.55;
+}

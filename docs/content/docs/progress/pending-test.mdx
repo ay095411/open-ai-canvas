@@ -5,6 +5,18 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 反馈弹窗与后台更新日志弹窗样式修复
+
+- 已修复（提交反馈弹窗 `feedback-modal.tsx`）：
+  - **居中**：移除内联 `top: 20` 贴顶定位，改为 `centered` 垂直居中，保留 `maxWidth: calc(100vw - 20px)` 防溢出；
+  - **复选框主题兼容**：新增 `feedback-modal.css`，按 AntD 6「方框渲染在 `.ant-checkbox` 本体」的结构修补——16px 圆角方框、勾选态用主题实底（`--user-accent`）+ `--primary-foreground` 反色对勾，修复暗色主题下「近白底 + 白勾」完全不可见的问题（根因：`Checkbox.colorPrimary` 取皮肤 primary，暗色为 #f5f5f5，对勾默认 colorWhite）；只作用于本弹窗，不新增全局 `.ant-checkbox-*` 补丁；
+  - **Tab 切换中性化**：「新建反馈 / 我的反馈收件箱」激活态由蓝紫底改为项目统一的实底表面（`bg-background text-foreground shadow-sm`），计数徽章与提醒圆点同步收敛到 `--primary`。
+- 已修复（后台更新日志弹窗 `.app-changelog-modal`）：
+  - 根因：后台外壳不注入 `--user-*` token，容器 `background: var(--user-page-bg)` 解析失效退化为全透明，弹窗内容悬浮在遮罩上没有面板；
+  - 修复：为 changelog 区块全部 `--user-*` 引用补上主题自适应回退（后台自动落到全局 `--popover / --card / --border / --foreground`），工作台原有取值不变。
+- [x] 开发服务器真实浏览器验证：暗色主题下实测反馈弹窗垂直居中、复选框 16×16 且勾选态白底深勾清晰可见、tab 实底中性；后台更新日志弹窗容器背景实测 `rgb(25,28,33)`（原透明）、20px 圆角、当前版本徽章清晰可读。
+- [ ] 用户验收：浅色主题下两弹窗观感、反馈弹窗窄屏表现、后台亮色主题下更新日志观感。
+
 ## 图片/视频生成工作台对齐 Skills 灰调材质
 
 - 已调整：在 `web/src/pages/workbench/workbench.css` 末尾新增覆盖段，把图片生成（`/toolbox/image`）与视频生成（`/toolbox/video`）两个工作台对齐 Skills 市场灰调材质（与素材库/插件中心同一家族）：
