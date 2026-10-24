@@ -1,6 +1,6 @@
 import { App, Button, InputNumber } from "antd";
 import { SettingsRow } from "@/components/ui/product/settings-row";
-import { ArrowLeft, Boxes, Brain, Bug, Cloud, MessageSquareText, RadioTower, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
+import { ArrowLeft, Boxes, Brain, Bug, Cloud, Inbox, MessageSquareText, RadioTower, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { UserOSSSettingsForm } from "@/components/layout/user-oss-settings-form";
@@ -17,8 +17,9 @@ import { PromptPreferencesPane } from "./prompt-preferences-pane";
 import DiagnosticsPanel from "./diagnostics-panel";
 import AgentMemoryPane from "./agent-memory-pane";
 import { RunningHubSettingsPane } from "./runninghub-settings-pane";
+import { FeedbackInboxPane } from "./feedback-inbox-pane";
 
-export type SettingsSectionKey = "profile" | "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "diagnostics";
+export type SettingsSectionKey = "profile" | "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "diagnostics" | "feedbacks";
 
 /**
  * 分区清单是「页面版」和「弹窗版」唯一的真源：两个形态共用同一个数组和同一套文案，
@@ -39,6 +40,7 @@ export const settingsSections: Array<{ key: SettingsSectionKey; label: string; d
     { key: "agent-memory", label: "Agent 记忆", description: "记忆批准与压缩", icon: <Brain className="size-4" /> },
     { key: "storage", label: "我的对象存储", description: "个人媒体存储", icon: <Cloud className="size-4" /> },
     { key: "diagnostics", label: "问题诊断", description: "导出日志排查", icon: <Bug className="size-4" /> },
+    { key: "feedbacks", label: "我的反馈", description: "提交问题与官方答复", icon: <Inbox className="size-4" /> },
 ];
 
 export function isSettingsSection(value: string | null): value is SettingsSectionKey {
@@ -169,6 +171,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
             </SettingsPane>
         ),
         diagnostics: <SettingsPane><DiagnosticsPanel taskId={taskId} projectId={projectId} /></SettingsPane>,
+        feedbacks: <SettingsPane><FeedbackInboxPane /></SettingsPane>,
         storage: (
             <SettingsPane>
                 <SettingsPaneHeader title="我的对象存储" description="启用后，新上传和新生成的媒体优先写入你的存储桶；停用时回退到平台存储。" />
