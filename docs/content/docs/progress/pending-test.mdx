@@ -1,3 +1,27 @@
+---
+title: 待测试
+description: 当前项目已实现功能的手工验证清单与未确认边界
+---
+
+# 待测试
+
+## main 主分支代码同步（提交 cd694236 合并）与登录弹窗放大
+
+- 已完成：`git merge origin/main` 合入主分支 60+ 个提交（至 `cd694236`；含 v1.6.9.1 发布、用户反馈插件、画布 Dock 重写、预演台双模式、音频真实波形播放器、个人渠道专属标识、MaxForAI/Cheaper Inference 协议插件、素材批量上传进度等，共 437 文件变更），本地全部改造保留。
+- 合并前备份分支：`backup/ui-redesign-before-sync-20261024`（`eb678d02`）。
+- 冲突按「优先保留本地」解决，共 11 个文件：
+  - `pending-test.mdx`：上游新增章节在前、本地同步记录在后取并集，并补回被误删的 frontmatter；
+  - `workspace-sidebar-nav.tsx`：保留本地「短剧 Agent」常驻菜单，不采用上游 `shortDramaEnabled` 开关与「短剧制作」文案；
+  - `model-picker.tsx`：保留本地「移除调用记录指示条/质量检测徽章」，吸收上游新增的「个人渠道」徽标；移除随之失去调用方的 `groupAvailability`；
+  - `settings/index.tsx` + `settings-workbench.tsx`：保留本地 Workbench 重构，并把上游新增的「我的反馈」分区（`FeedbackInboxPane`）移植进 Workbench（导入、分区清单、面板渲染三处）；
+  - `canvas-short-drama-entry.tsx/.css`：整体保留本地星尘光场空状态设计，调用方 `project.tsx` 的 `onSubmitPrompt` 回改为本地组件期望的 `onOpenAgent`；
+  - `canvas-resource-mention-textarea.tsx`：导入取并集（本地 `useReducedMotion` + 上游 `observeMovablePopupAnchor`）；
+  - `creation-workspace.tsx`：流式/思考按钮保留本地 `is-streaming`/`is-thinking` 高亮类；
+  - `use-inspiration-store.ts`：保留本地管理员权限校验，采用上游 `createClientUUID()`（兼容局域网 HTTP）；
+  - `go.mod`：同一依赖按上游字母序保留单一声明；`agent-media-policy.md` 保留本地删除。
+- 已验证：`cd web && bun run typecheck` 通过；`cd backend && go build ./...` 通过；3100 端口实机核验首页（标题、左下角模式下拉、Agent 双入口、能力卡、最近画布、上游新反馈入口）与登录弹窗渲染正常。
+- 已调整（登录弹窗放大）：`workspace-auth-modal` 宽度 `1040px → 1200px`（`min(1200px, calc(100vw - 32px))`），高度 `620px → 660px`；实机测量弹窗 1200×660，左右分栏与轮播布局正常。
+
 ## 用户反馈收件箱（PR #849）
 
 - 已实现：工作台意见反馈、图片/视频附件、个人收件箱、管理员筛选答复与归档；用户数据按账号隔离，管理操作由后端校验管理员权限。
