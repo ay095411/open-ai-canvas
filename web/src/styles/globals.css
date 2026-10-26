@@ -11488,14 +11488,14 @@ html:not(.dark) .creation-duration-menu strong { color: #20242a; }
     background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
 }
-.app-workspace-shell.is-creation-workspace,
-.app-workspace-shell.is-creation-workspace .app-workspace-stage {
-    background: var(--workspace-page) !important;
+.dark .app-workspace-shell.is-creation-workspace,
+.dark .app-workspace-shell.is-creation-workspace .app-workspace-stage {
+    background-color: #111415 !important;
 }
 
 html:not(.dark) .app-workspace-shell.is-creation-workspace,
 html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage {
-    background: var(--workspace-page) !important;
+    background-color: var(--user-page-bg, #f8f8fa) !important;
 }
 
 .creation-empty-workspace {
@@ -15678,6 +15678,91 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     color: var(--user-ink);
 }
 
+.app-user-workspace .app-workspace-topbar-qq-group {
+    display: inline-flex;
+    height: 36px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid var(--user-border);
+    border-radius: 999px;
+    background: var(--user-surface);
+    color: var(--user-ink-muted);
+    font-size: 13px;
+    font-weight: 500;
+    transition: background var(--user-motion), border-color var(--user-motion), color var(--user-motion);
+    cursor: pointer;
+    user-select: none;
+}
+
+.app-user-workspace .app-workspace-topbar-qq-group:hover {
+    border-color: var(--user-border-strong);
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
+}
+
+.dark .app-user-workspace .app-workspace-topbar-qq-group {
+    background: var(--user-surface);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.dark .app-user-workspace .app-workspace-topbar-qq-group:hover {
+    background: var(--user-surface-hover);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.workspace-qq-group-popover .ant-popover-inner {
+    padding: 12px !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--user-border) !important;
+    background: var(--user-surface) !important;
+    box-shadow: var(--elevation-overlay) !important;
+}
+
+/* 顶部常驻通知条：微流光扫光特效与微发光动效 */
+.banner-notice-shimmer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.banner-notice-shimmer::before {
+    content: "";
+    position: absolute;
+    inset: -60% -25%;
+    transform: translateX(-100%) rotate(24deg);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.03) 22%,
+        rgba(255, 255, 255, 0.22) 46%,
+        rgba(255, 255, 255, 0.34) 50%,
+        rgba(255, 255, 255, 0.22) 54%,
+        rgba(255, 255, 255, 0.03) 78%,
+        transparent 100%
+    );
+    animation: banner-notice-sweep 6.5s cubic-bezier(0.25, 1, 0.3, 1) infinite;
+}
+
+@keyframes banner-notice-sweep {
+    0%, 15% {
+        transform: translateX(-100%) rotate(24deg);
+    }
+    55%, 100% {
+        transform: translateX(180%) rotate(24deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .banner-notice-shimmer::before {
+        animation: none;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .app-user-workspace .app-workspace-topbar-credit,
     .app-user-workspace .app-workspace-topbar-credit:active {
@@ -16240,7 +16325,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .dark .app-user-workspace .app-workspace-sidebar,
 .dark .app-user-workspace .app-workspace-sidebar-nav { background: var(--workspace-sidebar-bg); }
-.dark .app-user-workspace .creation-home,
+.dark .app-user-workspace .creation-home { background: transparent; }
 .dark .app-user-workspace .creation-composer { background: #18181a; }
 /* 顶栏不参与上面这组：它保持透明（见 .app-workspace-topbar 的注释），
    深色下如果跟着涂 #18181a，会和页面底色拼出一条可滚动的横带。 */
@@ -17618,8 +17703,35 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 /* One scroll owner on the creation route. */
 :root {
-    --home-background-desktop: url(/images/home-background-desktop.svg);
-    --home-background-mobile: url(/images/home-background-mobile.webp);
+    --home-grid-line: rgba(0, 0, 0, 0.055);
+    --home-grid-hover: rgba(0, 0, 0, 0.04);
+    --home-grid-edge: #f8f8fa;
+    --home-stage-radial: radial-gradient(ellipse at 68% 12%, rgba(56, 139, 253, 0.07), transparent 38%);
+}
+
+.dark {
+    --home-grid-line: #2f293a;
+    --home-grid-hover: #2d2837;
+    --home-grid-edge: #111415;
+    --home-stage-radial: radial-gradient(ellipse at 68% 12%, rgba(28, 64, 79, 0.22), transparent 38%);
+}
+
+.creation-stage-canvas-ambient {
+    background-image: var(--home-stage-radial);
+}
+
+.home-background {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.home-shape-grid {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .app-user-workspace .creation-home {
@@ -17627,17 +17739,14 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     min-height: 0 !important;
     height: 100% !important;
     overflow: hidden !important;
-    background-color: var(--user-page-bg) !important;
-    background-image: var(--home-background-desktop) !important;
-    background-repeat: no-repeat !important;
-    background-position: center top !important;
-    background-size: cover !important;
+    background-color: transparent !important;
+    background-image: none !important;
     color: var(--user-ink) !important;
 }
 
 @media (max-width: 768px) {
     .app-user-workspace .creation-home {
-        background-image: var(--home-background-mobile) !important;
+        background-image: none !important;
     }
 }
 .app-user-workspace .creation-home > .creation-empty-workspace,

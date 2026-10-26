@@ -21,7 +21,6 @@ import { creationResultAssetIds, creationResultStorageKeys } from "@/lib/canvas/
 import { generationErrorMessage } from "@/lib/generation-error";
 import { formatVideoResolutionLabel as videoResolutionLabel } from "@/lib/video-generation-options";
 import { CanvasResourceMentionTextarea } from "@/components/canvas/canvas-resource-mention-textarea";
-import { VoiceRecordingButton } from "@/components/conversation/voice-recording-button";
 import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
 import { SpotlightSurface } from "@/components/ui/aceternity/spotlight-surface";
 import { ModelPicker } from "@/components/model-picker";
@@ -382,11 +381,6 @@ export function CreationComposer(props: ComposerProps) {
             <div className="creation-chat-controls">
                 {/* 模式切换固定在输入框左下角：首页与对话流共用同一位置，不再占用输入框上方的独立一行。 */}
                 <ModePicker mode={props.mode} onModeChange={props.onModeChange} />
-                <VoiceRecordingButton
-                    className="creation-voice-trigger"
-                    disabled={interactionBusy}
-                    onTranscribed={(text) => props.setPrompt(props.prompt.trim() ? `${props.prompt} ${text}` : text)}
-                />
                 {canOptimizePrompt ? <Tooltip title="用 AI 优化提示词">
                     <button
                         type="button"
@@ -516,67 +510,38 @@ export function CreationModeTabs({ mode, onModeChange, orientation = "horizontal
     </div>;
 }
 
-const MODE_DROPDOWN_ITEMS: { mode: CreationMode; icon: ReactNode; label: string; desc: string }[] = [
-    { mode: "text", icon: <MessageSquareText className="size-3.5" />, label: "生文本", desc: "写剧本、大纲与对话思路" },
-    { mode: "image", icon: <ImageIcon className="size-3.5" />, label: "生图片", desc: "文生图、图生图与分镜原画" },
-    { mode: "video", icon: <Film className="size-3.5" />, label: "生视频", desc: "镜头运动与动态视频生成" },
+const MODE_CAPSULE_ITEMS: { mode: CreationMode; icon: ReactNode; label: string }[] = [
+    { mode: "text", icon: <MessageSquareText className="size-3.5" />, label: "生文本" },
+    { mode: "image", icon: <ImageIcon className="size-3.5" />, label: "生图片" },
+    { mode: "video", icon: <Film className="size-3.5" />, label: "生视频" },
 ];
 
 /**
- * 输入框左下角的紧凑型模式切换下拉胶囊（对齐用户参考图）。
+ * 输入框左下角的紧凑型胶囊式选项：
+ * 选中的 tab 展示图标+对应文本，未选中的 tab 仅展示图标以极致节省空间。
  */
 function ModePicker({ mode, onModeChange }: { mode: CreationMode; onModeChange: (mode: CreationMode) => void }) {
-    const [open, setOpen] = useState(false);
-    const active = MODE_DROPDOWN_ITEMS.find((item) => item.mode === mode) || MODE_DROPDOWN_ITEMS[0];
-
-    const menuContent = (
-        <div className="creation-mode-dropdown-menu" role="menu">
-            {MODE_DROPDOWN_ITEMS.map((item) => {
+    return (
+        <div className="creation-mode-capsule-row" role="radiogroup" aria-label="创作生成模式切换">
+            {MODE_CAPSULE_ITEMS.map((item) => {
                 const isSelected = item.mode === mode;
                 return (
                     <button
                         key={item.mode}
                         type="button"
-                        role="menuitem"
-                        className={cn("creation-mode-dropdown-item", isSelected && "is-selected")}
-                        onClick={() => {
-                            onModeChange(item.mode);
-                            setOpen(false);
-                        }}
+                        role="radio"
+                        aria-checked={isSelected}
+                        className={cn("creation-mode-capsule-btn", isSelected && "is-active")}
+                        onClick={() => onModeChange(item.mode)}
+                        title={item.label}
+                        aria-label={`切换到${item.label}模式`}
                     >
-                        <span className="creation-mode-dropdown-icon">{item.icon}</span>
-                        <div className="creation-mode-dropdown-text">
-                            <span className="creation-mode-dropdown-label">{item.label}</span>
-                            <span className="creation-mode-dropdown-desc">{item.desc}</span>
-                        </div>
-                        {isSelected ? <span className="creation-mode-dropdown-check">✓</span> : null}
+                        <span className="creation-mode-capsule-icon" aria-hidden="true">{item.icon}</span>
+                        {isSelected ? <span className="creation-mode-capsule-label">{item.label}</span> : null}
                     </button>
                 );
             })}
         </div>
-    );
-
-    return (
-        <Popover
-            open={open}
-            onOpenChange={setOpen}
-            trigger="click"
-            placement="topLeft"
-            arrow={false}
-            overlayClassName="creation-mode-dropdown-popover"
-            content={menuContent}
-        >
-            <button
-                type="button"
-                className="creation-mode-dropdown-trigger"
-                aria-label={`当前生成模式：${active.label}，点击切换`}
-                aria-expanded={open}
-            >
-                <span className="creation-mode-trigger-icon">{active.icon}</span>
-                <span className="creation-mode-trigger-label">{active.label}</span>
-                <ChevronDown className={cn("creation-mode-trigger-arrow", open && "is-open")} />
-            </button>
-        </Popover>
     );
 }
 

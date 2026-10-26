@@ -1,6 +1,7 @@
+import type { CSSProperties } from "react";
 import { ChevronRight } from "lucide-react";
 
-import { bannerNoticeSurfaceCSS } from "@/lib/announcements/banner-notice";
+import { BANNER_NOTICE_GRADIENTS, bannerNoticeSurfaceCSS, normalizeBannerNoticeType } from "@/lib/announcements/banner-notice";
 import { bannerTitleRunStyle, type BannerTitleRun } from "@/lib/announcements/banner-title";
 
 /**
@@ -11,9 +12,16 @@ import { bannerTitleRunStyle, type BannerTitleRun } from "@/lib/announcements/ba
  * 图标素材（emoji）是标题文本的一部分，随 BannerAnnouncementTitle 一起渲染，这里不单独处理。
  */
 
-/** 通知条底色：由通知类型决定，明暗两档交给 token 在各自主题下解析，组件不感知主题。 */
-export function bannerAnnouncementBarStyle(noticeType?: string | null) {
-    return { backgroundColor: bannerNoticeSurfaceCSS(noticeType) };
+/** 通知条底色：由通知类型决定，结合多层高级渐变、光晕与微投影。 */
+export function bannerAnnouncementBarStyle(noticeType?: string | null): CSSProperties {
+    const type = normalizeBannerNoticeType(noticeType);
+    const preset = BANNER_NOTICE_GRADIENTS[type];
+    return {
+        background: `${preset.glow}, ${preset.gradient}`,
+        backgroundColor: bannerNoticeSurfaceCSS(noticeType),
+        boxShadow: `${preset.shadow}, inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.15)`,
+        borderBottom: `1px solid ${preset.border}`,
+    };
 }
 
 /** 「详情 ›」入口；仅在通知可点击时由调用方渲染。 */

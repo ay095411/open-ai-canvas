@@ -1,7 +1,16 @@
 /* Creation-specific geometry. Shared controls still use the workspace tokens. */
 :root {
-    --home-background-desktop: url(/images/home-background-desktop.svg);
-    --home-background-mobile: url(/images/home-background-mobile.webp);
+    --home-grid-line: rgba(0, 0, 0, 0.055);
+    --home-grid-hover: rgba(0, 0, 0, 0.04);
+    --home-grid-edge: #f8f8fa;
+    --home-stage-radial: radial-gradient(ellipse at 68% 12%, rgba(56, 139, 253, 0.07), transparent 38%);
+}
+
+.dark {
+    --home-grid-line: #2f293a;
+    --home-grid-hover: #2d2837;
+    --home-grid-edge: #111415;
+    --home-stage-radial: radial-gradient(ellipse at 68% 12%, rgba(28, 64, 79, 0.22), transparent 38%);
 }
 
 /* 创作模式切换：液态玻璃胶囊指示当前模式。 */
@@ -636,124 +645,116 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
 }
 
 /* -------------------------------------------------------------------------
-   输入框左下角胶囊下拉模式选择器 (ModePicker Trigger & Dropdown)
+   输入框左下角单行三项胶囊选项组 (ModePicker Capsule Row)
+   选中态显示图标+文本，未选中态仅展示图标以节省横向空间；无重复边框设计
    ------------------------------------------------------------------------- */
-.creation-mode-dropdown-trigger {
+.creation-mode-capsule-row {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--user-border);
-    border-radius: 9px;
-    background: color-mix(in srgb, var(--user-surface-muted) 84%, transparent);
-    color: var(--user-ink);
+    gap: 2px;
+    padding: 2.5px;
+    border: none;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--user-surface-muted, #f1f2f4) 92%, transparent);
+    user-select: none;
+    flex-shrink: 0;
+    box-shadow: none;
+}
+
+.creation-mode-capsule-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 7px;
+    border: none;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--user-ink-muted, #64748b);
     font-size: 12px;
-    font-weight: 520;
+    font-weight: 550;
     line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
     outline: none;
-    transition: background-color 180ms ease, border-color 180ms ease;
-    user-select: none;
+    box-shadow: none;
+    transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+                padding 160ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.creation-mode-dropdown-trigger:hover,
-.creation-mode-dropdown-trigger[aria-expanded="true"] {
-    background: color-mix(in srgb, var(--user-surface-hover) 92%, transparent);
-    border-color: color-mix(in srgb, var(--user-ink) 25%, transparent);
+.creation-mode-capsule-btn:hover:not(.is-active) {
+    background: color-mix(in srgb, var(--user-surface-hover, #e2e8f0) 80%, transparent);
+    color: var(--user-ink, #0f172a);
 }
 
-.creation-mode-trigger-icon {
+.creation-mode-capsule-btn.is-active {
+    padding: 0 10px 0 8px;
+    border: none;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0.5px 1px rgba(0, 0, 0, 0.04);
+}
+
+.creation-mode-capsule-label {
+    letter-spacing: -0.01em;
+}
+
+.creation-mode-capsule-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--user-accent, #3d66ff);
+    opacity: 0.85;
 }
 
-.creation-mode-trigger-label {
-    white-space: nowrap;
+.creation-mode-capsule-btn.is-active .creation-mode-capsule-icon {
+    opacity: 1;
+    color: var(--user-accent, #3b82f6);
 }
 
-.creation-mode-trigger-arrow {
-    width: 12px;
-    height: 12px;
-    opacity: 0.6;
-    transition: transform 200ms ease;
+.dark .creation-mode-capsule-row {
+    border: none;
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: none;
 }
 
-.creation-mode-trigger-arrow.is-open {
-    transform: rotate(180deg);
+.dark .creation-mode-capsule-btn {
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    box-shadow: none;
 }
 
-/* 下拉菜单面板 */
-.creation-mode-dropdown-popover .ant-popover-inner {
-    padding: 6px !important;
-    border-radius: 12px !important;
-    border: 1px solid var(--user-border) !important;
-    background: color-mix(in srgb, var(--user-surface) 92%, transparent) !important;
-    backdrop-filter: blur(16px) saturate(1.3) !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22) !important;
+.dark .creation-mode-capsule-btn:hover:not(.is-active) {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
 }
 
-.creation-mode-dropdown-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 190px;
+.dark .creation-mode-capsule-btn.is-active {
+    border: none;
+    background: #2b2d35;
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-.creation-mode-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 7px 10px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--user-ink);
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 150ms ease;
-    width: 100%;
+.dark .creation-mode-capsule-btn.is-active .creation-mode-capsule-icon {
+    color: #ffffff;
 }
 
-.creation-mode-dropdown-item:hover {
-    background: var(--user-surface-hover);
+@media (max-width: 640px) {
+    .creation-mode-capsule-btn {
+        padding: 0 6px;
+        gap: 4px;
+        font-size: 11px;
+    }
 }
 
-.creation-mode-dropdown-item.is-selected {
-    background: color-mix(in srgb, var(--user-accent, #3d66ff) 12%, var(--user-surface));
-}
-
-.creation-mode-dropdown-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--user-accent, #3d66ff);
-}
-
-.creation-mode-dropdown-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-    flex: 1;
-}
-
-.creation-mode-dropdown-label {
-    font-size: 13px;
-    font-weight: 560;
-    line-height: 1.25;
-}
-
-.creation-mode-dropdown-desc {
-    font-size: 11px;
-    color: var(--user-ink-muted);
-    line-height: 1.25;
-}
-
-.creation-mode-dropdown-check {
-    font-size: 12px;
-    color: var(--user-accent, #3d66ff);
-    font-weight: 700;
+@media (max-width: 640px) {
+    .creation-mode-capsule-btn {
+        padding: 0 7px;
+        gap: 4px;
+        font-size: 11px;
+    }
 }

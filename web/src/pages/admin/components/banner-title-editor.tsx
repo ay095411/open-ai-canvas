@@ -191,16 +191,17 @@ export function BannerNoticePreview({ runs, hasLink, noticeType }: { runs: Banne
                     <div key={theme.key} className="space-y-1">
                         <div
                             ref={theme.ref}
-                            className={`relative flex min-h-10 w-full items-center justify-center px-4 py-2 text-white ${theme.className}`}
+                            className={`relative flex min-h-10 w-full items-center justify-center overflow-hidden rounded-xl px-4 py-2 text-white shadow-sm ${theme.className}`}
                             style={bannerAnnouncementBarStyle(noticeType)}
                         >
-                            <span className="flex w-full min-w-0 items-center justify-center gap-2.5 px-8">
-                                <span className="min-w-0 truncate font-semibold">
+                            <span className="banner-notice-shimmer" aria-hidden="true" />
+                            <span className="relative z-10 flex w-full min-w-0 items-center justify-center gap-2.5 px-8">
+                                <span className="min-w-0 truncate font-semibold banner-notice-text-wrap">
                                     <BannerAnnouncementTitle runs={runs} fallbackText="通知标题预览" />
                                 </span>
                                 {hasLink ? <BannerAnnouncementLinkHint /> : null}
                             </span>
-                            <X className="absolute right-4 size-3.5 shrink-0 text-white" aria-hidden="true" />
+                            <X className="absolute right-4 z-10 size-3.5 shrink-0 text-white/80" aria-hidden="true" />
                         </div>
                         <p className="text-[var(--fs-label)] text-foreground/45">
                             {theme.label} · {bannerNoticeTypeLabel(noticeType)}

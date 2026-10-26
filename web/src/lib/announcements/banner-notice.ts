@@ -47,6 +47,41 @@ export function bannerNoticeTypeHint(value?: string | null) {
     return bannerNoticeTypeMeta(value).hint;
 }
 
+export const BANNER_NOTICE_GRADIENTS: Record<
+    BannerNoticeType,
+    {
+        gradient: string;
+        glow: string;
+        border: string;
+        shadow: string;
+    }
+> = {
+    notice: {
+        gradient: "linear-gradient(108deg, #0284c7 0%, #1d4ed8 34%, #4338ca 72%, #6366f1 100%)",
+        glow: "radial-gradient(ellipse 380px 110px at 12% 48%, rgba(254, 240, 138, 0.48) 0%, rgba(253, 224, 71, 0.3) 34%, transparent 68%), radial-gradient(circle at 92% 35%, rgba(192, 132, 252, 0.38) 0%, transparent 52%)",
+        border: "rgba(255, 255, 255, 0.22)",
+        shadow: "0 3px 14px rgba(37, 99, 235, 0.28)",
+    },
+    activity: {
+        gradient: "linear-gradient(108deg, #ea580c 0%, #f97316 28%, #e11d48 70%, #be123c 100%)",
+        glow: "radial-gradient(ellipse 380px 110px at 14% 48%, rgba(254, 240, 138, 0.55) 0%, rgba(251, 191, 36, 0.35) 35%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(251, 113, 133, 0.42) 0%, transparent 52%)",
+        border: "rgba(255, 255, 255, 0.24)",
+        shadow: "0 3px 14px rgba(234, 88, 12, 0.3)",
+    },
+    update: {
+        gradient: "linear-gradient(108deg, #0f766e 0%, #059669 32%, #0284c7 72%, #2563eb 100%)",
+        glow: "radial-gradient(ellipse 380px 110px at 12% 48%, rgba(167, 243, 208, 0.52) 0%, rgba(52, 211, 153, 0.32) 34%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(96, 165, 250, 0.4) 0%, transparent 52%)",
+        border: "rgba(255, 255, 255, 0.22)",
+        shadow: "0 3px 14px rgba(5, 150, 105, 0.28)",
+    },
+    warning: {
+        gradient: "linear-gradient(108deg, #991b1b 0%, #dc2626 35%, #c2410c 75%, #ea580c 100%)",
+        glow: "radial-gradient(ellipse 380px 110px at 12% 48%, rgba(254, 215, 170, 0.5) 0%, rgba(252, 211, 77, 0.32) 34%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(248, 113, 113, 0.42) 0%, transparent 52%)",
+        border: "rgba(255, 255, 255, 0.24)",
+        shadow: "0 3px 14px rgba(220, 38, 38, 0.3)",
+    },
+};
+
 /** 该类型底色的 CSS 引用（含 var()）；scope 内可被预览容器覆盖成明暗指定档。 */
 export function bannerNoticeSurfaceCSS(value?: string | null) {
     return `var(${bannerNoticeTypeMeta(value).surfaceVar})`;

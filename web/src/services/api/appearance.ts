@@ -29,6 +29,9 @@ export type PublicAppearance = {
     icpFilingEnabled: boolean;
     icpFilingNumber: string;
     redeemPurchaseUrl: string;
+    qqGroupNumber?: string;
+    qqGroupQrcodeUrl?: string;
+    qqGroupLink?: string;
     logoConfigured: boolean;
     darkLogoConfigured: boolean;
     authVideoConfigured: boolean;
@@ -84,6 +87,9 @@ export type AdminAppearance = {
     icpFilingEnabled: boolean;
     icpFilingNumber: string;
     redeemPurchaseUrl: string;
+    qqGroupNumber?: string;
+    qqGroupQrcodeResourceId?: string;
+    qqGroupLink?: string;
     public: PublicAppearance;
     configured: boolean;
     updatedBy?: string;
@@ -91,7 +97,7 @@ export type AdminAppearance = {
     updatedAt?: string;
 };
 
-export type AppearanceAssetSlot = "logo" | "logo-dark" | "video" | "poster";
+export type AppearanceAssetSlot = "logo" | "logo-dark" | "video" | "poster" | "qq-group-qrcode";
 export type AppearanceAssetUploadSlot = AppearanceAssetSlot;
 
 export type AppearanceResource = {
@@ -142,6 +148,9 @@ export async function updateAdminAppearance(
         | "icpFilingEnabled"
         | "icpFilingNumber"
         | "redeemPurchaseUrl"
+        | "qqGroupNumber"
+        | "qqGroupQrcodeResourceId"
+        | "qqGroupLink"
     >,
 ) {
     const result = await http.patch<{ setting: AdminAppearance }>("/admin/settings/appearance", input);

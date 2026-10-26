@@ -29,6 +29,9 @@ schemaVersion: 10,
     icpFilingEnabled: false,
     icpFilingNumber: "",
     redeemPurchaseUrl: "",
+    qqGroupNumber: "",
+    qqGroupQrcodeUrl: "",
+    qqGroupLink: "",
     logoConfigured: false,
     darkLogoConfigured: false,
     authVideoConfigured: false,
@@ -83,6 +86,9 @@ export function normalizePublicAppearance(value?: Partial<PublicAppearance> | nu
     const footerCopyright = normalizeAppearanceCopy(value?.footerCopyright, `© ${new Date().getFullYear()} ${resolvedBrandName}. All rights reserved.`);
     const icpFilingNumber = normalizeAppearanceCopy(value?.icpFilingNumber, "", true);
     const redeemPurchaseUrl = typeof value?.redeemPurchaseUrl === "string" ? safeAppearanceURL(value.redeemPurchaseUrl, "") : "";
+    const qqGroupNumber = normalizeAppearanceCopy(value?.qqGroupNumber, "", true);
+    const qqGroupQrcodeUrl = typeof value?.qqGroupQrcodeUrl === "string" ? safeAppearanceURL(value.qqGroupQrcodeUrl, "") : "";
+    const qqGroupLink = typeof value?.qqGroupLink === "string" ? safeAppearanceURL(value.qqGroupLink, "") : "";
     return {
         ...DEFAULT_PUBLIC_APPEARANCE,
         ...value,
@@ -109,6 +115,9 @@ export function normalizePublicAppearance(value?: Partial<PublicAppearance> | nu
         icpFilingEnabled: Boolean(value?.icpFilingEnabled && icpFilingNumber),
         icpFilingNumber,
         redeemPurchaseUrl,
+        qqGroupNumber,
+        qqGroupQrcodeUrl,
+        qqGroupLink,
         logoConfigured: Boolean(value?.logoConfigured),
         darkLogoConfigured: Boolean(value?.darkLogoConfigured),
         authVideoConfigured: customVideo,

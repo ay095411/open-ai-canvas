@@ -2,7 +2,7 @@ import { commitPublicAppearance, DEFAULT_PUBLIC_APPEARANCE } from "@/stores/use-
 import { deleteAdminResources } from "@/services/api/admin-storage";
 import { AdminStatusBadge, SettingsSectionCard } from "@/pages/admin/components/admin-ui";
 import { AdminPageFrame } from "@/pages/admin/components/admin-shell";
-import { Palette, RefreshCw, Undo2, RotateCcw, Save, Sun, Moon, MonitorPlay, Globe2, Search, Copyright, Type } from "lucide-react";
+import { Palette, RefreshCw, Undo2, RotateCcw, Save, Sun, Moon, MonitorPlay, Globe2, Search, Copyright, Type, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/pages/admin/ui/controls";
 import { WelcomeSetting } from "@/pages/admin/settings/components/welcome-setting";
@@ -22,8 +22,8 @@ import { type DraftFiles, FILE_RULES, type ResetState } from "./appearance-setti
 
 export { type DraftFiles, FILE_RULES, type ResetState } from "./appearance-settings-parts";
 
-const EMPTY_FILES: DraftFiles = { logo: null, "logo-dark": null, video: null, poster: null };
-const EMPTY_RESETS: ResetState = { logo: false, "logo-dark": false, video: false, poster: false };
+const EMPTY_FILES: DraftFiles = { logo: null, "logo-dark": null, video: null, poster: null, "qq-group-qrcode": null };
+const EMPTY_RESETS: ResetState = { logo: false, "logo-dark": false, video: false, poster: false, "qq-group-qrcode": false };
 
 export default function AppearanceSettingsPage() {
     const { message, modal } = App.useApp();
@@ -48,6 +48,8 @@ export default function AppearanceSettingsPage() {
     const [icpFilingEnabled, setIcpFilingEnabled] = useState(false);
     const [icpFilingNumber, setIcpFilingNumber] = useState("");
     const [redeemPurchaseUrl, setRedeemPurchaseUrl] = useState("");
+    const [qqGroupNumber, setQqGroupNumber] = useState("");
+    const [qqGroupLink, setQqGroupLink] = useState("");
     const [files, setFiles] = useState<DraftFiles>(EMPTY_FILES);
     const [resets, setResets] = useState<ResetState>(EMPTY_RESETS);
     const [loading, setLoading] = useState(true);
@@ -61,6 +63,7 @@ export default function AppearanceSettingsPage() {
         "logo-dark": useRef<HTMLInputElement>(null),
         video: useRef<HTMLInputElement>(null),
         poster: useRef<HTMLInputElement>(null),
+        "qq-group-qrcode": useRef<HTMLInputElement>(null),
     };
 
     const dirty =
@@ -82,38 +85,42 @@ export default function AppearanceSettingsPage() {
             normalizeSingleLine(seoKeywords) !== setting?.seoKeywords ||
             normalizeSingleLine(footerCopyright) !== setting?.footerCopyright ||
             icpFilingEnabled !== setting?.icpFilingEnabled ||
-            normalizeSingleLine(icpFilingNumber) !== setting?.icpFilingNumber ||
-            normalizeSingleLine(redeemPurchaseUrl) !== setting?.redeemPurchaseUrl ||
-            Object.values(files).some(Boolean) ||
-            Object.values(resets).some(Boolean));
-    const blocker = useBlocker(dirty && !saving && !restoring);
+	            normalizeSingleLine(icpFilingNumber) !== setting?.icpFilingNumber ||
+	            normalizeSingleLine(redeemPurchaseUrl) !== setting?.redeemPurchaseUrl ||
+	            normalizeSingleLine(qqGroupNumber) !== (setting?.qqGroupNumber || "") ||
+	            normalizeSingleLine(qqGroupLink) !== (setting?.qqGroupLink || "") ||
+	            Object.values(files).some(Boolean) ||
+	            Object.values(resets).some(Boolean));
+	    const blocker = useBlocker(dirty && !saving && !restoring);
 
-    const applySetting = useCallback((value: AdminAppearance) => {
-        // 列表字段一律先确认是数组：后端曾把空列表序列化成 null（Go 的 nil slice），
-        // 直接 .length / .map 会把整页打成「无法读取外观配置」。
-        const incomingThemes = Array.isArray(value.skinThemes) ? value.skinThemes : [];
-        const themes = incomingThemes.length ? incomingThemes.map((theme) => normalizeSkinDefinition(theme)) : [cloneSkinDefinition(DEFAULT_CLASSIC_SKIN)];
-        const selectedID = themes.some((theme) => theme.id === value.skinId) ? value.skinId : "classic";
-        setSetting({ ...value, skinThemes: themes, skinId: selectedID });
-        setBrandName(value.brandName);
-        setCanvas(value.canvas || DEFAULT_CANVAS_APPEARANCE);
-        setUpdates(normalizeUpdateAnnouncement(value.updates));
-        setBrandSlug(value.brandSlug);
-        setAuthHeroTitle(value.authHeroTitle);
-        setAuthHeroDescription(value.authHeroDescription);
-        setAuthVideoAutoplay(value.authVideoAutoplay);
-        setAuthCarousel((Array.isArray(value.authCarousel) ? value.authCarousel : []).map((item) => ({ ...item })));
-        setLogoFrameEnabled(value.logoFrameEnabled);
-        setSkinThemes(themes);
-        setSkinId(selectedID);
-        setSeoTitle(value.seoTitle);
-        setSeoDescription(value.seoDescription);
-        setSeoKeywords(value.seoKeywords);
-        setFooterCopyright(value.footerCopyright);
-        setIcpFilingEnabled(value.icpFilingEnabled);
-        setIcpFilingNumber(value.icpFilingNumber);
-        setRedeemPurchaseUrl(value.redeemPurchaseUrl);
-        setFiles(EMPTY_FILES);
+	    const applySetting = useCallback((value: AdminAppearance) => {
+	        // 列表字段一律先确认是数组：后端曾把空列表序列化成 null（Go 的 nil slice），
+	        // 直接 .length / .map 会把整页打成「无法读取外观配置」。
+	        const incomingThemes = Array.isArray(value.skinThemes) ? value.skinThemes : [];
+	        const themes = incomingThemes.length ? incomingThemes.map((theme) => normalizeSkinDefinition(theme)) : [cloneSkinDefinition(DEFAULT_CLASSIC_SKIN)];
+	        const selectedID = themes.some((theme) => theme.id === value.skinId) ? value.skinId : "classic";
+	        setSetting({ ...value, skinThemes: themes, skinId: selectedID });
+	        setBrandName(value.brandName);
+	        setCanvas(value.canvas || DEFAULT_CANVAS_APPEARANCE);
+	        setUpdates(normalizeUpdateAnnouncement(value.updates));
+	        setBrandSlug(value.brandSlug);
+	        setAuthHeroTitle(value.authHeroTitle);
+	        setAuthHeroDescription(value.authHeroDescription);
+	        setAuthVideoAutoplay(value.authVideoAutoplay);
+	        setAuthCarousel((Array.isArray(value.authCarousel) ? value.authCarousel : []).map((item) => ({ ...item })));
+	        setLogoFrameEnabled(value.logoFrameEnabled);
+	        setSkinThemes(themes);
+	        setSkinId(selectedID);
+	        setSeoTitle(value.seoTitle);
+	        setSeoDescription(value.seoDescription);
+	        setSeoKeywords(value.seoKeywords);
+	        setFooterCopyright(value.footerCopyright);
+	        setIcpFilingEnabled(value.icpFilingEnabled);
+	        setIcpFilingNumber(value.icpFilingNumber);
+	        setRedeemPurchaseUrl(value.redeemPurchaseUrl);
+	        setQqGroupNumber(value.qqGroupNumber || "");
+	        setQqGroupLink(value.qqGroupLink || "");
+	        setFiles(EMPTY_FILES);
         setResets(EMPTY_RESETS);
         setLoadError("");
     }, []);
@@ -224,9 +231,11 @@ export default function AppearanceSettingsPage() {
         setSeoKeywords(setting.seoKeywords);
         setFooterCopyright(setting.footerCopyright);
         setIcpFilingEnabled(setting.icpFilingEnabled);
-        setIcpFilingNumber(setting.icpFilingNumber);
-        setRedeemPurchaseUrl(setting.redeemPurchaseUrl);
-        setFiles(EMPTY_FILES);
+	        setIcpFilingNumber(setting.icpFilingNumber);
+	        setRedeemPurchaseUrl(setting.redeemPurchaseUrl);
+	        setQqGroupNumber(setting.qqGroupNumber || "");
+	        setQqGroupLink(setting.qqGroupLink || "");
+	        setFiles(EMPTY_FILES);
         setResets(EMPTY_RESETS);
         Object.values(inputRefs).forEach((ref) => {
             if (ref.current) ref.current.value = "";
@@ -350,6 +359,18 @@ title: "恢复 Navo AI 默认品牌标识？",
                 return;
             }
         }
+        const nextQqGroupNumber = normalizeSingleLine(qqGroupNumber);
+        const nextQqGroupLink = normalizeSingleLine(qqGroupLink);
+        if (nextQqGroupLink) {
+            try {
+                const parsed = new URL(nextQqGroupLink);
+                if ((parsed.protocol !== "https:" && parsed.protocol !== "http:") || !parsed.host) throw new Error("invalid");
+            } catch {
+                setActiveTab("community");
+                message.error("QQ加群链接必须是有效的 HTTP 或 HTTPS 地址");
+                return;
+            }
+        }
         const skinError = validateSkinDrafts(skinThemes, skinId);
         if (skinError) {
             setActiveTab("skins");
@@ -364,8 +385,9 @@ title: "恢复 Navo AI 默认品牌标识？",
                 "logo-dark": resets["logo-dark"] ? "" : setting.darkLogoResourceId,
                 video: resets.video ? "" : setting.authVideoResourceId,
                 poster: resets.poster ? "" : setting.authVideoPosterResourceId,
+                "qq-group-qrcode": resets["qq-group-qrcode"] ? "" : (setting.qqGroupQrcodeResourceId || ""),
             };
-            for (const slot of ["logo", "logo-dark", "video", "poster"] as AppearanceAssetSlot[]) {
+            for (const slot of ["logo", "logo-dark", "video", "poster", "qq-group-qrcode"] as AppearanceAssetSlot[]) {
                 const file = files[slot];
                 if (!file) continue;
                 const resource = await uploadAppearanceAsset(slot, file);
@@ -396,6 +418,9 @@ title: "恢复 Navo AI 默认品牌标识？",
                 icpFilingEnabled,
                 icpFilingNumber: nextIcpFilingNumber,
                 redeemPurchaseUrl: nextRedeemPurchaseUrl,
+                qqGroupNumber: nextQqGroupNumber,
+                qqGroupLink: nextQqGroupLink,
+                qqGroupQrcodeResourceId: ids["qq-group-qrcode"],
             });
             applySetting(updated);
             commitPublicAppearance(updated.public);
@@ -777,30 +802,68 @@ title: "恢复 Navo AI 默认品牌标识？",
                                     </SettingsSectionCard>
                                 ),
                             },
-                            {
-                                key: "skins",
-                                label: "皮肤主题",
-                                children: (
-                                    <SettingsSectionCard
-                                        className="admin-appearance-section"
-                                        icon={<Type className="size-4" aria-hidden="true" />}
-                                        title="皮肤主题"
-                                        description="经典黑白采用黑白底色与紫蓝渐变主按钮；复制后可调整浅色、深色、按钮填充及控件参数，所有修改统一保存。"
-                                        status={<AdminStatusBadge label={selectedSkin.name} tone="info" />}
-                                    >
-                                        <SkinThemeEditor
-                                            themes={skinThemes}
-                                            selectedID={skinId}
-                                            disabled={saving || refreshing || restoring}
-                                            onSelect={setSkinId}
-                                            onCreate={() => duplicateSkin("classic")}
-                                            onDuplicate={duplicateSkin}
-                                            onDelete={deleteSkin}
-                                            onChange={changeSkin}
-                                        />
-                                    </SettingsSectionCard>
-                                ),
-                            },
+	                            {
+	                                key: "skins",
+	                                label: "皮肤主题",
+	                                children: (
+	                                    <SettingsSectionCard
+	                                        className="admin-appearance-section"
+	                                        icon={<Type className="size-4" aria-hidden="true" />}
+	                                        title="皮肤主题"
+	                                        description="经典黑白采用黑白底色与紫蓝渐变主按钮；复制后可调整浅色、深色、按钮填充及控件参数，所有修改统一保存。"
+	                                        status={<AdminStatusBadge label={selectedSkin.name} tone="info" />}
+	                                    >
+	                                        <SkinThemeEditor
+	                                            themes={skinThemes}
+	                                            selectedID={skinId}
+	                                            disabled={saving || refreshing || restoring}
+	                                            onSelect={setSkinId}
+	                                            onCreate={() => duplicateSkin("classic")}
+	                                            onDuplicate={duplicateSkin}
+	                                            onDelete={deleteSkin}
+	                                            onChange={changeSkin}
+	                                        />
+	                                    </SettingsSectionCard>
+	                                ),
+	                            },
+	                            {
+	                                key: "community",
+	                                label: "QQ交流群",
+	                                children: (
+	                                    <SettingsSectionCard
+	                                        className="admin-appearance-section"
+	                                        icon={<Users className="size-4" aria-hidden="true" />}
+	                                        title="QQ交流群展示与配置"
+	                                        description="配置展示在首页顶栏右上角的 QQ 交流群。用户可在顶栏查看群号、点击一键跳转加群，或悬浮扫码群二维码进群。"
+	                                        status={<AdminStatusBadge label={qqGroupNumber || setting.qqGroupQrcodeResourceId ? "已配置" : "未配置"} tone={qqGroupNumber || setting.qqGroupQrcodeResourceId ? "success" : "neutral"} />}
+	                                    >
+	                                        <div className="admin-appearance-brand-layout">
+	                                            <Form className="admin-appearance-form" layout="vertical" requiredMark={false} disabled={saving || refreshing || restoring}>
+	                                                <Form.Item label="QQ 交流群号" extra="填写真实 QQ 交流群号，例如：778770568。填入后首页顶栏右上角将展示该群号。">
+	                                                    <Input value={qqGroupNumber} maxLength={32} showCount placeholder="例如：778770568" onChange={(event) => setQqGroupNumber(event.target.value)} />
+	                                                </Form.Item>
+	                                                <Form.Item label="QQ 加群链接（可选）" extra="填写 QQ 一键加群链接（例如 https://qm.qq.com/q/...），配置后用户点击可直达加群页面；留空时仅通过二维码或群号进群。">
+	                                                    <Input value={qqGroupLink} maxLength={500} showCount placeholder="例如：https://qm.qq.com/q/RgFZsLAmQ0" onChange={(event) => setQqGroupLink(event.target.value)} />
+	                                                </Form.Item>
+	                                            </Form>
+	                                            <div className="admin-appearance-brand-logo admin-appearance-logo-stack">
+	                                                <AssetPicker
+	                                                    slot="qq-group-qrcode"
+	                                                    title="QQ 群二维码图片"
+	                                                    description="上传 QQ 交流群二维码，用户在顶栏悬停或点击时可直接扫码；支持 PNG、JPEG 或 WebP。"
+	                                                    configured={Boolean(setting.qqGroupQrcodeResourceId) && !resets["qq-group-qrcode"]}
+	                                                    file={files["qq-group-qrcode"]}
+	                                                    inputRef={inputRefs["qq-group-qrcode"]}
+	                                                    onSelect={selectFile}
+	                                                    onReset={resetAsset}
+	                                                    disabled={saving || refreshing || restoring}
+	                                                    emptyLabel="未配置群二维码"
+	                                                />
+	                                            </div>
+	                                        </div>
+	                                    </SettingsSectionCard>
+	                                ),
+	                            },
                             { key: "canvas", label: "画布配置", children: <CanvasAppearanceEditor value={canvas} onChange={setCanvas} disabled={saving || refreshing || restoring || canvasUploading} onUploading={setCanvasUploading} /> },
                             { key: "updates", label: "更新公告", children: <UpdateAnnouncementEditor value={updates} onChange={setUpdates} disabled={saving || refreshing || restoring || canvasUploading} onUploading={setCanvasUploading} /> },
                         ]}

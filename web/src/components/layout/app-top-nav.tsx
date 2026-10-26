@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { isSpatialWorkbenchPath } from "@/lib/workspace-routes";
 
 const WorkspaceCommandPalette = lazy(() => import("@/components/layout/workspace-command-palette").then((module) => ({ default: module.WorkspaceCommandPalette })));
+const ShapeGrid = lazy(() => import("@/components/layout/shape-grid"));
 
 export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const { pathname } = useLocation();
@@ -105,7 +106,19 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                             </aside>
                         ) : null}
 
-                        <div className="app-workspace-stage relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                        <div
+                            className={cn(
+                                "app-workspace-stage relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+                                creationWorkspace && "isolate creation-stage-canvas-ambient",
+                            )}
+                        >
+                            {creationWorkspace ? (
+                                <div className="home-background" aria-hidden="true">
+                                    <Suspense fallback={null}>
+                                        <ShapeGrid />
+                                    </Suspense>
+                                </div>
+                            ) : null}
                             {showGlobalTopBar ? <WorkspaceTopBar sidebarOpen={isMobileViewport() ? mobileSidebarExpanded : !desktopSidebarCollapsed} onToggleSidebar={toggleSidebar} /> : null}
                             <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>
                         </div>

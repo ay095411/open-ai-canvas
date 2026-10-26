@@ -74,14 +74,15 @@ export function BannerAnnouncementsSlider() {
     // 底色随每条通知的类型切换：加过渡让不同风格的条目轮播时平滑换色，与标题动画节奏一致。
     return (
         <div
-            className="relative flex min-h-10 w-full shrink-0 items-center justify-center px-4 py-2 text-white transition-colors duration-300 ease-out"
+            className="relative flex min-h-10 w-full shrink-0 items-center justify-center overflow-hidden px-4 py-2 text-white transition-all duration-300 ease-out"
             style={bannerAnnouncementBarStyle(currentBanner.noticeType)}
         >
+            <span className="banner-notice-shimmer" aria-hidden="true" />
             <button
                 type="button"
                 onClick={handleClick}
                 disabled={!hasLink}
-                className="group flex h-full w-full min-w-0 items-center justify-center px-8 transition-opacity enabled:hover:opacity-90 disabled:cursor-default"
+                className="group relative z-10 flex h-full w-full min-w-0 items-center justify-center px-8 transition-opacity enabled:hover:opacity-95 disabled:cursor-default"
                 title={hasLink ? "点击查看详情" : undefined}
             >
                 <span className="flex min-w-0 items-center justify-center gap-2.5">
@@ -94,7 +95,7 @@ export function BannerAnnouncementsSlider() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={reducedMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: -10 }}
                                 transition={{ duration: 0.3, ease: "easeOut" }}
-                                className="inline-flex items-center justify-center truncate font-semibold tracking-wide drop-shadow-sm"
+                                className="inline-flex items-center justify-center truncate font-semibold tracking-wide banner-notice-text-wrap drop-shadow-sm"
                             >
                                 <BannerAnnouncementTitle runs={currentBanner.titleRuns} fallbackText={currentBanner.title} />
                             </motion.span>
@@ -108,7 +109,7 @@ export function BannerAnnouncementsSlider() {
                 onClick={handleDismiss}
                 aria-label="关闭通知"
                 title="关闭"
-                className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-white transition-colors hover:bg-white/20"
+                className="absolute right-3 top-1/2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-full text-white/80 transition-all hover:bg-white/20 hover:text-white active:scale-95 cursor-pointer"
             >
                 <X className="size-3.5" aria-hidden="true" />
             </button>

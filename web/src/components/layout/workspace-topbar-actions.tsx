@@ -1,6 +1,7 @@
 import { LoaderCircle } from "lucide-react";
 
 import { WorkspaceCreditMark } from "@/components/layout/workspace-credit-mark";
+import { WorkspaceTopBarQQGroup } from "@/components/layout/workspace-topbar-qq-group";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { formatCredits } from "@/constant/credits";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
@@ -36,12 +37,20 @@ export function WorkspaceTopBarActions() {
         />
     );
 
-    if (!user) return <div className="app-workspace-topbar-actions">{themeToggler}</div>;
+    if (!user) {
+        return (
+            <div className="app-workspace-topbar-actions">
+                <WorkspaceTopBarQQGroup />
+                {themeToggler}
+            </div>
+        );
+    }
 
     const balanceLabel = availableMicrocredits === null ? "加载中" : formatCredits(availableMicrocredits, 2);
 
     return (
         <div className="app-workspace-topbar-actions">
+            <WorkspaceTopBarQQGroup />
             {creditsEnabled ? (
                 <button
                     type="button"
