@@ -19,6 +19,7 @@ export function bannerAnnouncementBarStyle(noticeType?: string | null): CSSPrope
     return {
         background: `${preset.glow}, ${preset.gradient}`,
         backgroundColor: bannerNoticeSurfaceCSS(noticeType),
+        backgroundSize: "200% 200%",
         boxShadow: `${preset.shadow}, inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.15)`,
         borderBottom: `1px solid ${preset.border}`,
     };

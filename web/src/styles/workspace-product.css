@@ -565,7 +565,11 @@
     z-index: 0;
     border-radius: inherit;
     background: var(--workspace-sidebar-selected);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0.5px 1px rgba(0, 0, 0, 0.03);
     pointer-events: none;
+}
+.dark .app-user-workspace .app-workspace-nav-active-pill {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 .app-user-workspace .app-workspace-nav-link > :not(.app-workspace-nav-active-pill) {
     position: relative;

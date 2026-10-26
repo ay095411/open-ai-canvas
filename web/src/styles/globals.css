@@ -15721,7 +15721,7 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     box-shadow: var(--elevation-overlay) !important;
 }
 
-/* 顶部常驻通知条：微流光扫光特效与微发光动效 */
+/* 顶部常驻通知条：微流光扫光特效与微发光动效（慢速舒缓流光，长间歇防闪烁） */
 .banner-notice-shimmer {
     position: absolute;
     inset: 0;
@@ -15734,32 +15734,57 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     content: "";
     position: absolute;
     inset: -60% -25%;
-    transform: translateX(-100%) rotate(24deg);
+    transform: translateX(-120%) rotate(24deg);
     background: linear-gradient(
         90deg,
         transparent 0%,
-        rgba(255, 255, 255, 0.03) 22%,
-        rgba(255, 255, 255, 0.22) 46%,
-        rgba(255, 255, 255, 0.34) 50%,
-        rgba(255, 255, 255, 0.22) 54%,
-        rgba(255, 255, 255, 0.03) 78%,
+        rgba(255, 255, 255, 0.02) 20%,
+        rgba(255, 255, 255, 0.12) 45%,
+        rgba(255, 255, 255, 0.20) 50%,
+        rgba(255, 255, 255, 0.12) 55%,
+        rgba(255, 255, 255, 0.02) 80%,
         transparent 100%
     );
-    animation: banner-notice-sweep 6.5s cubic-bezier(0.25, 1, 0.3, 1) infinite;
+    animation: banner-notice-sweep 14s cubic-bezier(0.35, 0, 0.25, 1) infinite;
 }
 
 @keyframes banner-notice-sweep {
-    0%, 15% {
-        transform: translateX(-100%) rotate(24deg);
+    0%, 30% {
+        transform: translateX(-120%) rotate(24deg);
     }
-    55%, 100% {
-        transform: translateX(180%) rotate(24deg);
+    68%, 100% {
+        transform: translateX(190%) rotate(24deg);
+    }
+}
+
+/* 顶部常驻通知条：背景渐变呼吸流动效果 */
+.app-banner-slider,
+.admin-banner-title-preview-light,
+.admin-banner-title-preview-dark {
+    background-size: 200% 200% !important;
+    animation: banner-gradient-flow 18s ease-in-out infinite alternate !important;
+}
+
+@keyframes banner-gradient-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .banner-notice-shimmer::before {
         animation: none;
+    }
+    .app-banner-slider,
+    .admin-banner-title-preview-light,
+    .admin-banner-title-preview-dark {
+        animation: none !important;
     }
 }
 
@@ -17570,11 +17595,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .app-user-workspace,
 .app-user-overlays {
     --user-page-bg: #f8f8fa;
-    --workspace-sidebar-bg: #e8e8e8;
-    --workspace-sidebar-hover: #dedede;
-    --workspace-sidebar-selected: #d4d4d4;
-    --workspace-sidebar-ink: #242424;
-    --workspace-sidebar-muted: #737373;
+    --workspace-sidebar-bg: #f6f7f9;
+    --workspace-sidebar-hover: rgba(0, 0, 0, 0.045);
+    --workspace-sidebar-selected: #ffffff;
+    --workspace-sidebar-ink: #111827;
+    --workspace-sidebar-muted: #6b7280;
+    --workspace-sidebar-border: rgba(0, 0, 0, 0.06);
     --workspace-sidebar-accent: var(--workspace-accent);
     --user-surface: #ffffff;
     --user-surface-raised: #ffffff;
@@ -17603,12 +17629,13 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .dark .app-user-workspace,
 .dark .app-user-overlays {
     --user-page-bg: #151517;
-    --workspace-sidebar-bg: #202022;
-    --workspace-sidebar-hover: #2c2c2f;
-    --workspace-sidebar-selected: #38383c;
-    --workspace-sidebar-ink: #f0f0f2;
-    --workspace-sidebar-muted: #a0a0a8;
-    --workspace-sidebar-accent: var(--workspace-accent);
+    --workspace-sidebar-bg: #0e1012;
+    --workspace-sidebar-hover: rgba(255, 255, 255, 0.055);
+    --workspace-sidebar-selected: #1d2024;
+    --workspace-sidebar-ink: #f4f6f8;
+    --workspace-sidebar-muted: #889098;
+    --workspace-sidebar-border: rgba(255, 255, 255, 0.06);
+    --workspace-sidebar-accent: #ffffff;
     --user-surface: #1c1c1f;
     --user-surface-raised: #222226;
     --user-surface-muted: #26262a;
@@ -17639,7 +17666,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     width: var(--workspace-reference-sidebar) !important;
     flex-basis: var(--workspace-reference-sidebar) !important;
     background: var(--workspace-sidebar-bg) !important;
-    border-right: 0 !important;
+    border-right: 1px solid var(--workspace-sidebar-border, rgba(0, 0, 0, 0.06)) !important;
     transition: width var(--user-motion);
 }
 .app-user-workspace .app-workspace-sidebar.is-collapsed {
