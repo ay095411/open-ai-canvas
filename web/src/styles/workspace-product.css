@@ -22,32 +22,84 @@
 .collection-content { min-width: 0; }
 .collection-selection-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); border-radius: var(--user-radius-control); padding: var(--space-3) var(--space-4); background: var(--user-accent-soft); font-size: var(--fs-caption); }
 
+/* 画布库：卡片内嵌 4:3 圆角封面（最多三张媒体拼图）+ 标题行 + 归属/时间页脚。
+   每行最多 5 张：列宽下限取「容器五等分」与 232px 中的较大者，窄屏自然降到 4/3/2 列。
+   正文区各行高度固定（卡片内边距 8 + 正文底 2 + 页脚 24 + 间距 10 = 标题行底 44px），
+   重命名铅笔据此绝对定位到标题行尾；多选、铅笔、更多只在 hover / focus-within 出现，触屏常显。 */
 .app-user-workspace .canvas-collection-grid {
+    --canvas-card-gap-x: 20px;
+    --canvas-card-pad: 8px;
+    --canvas-card-media-chip-bg: rgb(12 12 14 / 52%);
+    --canvas-card-media-chip-ink: #fff;
+    --canvas-card-hover-shadow: 0 18px 36px -22px rgb(0 0 0 / 45%);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(244px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, max(232px, calc((100% - 4 * var(--canvas-card-gap-x)) / 5))), 1fr));
     align-items: start;
-    gap: var(--space-6) var(--space-5);
+    gap: 28px var(--canvas-card-gap-x);
     margin: 0;
 }
-.canvas-collection-card { position: relative; min-width: 0; padding: var(--space-2); }
-.canvas-collection-open { display: block; width: 100%; cursor: pointer; outline-offset: 4px; }
-.canvas-collection-preview { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: var(--user-radius-control); background: var(--user-surface-muted); }
-.canvas-collection-preview img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--user-motion); }
-.canvas-collection-card:hover .canvas-collection-preview img { transform: scale(1.025); }
-.canvas-collection-body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-2) var(--space-2); }
-.canvas-collection-heading-row { display: flex; min-width: 0; align-items: center; padding-right: 64px; min-height: 26px; }
-.canvas-collection-title { overflow: hidden; color: var(--user-ink); font-size: 15px; font-weight: 600; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
-.canvas-collection-title-input { width: 100%; }
-.canvas-collection-meta { display: flex; min-width: 0; gap: var(--space-2); color: var(--user-ink-muted); font-size: var(--fs-caption); }
-.canvas-collection-meta-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.canvas-collection-meta-item:first-child { flex: 1; }
-.canvas-collection-meta-separator { display: none; }
-.canvas-collection-updated { color: var(--user-ink-soft); font-size: var(--fs-caption); }
-.canvas-collection-actions { display: flex; gap: 2px; position: absolute; right: var(--space-3); bottom: 67px; }
-.canvas-collection-select { position: absolute; top: var(--space-4); left: var(--space-4); opacity: 0; transition: opacity var(--user-motion); }
-.canvas-collection-select input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--user-accent); }
-.canvas-collection-select.is-visible, .canvas-collection-card:hover .canvas-collection-select, .canvas-collection-card:focus-within .canvas-collection-select { opacity: 1; }
-.canvas-collection-opening { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: var(--space-2); background: color-mix(in srgb, var(--user-surface) 88%, transparent); color: var(--user-ink); font-size: var(--fs-caption); }
+.canvas-collection-card { position: relative; min-width: 0; padding: var(--canvas-card-pad); }
+.canvas-collection-open { display: block; width: 100%; cursor: pointer; border-radius: inherit; }
+.canvas-collection-open:focus:not(:focus-visible) { outline: none; }
+/* 卡片外壳 overflow: hidden 会裁掉子元素焦点环，键盘焦点改画在外壳上（与选中描边分色）。 */
+.canvas-collection-open:focus-visible { outline: none; }
+.app-user-workspace .canvas-collection-card:has(> .canvas-collection-open:focus-visible) { outline: 2px solid var(--control-focus-ring); outline-offset: 2px; }
+.canvas-collection-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--user-radius-media); background: var(--user-surface-muted); isolation: isolate; }
+.canvas-collection-preview-media { position: absolute; inset: 0; }
+.canvas-collection-preview-media :is(img, video) { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 250ms var(--product-ease, ease-out); }
+.canvas-collection-preview-media .cached-resource-image-shell { width: 100%; height: 100%; }
+.canvas-collection-card:is(:hover, :focus-within) .canvas-collection-preview-media :is(img, video) {}
+/* 顶部柔和压暗：浮在封面上的多选/更多按钮在亮图上依然清晰，仅 hover 时出现。 */
+.canvas-collection-preview::after { content: ""; position: absolute; inset: 0 0 auto; z-index: 1; height: 42%; background: linear-gradient(180deg, rgb(0 0 0 / 28%), transparent); opacity: 0; pointer-events: none; transition: opacity var(--user-motion); }
+.canvas-collection-card:is(:hover, :focus-within) .canvas-collection-preview::after { opacity: 1; }
+.canvas-collection-badge { position: absolute; right: var(--space-2); bottom: var(--space-2); z-index: 2; display: inline-flex; height: 22px; align-items: center; gap: 4px; padding: 0 8px; border-radius: 999px; background: var(--canvas-card-media-chip-bg); color: var(--canvas-card-media-chip-ink); font-size: var(--fs-label); font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1; backdrop-filter: blur(8px); }
+.canvas-collection-badge svg { width: 12px; height: 12px; stroke-width: 1.9; }
+.canvas-collection-body { display: flex; flex-direction: column; padding: 12px 4px 2px; }
+.canvas-collection-heading-row { display: flex; min-width: 0; height: 22px; align-items: center; padding-right: 32px; }
+.canvas-collection-title { min-width: 0; overflow: hidden; color: var(--user-ink); font-size: 14px; font-weight: 600; letter-spacing: -.01em; line-height: 22px; text-overflow: ellipsis; white-space: nowrap; }
+.canvas-collection-title-input { width: 100%; height: 24px; font-size: 14px; }
+.canvas-collection-footer { display: flex; min-width: 0; height: 24px; margin-top: 8px; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.canvas-collection-project { display: inline-flex; min-width: 0; height: 24px; flex: 0 1 auto; align-items: center; gap: 4px; padding: 0 8px 0 8px; border-radius: 999px; background: color-mix(in srgb, var(--user-accent) 12%, var(--user-surface)); color: color-mix(in srgb, var(--user-accent) 78%, var(--user-ink)); font-size: var(--fs-caption); font-weight: 500; white-space: nowrap; }
+.canvas-collection-project.is-free { background: var(--user-surface-muted); color: var(--user-ink-muted); font-weight: 500; }
+.canvas-collection-project svg { width: 13px; height: 13px; flex: 0 0 auto; stroke-width: 1.8; }
+.canvas-collection-project span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.canvas-collection-updated { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; color: var(--user-ink-soft); font-size: var(--fs-caption); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.canvas-collection-updated svg { width: 12px; height: 12px; stroke-width: 1.8; }
+.canvas-collection-rename { position: absolute; right: var(--canvas-card-pad); bottom: 42px; width: 26px; height: 26px; }
+.canvas-collection-rename svg { width: 14px; height: 14px; }
+.canvas-collection-actions { position: absolute; top: calc(var(--canvas-card-pad) + var(--space-2)); right: calc(var(--canvas-card-pad) + var(--space-2)); z-index: 3; display: flex; }
+.canvas-collection-more { background: color-mix(in srgb, var(--user-surface) 86%, transparent); color: var(--user-ink); backdrop-filter: blur(8px); box-shadow: inset 0 0 0 1px var(--user-border); }
+.canvas-collection-select { position: absolute; top: calc(var(--canvas-card-pad) + var(--space-2)); left: calc(var(--canvas-card-pad) + var(--space-2)); z-index: 3; display: grid; width: 28px; height: 28px; place-items: center; border-radius: var(--user-radius-button-sm); background: color-mix(in srgb, var(--user-surface) 86%, transparent); backdrop-filter: blur(8px); }
+.canvas-collection-select input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--user-accent); }
+:is(.canvas-collection-select, .canvas-collection-rename, .canvas-collection-actions) { opacity: 0; transition: opacity var(--user-motion); }
+.canvas-collection-select.is-visible,
+.canvas-collection-card:is(:hover, :focus-within) :is(.canvas-collection-select, .canvas-collection-rename, .canvas-collection-actions),
+.canvas-collection-actions:has([aria-expanded="true"]) { opacity: 1; }
+.canvas-collection-opening { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; gap: var(--space-2); background: color-mix(in srgb, var(--user-surface) 88%, transparent); color: var(--user-ink); font-size: var(--fs-caption); }
+/* 封面拼图：1 张铺满；2 张左宽右窄；3 张左侧主图跨两行、右侧上下两格。 */
+.canvas-project-mosaic { display: grid; gap: 2px; background: var(--user-surface); }
+.canvas-project-mosaic[data-count="2"] { grid-template-columns: 3fr 2fr; }
+.canvas-project-mosaic[data-count="3"] { grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.canvas-project-mosaic[data-count="3"] > :first-child { grid-row: span 2; }
+.canvas-project-mosaic-cell { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--user-surface-muted); }
+.canvas-project-mosaic-cell .product-media-placeholder { min-height: 0; gap: var(--space-2); }
+.canvas-project-mosaic-cell:not(:first-child) .product-media-placeholder > span:last-child { display: none; }
+.canvas-project-mosaic-loading { display: block; width: 100%; height: 100%; background: var(--user-surface-muted); }
+.canvas-project-mosaic-play { position: absolute; left: var(--space-2); bottom: var(--space-2); display: grid; width: 22px; height: 22px; place-items: center; border-radius: 999px; background: var(--canvas-card-media-chip-bg); color: var(--canvas-card-media-chip-ink); backdrop-filter: blur(8px); }
+.canvas-project-mosaic-play svg { width: 10px; height: 10px; margin-left: 1px; fill: currentColor; }
+/* 空白画布 / 无可用首帧的视频画布：点阵底呼应画布本身，中间一枚图标 tile，不输出文案。 */
+.canvas-project-placeholder {
+    display: grid;
+    place-items: center;
+    background-color: var(--user-surface-muted);
+    background-image: radial-gradient(circle, color-mix(in srgb, var(--user-ink) 16%, transparent) 1px, transparent 1.4px);
+    background-position: center;
+    background-size: 18px 18px;
+    color: var(--user-ink-soft);
+}
+.canvas-project-placeholder-tile { display: grid; width: 48px; height: 48px; place-items: center; border-radius: var(--user-radius-control); background: var(--user-surface); box-shadow: 0 0 0 1px var(--user-border); transition: transform 250ms var(--product-ease, ease-out); }
+.canvas-collection-card:is(:hover, :focus-within) .canvas-project-placeholder-tile {}
+.canvas-project-placeholder-tile svg { width: 20px; height: 20px; stroke-width: 1.6; }
 .product-media-placeholder { display: flex; width: 100%; height: 100%; min-height: 80px; align-items: center; justify-content: center; flex-direction: column; gap: var(--space-3); background: var(--user-surface-muted, var(--library-cover-surface)); color: var(--user-ink-soft, var(--muted-foreground)); font-size: var(--fs-caption); }
 .product-media-placeholder-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: var(--user-radius-control, var(--r-lg)); background: var(--user-surface, var(--library-surface)); }
 .product-media-placeholder-icon svg { width: 20px; height: 20px; stroke-width: 1.5; }
@@ -228,14 +280,12 @@
     .app-product-workspace .app-pagination-bar { flex-wrap: wrap; gap: var(--space-2); padding-inline: 0; }
     .app-product-workspace .app-pagination-pages { justify-content: center; flex: 1 1 100%; }
     .app-user-workspace .studio-collection-page > div { width: calc(100% - 32px); padding-top: 20px; }
+    .app-user-workspace .product-collection-card.canvas-collection-card { box-shadow: inset 0 0 0 1px var(--user-border) !important; transition: background var(--user-motion), box-shadow var(--user-motion); }
+    .app-user-workspace .product-collection-card.canvas-collection-card:is(:hover, :focus-within) { box-shadow: inset 0 0 0 1px var(--user-border-strong), var(--canvas-card-hover-shadow) !important; }
     .app-user-workspace .canvas-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    .canvas-collection-title { font-size: 14px; }
     .collection-toolbar-controls > .ant-input-affix-wrapper { width: 100%; }
     .collection-toolbar-controls { flex-basis: 100%; }
-    .canvas-collection-meta { flex-wrap: wrap; gap: var(--space-1); }
-    .canvas-collection-updated { font-size: 11px; }
-    .canvas-collection-heading-row { padding-right: 0; }
-    .canvas-collection-actions { position: static; justify-content: flex-end; padding: 0 var(--space-2) var(--space-1); }
-    .canvas-collection-select { opacity: 1; }
     .assets-collection-layout { grid-template-columns: 1fr; gap: var(--space-4); }
     .assets-collection-filters {
         position: static;
@@ -254,9 +304,9 @@
     .story-launcher-panel { padding: var(--space-4); }
     .story-launcher-main { flex-wrap: wrap; }
 }
-@media (hover: none) { .canvas-collection-select { opacity: 1; } }
+@media (hover: none) { :is(.canvas-collection-select, .canvas-collection-rename, .canvas-collection-actions) { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-    .app-user-workspace .product-collection-card, .product-icon-button, .canvas-collection-preview img, .product-delete-trigger .lucide-trash-2 > path { transition: none; transform: none; }
+    .app-user-workspace .product-collection-card, .product-icon-button, .canvas-collection-preview-media :is(img, video), .canvas-project-placeholder-tile, .product-delete-trigger .lucide-trash-2 > path { transition: none; transform: none; }
     .app-user-workspace .product-collection-card:hover { transform: none; }
 }
 
@@ -1147,6 +1197,65 @@
     color: var(--market-ink);
     font-size: 12px;
 }
+
+/* 技能卡：同一 product-collection-card 表面；名称按钮的 ::after 铺满整卡作为打开详情的点击区，
+   卡内其他控件抬到点击区之上。加入开关常显，编辑 / 更多只在 hover / focus-within 出现。 */
+.skill-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 248px), 1fr)); gap: var(--space-3); transition: opacity var(--user-motion); }
+.skill-tile-grid.is-refreshing { opacity: .6; }
+.skill-tile { position: relative; display: flex; min-width: 0; flex-direction: column; gap: var(--space-2); padding: var(--space-3); }
+.skill-tile[data-accent="blue"] { --category-accent: var(--product-accent-blue); }
+.skill-tile[data-accent="orange"] { --category-accent: var(--product-accent-orange); }
+.skill-tile[data-accent="pink"] { --category-accent: var(--product-accent-pink); }
+.skill-tile[data-accent="green"] { --category-accent: var(--product-accent-green); }
+.skill-tile[data-accent="violet"] { --category-accent: var(--product-accent-violet); }
+.skill-tile[data-accent="cyan"] { --category-accent: var(--product-accent-cyan); }
+.skill-tile-head { display: flex; min-width: 0; align-items: flex-start; gap: 8px; }
+.skill-tile:has(> .skill-tile-corner) .skill-tile-head { padding-right: 72px; }
+.skill-tile-glyph { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: var(--user-radius-button); background: color-mix(in srgb, var(--category-accent, var(--user-ink-muted)) 14%, var(--user-surface)); color: var(--category-accent, var(--user-ink-muted)); font-size: 14px; font-weight: 600; line-height: 1; }
+.skill-tile-heading { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+.skill-tile-name { margin: 0; color: var(--user-ink); font-size: 14px; font-weight: 600; line-height: 20px; }
+.skill-tile-open { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.skill-tile-open::after { position: absolute; inset: 0; border-radius: inherit; content: ""; }
+.skill-tile-open:focus { outline: none; }
+.app-user-workspace .skill-tile:has(.skill-tile-open:focus-visible) { outline: 2px solid var(--control-focus-ring); outline-offset: 2px; }
+.skill-tile-name-text { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.skill-tile-byline { display: flex; min-width: 0; height: 20px; align-items: center; gap: 8px; color: var(--user-ink-muted); font-size: var(--fs-caption); }
+.skill-tile-author { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-tile-chip { display: inline-flex; min-width: 0; max-width: 100%; height: 20px; flex: 0 1 auto; align-items: center; gap: 4px; padding: 0 8px; border: 0; border-radius: var(--r-sm); background: var(--user-surface-muted); color: var(--user-ink-muted); font-size: var(--fs-label); white-space: nowrap; }
+.skill-tile-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.skill-tile-chip svg { width: 12px; height: 12px; flex: 0 0 auto; stroke-width: 1.8; }
+.skill-tile-chip.is-picker { position: relative; z-index: 1; cursor: pointer; transition: color var(--user-motion); }
+.skill-tile-chip.is-picker:hover:not(:disabled) { color: var(--user-ink); }
+.skill-tile-chip.is-picker:focus:not(:focus-visible) { outline: none; }
+.skill-tile-chip.is-picker:focus-visible { outline: 2px solid var(--control-focus-ring); outline-offset: 1px; }
+.skill-tile-private { position: relative; z-index: 1; display: inline-grid; flex: 0 0 auto; place-items: center; color: var(--user-ink-soft); }
+.skill-tile-private svg { width: 12px; height: 12px; }
+.skill-tile-description { display: -webkit-box; min-height: 36px; margin: 0; overflow: hidden; color: var(--user-ink-muted); font-size: var(--fs-caption); line-height: 18px; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.skill-tile-footer { display: flex; min-width: 0; height: 28px; align-items: center; gap: var(--space-3); margin-top: auto; color: var(--user-ink-soft); font-size: var(--fs-caption); font-variant-numeric: tabular-nums; }
+.skill-tile-stat { display: inline-flex; min-width: 0; flex: 0 0 auto; align-items: center; gap: 4px; white-space: nowrap; }
+.skill-tile-stat svg { width: 13px; height: 13px; flex: 0 0 auto; stroke-width: 1.8; }
+.skill-tile-stat.is-like { position: relative; z-index: 1; height: 24px; margin-left: -8px; padding: 0 8px; border: 0; border-radius: var(--user-radius-button-sm); background: transparent; color: inherit; font: inherit; cursor: pointer; transition: background var(--user-motion), color var(--user-motion); }
+.skill-tile-stat.is-like:hover:not(:disabled) { background: var(--user-surface-muted); color: var(--user-ink); }
+.skill-tile-stat.is-like[aria-pressed="true"] { color: var(--product-accent-pink); }
+.skill-tile-stat.is-like[aria-pressed="true"] svg { fill: currentColor; }
+.skill-tile-stat.is-like:focus:not(:focus-visible) { outline: none; }
+.skill-tile-stat.is-like:focus-visible { outline: 2px solid var(--control-focus-ring); outline-offset: 1px; }
+.skill-tile-actions { position: relative; z-index: 1; display: flex; flex: 0 0 auto; align-items: center; gap: 2px; margin-left: auto; margin-right: -4px; opacity: 0; transition: opacity var(--user-motion); }
+.skill-tile:is(:hover, :focus-within) .skill-tile-actions,
+.skill-tile-actions:has([aria-expanded="true"]) { opacity: 1; }
+.skill-tile-corner { position: absolute; top: var(--space-3); right: var(--space-3); z-index: 1; }
+.skill-tile-add { display: inline-flex; height: 24px; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid var(--user-border); border-radius: var(--user-radius-button-sm); background: transparent; color: var(--user-ink); font-size: var(--fs-caption); font-weight: 500; white-space: nowrap; cursor: pointer; transition: background var(--user-motion), border-color var(--user-motion), color var(--user-motion); }
+.skill-tile-add svg { width: 13px; height: 13px; flex: 0 0 auto; stroke-width: 2; }
+.skill-tile-add:hover:not(:disabled) { border-color: var(--user-border-strong); background: var(--user-surface-muted); }
+.skill-tile-add[aria-pressed="true"] { border-color: transparent; color: var(--user-ink-soft); }
+.skill-tile-add[aria-pressed="true"] svg { color: var(--status-success); }
+.skill-tile-add[aria-pressed="true"]:hover:not(:disabled) { border-color: transparent; color: var(--user-ink-muted); }
+.skill-tile-add:disabled { cursor: progress; opacity: .6; }
+.skill-tile-add:focus:not(:focus-visible) { outline: none; }
+.skill-tile-add:focus-visible { outline: 2px solid var(--control-focus-ring); outline-offset: 1px; }
+.skill-tile-skeleton { height: 148px; border-radius: var(--user-radius-card); background: var(--user-surface); animation: library-pulse 1.6s ease-in-out infinite; }
+@media (hover: none) { .skill-tile-actions, .skills-rail-delete { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .skill-tile-skeleton { animation: none; } }
 .app-user-workspace .assets-library-page .assets-header-action-buttons .ant-btn:hover:not([aria-pressed="true"]):not(.ant-btn-dangerous) {
     border-color: var(--market-muted);
 }

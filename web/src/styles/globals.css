@@ -17616,6 +17616,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     --user-shadow-card: none;
     --user-shadow-hover: none;
     --user-radius-card: 16px;
+    /* 卡片内媒体与外壳同心：16px 外壳 - 8px 内边距 = 8px。 */
+    --user-radius-media: 8px;
     --user-radius-control: 12px;
     --user-control-pressed: #e1e1e5;
     --user-control-height: 38px;
