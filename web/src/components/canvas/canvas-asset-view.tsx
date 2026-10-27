@@ -181,9 +181,9 @@ function KindGrid({
                     <span className="flex size-5 shrink-0 items-center justify-center text-foreground/80">
                         {canvasAssetKindIcon(group.kind, "size-4")}
                     </span>
-                    <h2 className="m-0 text-sm font-semibold leading-none text-foreground">
+                    <span role="heading" aria-level={2} className="m-0 flex items-center text-sm font-semibold leading-none text-foreground">
                         {group.label}
-                    </h2>
+                    </span>
                     <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
                         {group.entries.length}
                     </span>
