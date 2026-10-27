@@ -210,10 +210,10 @@ export default function DramaCreatePage() {
                         ) : (
                             <>
                                 <span className="drama-drop-icon">
-                                    <BookOpenText className="size-7" />
+                                    <BookOpenText />
                                 </span>
-                                <h2>拖入小说文件，剩下的交给流水线</h2>
-                                <p>TXT 或 Markdown，自动识别 GBK / UTF-8 编码与章节标题。确认几个选项后，系统自动改编、拆集、建角色、出分镜并合成成片。</p>
+                                <h2>将小说转化为短剧，只需拖入文件</h2>
+                                <p>支持 TXT 与 Markdown 格式，自动识别编码与章节。确认风格与配置后，AI 自动完成改编、分镜、角色建模与成片合成全流程。</p>
                                 <Button type="primary" size="large" icon={<FileUp className="size-4" />} onClick={() => fileInputRef.current?.click()}>
                                     选择小说文件
                                 </Button>
@@ -221,14 +221,14 @@ export default function DramaCreatePage() {
                                     <ClipboardPaste className="size-3.5" />
                                     没有文件？直接粘贴正文
                                 </button>
-                                <div className="mt-4 w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/[.03] p-4 text-left backdrop-blur-sm">
-                                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-foreground">
-                                        <Clapperboard className="size-3.5 text-primary" />
+                                <div className="drama-quick-card">
+                                    <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-foreground">
+                                        <Sparkles className="size-3.5 text-primary" />
                                         <span>从故事梗概快速立项</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Input
-                                            className="!h-10 !rounded-xl !bg-black/30"
+                                            className="!h-11 !rounded-xl !bg-black/30 !border-white/8"
                                             value={quickIdea}
                                             onChange={(e) => setQuickIdea(e.target.value)}
                                             onKeyDown={(e) => {
@@ -238,7 +238,7 @@ export default function DramaCreatePage() {
                                         />
                                         <Button
                                             type="primary"
-                                            className="!h-10 !rounded-xl !px-4 font-semibold"
+                                            className="!h-11 !rounded-xl !px-5 !font-semibold"
                                             onClick={handleQuickStart}
                                         >
                                             立项短剧
