@@ -59,6 +59,19 @@ export type CanvasNodeContentProps = {
     onMediaPlayRequest?: (nodeId: string) => void;
 };
 
+/** 由页面 renderNodeContent 渲染的节点；CanvasNode 的 memo 只对这些节点比较该回调。 */
+export function canvasNodeUsesCustomContent(node: CanvasNodeData, isEditingContent = false) {
+    return (
+        node.type === CanvasNodeType.Config ||
+        node.type === CanvasNodeType.Script ||
+        node.type === CanvasNodeType.BatchTable ||
+        Boolean(node.metadata?.previsSceneId) ||
+        (node.metadata?.workflowKind === "character" && Boolean(node.metadata.characterAssetId)) ||
+        (node.metadata?.workflowKind === "story_input" && !isEditingContent) ||
+        (node.metadata?.workflowKind === "styleboard" && !node.metadata.content)
+    );
+}
+
 export function CanvasNodeContent(props: CanvasNodeContentProps) {
     if (props.node.metadata?.fileUpload) return <CanvasFileUploadContent node={props.node} theme={props.theme} reduceMotion={props.disableMediaEffects} />;
     // Preserve the decoded image across LOD changes; only its surrounding
@@ -68,14 +81,7 @@ export function CanvasNodeContent(props: CanvasNodeContentProps) {
     }
     if (props.renderLOD === "shell") return <CanvasNodeShellContent node={props.node} theme={props.theme} />;
     if (props.renderLOD === "preview") return <CanvasNodePreviewContent node={props.node} theme={props.theme} />;
-    const hasCustomContent =
-        props.node.type === CanvasNodeType.Config ||
-        props.node.type === CanvasNodeType.Script ||
-        props.node.type === CanvasNodeType.BatchTable ||
-        Boolean(props.node.metadata?.previsSceneId) ||
-        (props.node.metadata?.workflowKind === "character" && Boolean(props.node.metadata.characterAssetId)) ||
-        (props.node.metadata?.workflowKind === "story_input" && !props.isEditingContent) ||
-        (props.node.metadata?.workflowKind === "styleboard" && !props.node.metadata.content);
+    const hasCustomContent = canvasNodeUsesCustomContent(props.node, props.isEditingContent);
     if (hasCustomContent && props.renderNodeContent) return props.renderNodeContent(props.node);
     if (props.node.type === ART_CRITIQUE_NODE_TYPE) return <ArtCritiqueNodeContent node={props.node} />;
     if (props.node.type === MEDIA_CONVERSION_NODE_TYPE) return <MediaConversionNodeContent node={props.node} theme={props.theme} />;

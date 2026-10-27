@@ -9,6 +9,7 @@ import { WorkspaceTopBar } from "@/components/layout/workspace-top-bar";
 import { WorkspaceTopBarExtensionProvider } from "@/components/layout/workspace-top-bar-extension";
 import { WorkspaceAuthHost } from "@/components/layout/workspace-auth-modal";
 import { WorkspaceSettingsHost } from "@/components/layout/workspace-settings-modal";
+import { WorkspaceStorageLimitNotice } from "@/components/layout/workspace-storage-limit-notice";
 import { WorkspaceWalletHost } from "@/components/layout/workspace-wallet-modal";
 import { cn } from "@/lib/utils";
 import { isSpatialWorkbenchPath } from "@/lib/workspace-routes";
@@ -130,6 +131,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
             <WorkspaceAuthHost />
             <WorkspaceWalletHost />
             <WorkspaceSettingsHost />
+            <WorkspaceStorageLimitNotice />
             <ModelSetupGuide hidden={pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin")} />
         </>
     );

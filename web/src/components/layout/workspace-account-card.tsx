@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import { ArrowUpRight, LogOut, Moon, RefreshCw, Settings, ShieldCheck, Sun } from "lucide-react";
+import { ArrowUpRight, Gift, LogOut, Moon, RefreshCw, Settings, ShieldCheck, Sun } from "lucide-react";
 import { Link } from "react-router";
 
 import { AppChangelogButton } from "@/components/layout/app-changelog-modal";
@@ -28,6 +28,7 @@ const SHOW_CHANGELOG_ENTRY = false;
 export function WorkspaceAccountCard({ onWallet, onNavigate }: { onWallet: () => void; onNavigate: () => void }) {
     const user = useUserStore((state) => state.user);
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
+    const referralAvailable = useUserStore((state) => state.referralAvailable);
     const { availableMicrocredits, refreshing, refresh } = useWalletBalance(user?.id, creditsEnabled);
     const { handleLogout, loggingOut } = useWorkspaceLogout();
     const theme = useThemeStore((state) => state.theme);
@@ -59,6 +60,7 @@ export function WorkspaceAccountCard({ onWallet, onNavigate }: { onWallet: () =>
                 （和「管理员后台」同一枚），只有入口行为变了，观感不变。
                 main 的 /settings?section=profile 深链由设置弹窗承接（profile 已是弹窗分区）。 */}
             <button type="button" className="workspace-account-card-entry" onClick={() => { onNavigate(); openWorkspaceSettings(); }}><Settings /><span>账户与设置</span><ArrowUpRight /></button>
+            {referralAvailable ? <Link to="/referral" onClick={onNavigate}><Gift /><span>推广中心</span><ArrowUpRight /></Link> : null}
             {user.role === "admin" ? <Link to="/admin" onClick={onNavigate}><ShieldCheck /><span>管理员后台</span><ArrowUpRight /></Link> : null}
             <Button danger type="text" icon={<LogOut />} loading={loggingOut} onClick={() => void handleLogout()}>退出登录</Button>
         </nav>

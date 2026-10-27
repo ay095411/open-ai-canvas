@@ -3,6 +3,7 @@ import { App, Button, Input } from "antd";
 
 import { ArrowLeft, Check, ChevronRight, FolderPlus, Globe2, Plus, Search, Sparkles, Trash2, Upload, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { PaginationBar, WorkspacePage } from "@/components/layout/workspace-page";
 import { WorkspaceErrorState, WorkspaceState } from "@/components/layout/workspace-state";
@@ -66,10 +67,15 @@ export default function SkillsPage() {
     const [installOpen, setInstallOpen] = useState(false);
     const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
     const isAdmin = useUserStore((state) => state.user?.role === "admin");
+    const navigate = useNavigate();
     const isLibraryScope = scope === "mine" || scope === "created";
     const libraryCategoryScope = scope === "created" ? "created" : "mine";
 
     const reload = useCallback(() => setReloadKey((value) => value + 1), []);
+    const openWorkbench = (skill: Skill) => {
+        setActiveSkill(null);
+        navigate(`/skills/${encodeURIComponent(skill.skillId)}/edit`);
+    };
     const selectScope = (next: SkillScope) => {
         setScope(next);
         setSearch("");
@@ -482,7 +488,7 @@ export default function SkillsPage() {
                     </div>
                 </div>
             </AppModal>
-            <SkillDetailModal skill={activeSkill} loading={detailLoading} mutating={Boolean(activeSkill && mutatingID === activeSkill.skillId)} categories={categories} onClose={() => setActiveSkill(null)} onAdd={(skill) => void toggleAdded(skill)} onLike={(skill) => void toggleLiked(skill)} onEdit={(skill) => void openEditor(skill)} onSync={(skill) => void synchronizeSkill(skill)} />
+            <SkillDetailModal skill={activeSkill} loading={detailLoading} mutating={Boolean(activeSkill && mutatingID === activeSkill.skillId)} categories={categories} onClose={() => setActiveSkill(null)} onAdd={(skill) => void toggleAdded(skill)} onLike={(skill) => void toggleLiked(skill)} onEdit={(skill) => void openEditor(skill)} onOpenWorkbench={openWorkbench} onSync={(skill) => void synchronizeSkill(skill)} />
             <SkillInstallModal open={installOpen} onClose={() => setInstallOpen(false)} onInstalled={(skill) => { setInstallOpen(false); setActiveSkill(skill); reload(); }} onManualCreate={() => { setInstallOpen(false); void openEditor(); }} />
             <SkillEditorDrawer open={editorOpen} skill={editingSkill} onClose={() => setEditorOpen(false)} onSaved={(skill) => { setEditorOpen(false); setEditingSkill(null); setActiveSkill(skill); reload(); }} />
         </>
