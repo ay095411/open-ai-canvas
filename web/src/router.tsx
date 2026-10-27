@@ -52,7 +52,7 @@ const SkillWorkbenchPage = lazy(loadSkillWorkbenchPage);
 const PluginsPage = lazy(() => import("@/pages/plugins"));
 const EagleLibraryPage = lazy(() => import("@/pages/plugins/eagle"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
-const ProjectsPage = lazy(loadProjectsPage);
+const ProjectsPage = lazy(loadProjectCreatePage);
 const ProjectDetailPage = lazy(loadProjectDetailPage);
 const ProjectCreatePage = lazy(loadProjectCreatePage);
 const SettingsPage = lazy(() => import("@/pages/settings"));

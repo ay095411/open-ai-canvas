@@ -172,13 +172,7 @@ export default function DramaCreatePage() {
     if (!analysis) {
         return (
             <WorkspacePage fluid scroll={false}>
-                <div className="drama-root drama-compose-empty">
-                    <header className="drama-compose-head">
-                        <Link to="/projects">
-                            <Button type="text" shape="circle" icon={<ArrowLeft className="size-4" />} aria-label="返回作品列表" />
-                        </Link>
-                        <h1>新建短剧</h1>
-                    </header>
+                <div className="drama-root drama-compose-empty flex h-full min-h-0 flex-col p-4">
                     <div
                         className={`drama-drop ${dragOver ? "is-over" : ""}`}
                         onDragOver={(event) => {
@@ -219,13 +213,13 @@ export default function DramaCreatePage() {
                                     没有文件？直接粘贴正文
                                 </button>
                                 <div className="mt-4 w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/[.03] p-4 text-left backdrop-blur-sm">
-                                    <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold text-foreground">
+                                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-foreground">
                                         <Clapperboard className="size-3.5 text-primary" />
                                         <span>从故事梗概快速立项</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Input
-                                            className="!h-9 !rounded-lg"
+                                            className="!h-10 !rounded-xl !bg-black/30"
                                             value={quickIdea}
                                             onChange={(e) => setQuickIdea(e.target.value)}
                                             onKeyDown={(e) => {
@@ -236,10 +230,11 @@ export default function DramaCreatePage() {
                                                     loadText(storyText, `${ideaTitle}.txt`);
                                                 }
                                             }}
-                                            placeholder="输入核心剧情主线，例如：隐姓退役军官重返都市，退婚之日意外卷入商业风暴..."
+                                            placeholder="输入核心剧情主线，例如：隐姓退役军官重返都市，退婚之日意外卷入..."
                                         />
                                         <Button
                                             type="primary"
+                                            className="!h-10 !rounded-xl !px-4"
                                             disabled={!quickIdea.trim()}
                                             onClick={() => {
                                                 const ideaTitle = quickIdea.trim().slice(0, 16);
