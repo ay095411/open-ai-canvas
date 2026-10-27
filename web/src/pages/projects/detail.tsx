@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { App, Button } from "antd";
-import { ArrowLeft, CheckCheck, Clapperboard, Film, Inbox, Pause, Pencil, Play, ScrollText, Settings2, Sparkles, UsersRound } from "lucide-react";
+import { ArrowLeft, CheckCheck, Clapperboard, Film, Inbox, Pause, Pencil, Play, ScrollText, Settings2, Sparkles, UsersRound, Workflow } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { WorkspacePage } from "@/components/layout/workspace-page";
@@ -10,6 +10,7 @@ import { approveDramaEpisode, generateDramaSegments, pauseDrama, reprocessDramaS
 
 import { formatCount, formatDuration, StagePips, STAGE_LABEL, STATUS_LABEL } from "./drama-shared";
 import { CastPanel, InboxPanel, SettingsPanel } from "./studio/panels";
+import { AgentDirectorPanel } from "./studio/agent-panel";
 import { EpisodeRail } from "./studio/episode-rail";
 import { FinalView } from "./studio/final-view";
 import { StudioGenesis } from "./studio/genesis";
@@ -18,11 +19,13 @@ import { QueueBar } from "./studio/queue-bar";
 import { ScriptView } from "./studio/script-view";
 import { Storyboard, type EpisodeEmpty } from "./studio/storyboard";
 import { isTypingTarget, useDramaCast, useDramaEpisode, useDramaInvalidate, useDramaSummary } from "./studio/use-studio";
+import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
+import { createCanvasProjectWithRemoteSync } from "@/services/user-data-sync";
 import { progressFillStyle } from "@/lib/progress-fill";
 import "./drama.css";
 
 type Tab = "board" | "script" | "final";
-type StudioView = "production" | "cast" | "inbox" | "settings";
+type StudioView = "production" | "cast" | "inbox" | "settings" | "agent";
 
 export default function DramaStudioPage() {
     const { projectId = "", episodeId: routeEpisodeId = "" } = useParams();
@@ -177,6 +180,25 @@ export default function DramaStudioPage() {
         if (job.episodeId) navigate({ pathname: `/projects/${projectId}/e/${job.episodeId}`, search: "" });
     };
 
+    const handleOpenInCanvas = async () => {
+        try {
+            const localProjects = useCanvasStore.getState().projects;
+            const matched = localProjects.find((p) => p.projectId === projectId);
+            if (matched) {
+                navigate(`/canvas/${encodeURIComponent(matched.id)}`);
+                return;
+            }
+            const result = await createCanvasProjectWithRemoteSync(`《${summary?.project.name || "短剧"}》推演画布`, projectId);
+            if (result.id) {
+                navigate(`/canvas/${encodeURIComponent(result.id)}`);
+                return;
+            }
+        } catch {
+            // 降级：进入画布列表并按项目筛选
+        }
+        navigate(`/canvas?projectId=${encodeURIComponent(projectId)}`);
+    };
+
     if (summaryQuery.isLoading) return <WorkspacePage><WorkspaceLoadingState label="正在打开制作台" /></WorkspacePage>;
     if (summaryQuery.isError || !summary) return <WorkspacePage><WorkspaceErrorState title="作品不可用" description="作品不存在、已被删除，或当前账号没有访问权限。" actionLabel="返回作品列表" onRetry={() => navigate("/projects")} /></WorkspacePage>;
 
@@ -218,11 +240,13 @@ export default function DramaStudioPage() {
                     ) : null}
                     <nav className="drama-nav" aria-label="制作台视图">
                         <button type="button" className="drama-nav-item" aria-current={view === "production" ? "page" : undefined} onClick={() => openView("production")}><Clapperboard className="size-4" />制作</button>
+                        <button type="button" className="drama-nav-item" aria-current={view === "agent" ? "page" : undefined} onClick={() => openView("agent")}><Sparkles className="size-4 text-[var(--workspace-accent)]" />Agent 编导</button>
                         <button type="button" className="drama-nav-item" aria-current={view === "cast" ? "page" : undefined} onClick={() => openView("cast")}><UsersRound className="size-4" />设定{summary.castCount ? <span className="drama-nav-count">{summary.castCount}</span> : null}</button>
                         <button type="button" className="drama-nav-item" aria-current={view === "inbox" ? "page" : undefined} onClick={() => openView("inbox")}><Inbox className="size-4" />待处理{summary.inbox.length ? <span className="drama-nav-count is-alert">{summary.inbox.length > 99 ? "99+" : summary.inbox.length}</span> : null}</button>
                         <button type="button" className="drama-nav-item" aria-current={view === "settings" ? "page" : undefined} onClick={() => openView("settings")}><Settings2 className="size-4" />设置</button>
                     </nav>
                     <div className="drama-topbar-actions">
+                        <Button icon={<Workflow className="size-4" />} onClick={handleOpenInCanvas} title="在自由画布中排布并推演分镜">在画布中推演</Button>
                         {awaitingCount ? <Button icon={<Sparkles className="size-4" />} loading={release.isPending && release.variables?.target === "all"} onClick={confirmReleaseAll}>全部生成视频 · {awaitingCount} 集</Button> : null}
                         {production.status !== "completed" ? (
                             <Button type={running ? "default" : "primary"} icon={running ? <Pause className="size-4" /> : <Play className="size-4" />} loading={toggleRun.isPending} onClick={() => toggleRun.mutate()}>{running ? "暂停" : production.status === "draft" ? "开始制作" : "继续制作"}</Button>
@@ -231,6 +255,7 @@ export default function DramaStudioPage() {
                 </header>
 
                 {view === "cast" ? <CastPanel projectId={projectId} cast={cast} ratios={{ character: production.settings.assets.characterRatio }} focusId={castFocus} retrying={retry.isPending} assetsPending={production.settings.mediaMode === "manual" && !production.assetsReleased} releasing={release.isPending && release.variables?.target === "assets"} onReleaseAssets={() => release.mutate({ target: "assets" })} onFocus={(id) => setParams({ cast: id })} onRetry={() => retry.mutate()} onChanged={() => invalidate(episodeId)} />
+                : view === "agent" ? <AgentDirectorPanel projectId={projectId} summary={summary} episode={episodeRow} detail={detail} onLocateShot={(shotId) => { openView("production"); setParams({ shot: shotId }); }} />
                 : view === "inbox" ? <InboxPanel items={summary.inbox} castById={castById} retrying={retry.isPending} retryingGroup={retryingGroup} releasing={release.isPending} onRetryAll={() => retry.mutate()} onRetryGroup={(key, items) => retryGroup.mutate({ key, items })} onOpen={openInbox} onOpenSettings={() => openView("settings")} onReleaseAll={confirmReleaseAll} />
                 : view === "settings" ? <SettingsPanel projectId={projectId} summary={summary} cast={cast} onChanged={() => invalidate(episodeId)} />
                 : !episodes.length ? <StudioGenesis summary={summary} /> : (

@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { App, Button, Input, InputNumber, Select } from "antd";
-import { AlertTriangle, ArrowLeft, BookOpenText, ClipboardPaste, FileUp, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BookOpenText, Clapperboard, ClipboardPaste, FileUp, Sparkles, Wand2 } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 
 import { WorkspacePage } from "@/components/layout/workspace-page";
-import { DEFAULT_DRAMA_STYLE_ID, findDramaStyle } from "@/lib/drama/drama-styles";
+import { DEFAULT_DRAMA_STYLE_ID, findDramaStyle, type DramaStyle } from "@/lib/drama/drama-styles";
 import { decodeNovelText } from "@/lib/canvas/canvas-document";
 import { analyzeNovel, titleFromFileName, type NovelAnalysis } from "@/lib/drama/novel-parse";
 import { ApiError } from "@/services/api/request";
 import { dramaChoiceKey } from "@/lib/drama/model-choice";
 import { DEFAULT_STORYBOARD } from "@/lib/drama/storyboard";
 import { createDrama, estimateDrama, type DramaAssetSettings, type DramaCapability, type DramaMediaMode, type DramaModels, type DramaReviewMode, type DramaSkillRef, type DramaStoryboardSettings } from "@/services/api/drama";
+import { cn } from "@/lib/utils";
 
 import { formatCount, formatCredits, MEDIA_MODE_LABEL } from "./drama-shared";
 import { AssetSchemePicker, defaultAssetSettings, useAssetSchemes } from "./asset-scheme";
@@ -44,6 +45,8 @@ export default function DramaCreatePage() {
     const [searchParams] = useSearchParams();
     const [pasteMode, setPasteMode] = useState(searchParams.get("paste") === "1");
     const [pasteText, setPasteText] = useState("");
+    const [quickIdea, setQuickIdea] = useState("");
+    const [activeStep, setActiveStep] = useState<"format" | "style" | "production">("format");
     const [analysis, setAnalysis] = useState<NovelAnalysis | null>(null);
     const [name, setName] = useState("");
     const [aspectRatio, setAspectRatio] = useState("9:16");
@@ -127,6 +130,17 @@ export default function DramaCreatePage() {
         // 文件只用于首次进入，清掉路由状态避免刷新或返回时重复解析。
         navigate(".", { replace: true, state: null });
     }, [handedFile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const initialIdea = searchParams.get("idea") || "";
+    const ideaHandledRef = useRef(false);
+    useEffect(() => {
+        if (!initialIdea || ideaHandledRef.current) return;
+        ideaHandledRef.current = true;
+        const ideaTitle = initialIdea.slice(0, 16);
+        const storyText = `第一章：初露风芒\n${initialIdea}\n\n第二章：逆风破局\n对立激化，主角绝地突围，展现关键抉择。\n\n第三章：终局定音\n局势扭转，高潮反转收尾。`;
+        setName(ideaTitle);
+        loadText(storyText, `${ideaTitle}.txt`);
+    }, [initialIdea]);
     const onDrop = (event: DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         setDragOver(false);
@@ -205,6 +219,40 @@ export default function DramaCreatePage() {
                                     <ClipboardPaste className="size-3.5" />
                                     没有文件？直接粘贴正文
                                 </button>
+                                <div className="mt-4 w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/[.03] p-4 text-left backdrop-blur-sm">
+                                    <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold text-primary">
+                                        <Sparkles className="size-3.5" />
+                                        <span>没有准备小说？输入一句话灵感直接开始</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            className="!h-9"
+                                            value={quickIdea}
+                                            onChange={(e) => setQuickIdea(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && quickIdea.trim()) {
+                                                    const ideaTitle = quickIdea.trim().slice(0, 16);
+                                                    const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围。\n\n第三章：终局定音\n局势逆转，高潮收尾。`;
+                                                    setName(ideaTitle);
+                                                    loadText(storyText, `${ideaTitle}.txt`);
+                                                }
+                                            }}
+                                            placeholder="例如：开局获得神级签到系统，在都市隐姓修行..."
+                                        />
+                                        <Button
+                                            type="primary"
+                                            disabled={!quickIdea.trim()}
+                                            onClick={() => {
+                                                const ideaTitle = quickIdea.trim().slice(0, 16);
+                                                const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围。\n\n第三章：终局定音\n局势逆转，高潮收尾。`;
+                                                setName(ideaTitle);
+                                                loadText(storyText, `${ideaTitle}.txt`);
+                                            }}
+                                        >
+                                            AI 构思
+                                        </Button>
+                                    </div>
+                                </div>
                                 <div className="drama-drop-steps">
                                     {["解析章节", "建立角色、道具与场景", "分集改编与段提示词", "按剧情段生成视频", "合成成片"].map((step, index) => (
                                         <span key={step}>
@@ -282,64 +330,136 @@ export default function DramaCreatePage() {
                     </div>
                 </aside>
 
-                {/* 中：风格与审阅，下方原文预览 */}
+                {/* 中：分步向导（故事规格 → 视觉角色 → 分镜审阅） */}
                 <main className="drama-compose-main thin-scrollbar">
-                    <DramaStylePicker value={styleId} onChange={setStyleId} />
-                    <section>
-                        <div className="drama-section-title">
-                            <h2>角色参考图方案</h2>
-                            <span>参考图是每个镜头保持人物一致的锚点，开工后也能在设置里改</span>
-                        </div>
-                        <AssetSchemePicker value={assets} onChange={setAssetDraft} sample={{ style: style?.prompt || "", characterName: "主角", sceneName: "主场景" }} layout="compact" />
-                    </section>
-                    <section>
-                        <div className="drama-section-title">
-                            <h2>分镜规则</h2>
-                            <span>决定剧情段多长、段内镜头节奏、台词密度与转场</span>
-                        </div>
-                        <StoryboardRules value={storyboard} onChange={setStoryboard} episodeSeconds={episodeSeconds} maxVideoSeconds={videoOption?.maxVideoSeconds} videoModelLabel={resolvedModels?.video?.label} />
-                    </section>
-                    <section>
-                        <div className="drama-section-title">
-                            <h2>视频提示词技能</h2>
-                            <span>撰写每个剧情段的视频提示词时遵循的写作方法</span>
-                        </div>
-                        <PromptSkillField value={promptSkill} onChange={setPromptSkill} />
-                    </section>
-                    <section>
-                        <div className="drama-section-title">
-                            <h2>审阅方式</h2>
-                            <span>只在关键点打断你</span>
-                        </div>
-                        <div className="drama-review-modes" role="radiogroup" aria-label="审阅方式">
-                            {REVIEW_MODES.map((mode) => (
-                                <button key={mode.value} type="button" role="radio" aria-checked={reviewMode === mode.value} className="drama-review-mode" onClick={() => setReviewMode(mode.value)}>
-                                    <span className="drama-radio" />
-                                    <span>
-                                        <strong>{mode.title}</strong>
-                                        <span>{mode.detail}</span>
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </section>
-                    {previewChapter ? (
-                        <section className="drama-compose-preview">
-                            <div className="drama-section-title">
-                                <h2>{previewChapter.title}</h2>
-                                <span>原文预览 · {formatCount(previewChapter.words)} 字</span>
+                    <div className="drama-compose-steps-bar" role="tablist" aria-label="向导步骤">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={activeStep === "format"}
+                            className={`drama-compose-step-btn ${activeStep === "format" ? "is-active" : ""}`}
+                            onClick={() => setActiveStep("format")}
+                        >
+                            <span className="drama-compose-step-num">1</span>
+                            <span>故事章节与原文</span>
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={activeStep === "style"}
+                            className={`drama-compose-step-btn ${activeStep === "style" ? "is-active" : ""}`}
+                            onClick={() => setActiveStep("style")}
+                        >
+                            <span className="drama-compose-step-num">2</span>
+                            <span>艺术风格与角色</span>
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={activeStep === "production"}
+                            className={`drama-compose-step-btn ${activeStep === "production" ? "is-active" : ""}`}
+                            onClick={() => setActiveStep("production")}
+                        >
+                            <span className="drama-compose-step-num">3</span>
+                            <span>分镜规则与审阅</span>
+                        </button>
+                    </div>
+
+                    {activeStep === "format" ? (
+                        <>
+                            {previewChapter ? (
+                                <section className="drama-compose-preview">
+                                    <div className="drama-section-title">
+                                        <h2>{previewChapter.title}</h2>
+                                        <span>原文预览 · {formatCount(previewChapter.words)} 字</span>
+                                    </div>
+                                    <div className="drama-compose-text thin-scrollbar">
+                                        {previewChapter.text.slice(0, 6000)}
+                                        {previewChapter.text.length > 6000 ? "……" : ""}
+                                    </div>
+                                </section>
+                            ) : null}
+                            <div className="flex justify-end pt-2">
+                                <Button type="primary" onClick={() => setActiveStep("style")}>
+                                    下一步：选择视觉风格
+                                </Button>
                             </div>
-                            <div className="drama-compose-text thin-scrollbar">
-                                {previewChapter.text.slice(0, 6000)}
-                                {previewChapter.text.length > 6000 ? "……" : ""}
+                        </>
+                    ) : null}
+
+                    {activeStep === "style" ? (
+                        <>
+                            <DramaStylePicker value={styleId} onChange={setStyleId} />
+                            <section>
+                                <div className="drama-section-title">
+                                    <h2>角色参考图方案</h2>
+                                    <span>参考图是每个镜头保持人物一致的锚点，开工后也能在设置里改</span>
+                                </div>
+                                <AssetSchemePicker value={assets} onChange={setAssetDraft} sample={{ style: style?.prompt || "", characterName: "主角", sceneName: "主场景" }} layout="compact" />
+                            </section>
+                            <div className="flex justify-between pt-2">
+                                <Button onClick={() => setActiveStep("format")}>
+                                    上一步：故事规格
+                                </Button>
+                                <Button type="primary" onClick={() => setActiveStep("production")}>
+                                    下一步：分镜与审阅
+                                </Button>
                             </div>
-                        </section>
+                        </>
+                    ) : null}
+
+                    {activeStep === "production" ? (
+                        <>
+                            <section>
+                                <div className="drama-section-title">
+                                    <h2>分镜规则</h2>
+                                    <span>决定剧情段多长、段内镜头节奏、台词密度与转场</span>
+                                </div>
+                                <StoryboardRules value={storyboard} onChange={setStoryboard} episodeSeconds={episodeSeconds} maxVideoSeconds={videoOption?.maxVideoSeconds} videoModelLabel={resolvedModels?.video?.label} />
+                            </section>
+                            <section>
+                                <div className="drama-section-title">
+                                    <h2>视频提示词技能</h2>
+                                    <span>撰写每个剧情段的视频提示词时遵循的写作方法</span>
+                                </div>
+                                <PromptSkillField value={promptSkill} onChange={setPromptSkill} />
+                            </section>
+                            <section>
+                                <div className="drama-section-title">
+                                    <h2>审阅方式</h2>
+                                    <span>只在关键点打断你</span>
+                                </div>
+                                <div className="drama-review-modes" role="radiogroup" aria-label="审阅方式">
+                                    {REVIEW_MODES.map((mode) => (
+                                        <button key={mode.value} type="button" role="radio" aria-checked={reviewMode === mode.value} className="drama-review-mode" onClick={() => setReviewMode(mode.value)}>
+                                            <span className="drama-radio" />
+                                            <span>
+                                                <strong>{mode.title}</strong>
+                                                <span>{mode.detail}</span>
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                            <div className="flex justify-start pt-2">
+                                <Button onClick={() => setActiveStep("style")}>
+                                    上一步：视觉风格
+                                </Button>
+                            </div>
+                        </>
                     ) : null}
                 </main>
 
                 {/* 右：作品设置与启动 */}
                 <aside className="drama-compose-side">
                     <div className="drama-compose-side-scroll thin-scrollbar">
+                        <DramaLivePreviewCard
+                            name={name}
+                            aspectRatio={aspectRatio}
+                            episodeSeconds={episodeSeconds}
+                            style={style}
+                            estimateEpisodes={estimate?.episodes}
+                        />
                         <label className="block">
                             <div className="drama-option-label">作品名称</div>
                             <Input size="large" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="作品名称" />
@@ -444,5 +564,68 @@ export default function DramaCreatePage() {
                 </aside>
             </div>
         </WorkspacePage>
+    );
+}
+
+function DramaLivePreviewCard({
+    name,
+    aspectRatio,
+    episodeSeconds,
+    style,
+    estimateEpisodes,
+}: {
+    name: string;
+    aspectRatio: string;
+    episodeSeconds: number;
+    style: DramaStyle | undefined;
+    estimateEpisodes?: number;
+}) {
+    const isPortrait = aspectRatio === "9:16";
+    const isSquare = aspectRatio === "1:1";
+    const coverUrl = style?.cover;
+
+    return (
+        <div className="drama-live-preview-box">
+            <div className="drama-live-preview-head">
+                <span className="text-[var(--fs-micro)] font-semibold tracking-wider text-muted-foreground uppercase">剧集实时预演</span>
+                <span className="text-[var(--fs-nano)] text-muted-foreground tabular-nums">{aspectRatio}</span>
+            </div>
+            <div className="flex justify-center p-3">
+                <div
+                    className={cn(
+                        "relative overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-lg transition-all duration-300",
+                        isPortrait ? "w-[140px] aspect-[9/16]" : isSquare ? "w-[160px] aspect-square" : "w-[210px] aspect-[16/9]"
+                    )}
+                >
+                    {coverUrl ? (
+                        <img src={coverUrl} alt="" className="size-full object-cover opacity-85" />
+                    ) : (
+                        <div
+                            className="size-full opacity-60"
+                            style={{
+                                background: style?.palette
+                                    ? `linear-gradient(135deg, ${style.palette[0]} 0%, ${style.palette[1]} 50%, ${style.palette[2]} 100%)`
+                                    : "linear-gradient(135deg, #1f1f2e, #111118)",
+                            }}
+                        />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+                    <div className="absolute inset-x-2.5 bottom-2.5 flex flex-col gap-1 text-white">
+                        <span className="inline-flex w-fit items-center gap-1 rounded bg-white/20 px-1 py-0.5 text-[9px] backdrop-blur-sm">
+                            <Clapperboard className="size-2.5" />
+                            {style?.name || "默认风格"}
+                        </span>
+                        <strong className="truncate text-xs font-semibold leading-tight text-white drop-shadow-sm">
+                            {name || "短剧新篇"}
+                        </strong>
+                        <div className="flex items-center gap-1.5 text-[9px] text-white/70">
+                            <span>{episodeSeconds}秒/集</span>
+                            <span>·</span>
+                            <span>{estimateEpisodes ? `共 ${estimateEpisodes} 集` : "自动分集"}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }

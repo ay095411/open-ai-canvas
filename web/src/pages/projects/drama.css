@@ -320,9 +320,9 @@
     min-height: 0;
     overflow-y: auto;
     padding: 16px;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    align-content: start;
 }
 .drama-compose-models {
     display: grid;
@@ -2352,6 +2352,160 @@
         opacity: 1;
     }
 }
+
+/* ===== 短剧 Agent 灵感孵化栏 ===== */
+.drama-agent-quick-start {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border-radius: var(--user-radius-card);
+    border: 1px solid var(--user-border);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--user-accent) 6%, var(--user-surface)) 0%, var(--user-surface) 100%);
+    box-shadow: 0 4px 20px color-mix(in srgb, black 8%, transparent);
+}
+.drama-agent-quick-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.drama-agent-quick-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--user-accent-soft);
+    color: var(--user-accent);
+    font-size: var(--fs-label);
+    font-weight: 600;
+}
+.drama-agent-quick-composer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.drama-agent-quick-input {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    border-radius: var(--user-radius-control);
+    background: var(--user-surface-muted);
+    border: 1px solid var(--user-border);
+    padding: 0 14px;
+    color: var(--user-ink);
+    font-size: 14px;
+    transition: border-color var(--user-motion), background var(--user-motion);
+}
+.drama-agent-quick-input:focus {
+    outline: none;
+    border-color: var(--user-accent);
+    background: var(--user-surface);
+}
+
+/* ===== 双轨空态引导 ===== */
+.drama-hero-dual-track {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 16px;
+}
+.drama-hero-track-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 28px 24px;
+    border-radius: var(--user-radius-card);
+    border: 1px solid var(--user-border);
+    background: var(--user-surface);
+    transition: border-color var(--user-motion), transform var(--user-motion);
+    text-align: left;
+}
+.drama-hero-track-card:hover {
+    border-color: var(--user-border-strong);
+    transform: translateY(-2px);
+}
+.drama-hero-track-icon {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border-radius: var(--user-radius-control);
+    background: var(--user-accent-soft);
+    color: var(--user-accent);
+}
+
+/* ===== 实时剧集预演卡 ===== */
+.drama-live-preview-box {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--drama-line);
+    background: var(--surface);
+    overflow: hidden;
+}
+.drama-live-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 0;
+}
+
+/* ===== 新建短剧 Tab 步骤栏 ===== */
+.drama-compose-steps-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--user-surface-muted);
+    width: fit-content;
+    margin-bottom: 20px;
+}
+.drama-compose-step-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--user-ink-muted);
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.drama-compose-step-btn:hover {
+    color: var(--user-ink);
+}
+.drama-compose-step-btn.is-active {
+    background: var(--user-surface);
+    color: var(--user-ink);
+    box-shadow: 0 1px 2px color-mix(in srgb, black 8%, transparent), 0 0 0 1px var(--user-border);
+    font-weight: 600;
+}
+.drama-compose-step-num {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--user-surface-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+.drama-compose-step-btn.is-active .drama-compose-step-num {
+    background: var(--user-accent);
+    color: var(--primary-foreground);
+}
+@media (max-width: 768px) {
+    .drama-hero-dual-track { grid-template-columns: 1fr; }
+    .drama-agent-quick-composer { flex-direction: column; align-items: stretch; }
+    .drama-compose-steps-bar { width: 100%; overflow-x: auto; }
+}
+
 .drama-library-hero {
     min-height: 440px;
     flex: none;
