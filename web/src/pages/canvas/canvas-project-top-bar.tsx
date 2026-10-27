@@ -190,20 +190,6 @@ export function CanvasTopBar({
                     {syncIcon}
                 </div>
 
-                <div className="canvas-topbar-cluster pointer-events-auto absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center xl:flex" style={dockStyle}>
-                    <button
-                        type="button"
-                        className="canvas-topbar-action inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-sm font-medium transition-colors hover:bg-white/10"
-                        style={{ color: theme.node.text }}
-                        onClick={onOpenAssets || (() => onViewChange?.("assets"))}
-                        aria-label="查看资产"
-                        title="查看当前画布中的资产"
-                    >
-                        <FolderTree className="size-4" />
-                        <span>查看资产</span>
-                    </button>
-                </div>
-
                 <div className="canvas-topbar-cluster canvas-topbar-tools-cluster pointer-events-auto flex items-center gap-2" style={dockStyle}>
                     <CanvasTopBarTooltip label="搜索画布节点">
                         <Button
@@ -214,6 +200,18 @@ export function CanvasTopBar({
                             onClick={onOpenSearch}
                             aria-label="搜索画布节点"
                         />
+                    </CanvasTopBarTooltip>
+                    <CanvasTopBarTooltip label="查看画布资产">
+                        <Button
+                            type="text"
+                            className="canvas-topbar-action !h-10 !rounded-xl !px-2.5 !font-medium"
+                            style={{ color: theme.node.text }}
+                            icon={<FolderTree className="size-4" />}
+                            onClick={onOpenAssets || (() => onViewChange?.("assets"))}
+                            aria-label="查看资产"
+                        >
+                            <span className="hidden sm:inline">查看资产</span>
+                        </Button>
                     </CanvasTopBarTooltip>
                     <CanvasTopBarTooltip label="导入第三方画布">
                         <Dropdown

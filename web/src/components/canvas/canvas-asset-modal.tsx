@@ -37,6 +37,7 @@ export function CanvasAssetModal({
             onCancel={onClose}
             title={null}
             footer={null}
+            closable={false}
             centered
             flush
             destroyOnHidden
