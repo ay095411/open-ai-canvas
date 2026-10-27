@@ -122,8 +122,8 @@ import { deriveStoryboardPipelineProgress } from "@/lib/canvas/canvas-storyboard
 import { CanvasOperationChangeToast, CanvasMergeStatusToast, CanvasUploadStatusToast } from "./canvas-project-feedback";
 import { getGenerationCount } from "@/lib/canvas/canvas-project-generation";
 import { cancelGenerationTask } from "@/services/api/task-center";
-import { CanvasTopBar, type CanvasProjectView } from "./canvas-project-top-bar";
-import { CanvasAssetView } from "@/components/canvas/canvas-asset-view";
+import { CanvasTopBar } from "./canvas-project-top-bar";
+import { CanvasAssetModal } from "@/components/canvas/canvas-asset-modal";
 import type { CanvasAssetVersion } from "@/lib/canvas/canvas-asset-catalog";
 import { canDownloadCanvasNodeMedia } from "@/lib/canvas/canvas-media-download";
 import { CanvasSyncStatus } from "./canvas-sync-status";
@@ -318,8 +318,16 @@ function CanvasViewportPage() {
     const { tasks: activeTasks } = useCanvasActiveTasks(projectId, projectLoaded);
     const { focusMode, enterFocusMode, exitFocusMode, toggleFocusMode } = useFocusMode();
     const [focusDockRevealed, setFocusDockRevealed] = useState(false);
-    // 画布 / 资产视图写在 URL 上，刷新和分享链接都能回到同一视图；专注模式只服务画布编辑。
-    const canvasView: CanvasProjectView = searchParams.get("view") === "assets" && !focusMode ? "assets" : "canvas";
+    // 默认页面始终为画布，资产改为模态弹窗查看；兼顾旧链接参数自动唤起弹窗。
+    const [assetModalOpen, setAssetModalOpen] = useState(false);
+    useEffect(() => {
+        if (searchParams.get("view") === "assets") {
+            setAssetModalOpen(true);
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete("view");
+            setSearchParams(nextParams, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     useEffect(() => {
         persistCanvasHideNodeConnections(hideNodeConnections);
@@ -1759,8 +1767,8 @@ function CanvasViewportPage() {
     }, [clearCanvasFiles, deselectCanvas, message, nodesRef, projectId, setEmotionNodeId]);
 
     useCanvasKeyboard({
-        // 资产视图覆盖画布时，删除、粘贴、撤销等画布快捷键不能作用到看不见的节点上。
-        enabled: projectLoaded && canvasView === "canvas",
+        // 资产弹窗打开时暂停画布全局快捷键，避免冲突；其余时刻常驻生效。
+        enabled: projectLoaded && !focusMode && !assetModalOpen,
         nodesRef,
         selectedNodeIdsRef,
         selectedConnectionId,
@@ -2651,28 +2659,14 @@ function CanvasViewportPage() {
         focusCanvasNode(nodeId);
     };
     const handleAgentFocusNode = useCallback((nodeId: string) => agentFocusNodeRef.current(nodeId), []);
-    const changeCanvasView = useCallback((view: CanvasProjectView) => {
-        setSearchParams((current) => {
-            const next = new URLSearchParams(current);
-            if (view === "assets") next.set("view", "assets");
-            else next.delete("view");
-            return next;
-        }, { replace: true });
-        if (view !== "assets") return;
-        // 资产视图覆盖画布，节点浮层和菜单不能悬在它上面。
-        setContextMenu(null);
-        setDialogNodeId(null);
-        setToolbarNodeId(null);
-        setHoveredNodeId(null);
-    }, [setDialogNodeId, setSearchParams]);
     const locateAssetNode = useCallback((nodeId: string) => {
-        changeCanvasView("canvas");
+        setAssetModalOpen(false);
         const selection = new Set([nodeId]);
         selectedNodeIdsRef.current = selection;
         setSelectedNodeIds(selection);
         setSelectedConnectionId(null);
         agentFocusNodeRef.current(nodeId);
-    }, [changeCanvasView]);
+    }, []);
     const renameAssetNodes = useCallback((updates: Array<{ nodeId: string; title: string }>) => {
         updates.forEach(({ nodeId, title }) => handleNodeTitleChange(nodeId, title));
     }, [handleNodeTitleChange]);
@@ -2752,7 +2746,7 @@ function CanvasViewportPage() {
                         onProjectAssets={currentProject?.projectId ? () => openProjectAssets() : undefined}
                         onCancelTask={cancelCanvasTask}
                         onFocus={(nodeId) => {
-                            if (canvasView === "assets") changeCanvasView("canvas");
+                            setAssetModalOpen(false);
                             const target = nodeById.get(nodeId);
                             const parent = target?.parentId ? nodeById.get(target.parentId) : null;
                             if (parent?.metadata?.frame?.collapsed) toggleFrameCollapsed(parent.id);
@@ -2774,8 +2768,7 @@ function CanvasViewportPage() {
                         <section data-canvas-editor className="relative min-w-0 flex-1 flex flex-col min-h-0 overflow-clip">
                             {!focusMode ? (
                                 <CanvasTopBar
-                                    view={canvasView}
-                                    onViewChange={changeCanvasView}
+                                    onOpenAssets={() => setAssetModalOpen(true)}
                                     title={currentProject?.title || "未命名画布"}
                                     titleDraft={titleDraft}
                                     isTitleEditing={titleEditing}
@@ -3641,11 +3634,22 @@ function CanvasViewportPage() {
                                 onInsertFolder={projectAssetScope === "canvas" ? handleProjectFolderInsert : undefined}
                             />
 
-                            {canvasView === "assets" ? (
-                                <div className="canvas-asset-view-layer absolute bottom-0 left-0 right-0 top-[var(--canvas-topbar-h)] z-[var(--z-panel-floating)] flex min-h-0">
-                                    <CanvasAssetView nodes={nodes} onLocate={locateAssetNode} onRename={renameAssetNodes} onPromoteVersion={promoteAssetVersion} onDownloadMedia={downloadNodeImage} onUpload={() => handleUploadRequest()} />
-                                </div>
-                            ) : null}
+                            <CanvasAssetModal
+                                open={assetModalOpen}
+                                onClose={() => setAssetModalOpen(false)}
+                                nodes={nodes}
+                                onLocate={(nodeId) => {
+                                    setAssetModalOpen(false);
+                                    locateAssetNode(nodeId);
+                                }}
+                                onRename={renameAssetNodes}
+                                onPromoteVersion={promoteAssetVersion}
+                                onDownloadMedia={downloadNodeImage}
+                                onUpload={() => {
+                                    setAssetModalOpen(false);
+                                    handleUploadRequest();
+                                }}
+                            />
                         </section>
                     </div>
                 </CanvasOverlayLayerProvider>

@@ -17,9 +17,10 @@ import { CanvasShortcutsModal } from "./canvas-shortcuts-modal";
 
 export type CanvasProjectView = "canvas" | "assets";
 
-type CanvasTopBarProps = {
-    view: CanvasProjectView;
-    onViewChange: (view: CanvasProjectView) => void;
+export type CanvasTopBarProps = {
+    view?: CanvasProjectView;
+    onViewChange?: (view: CanvasProjectView) => void;
+    onOpenAssets?: () => void;
     title: string;
     titleDraft: string;
     isTitleEditing: boolean;
@@ -49,6 +50,7 @@ type CanvasTopBarProps = {
 export function CanvasTopBar({
     view,
     onViewChange,
+    onOpenAssets,
     title,
     titleDraft,
     isTitleEditing,
@@ -109,10 +111,10 @@ export function CanvasTopBar({
                             menu={{
                                 items: [
                                     {
-                                        key: "view",
-                                        icon: view === "canvas" ? <FolderTree className="size-4" /> : <Workflow className="size-4" />,
-                                        label: view === "canvas" ? "切换到资产视图" : "切换到画布视图",
-                                        onClick: () => onViewChange(view === "canvas" ? "assets" : "canvas"),
+                                        key: "assets",
+                                        icon: <FolderTree className="size-4" />,
+                                        label: "查看资产",
+                                        onClick: onOpenAssets || (() => onViewChange?.("assets")),
                                     },
                                     { type: "divider" },
                                     { key: "home", icon: <Home className="size-4" />, label: <Link to="/">主页</Link> },
@@ -188,7 +190,19 @@ export function CanvasTopBar({
                     {syncIcon}
                 </div>
 
-                <CanvasViewSwitch view={view} onChange={onViewChange} dockStyle={dockStyle} activeBg={theme.toolbar.activeBg} color={theme.node.text} />
+                <div className="canvas-topbar-cluster pointer-events-auto absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center xl:flex" style={dockStyle}>
+                    <button
+                        type="button"
+                        className="canvas-topbar-action inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-sm font-medium transition-colors hover:bg-white/10"
+                        style={{ color: theme.node.text }}
+                        onClick={onOpenAssets || (() => onViewChange?.("assets"))}
+                        aria-label="查看资产"
+                        title="查看当前画布中的资产"
+                    >
+                        <FolderTree className="size-4" />
+                        <span>查看资产</span>
+                    </button>
+                </div>
 
                 <div className="canvas-topbar-cluster canvas-topbar-tools-cluster pointer-events-auto flex items-center gap-2" style={dockStyle}>
                     <CanvasTopBarTooltip label="搜索画布节点">
