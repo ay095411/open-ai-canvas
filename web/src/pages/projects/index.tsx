@@ -34,19 +34,9 @@ export default function DramaListPage() {
     const [keyword, setKeyword] = useState("");
     const [status, setStatus] = useState<DramaStatus | "all">("all");
     const [dragging, setDragging] = useState(false);
-    const [promptIdea, setPromptIdea] = useState("");
     const fileRef = useRef<HTMLInputElement>(null);
     const search = useDeferredValue(keyword.trim());
     useEffect(() => setPage(1), [search, status, pageSize]);
-
-    const handleAgentIdeaSubmit = () => {
-        const text = promptIdea.trim();
-        if (!text) {
-            message.warning("请输入你的短剧构想或核心情节");
-            return;
-        }
-        navigate(`/projects/new?idea=${encodeURIComponent(text)}`);
-    };
 
     const query = useQuery({
         queryKey: ["dramas", { page, pageSize, search, status }],
@@ -95,8 +85,8 @@ export default function DramaListPage() {
 
     const actions = (
         <div className="collection-header-actions">
-            <Button icon={<ClipboardPaste />} onClick={() => navigate("/projects/new?paste=1")}>粘贴正文</Button>
-            <Button type="primary" icon={<Plus />} onClick={() => fileRef.current?.click()}>上传小说</Button>
+            <Button icon={<FileUp />} onClick={() => fileRef.current?.click()}>导入文稿</Button>
+            <Button type="primary" icon={<Plus />} onClick={() => navigate("/projects/new")}>新建短剧</Button>
         </div>
     );
 
@@ -105,39 +95,11 @@ export default function DramaListPage() {
             <div className="drama-root" {...dragProps}>
                 <div className="studio-band">
                     <PageHeader
-                        title="短剧 Agent"
-                        description="从灵感构思到自动成片。与短剧 Agent 一起改编小说、设计分镜角色，全自动或精细把控推进成片。"
+                        title="短剧创作"
+                        description="剧本改编、分镜编导与成片制作。支持按故事设定立项推进，或导入小说原著自动拆解章节与场景。"
                         meta={<span className="app-projects-header-meta">{total} 部</span>}
-                        actions={actions}
+                        actions={total ? actions : undefined}
                     />
-
-                    <div className="drama-agent-quick-start">
-                        <div className="drama-agent-quick-header">
-                            <div className="drama-agent-quick-badge">
-                                <Sparkles className="size-3.5" />
-                                <span>短剧 Agent 协同创映</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">一句话构思 · 自动生成人物与分集大纲</span>
-                        </div>
-                        <div className="drama-agent-quick-composer">
-                            <input
-                                className="drama-agent-quick-input"
-                                type="text"
-                                value={promptIdea}
-                                onChange={(event) => setPromptIdea(event.target.value)}
-                                onKeyDown={(event) => { if (event.key === "Enter") handleAgentIdeaSubmit(); }}
-                                placeholder="输入短剧主线、题材或核心反转，例如：豪门隐姓总裁重返巅峰，首集反转拉满..."
-                                aria-label="短剧灵感输入框"
-                            />
-                            <Button
-                                type="primary"
-                                icon={<Sparkles className="size-3.5" />}
-                                onClick={handleAgentIdeaSubmit}
-                            >
-                                AI 构思短剧
-                            </Button>
-                        </div>
-                    </div>
 
                     {total ? (
                         <CollectionToolbar label="短剧浏览工具" active={filtered} onReset={() => { setKeyword(""); setStatus("all"); }}>
@@ -181,32 +143,47 @@ export default function DramaListPage() {
     );
 }
 
-/** 还没有作品时的双轨创作引导（Agent 灵感构思 + 小说批量改编）。 */
+/** 还没有作品时的双轨创作引导（从大纲立项 + 原著小说改编）。 */
 function UploadHero({ onPick, onPaste }: { onPick: () => void; onPaste: () => void }) {
     const navigate = useNavigate();
+    const [idea, setIdea] = useState("");
+
+    const handleCreateWithIdea = () => {
+        const text = idea.trim();
+        if (text) navigate(`/projects/new?idea=${encodeURIComponent(text)}`);
+        else navigate("/projects/new");
+    };
+
     return (
         <div className="drama-hero-dual-track">
             <div className="drama-hero-track-card">
                 <div>
-                    <span className="drama-hero-track-icon"><Sparkles className="size-5" /></span>
-                    <h3 className="mt-4 text-base font-semibold text-foreground">AI 灵感共创</h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">没有现成小说？说出一句剧情设定或爆款梗概，由短剧 Agent 自动生成人物小传、分集大纲与分镜提示词。</p>
+                    <span className="drama-hero-track-icon"><Clapperboard className="size-5" /></span>
+                    <h3 className="mt-3.5 text-base font-semibold text-foreground">从故事梗概立项</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">无需准备长篇小说。输入一句话设定或核心冲突，系统将自动规划人物小传、分集大纲与分镜节奏。</p>
                 </div>
-                <div>
-                    <Button type="primary" icon={<Sparkles className="size-4" />} onClick={() => navigate("/projects/new")}>
-                        进入短剧向导
+                <div className="mt-2 flex flex-col gap-2.5">
+                    <Input
+                        className="!h-9 !rounded-lg"
+                        placeholder="输入剧作主线，例如：退隐保镖重出江湖，解开旧案迷局..."
+                        value={idea}
+                        onChange={(e) => setIdea(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleCreateWithIdea(); }}
+                    />
+                    <Button type="primary" icon={<Clapperboard className="size-3.5" />} onClick={handleCreateWithIdea}>
+                        立项短剧
                     </Button>
                 </div>
             </div>
             <div className="drama-hero-track-card">
                 <div>
                     <span className="drama-hero-track-icon"><BookOpenText className="size-5" /></span>
-                    <h3 className="mt-4 text-base font-semibold text-foreground">小说批量改编</h3>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">已有小说文稿？支持拖拽 TXT / Markdown（最高 600 万字），自动识别编码、拆解章节与场景，一键推进成片。</p>
+                    <h3 className="mt-3.5 text-base font-semibold text-foreground">长篇文稿改编</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">已有长篇小说或剧本正文？支持拖拽 TXT / Markdown（最高 600 万字），自动识别章节目录并智能切分场次。</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <Button icon={<FileUp className="size-4" />} onClick={onPick}>选择小说</Button>
-                    <Button icon={<ClipboardPaste className="size-4" />} onClick={onPaste}>粘贴正文</Button>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button type="default" icon={<FileUp className="size-3.5" />} onClick={onPick}>选择小说文件</Button>
+                    <Button icon={<ClipboardPaste className="size-3.5" />} onClick={onPaste}>粘贴正文</Button>
                 </div>
             </div>
         </div>

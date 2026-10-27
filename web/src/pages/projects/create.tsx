@@ -46,7 +46,6 @@ export default function DramaCreatePage() {
     const [pasteMode, setPasteMode] = useState(searchParams.get("paste") === "1");
     const [pasteText, setPasteText] = useState("");
     const [quickIdea, setQuickIdea] = useState("");
-    const [activeStep, setActiveStep] = useState<"format" | "style" | "production">("format");
     const [analysis, setAnalysis] = useState<NovelAnalysis | null>(null);
     const [name, setName] = useState("");
     const [aspectRatio, setAspectRatio] = useState("9:16");
@@ -220,36 +219,36 @@ export default function DramaCreatePage() {
                                     没有文件？直接粘贴正文
                                 </button>
                                 <div className="mt-4 w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/[.03] p-4 text-left backdrop-blur-sm">
-                                    <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold text-primary">
-                                        <Sparkles className="size-3.5" />
-                                        <span>没有准备小说？输入一句话灵感直接开始</span>
+                                    <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold text-foreground">
+                                        <Clapperboard className="size-3.5 text-primary" />
+                                        <span>从故事梗概快速立项</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Input
-                                            className="!h-9"
+                                            className="!h-9 !rounded-lg"
                                             value={quickIdea}
                                             onChange={(e) => setQuickIdea(e.target.value)}
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter" && quickIdea.trim()) {
                                                     const ideaTitle = quickIdea.trim().slice(0, 16);
-                                                    const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围。\n\n第三章：终局定音\n局势逆转，高潮收尾。`;
+                                                    const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围，展现关键抉择。\n\n第三章：终局定音\n局势扭转，高潮反转收尾。`;
                                                     setName(ideaTitle);
                                                     loadText(storyText, `${ideaTitle}.txt`);
                                                 }
                                             }}
-                                            placeholder="例如：开局获得神级签到系统，在都市隐姓修行..."
+                                            placeholder="输入核心剧情主线，例如：隐姓退役军官重返都市，退婚之日意外卷入商业风暴..."
                                         />
                                         <Button
                                             type="primary"
                                             disabled={!quickIdea.trim()}
                                             onClick={() => {
                                                 const ideaTitle = quickIdea.trim().slice(0, 16);
-                                                const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围。\n\n第三章：终局定音\n局势逆转，高潮收尾。`;
+                                                const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围，展现关键抉择。\n\n第三章：终局定音\n局势扭转，高潮反转收尾。`;
                                                 setName(ideaTitle);
                                                 loadText(storyText, `${ideaTitle}.txt`);
                                             }}
                                         >
-                                            AI 构思
+                                            立项短剧
                                         </Button>
                                     </div>
                                 </div>
@@ -330,123 +329,58 @@ export default function DramaCreatePage() {
                     </div>
                 </aside>
 
-                {/* 中：分步向导（故事规格 → 视觉角色 → 分镜审阅） */}
+                {/* 中：视觉风格、角色基准与分镜审阅 */}
                 <main className="drama-compose-main thin-scrollbar">
-                    <div className="drama-compose-steps-bar" role="tablist" aria-label="向导步骤">
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={activeStep === "format"}
-                            className={`drama-compose-step-btn ${activeStep === "format" ? "is-active" : ""}`}
-                            onClick={() => setActiveStep("format")}
-                        >
-                            <span className="drama-compose-step-num">1</span>
-                            <span>故事章节与原文</span>
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={activeStep === "style"}
-                            className={`drama-compose-step-btn ${activeStep === "style" ? "is-active" : ""}`}
-                            onClick={() => setActiveStep("style")}
-                        >
-                            <span className="drama-compose-step-num">2</span>
-                            <span>艺术风格与角色</span>
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={activeStep === "production"}
-                            className={`drama-compose-step-btn ${activeStep === "production" ? "is-active" : ""}`}
-                            onClick={() => setActiveStep("production")}
-                        >
-                            <span className="drama-compose-step-num">3</span>
-                            <span>分镜规则与审阅</span>
-                        </button>
-                    </div>
-
-                    {activeStep === "format" ? (
-                        <>
-                            {previewChapter ? (
-                                <section className="drama-compose-preview">
-                                    <div className="drama-section-title">
-                                        <h2>{previewChapter.title}</h2>
-                                        <span>原文预览 · {formatCount(previewChapter.words)} 字</span>
-                                    </div>
-                                    <div className="drama-compose-text thin-scrollbar">
-                                        {previewChapter.text.slice(0, 6000)}
-                                        {previewChapter.text.length > 6000 ? "……" : ""}
-                                    </div>
-                                </section>
-                            ) : null}
-                            <div className="flex justify-end pt-2">
-                                <Button type="primary" onClick={() => setActiveStep("style")}>
-                                    下一步：选择视觉风格
-                                </Button>
+                    <DramaStylePicker value={styleId} onChange={setStyleId} />
+                    <section>
+                        <div className="drama-section-title">
+                            <h2>角色参考图方案</h2>
+                            <span>用于每个镜头保持人物长相与装束一致，开工后可随时更换</span>
+                        </div>
+                        <AssetSchemePicker value={assets} onChange={setAssetDraft} sample={{ style: style?.prompt || "", characterName: "主角", sceneName: "主场景" }} layout="compact" />
+                    </section>
+                    <section>
+                        <div className="drama-section-title">
+                            <h2>审阅与交付方式</h2>
+                            <span>决定生成过程中的把控节点</span>
+                        </div>
+                        <div className="drama-review-modes" role="radiogroup" aria-label="审阅方式">
+                            {REVIEW_MODES.map((mode) => (
+                                <button key={mode.value} type="button" role="radio" aria-checked={reviewMode === mode.value} className="drama-review-mode" onClick={() => setReviewMode(mode.value)}>
+                                    <span className="drama-radio" />
+                                    <span>
+                                        <strong>{mode.title}</strong>
+                                        <span>{mode.detail}</span>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+                    <section>
+                        <div className="drama-section-title">
+                            <h2>分镜规则</h2>
+                            <span>控制剧情段时长、段内镜头节奏、台词密度与视听转场</span>
+                        </div>
+                        <StoryboardRules value={storyboard} onChange={setStoryboard} episodeSeconds={episodeSeconds} maxVideoSeconds={videoOption?.maxVideoSeconds} videoModelLabel={resolvedModels?.video?.label} />
+                    </section>
+                    <section>
+                        <div className="drama-section-title">
+                            <h2>提示词写作技能</h2>
+                            <span>撰写每个剧情段提示词遵循的方法库</span>
+                        </div>
+                        <PromptSkillField value={promptSkill} onChange={setPromptSkill} />
+                    </section>
+                    {previewChapter ? (
+                        <section className="drama-compose-preview">
+                            <div className="drama-section-title">
+                                <h2>{previewChapter.title}</h2>
+                                <span>选定章节文本 · {formatCount(previewChapter.words)} 字</span>
                             </div>
-                        </>
-                    ) : null}
-
-                    {activeStep === "style" ? (
-                        <>
-                            <DramaStylePicker value={styleId} onChange={setStyleId} />
-                            <section>
-                                <div className="drama-section-title">
-                                    <h2>角色参考图方案</h2>
-                                    <span>参考图是每个镜头保持人物一致的锚点，开工后也能在设置里改</span>
-                                </div>
-                                <AssetSchemePicker value={assets} onChange={setAssetDraft} sample={{ style: style?.prompt || "", characterName: "主角", sceneName: "主场景" }} layout="compact" />
-                            </section>
-                            <div className="flex justify-between pt-2">
-                                <Button onClick={() => setActiveStep("format")}>
-                                    上一步：故事规格
-                                </Button>
-                                <Button type="primary" onClick={() => setActiveStep("production")}>
-                                    下一步：分镜与审阅
-                                </Button>
+                            <div className="drama-compose-text thin-scrollbar">
+                                {previewChapter.text.slice(0, 6000)}
+                                {previewChapter.text.length > 6000 ? "……" : ""}
                             </div>
-                        </>
-                    ) : null}
-
-                    {activeStep === "production" ? (
-                        <>
-                            <section>
-                                <div className="drama-section-title">
-                                    <h2>分镜规则</h2>
-                                    <span>决定剧情段多长、段内镜头节奏、台词密度与转场</span>
-                                </div>
-                                <StoryboardRules value={storyboard} onChange={setStoryboard} episodeSeconds={episodeSeconds} maxVideoSeconds={videoOption?.maxVideoSeconds} videoModelLabel={resolvedModels?.video?.label} />
-                            </section>
-                            <section>
-                                <div className="drama-section-title">
-                                    <h2>视频提示词技能</h2>
-                                    <span>撰写每个剧情段的视频提示词时遵循的写作方法</span>
-                                </div>
-                                <PromptSkillField value={promptSkill} onChange={setPromptSkill} />
-                            </section>
-                            <section>
-                                <div className="drama-section-title">
-                                    <h2>审阅方式</h2>
-                                    <span>只在关键点打断你</span>
-                                </div>
-                                <div className="drama-review-modes" role="radiogroup" aria-label="审阅方式">
-                                    {REVIEW_MODES.map((mode) => (
-                                        <button key={mode.value} type="button" role="radio" aria-checked={reviewMode === mode.value} className="drama-review-mode" onClick={() => setReviewMode(mode.value)}>
-                                            <span className="drama-radio" />
-                                            <span>
-                                                <strong>{mode.title}</strong>
-                                                <span>{mode.detail}</span>
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </section>
-                            <div className="flex justify-start pt-2">
-                                <Button onClick={() => setActiveStep("style")}>
-                                    上一步：视觉风格
-                                </Button>
-                            </div>
-                        </>
+                        </section>
                     ) : null}
                 </main>
 
