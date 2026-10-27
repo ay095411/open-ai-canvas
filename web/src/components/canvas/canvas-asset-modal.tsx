@@ -53,10 +53,14 @@ export function CanvasAssetModal({
         >
             <div className="flex size-full min-h-0 flex-col overflow-hidden bg-background">
                 <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-foreground/[.02] px-4">
-                    <div className="flex items-center gap-2">
-                        <FolderTree className="size-4 text-muted-foreground" />
-                        <span className="text-sm font-semibold text-foreground">画布资产</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">（共 {nodes.length} 个节点）</span>
+                    <div className="flex items-center gap-2 leading-none">
+                        <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
+                            <FolderTree className="size-4" />
+                        </span>
+                        <span className="text-sm font-semibold text-foreground leading-none">画布资产</span>
+                        <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-2 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
+                            共 {nodes.length} 个节点
+                        </span>
                     </div>
                     <button
                         type="button"

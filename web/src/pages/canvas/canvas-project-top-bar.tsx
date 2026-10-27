@@ -113,7 +113,7 @@ export function CanvasTopBar({
                                     {
                                         key: "assets",
                                         icon: <FolderTree className="size-4" />,
-                                        label: "查看资产",
+                                        label: "查看画布资产",
                                         onClick: onOpenAssets || (() => onViewChange?.("assets")),
                                     },
                                     { type: "divider" },
@@ -208,9 +208,9 @@ export function CanvasTopBar({
                             style={{ color: theme.node.text }}
                             icon={<FolderTree className="size-4" />}
                             onClick={onOpenAssets || (() => onViewChange?.("assets"))}
-                            aria-label="查看资产"
+                            aria-label="查看画布资产"
                         >
-                            <span className="hidden sm:inline">查看资产</span>
+                            <span className="hidden sm:inline">查看画布资产</span>
                         </Button>
                     </CanvasTopBarTooltip>
                     <CanvasTopBarTooltip label="导入第三方画布">

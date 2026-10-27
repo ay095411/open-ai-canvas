@@ -98,10 +98,12 @@ export function CanvasAssetView({ nodes, onLocate, onRename, onPromoteVersion, o
     return (
         <div className="canvas-asset-view flex size-full min-h-0 bg-background text-foreground" data-canvas-no-zoom data-canvas-wheel-scroll>
             <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-foreground/[.02] max-md:w-52" aria-label="资产目录">
-                <div className="flex h-12 shrink-0 items-center gap-2 px-4">
-                    <strong className="text-sm font-semibold">资产</strong>
-                    <span className="text-xs text-muted-foreground tabular-nums">{totalCount}</span>
-                    <Button className="!ml-auto" size="small" type="text" icon={<Upload className="size-3.5" />} onClick={onUpload} aria-label="上传文件到画布">
+                <div className="flex h-12 shrink-0 items-center justify-between px-4">
+                    <div className="flex items-center gap-2 leading-none">
+                        <strong className="text-sm font-semibold leading-none text-foreground">资产</strong>
+                        <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">{totalCount}</span>
+                    </div>
+                    <Button size="small" type="text" icon={<Upload className="size-3.5" />} onClick={onUpload} aria-label="上传文件到画布">
                         上传
                     </Button>
                 </div>
@@ -174,10 +176,18 @@ function KindGrid({
 }) {
     return (
         <>
-            <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-5">
-                {canvasAssetKindIcon(group.kind)}
-                <h2 className="m-0 text-sm font-semibold">{group.label}</h2>
-                <span className="text-xs text-muted-foreground tabular-nums">{group.entries.length}</span>
+            <header className="flex h-12 shrink-0 items-center border-b border-border px-5">
+                <div className="flex items-center gap-2 leading-none">
+                    <span className="flex size-5 shrink-0 items-center justify-center text-foreground/80">
+                        {canvasAssetKindIcon(group.kind, "size-4")}
+                    </span>
+                    <h2 className="m-0 text-sm font-semibold leading-none text-foreground">
+                        {group.label}
+                    </h2>
+                    <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
+                        {group.entries.length}
+                    </span>
+                </div>
             </header>
             <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-5">
                 {group.entries.length ? (
@@ -270,37 +280,39 @@ function AssetDetail({ entry, version, nodeById, onSelectVersion, onBack, onLoca
     return (
         <>
             <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-5">
-                <button type="button" className="shrink-0 text-xs text-muted-foreground hover:text-foreground" onClick={onBack}>
-                    {CANVAS_ASSET_KIND_LABELS[entry.kind]}
-                </button>
-                <span className="text-xs text-muted-foreground" aria-hidden="true">
-                    /
-                </span>
-                {editing ? (
-                    <Input
-                        autoFocus
-                        size="small"
-                        className="!max-w-sm"
-                        aria-label="资产名称"
-                        value={draft}
-                        onChange={(event) => setDraft(event.target.value)}
-                        onBlur={commitRename}
-                        onPressEnter={commitRename}
-                        onKeyDown={(event) => {
-                            if (event.key === "Escape") {
-                                setDraft(entry.title);
-                                setEditing(false);
-                            }
-                        }}
-                    />
-                ) : (
-                    <>
-                        <button type="button" className="min-w-0 truncate text-sm font-semibold" title="点击重命名" onClick={() => setEditing(true)}>
-                            {entry.title}
-                        </button>
-                        <Button type="text" size="small" aria-label="重命名资产" icon={<Pencil className="size-3.5" />} onClick={() => setEditing(true)} />
-                    </>
-                )}
+                <div className="flex min-w-0 items-center gap-2 leading-none">
+                    <button type="button" className="flex shrink-0 items-center text-xs text-muted-foreground transition-colors hover:text-foreground leading-none" onClick={onBack}>
+                        {CANVAS_ASSET_KIND_LABELS[entry.kind]}
+                    </button>
+                    <span className="text-xs text-muted-foreground leading-none" aria-hidden="true">
+                        /
+                    </span>
+                    {editing ? (
+                        <Input
+                            autoFocus
+                            size="small"
+                            className="!max-w-sm"
+                            aria-label="资产名称"
+                            value={draft}
+                            onChange={(event) => setDraft(event.target.value)}
+                            onBlur={commitRename}
+                            onPressEnter={commitRename}
+                            onKeyDown={(event) => {
+                                if (event.key === "Escape") {
+                                    setDraft(entry.title);
+                                    setEditing(false);
+                                }
+                            }}
+                        />
+                    ) : (
+                        <div className="flex min-w-0 items-center gap-1 leading-none">
+                            <button type="button" className="min-w-0 truncate text-sm font-semibold text-foreground leading-none" title="点击重命名" onClick={() => setEditing(true)}>
+                                {entry.title}
+                            </button>
+                            <Button type="text" size="small" aria-label="重命名资产" icon={<Pencil className="size-3.5" />} onClick={() => setEditing(true)} />
+                        </div>
+                    )}
+                </div>
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                     {activeVersion && activeVersion.promotable && !activeVersion.primary && entry.versions.length > 1 ? (
                         <Button size="small" icon={<Star className="size-3.5" />} onClick={() => onPromoteVersion(activeVersion)}>
