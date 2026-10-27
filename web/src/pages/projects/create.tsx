@@ -162,9 +162,18 @@ export default function DramaCreatePage() {
     const canStart = Boolean(analysis && name.trim() && resolvedModels && missingCapabilities.length === 0 && !create.isPending);
 
     const previewChapter = analysis?.chapters[previewIndex];
+    const handleQuickStart = () => {
+        const ideaText = quickIdea.trim() || "开局觉醒逆袭，短剧高潮反转";
+        const ideaTitle = ideaText.slice(0, 16);
+        const storyText = `第一章：初露风芒\n${ideaText}\n\n第二章：逆风破局\n对立激化，主角绝地突围，展现关键抉择。\n\n第三章：终局定音\n局势扭转，高潮反转收尾。`;
+        setName(ideaTitle);
+        loadText(storyText, `${ideaTitle}.txt`);
+    };
+
     const reset = () => {
         setAnalysis(null);
         setPasteText("");
+        setQuickIdea("");
         setName("");
         setPreviewIndex(0);
     };
@@ -223,25 +232,14 @@ export default function DramaCreatePage() {
                                             value={quickIdea}
                                             onChange={(e) => setQuickIdea(e.target.value)}
                                             onKeyDown={(e) => {
-                                                if (e.key === "Enter" && quickIdea.trim()) {
-                                                    const ideaTitle = quickIdea.trim().slice(0, 16);
-                                                    const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围，展现关键抉择。\n\n第三章：终局定音\n局势扭转，高潮反转收尾。`;
-                                                    setName(ideaTitle);
-                                                    loadText(storyText, `${ideaTitle}.txt`);
-                                                }
+                                                if (e.key === "Enter") handleQuickStart();
                                             }}
                                             placeholder="输入核心剧情主线，例如：隐姓退役军官重返都市，退婚之日意外卷入..."
                                         />
                                         <Button
                                             type="primary"
-                                            className="!h-10 !rounded-xl !px-4"
-                                            disabled={!quickIdea.trim()}
-                                            onClick={() => {
-                                                const ideaTitle = quickIdea.trim().slice(0, 16);
-                                                const storyText = `第一章：初露风芒\n${quickIdea.trim()}\n\n第二章：逆风破局\n对立激化，主角绝地突围，展现关键抉择。\n\n第三章：终局定音\n局势扭转，高潮反转收尾。`;
-                                                setName(ideaTitle);
-                                                loadText(storyText, `${ideaTitle}.txt`);
-                                            }}
+                                            className="!h-10 !rounded-xl !px-4 font-semibold"
+                                            onClick={handleQuickStart}
                                         >
                                             立项短剧
                                         </Button>
@@ -280,11 +278,18 @@ export default function DramaCreatePage() {
                 {/* 左：小说目录 */}
                 <aside className="drama-compose-novel">
                     <header className="drama-compose-head">
-                        <Link to="/projects">
-                            <Button type="text" shape="circle" icon={<ArrowLeft className="size-4" />} aria-label="返回作品列表" />
-                        </Link>
-                        <h1>新建短剧</h1>
-                        <Button size="small" type="text" className="!ml-auto" onClick={reset}>
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<ArrowLeft className="size-4" />}
+                            aria-label="返回立项页"
+                            onClick={() => {
+                                reset();
+                                navigate("/projects", { replace: true });
+                            }}
+                        />
+                        <strong className="m-0 flex items-center text-sm font-semibold leading-none text-foreground">新建短剧</strong>
+                        <Button size="small" type="text" className="!ml-auto text-xs text-muted-foreground hover:text-foreground" onClick={reset}>
                             换一本
                         </Button>
                     </header>
@@ -314,13 +319,13 @@ export default function DramaCreatePage() {
                     ) : null}
                     <div className="drama-chapter-list thin-scrollbar" role="listbox" aria-label="章节">
                         {analysis.chapters.slice(0, 600).map((chapter, index) => (
-                            <button key={`${index}-${chapter.title}`} type="button" role="option" aria-selected={index === previewIndex} className={`drama-chapter-row ${chapter.words < 200 ? "is-warn" : ""}`} onClick={() => setPreviewIndex(index)}>
-                                <span className="is-num">{String(index + 1).padStart(3, "0")}</span>
-                                <span className="truncate text-left">{chapter.title}</span>
-                                <span className="is-count">{formatCount(chapter.words)}</span>
+                            <button key={`${index}-${chapter.title}`} type="button" role="option" aria-selected={index === previewIndex} className={`drama-chapter-row !min-h-[40px] !text-[14px] ${chapter.words < 200 ? "is-warn" : ""}`} onClick={() => setPreviewIndex(index)}>
+                                <span className="is-num !text-[12px] font-mono">{String(index + 1).padStart(3, "0")}</span>
+                                <span className="truncate text-left !text-[14px] font-medium text-foreground">{chapter.title}</span>
+                                <span className="is-count !text-[12px]">{formatCount(chapter.words)}</span>
                             </button>
                         ))}
-                        {analysis.chapters.length > 600 ? <div className="px-4 py-3 text-center text-[var(--fs-tiny)] text-foreground/40">另有 {analysis.chapters.length - 600} 章</div> : null}
+                        {analysis.chapters.length > 600 ? <div className="px-4 py-3 text-center text-xs text-foreground/40">另有 {analysis.chapters.length - 600} 章</div> : null}
                     </div>
                 </aside>
 
