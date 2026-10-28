@@ -16407,11 +16407,11 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 0;
-    border-radius: 24px;
+    border: 1px solid var(--user-border);
+    border-radius: 20px;
     background: var(--user-page-bg);
-    box-shadow: 0 28px 90px rgba(20, 20, 28, .2);
-    max-height: min(82vh, 760px);
+    box-shadow: 0 24px 70px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--user-border);
+    max-height: min(84vh, 760px);
 }
 .workspace-wallet-modal .ant-modal-body {
     flex: 1;
@@ -16419,11 +16419,29 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     overflow: hidden;
 }
 
+.workspace-wallet-modal .ant-modal-close {
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border-radius: var(--r-full);
+    color: var(--user-ink-muted);
+    transition: background-color var(--user-motion), color var(--user-motion);
+}
+
+.workspace-wallet-modal .ant-modal-close:hover {
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
+}
+
 .workspace-wallet-shell {
     display: flex;
     flex-direction: column;
     height: min(82vh, 760px);
-    min-height: min(590px, 82vh);
+    min-height: min(580px, 82vh);
     color: var(--user-ink);
 }
 
@@ -16432,26 +16450,28 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
-    gap: 28px;
-    padding: 30px 34px 24px;
+    gap: 24px;
+    padding: 24px 64px 20px 24px;
+    border-bottom: 1px solid var(--user-border);
     background:
-        radial-gradient(circle at 82% 18%, rgba(110, 94, 236, .13), transparent 34%),
+        radial-gradient(ellipse 60% 80% at 88% 20%, color-mix(in srgb, var(--user-accent) 7%, transparent), transparent 70%),
         var(--user-surface);
 }
 
 .workspace-wallet-header h2 {
-    margin: 7px 0 6px;
+    margin: 4px 0 4px;
     color: var(--user-ink);
-    font-size: 25px;
-    font-weight: 690;
-    letter-spacing: -.035em;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    line-height: 1.25;
 }
 
 .workspace-wallet-header p {
     margin: 0;
     color: var(--user-ink-muted);
-    font-size: 12px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .workspace-wallet-kicker {
@@ -16460,7 +16480,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     gap: 6px;
     color: var(--user-accent);
     font-size: 12px;
-    font-weight: 650;
+    font-weight: 600;
 }
 
 .workspace-wallet-kicker svg {
@@ -16468,64 +16488,133 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     height: 15px;
 }
 
-.workspace-wallet-balance {
-    display: grid;
-    min-width: 156px;
-    gap: 2px;
-    border: 1px solid rgba(107, 94, 231, .13);
-    border-radius: 18px;
-    background: var(--user-surface-raised);
-    padding: 14px 17px;
-    box-shadow: none;
-    
+.workspace-wallet-stats {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 12px;
 }
 
-.workspace-wallet-balance span,
-.workspace-wallet-balance small {
+.workspace-wallet-balance {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 168px;
+    height: 92px;
+    border: 1px solid var(--user-border);
+    border-radius: 14px;
+    background: var(--user-surface-raised);
+    padding: 11px 15px;
+    text-align: left;
+    transition: border-color var(--user-motion), background-color var(--user-motion), transform var(--user-motion);
+}
+
+.workspace-wallet-balance.is-storage {
+    cursor: pointer;
+}
+
+.workspace-wallet-balance.is-storage:hover {
+    border-color: var(--user-border-strong);
+    background: var(--user-surface-hover);
+    transform: translateY(-1px);
+}
+
+.workspace-wallet-balance > span.wallet-stat-label,
+.workspace-wallet-balance > span:first-child,
+.workspace-wallet-balance > small {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     color: var(--user-ink-muted);
-    font-size: 10px;
+    font-size: 11.5px;
+    line-height: 1.3;
+}
+
+.workspace-wallet-balance small {
+    color: var(--user-ink-soft);
+    font-variant-numeric: tabular-nums;
 }
 
 .workspace-wallet-balance strong {
     color: var(--user-ink);
-    font-size: 24px;
-    font-weight: 720;
-    letter-spacing: -.04em;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.workspace-wallet-balance .wallet-topup-storage-track {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    height: 4px !important;
+    margin: 4px 0 2px !important;
+    border-radius: 999px !important;
+    background: var(--user-surface-muted) !important;
+    overflow: hidden !important;
+}
+
+.workspace-wallet-balance .wallet-topup-storage-track > span {
+    display: block !important;
+    height: 100% !important;
+    border-radius: inherit !important;
+    background: var(--status-loading) !important;
+}
+
+.workspace-wallet-balance .wallet-topup-storage-track.is-warn > span {
+    background: var(--status-warning) !important;
+}
+
+.workspace-wallet-balance .wallet-topup-storage-track.is-critical > span {
+    background: var(--status-error) !important;
 }
 
 .workspace-wallet-tabs {
     display: flex;
     flex-shrink: 0;
     gap: 4px;
-    margin: 12px 24px 0;
-    border-radius: 14px;
+    margin: 16px 24px 0;
+    border-radius: 12px;
     background: var(--user-surface-muted);
     padding: 4px;
+    border: 1px solid var(--user-border);
 }
 
 .workspace-wallet-tabs button {
     display: inline-flex;
-    height: 40px;
+    height: 36px;
     flex: 1 1 0;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    border-radius: 11px;
+    gap: 8px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: transparent;
     color: var(--user-ink-muted);
-    font-size: 12px;
-    font-weight: 600;
-    transition: background-color 160ms cubic-bezier(.16, 1, .3, 1), color 160ms ease, box-shadow 160ms ease;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--user-motion), color var(--user-motion), border-color var(--user-motion), box-shadow var(--user-motion);
 }
 
-.workspace-wallet-tabs button svg {
-    width: 15px;
-    height: 15px;
+.workspace-wallet-tabs button:hover:not([aria-selected="true"]) {
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
 }
 
 .workspace-wallet-tabs button[aria-selected="true"] {
     background: var(--user-surface);
     color: var(--user-ink);
-    box-shadow: none;
+    border-color: var(--user-border);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.workspace-wallet-tabs button svg {
+    width: 15px;
+    height: 15px;
 }
 
 .workspace-wallet-content {
@@ -16534,16 +16623,16 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     min-height: 0;
     gap: 16px;
     overflow: auto;
-    margin: 16px 24px 24px;
+    margin: 16px 24px 20px;
     padding: 0;
 }
 
 .workspace-wallet-section,
 .workspace-wallet-content.is-history {
     border: 1px solid var(--user-border);
-    border-radius: 18px;
+    border-radius: 16px;
     background: var(--user-surface);
-    padding: 20px;
+    padding: 20px 24px;
 }
 
 .workspace-wallet-content.is-history {
@@ -16555,7 +16644,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .workspace-wallet-history-scroll {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow-y: auto;
 }
 
 .workspace-wallet-section-heading,
@@ -16573,14 +16662,14 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     margin: 0;
     color: var(--user-ink);
     font-size: 15px;
-    font-weight: 660;
+    font-weight: 600;
 }
 
 .workspace-wallet-section-heading p,
 .workspace-wallet-history-toolbar p {
     margin: 4px 0 0;
     color: var(--user-ink-muted);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .workspace-wallet-redeem-link {
@@ -16589,17 +16678,17 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     margin-left: 8px;
     border-radius: 6px;
     background: var(--user-accent-soft);
-    padding: 3px 9px;
+    padding: 2px 8px;
     color: var(--user-accent) !important;
-    font-size: 13px;
-    font-weight: 650;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1.5;
     text-decoration: none;
     white-space: nowrap;
 }
 
 .workspace-wallet-redeem-link:hover {
-    background: color-mix(in srgb, var(--user-accent) 16%, transparent);
+    background: color-mix(in srgb, var(--user-accent) 18%, transparent);
     text-decoration: underline;
 }
 
@@ -16614,60 +16703,52 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     color: var(--user-accent);
 }
 
-.workspace-wallet-products {
+.workspace-wallet-redeem-guarantees {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
+    margin-top: 16px;
 }
 
-.workspace-wallet-product {
-    position: relative;
-    display: grid;
-    min-width: 0;
-    gap: 5px;
-    border: 1px solid var(--user-border);
+.workspace-wallet-guarantee-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
     border-radius: 14px;
-    background: var(--user-surface-muted);
-    padding: 14px;
-    color: var(--user-ink);
-    text-align: left;
-    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(.16, 1, .3, 1);
-}
-
-.workspace-wallet-product:hover,
-.workspace-wallet-product:focus-visible {
-    border-color: rgba(107, 94, 231, .28);
+    border: 1px solid var(--user-border);
     background: var(--user-surface);
-    box-shadow: 0 12px 24px -20px rgba(41, 32, 125, .45);
-    transform: translateY(-2px);
 }
 
-.workspace-wallet-product.is-selected {
-    border-color: rgba(107, 94, 231, .45);
+.workspace-wallet-guarantee-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border-radius: 10px;
     background: var(--user-accent-soft);
-}
-
-.workspace-wallet-product span,
-.workspace-wallet-product small {
-    overflow: hidden;
-    color: var(--user-ink-muted);
-    font-size: 10px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.workspace-wallet-product strong {
-    font-size: 15px;
-    font-weight: 680;
-}
-
-.workspace-wallet-product > svg {
-    position: absolute;
-    top: 11px;
-    right: 11px;
-    width: 15px;
-    height: 15px;
     color: var(--user-accent);
+    flex-shrink: 0;
+}
+
+.workspace-wallet-guarantee-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.workspace-wallet-guarantee-copy strong {
+    display: block;
+    color: var(--user-ink);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.workspace-wallet-guarantee-copy p {
+    margin: 4px 0 0;
+    color: var(--user-ink-muted);
+    font-size: 11.5px;
+    line-height: 1.5;
 }
 
 .workspace-wallet-provider-row,
@@ -16694,15 +16775,23 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     border: 1px solid var(--user-border);
     border-radius: 11px;
     background: var(--user-surface-muted);
-    padding: 0 11px;
+    padding: 0 12px;
     color: var(--user-ink-muted);
-    font-size: 11px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--user-motion);
+}
+
+.workspace-wallet-providers button:hover:not(.is-selected) {
+    border-color: var(--user-border-strong);
+    color: var(--user-ink);
 }
 
 .workspace-wallet-providers button.is-selected {
-    border-color: rgba(107, 94, 231, .32);
+    border-color: var(--user-accent);
     background: var(--user-accent-soft);
     color: var(--user-accent);
+    font-weight: 600;
 }
 
 .workspace-wallet-providers button svg {
@@ -16714,6 +16803,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .workspace-wallet-redeem-row .ant-input {
     min-width: 0;
     flex: 1 1 auto;
+    font-family: var(--font-mono, monospace);
+    letter-spacing: 0.04em;
 }
 
 .workspace-wallet-ledger {
@@ -16723,11 +16814,18 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .workspace-wallet-ledger-row {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) auto auto;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 12px;
-    min-height: 62px;
+    gap: 14px;
+    min-height: 58px;
+    padding: 6px 10px;
+    border-radius: 10px;
     border-bottom: 1px solid var(--user-border);
+    transition: background-color var(--user-motion);
+}
+
+.workspace-wallet-ledger-row:hover {
+    background-color: var(--user-surface-hover);
 }
 
 .workspace-wallet-ledger-row:last-child {
@@ -16739,49 +16837,51 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     width: 34px;
     height: 34px;
     place-items: center;
-    border-radius: 11px;
+    border-radius: 10px;
     background: var(--user-accent-soft);
     color: var(--user-accent);
 }
 
 .workspace-wallet-ledger-icon.is-consume {
     background: var(--user-surface-muted);
-    color: #6c6c72;
+    color: var(--user-ink-muted);
 }
 
 .workspace-wallet-ledger-icon svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
 }
 
 .workspace-wallet-ledger-row > div {
     display: grid;
     min-width: 0;
-    gap: 3px;
+    gap: 2px;
 }
 
 .workspace-wallet-ledger-row strong {
-    font-size: 12px;
-    font-weight: 630;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--user-ink);
 }
 
 .workspace-wallet-ledger-row span,
 .workspace-wallet-ledger-row time {
     overflow: hidden;
     color: var(--user-ink-muted);
-    font-size: 10px;
+    font-size: 11.5px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .workspace-wallet-ledger-row b {
-    min-width: 76px;
-    font-size: 12px;
-    font-weight: 690;
+    min-width: 80px;
+    font-size: 14px;
+    font-weight: 600;
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
-.workspace-wallet-ledger-row b.is-income { color: #3c8f68; }
+.workspace-wallet-ledger-row b.is-income { color: var(--status-success); }
 .workspace-wallet-ledger-row b.is-consume { color: var(--user-ink); }
 
 .workspace-wallet-inline-state,
@@ -16807,7 +16907,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .workspace-wallet-inline-state > div,
 .workspace-wallet-empty {
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .workspace-wallet-inline-state strong,
@@ -16820,7 +16920,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .workspace-wallet-inline-state strong,
 .workspace-wallet-empty strong {
     color: var(--user-ink);
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .workspace-wallet-inline-state span,
@@ -16828,26 +16929,42 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     margin-top: 3px;
 }
 
+/* 分页控件：彻底修复暗黑模式下的白块 */
 .workspace-wallet-pagination {
     display: flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 8px;
     margin-top: auto;
-    padding-top: 12px;
+    padding-top: 14px;
     border-top: 1px solid var(--user-border);
     color: var(--user-ink-muted);
-    font-size: 10px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
 }
 
 .workspace-wallet-pagination button {
     display: grid;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     place-items: center;
-    border-radius: 9px;
-    background: #f0f0f1;
+    border-radius: 8px;
+    border: 1px solid var(--user-border);
+    background: var(--user-surface-muted);
+    color: var(--user-ink);
+    cursor: pointer;
+    transition: background-color var(--user-motion), border-color var(--user-motion), color var(--user-motion);
+}
+
+.workspace-wallet-pagination button:hover:not(:disabled) {
+    background: var(--user-surface-hover);
+    border-color: var(--user-border-strong);
+}
+
+.workspace-wallet-pagination button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .workspace-wallet-pagination button svg {

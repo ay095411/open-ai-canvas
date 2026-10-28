@@ -98,18 +98,19 @@
 }
 
 .wallet-topup-group-empty {
-    border-radius: 12px;
-    background: var(--wallet-topup-card-surface);
-    padding: 16px;
+    border-radius: 14px;
+    border: 1px dashed var(--user-border);
+    background: var(--user-surface-muted);
+    padding: 24px 20px;
     color: var(--user-ink-muted);
-    font-size: 12px;
+    font-size: 13px;
     text-align: center;
 }
 
 .wallet-topup-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+    gap: 10px;
 }
 
 /* 卡片三行：类型字形 + 名称 / 权益数值 / 限购标签 + 价格。 */
@@ -117,21 +118,24 @@
     display: grid;
     min-width: 0;
     gap: 8px;
-    border: 0;
-    border-radius: 12px;
+    border: 1px solid var(--user-border);
+    border-radius: 14px;
     background: var(--wallet-topup-card-surface);
-    padding: 8px 12px;
+    padding: 10px 14px;
     color: var(--user-ink);
     text-align: left;
-    outline: 1px solid transparent;
-    outline-offset: -1px;
+    outline: none;
     transition:
-        background-color 180ms ease,
-        outline-color 180ms ease;
+        border-color var(--user-motion),
+        background-color var(--user-motion),
+        transform var(--user-motion),
+        box-shadow var(--user-motion);
 }
 
 .wallet-topup-card:hover:not(:disabled) {
+    border-color: var(--user-border-strong);
     background: var(--wallet-topup-card-hover);
+    transform: translateY(-1px);
 }
 
 .wallet-topup-card:focus-visible {
@@ -140,13 +144,14 @@
 }
 
 .wallet-topup-card.is-selected {
-    background: var(--wallet-topup-card-hover);
-    outline-color: var(--wallet-topup-selected-stroke);
+    background: color-mix(in srgb, var(--user-accent) 8%, var(--user-surface));
+    border-color: var(--user-accent);
+    box-shadow: 0 0 0 1px var(--user-accent);
 }
 
 .wallet-topup-card:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.45;
 }
 
 .wallet-topup-card-head {
@@ -342,11 +347,12 @@
     flex-shrink: 0;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    border: 0;
-    border-radius: 12px;
-    background: var(--user-surface-muted);
-    padding: 8px 8px 8px 12px;
+    gap: 14px;
+    border: 1px solid var(--user-border);
+    border-radius: 14px;
+    background: var(--user-surface);
+    padding: 10px 12px 10px 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .wallet-topup-checkout-summary {
@@ -420,12 +426,30 @@
 }
 
 .workspace-wallet-balance .wallet-topup-storage-track {
-    margin: 8px 0 2px;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    flex: none;
+    height: 4px;
+    margin: 6px 0 4px;
+    border-radius: 999px;
     background: var(--user-surface-muted);
+    overflow: hidden;
 }
 
 .workspace-wallet-balance .wallet-topup-storage-track > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
     background: var(--status-loading);
+}
+
+.workspace-wallet-balance .wallet-topup-storage-track.is-warn > span {
+    background: var(--status-warning);
+}
+
+.workspace-wallet-balance .wallet-topup-storage-track.is-critical > span {
+    background: var(--status-error);
 }
 
 /* 素材页容量条上的入口按钮。 */

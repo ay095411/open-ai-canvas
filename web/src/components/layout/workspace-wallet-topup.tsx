@@ -248,10 +248,10 @@ export function WalletTopupPanel({
                 </footer>
             ) : (
                 <div className="workspace-wallet-inline-state">
-                    <CircleAlert />
+                    <CircleAlert className="size-5 shrink-0 text-muted-foreground" />
                     <div>
-                        <strong>在线充值暂不可用</strong>
-                        <span>当前没有已上架的套餐，请使用兑换码或联系管理员。</span>
+                        <strong>暂未开放快捷在线支付</strong>
+                        <span>如需补充积分或扩容空间，可切换至「兑换」输入卡密，或联系管理员获取充值支持。</span>
                     </div>
                 </div>
             )}

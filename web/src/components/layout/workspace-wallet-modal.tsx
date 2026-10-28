@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Input, Skeleton } from "antd";
-import { ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, HardDrive, History, RefreshCw, TicketCheck, WalletCards } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, Globe2, HardDrive, History, RefreshCw, ShieldCheck, TicketCheck, WalletCards, Zap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
@@ -245,17 +245,18 @@ export function WorkspaceWalletModal({
                         <div className="workspace-wallet-stats">
                             {creditsEnabled ? (
                                 <div className="workspace-wallet-balance">
-                                    <span>可用积分</span>
+                                    <span className="wallet-stat-label">可用积分</span>
                                     <strong>{wallet ? formatCredits(available, 6) : "--"}</strong>
                                     <small>冻结 {wallet ? formatCredits(wallet.account.reservedMicrocredits, 6) : "--"}</small>
                                 </div>
                             ) : null}
                             <button type="button" className="workspace-wallet-balance is-storage" aria-label="查看存储空间套餐" onClick={() => focusProducts("storage")}>
-                                <span>
-                                    <HardDrive className="inline size-3 align-[-1px]" aria-hidden="true" /> 存储空间
+                                <span className="wallet-stat-label">
+                                    <span className="flex items-center gap-1.5"><HardDrive className="size-3" aria-hidden="true" />存储空间</span>
+                                    <ArrowRight className="size-3 opacity-60" aria-hidden="true" />
                                 </span>
                                 <strong>{storageQuery.data ? `${storageMeter.usedLabel} / ${storageMeter.totalLabel}` : "--"}</strong>
-                                <span className="wallet-topup-storage-track" aria-hidden="true">
+                                <span className={cn("wallet-topup-storage-track", storageMeter.tone !== "ok" && `is-${storageMeter.tone}`)} aria-hidden="true">
                                     <span style={{ width: `${storageMeter.percent}%` }} />
                                 </span>
                                 <small>
@@ -313,12 +314,12 @@ export function WorkspaceWalletModal({
                             <section className="workspace-wallet-section is-redeem">
                                 <div className="workspace-wallet-section-heading">
                                     <div>
-                                        <h3>兑换码</h3>
+                                        <h3>卡密兑换</h3>
                                         <p>
-                                            购买后请复制卡密，返回此处兑换。
+                                            输入 32 位充值卡密，校验通过后对应权益立即注入当前账号。
                                             {redeemPurchaseUrl ? (
                                                 <a className="workspace-wallet-redeem-link" href={redeemPurchaseUrl} target="_blank" rel="noopener noreferrer">
-                                                    获取兑换码
+                                                    获取卡密
                                                 </a>
                                             ) : null}
                                         </p>
@@ -327,11 +328,34 @@ export function WorkspaceWalletModal({
                                 </div>
                                 <div className="workspace-wallet-redeem-row">
                                     <Input size="large" value={code} maxLength={32} placeholder="输入 32 位兑换码" onChange={(event) => setCode(event.target.value.replace(/\s/g, ""))} onPressEnter={() => void redeem()} />
-                                    <Button size="large" loading={redeeming} disabled={code.trim().length !== 32} onClick={() => void redeem()}>
+                                    <Button type="primary" size="large" loading={redeeming} disabled={code.trim().length !== 32} onClick={() => void redeem()}>
                                         确认兑换
                                     </Button>
                                 </div>
                             </section>
+                            <div className="workspace-wallet-redeem-guarantees" aria-label="服务保障">
+                                <div className="workspace-wallet-guarantee-card">
+                                    <div className="workspace-wallet-guarantee-icon"><Zap /></div>
+                                    <div className="workspace-wallet-guarantee-copy">
+                                        <strong>即时充值入账</strong>
+                                        <p>卡密兑换成功后，积分或存储空间秒级生效并实时同步账户余额。</p>
+                                    </div>
+                                </div>
+                                <div className="workspace-wallet-guarantee-card">
+                                    <div className="workspace-wallet-guarantee-icon"><ShieldCheck /></div>
+                                    <div className="workspace-wallet-guarantee-copy">
+                                        <strong>积分永久有效</strong>
+                                        <p>账户充值积分无失效期限，按模型生成与工具实际用量公平扣减。</p>
+                                    </div>
+                                </div>
+                                <div className="workspace-wallet-guarantee-card">
+                                    <div className="workspace-wallet-guarantee-icon"><Globe2 /></div>
+                                    <div className="workspace-wallet-guarantee-copy">
+                                        <strong>多端实时互通</strong>
+                                        <p>同一账号在网页端、画布工作台与创作助手各终端实时共享额度。</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="workspace-wallet-content is-history">
@@ -344,7 +368,7 @@ export function WorkspaceWalletModal({
                                     刷新
                                 </Button>
                             </div>
-                            <div className="workspace-wallet-history-scroll">
+                            <div className="workspace-wallet-history-scroll thin-scrollbar">
                                 {walletError ? (
                                     <div className="workspace-wallet-inline-state is-error">
                                         <CircleAlert />
