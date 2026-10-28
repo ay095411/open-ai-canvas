@@ -16560,7 +16560,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     display: block !important;
     height: 100% !important;
     border-radius: inherit !important;
-    background: var(--status-loading) !important;
+    background: var(--user-accent) !important;
 }
 
 .workspace-wallet-balance .wallet-topup-storage-track.is-warn > span {
@@ -16704,18 +16704,12 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 }
 
 .workspace-wallet-content.is-redeem {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    max-width: 600px;
-    width: 100%;
-    margin-inline: auto;
+    display: block;
 }
 
 .workspace-wallet-section.is-redeem {
     width: 100%;
-    padding: 28px 24px;
+    padding: 24px;
 }
 
 .workspace-wallet-provider-row,

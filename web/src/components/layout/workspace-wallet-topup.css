@@ -2,7 +2,7 @@
    外壳沿用 .workspace-wallet-*；类型色只用于字形与图标底，不做整卡染色。 */
 .wallet-topup {
     --wallet-topup-credits-ink: var(--status-warning);
-    --wallet-topup-storage-ink: var(--status-loading);
+    --wallet-topup-storage-ink: var(--user-accent);
     --wallet-topup-card-surface: var(--user-surface-muted);
     --wallet-topup-card-hover: var(--user-surface-hover);
     --wallet-topup-selected-stroke: var(--library-selected-stroke, color-mix(in srgb, var(--user-accent) 52%, transparent));
@@ -111,8 +111,8 @@
     justify-content: center;
     gap: 8px;
     padding: 32px 24px;
-    border: 1px dashed color-mix(in srgb, var(--wallet-topup-storage-ink) 25%, var(--user-border));
-    background: linear-gradient(180deg, color-mix(in srgb, var(--wallet-topup-storage-ink) 4%, var(--user-surface-muted)) 0%, var(--user-surface) 100%);
+    border: 1px dashed var(--user-border);
+    background: var(--user-surface-muted);
     border-radius: 16px;
 }
 
@@ -122,8 +122,8 @@
     height: 44px;
     place-items: center;
     border-radius: 12px;
-    background: color-mix(in srgb, var(--wallet-topup-storage-ink) 12%, var(--user-surface));
-    color: var(--wallet-topup-storage-ink);
+    background: var(--user-accent-soft);
+    color: var(--user-accent);
     margin-bottom: 4px;
 }
 
@@ -188,30 +188,21 @@
     box-shadow: 0 0 0 1px var(--user-accent);
 }
 
-/* 存储卡片专属高质感微光 */
+/* 存储卡片跟随默认主题 */
 .wallet-topup-card.is-storage {
-    border-color: color-mix(in srgb, var(--wallet-topup-storage-ink) 18%, var(--user-border));
-    background: radial-gradient(
-        110% 80% at 88% 12%,
-        color-mix(in srgb, var(--wallet-topup-storage-ink) 7%, transparent) 0%,
-        var(--wallet-topup-card-surface) 100%
-    );
+    border-color: var(--user-border);
+    background: var(--wallet-topup-card-surface);
 }
 
 .wallet-topup-card.is-storage:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--wallet-topup-storage-ink) 40%, var(--user-border));
-    background: radial-gradient(
-        110% 80% at 88% 12%,
-        color-mix(in srgb, var(--wallet-topup-storage-ink) 12%, transparent) 0%,
-        var(--wallet-topup-card-hover) 100%
-    );
-    box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--wallet-topup-storage-ink) 18%, transparent);
+    border-color: var(--user-border-strong);
+    background: var(--wallet-topup-card-hover);
 }
 
 .wallet-topup-card.is-storage.is-selected {
-    border-color: var(--wallet-topup-storage-ink);
-    background: color-mix(in srgb, var(--wallet-topup-storage-ink) 10%, var(--user-surface));
-    box-shadow: 0 0 0 1px var(--wallet-topup-storage-ink), 0 8px 24px -6px color-mix(in srgb, var(--wallet-topup-storage-ink) 30%, transparent);
+    border-color: var(--user-accent);
+    background: color-mix(in srgb, var(--user-accent) 8%, var(--user-surface));
+    box-shadow: 0 0 0 1px var(--user-accent);
 }
 
 .wallet-topup-card.is-storage .wallet-topup-card-value {
@@ -324,12 +315,8 @@
     gap: 10px;
     padding: 16px 18px;
     border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--wallet-topup-storage-ink) 20%, var(--user-border));
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--wallet-topup-storage-ink) 5%, var(--user-surface)) 0%,
-        var(--user-surface) 100%
-    );
+    border: 1px solid var(--user-border);
+    background: var(--user-surface);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -373,8 +360,8 @@
     align-items: center;
     padding: 2px 8px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--wallet-topup-storage-ink) 12%, transparent);
-    color: var(--wallet-topup-storage-ink);
+    background: var(--user-accent-soft);
+    color: var(--user-accent);
     font-size: 11px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
@@ -403,18 +390,18 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #38bdf8 0%, #2563eb 100%);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--wallet-topup-storage-ink) 45%, transparent);
+    background: var(--user-accent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--user-accent) 40%, transparent);
     transition: width var(--motion-state) ease-out;
 }
 
 .wallet-topup-storage .wallet-topup-storage-track.is-warn > span {
-    background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+    background: var(--status-warning);
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
 }
 
 .wallet-topup-storage .wallet-topup-storage-track.is-critical > span {
-    background: linear-gradient(90deg, #f87171 0%, #ef4444 100%);
+    background: var(--status-error);
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
 
@@ -593,7 +580,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--status-loading);
+    background: var(--user-accent);
 }
 
 .workspace-wallet-balance .wallet-topup-storage-track.is-warn > span {
