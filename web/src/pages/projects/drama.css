@@ -2771,58 +2771,6 @@
     }
 }
 
-/* ===== 短剧 Agent 灵感孵化栏 ===== */
-.drama-agent-quick-start {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-    border-radius: var(--user-radius-card);
-    border: 1px solid var(--user-border);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--user-accent) 6%, var(--user-surface)) 0%, var(--user-surface) 100%);
-    box-shadow: 0 4px 20px color-mix(in srgb, black 8%, transparent);
-}
-.drama-agent-quick-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-.drama-agent-quick-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    background: var(--user-accent-soft);
-    color: var(--user-accent);
-    font-size: var(--fs-label);
-    font-weight: 600;
-}
-.drama-agent-quick-composer {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.drama-agent-quick-input {
-    flex: 1;
-    min-width: 0;
-    height: 40px;
-    border-radius: var(--user-radius-control);
-    background: var(--user-surface-muted);
-    border: 1px solid var(--user-border);
-    padding: 0 14px;
-    color: var(--user-ink);
-    font-size: 14px;
-    transition: border-color var(--user-motion), background var(--user-motion);
-}
-.drama-agent-quick-input:focus {
-    outline: none;
-    border-color: var(--user-accent);
-    background: var(--user-surface);
-}
-
 /* ===== 双轨空态引导 ===== */
 .drama-hero-dual-track {
     display: grid;
@@ -2920,7 +2868,6 @@
 }
 @media (max-width: 768px) {
     .drama-hero-dual-track { grid-template-columns: 1fr; }
-    .drama-agent-quick-composer { flex-direction: column; align-items: stretch; }
     .drama-compose-steps-bar { width: 100%; overflow-x: auto; }
 }
 

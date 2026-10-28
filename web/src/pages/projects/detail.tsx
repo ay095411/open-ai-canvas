@@ -10,7 +10,6 @@ import { approveDramaEpisode, generateDramaSegments, pauseDrama, reprocessDramaS
 
 import { formatCount, formatDuration, StagePips, STAGE_LABEL, STATUS_LABEL } from "./drama-shared";
 import { CastPanel, InboxPanel, SettingsPanel } from "./studio/panels";
-import { AgentDirectorPanel } from "./studio/agent-panel";
 import { EpisodeRail } from "./studio/episode-rail";
 import { FinalView } from "./studio/final-view";
 import { StudioGenesis } from "./studio/genesis";
@@ -25,7 +24,7 @@ import { progressFillStyle } from "@/lib/progress-fill";
 import "./drama.css";
 
 type Tab = "board" | "script" | "final";
-type StudioView = "production" | "cast" | "inbox" | "settings" | "agent";
+type StudioView = "production" | "cast" | "inbox" | "settings";
 
 export default function DramaStudioPage() {
     const { projectId = "", episodeId: routeEpisodeId = "" } = useParams();
@@ -240,7 +239,6 @@ export default function DramaStudioPage() {
                     ) : null}
                     <nav className="drama-nav" aria-label="制作台视图">
                         <button type="button" className="drama-nav-item" aria-current={view === "production" ? "page" : undefined} onClick={() => openView("production")}><Clapperboard className="size-4" />制作</button>
-                        <button type="button" className="drama-nav-item" aria-current={view === "agent" ? "page" : undefined} onClick={() => openView("agent")}><Sparkles className="size-4 text-[var(--workspace-accent)]" />Agent 编导</button>
                         <button type="button" className="drama-nav-item" aria-current={view === "cast" ? "page" : undefined} onClick={() => openView("cast")}><UsersRound className="size-4" />设定{summary.castCount ? <span className="drama-nav-count">{summary.castCount}</span> : null}</button>
                         <button type="button" className="drama-nav-item" aria-current={view === "inbox" ? "page" : undefined} onClick={() => openView("inbox")}><Inbox className="size-4" />待处理{summary.inbox.length ? <span className="drama-nav-count is-alert">{summary.inbox.length > 99 ? "99+" : summary.inbox.length}</span> : null}</button>
                         <button type="button" className="drama-nav-item" aria-current={view === "settings" ? "page" : undefined} onClick={() => openView("settings")}><Settings2 className="size-4" />设置</button>
@@ -255,7 +253,6 @@ export default function DramaStudioPage() {
                 </header>
 
                 {view === "cast" ? <CastPanel projectId={projectId} cast={cast} ratios={{ character: production.settings.assets.characterRatio }} focusId={castFocus} retrying={retry.isPending} assetsPending={production.settings.mediaMode === "manual" && !production.assetsReleased} releasing={release.isPending && release.variables?.target === "assets"} onReleaseAssets={() => release.mutate({ target: "assets" })} onFocus={(id) => setParams({ cast: id })} onRetry={() => retry.mutate()} onChanged={() => invalidate(episodeId)} />
-                : view === "agent" ? <AgentDirectorPanel projectId={projectId} summary={summary} episode={episodeRow} detail={detail} onLocateShot={(shotId) => { openView("production"); setParams({ shot: shotId }); }} />
                 : view === "inbox" ? <InboxPanel items={summary.inbox} castById={castById} retrying={retry.isPending} retryingGroup={retryingGroup} releasing={release.isPending} onRetryAll={() => retry.mutate()} onRetryGroup={(key, items) => retryGroup.mutate({ key, items })} onOpen={openInbox} onOpenSettings={() => openView("settings")} onReleaseAll={confirmReleaseAll} />
                 : view === "settings" ? <SettingsPanel projectId={projectId} summary={summary} cast={cast} onChanged={() => invalidate(episodeId)} />
                 : !episodes.length ? <StudioGenesis summary={summary} /> : (
