@@ -11,10 +11,13 @@ import { analyzeNovel, titleFromFileName, type NovelAnalysis } from "@/lib/drama
 import { ApiError } from "@/services/api/request";
 import { dramaChoiceKey } from "@/lib/drama/model-choice";
 import { DEFAULT_STORYBOARD } from "@/lib/drama/storyboard";
-import { createDrama, estimateDrama, type DramaAssetSettings, type DramaCapability, type DramaMediaMode, type DramaModels, type DramaReviewMode, type DramaSkillRef, type DramaStoryboardSettings } from "@/services/api/drama";
+import { createDrama, estimateDrama, listDramas, type DramaAssetSettings, type DramaCapability, type DramaListItem, type DramaMediaMode, type DramaModels, type DramaReviewMode, type DramaSkillRef, type DramaStoryboardSettings } from "@/services/api/drama";
 import { cn } from "@/lib/utils";
+import { useUserStore } from "@/stores/use-user-store";
+import { RelativeTime } from "@/components/ui/product/relative-time";
+import { progressFillStyle } from "@/lib/progress-fill";
 
-import { formatCount, formatCredits, MEDIA_MODE_LABEL } from "./drama-shared";
+import { formatCount, formatCredits, MEDIA_MODE_LABEL, MediaThumb, STATUS_LABEL } from "./drama-shared";
 import { AssetSchemePicker, defaultAssetSettings, useAssetSchemes } from "./asset-scheme";
 import { DramaModelPicker, useDramaModelCatalog } from "./drama-model-picker";
 import { PromptSkillField } from "./prompt-skill";
@@ -35,6 +38,21 @@ const REVIEW_MODES: Array<{ value: DramaReviewMode; title: string; detail: strin
     { value: "auto", title: "全自动", detail: "不打断，直接从小说跑到成片，可随时在制作台修改重做。" },
 ];
 const CAPABILITY_LABEL: Record<DramaCapability, string> = { text: "改编与分镜", image: "角色与场景参考图", video: "剧情段视频" };
+
+const QUICK_GENRES = [
+    { label: "都市商战", text: "退役隐姓兵王重返商界，开局遭未婚妻羞辱退婚，暗中调动千亿资本逆风翻盘。" },
+    { label: "古风玄幻", text: "废柴宗门弟子觉醒上古神骨，各路仙尊前来跪求拜师，一剑断乾坤。" },
+    { label: "悬疑反转", text: "密闭公馆的暴风雨之夜，连环意外背后藏着二十年前未曾公开的旧案。" },
+    { label: "豪门争锋", text: "真假千金错换十八年，归来之日凭硬核实力夺回家族核心控股权。" },
+];
+
+const PIPELINE_STEPS_INFO = [
+    { num: "01", title: "章节解析", desc: "自动识别分集与场次" },
+    { num: "02", title: "角色建档", desc: "定妆照与场景一致性" },
+    { num: "03", title: "分集分镜", desc: "H3 运镜与段提示词" },
+    { num: "04", title: "视频渲染", desc: "带对白音效的视频段" },
+    { num: "05", title: "成片合成", desc: "全片音画连贯交付" },
+];
 
 export default function DramaCreatePage() {
     const navigate = useNavigate();
@@ -66,6 +84,14 @@ export default function DramaCreatePage() {
 
     const style = findDramaStyle(styleId);
     const catalogQuery = useDramaModelCatalog();
+
+    const user = useUserStore((state) => state.user);
+    const existingDramasQuery = useQuery({
+        queryKey: ["my-dramas-recent", user?.id],
+        queryFn: ({ signal }) => listDramas({ page: 1, pageSize: 6 }, signal),
+        enabled: Boolean(user),
+    });
+    const existingDramas = existingDramasQuery.data?.items || [];
     const resolvedModels = useMemo<DramaModels | undefined>(() => {
         const defaults = catalogQuery.data?.defaults;
         if (!defaults) return undefined;
@@ -181,92 +207,209 @@ export default function DramaCreatePage() {
     if (!analysis) {
         return (
             <WorkspacePage fluid scroll={false}>
-                <div className="drama-root drama-compose-empty flex h-full min-h-0 flex-col p-4">
-                    <div
-                        className={`drama-drop ${dragOver ? "is-over" : ""}`}
-                        onDragOver={(event) => {
+                <div
+                    className="drama-root drama-compose-empty flex h-full min-h-0 flex-col"
+                    onDragOver={(event) => {
+                        if (event.dataTransfer.types.includes("Files")) {
                             event.preventDefault();
                             setDragOver(true);
-                        }}
-                        onDragLeave={() => setDragOver(false)}
-                        onDrop={onDrop}
-                    >
-                        {pasteMode ? (
-                            <div className="grid w-full max-w-[860px] gap-3">
-                                <Input.TextArea
-                                    autoFocus
-                                    value={pasteText}
-                                    onChange={(event) => setPasteText(event.target.value)}
-                                    placeholder="粘贴小说正文。包含“第一章 / 第1章 / Chapter 1”这类标题时会自动拆章。"
-                                    autoSize={{ minRows: 14, maxRows: 24 }}
-                                />
-                                <div className="flex justify-end gap-2">
-                                    <Button onClick={() => setPasteMode(false)}>取消</Button>
-                                    <Button type="primary" disabled={!pasteText.trim()} onClick={() => loadText(pasteText)}>
-                                        解析正文
-                                    </Button>
-                                </div>
+                        }
+                    }}
+                    onDragLeave={(event) => {
+                        if (event.currentTarget === event.target) setDragOver(false);
+                    }}
+                    onDrop={onDrop}
+                >
+                    {/* 全屏文件拖入响应浮层 */}
+                    {dragOver ? (
+                        <div className="drama-fullscreen-dropzone" aria-hidden="true">
+                            <div className="drama-fullscreen-dropzone-icon">
+                                <FileUp />
                             </div>
-                        ) : (
-                            <>
-                                <span className="drama-drop-icon">
-                                    <BookOpenText />
-                                </span>
-                                <h2>将小说转化为短剧，只需拖入文件</h2>
-                                <p>支持 TXT 与 Markdown 格式，自动识别编码与章节。确认风格与配置后，AI 自动完成改编、分镜、角色建模与成片合成全流程。</p>
-                                <Button type="primary" size="large" icon={<FileUp className="size-4" />} onClick={() => fileInputRef.current?.click()}>
-                                    选择小说文件
+                            <strong>松开即可开始解析小说</strong>
+                            <p>支持 TXT 或 Markdown，自动识别编码与章节标题</p>
+                        </div>
+                    ) : null}
+
+                    {pasteMode ? (
+                        <div className="mx-auto flex w-full max-w-[840px] flex-1 flex-col justify-center gap-4 py-8">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-foreground">
+                                    <ClipboardPaste className="size-5 text-primary" />
+                                    <h2 className="m-0 text-base font-semibold">粘贴小说正文</h2>
+                                </div>
+                                <Button onClick={() => setPasteMode(false)}>返回</Button>
+                            </div>
+                            <Input.TextArea
+                                autoFocus
+                                value={pasteText}
+                                onChange={(event) => setPasteText(event.target.value)}
+                                placeholder="粘贴小说正文内容。包含“第一章 / 第1章 / Chapter 1”等标题时会自动拆解分集..."
+                                autoSize={{ minRows: 14, maxRows: 22 }}
+                                className="!rounded-2xl !p-4 !font-mono text-sm leading-relaxed"
+                            />
+                            <div className="flex justify-end gap-2.5">
+                                <Button onClick={() => setPasteMode(false)}>取消</Button>
+                                <Button type="primary" disabled={!pasteText.trim()} onClick={() => loadText(pasteText)}>
+                                    解析正文并立项
                                 </Button>
-                                <button type="button" className="drama-link inline-flex items-center gap-1" onClick={() => setPasteMode(true)}>
-                                    <ClipboardPaste className="size-3.5" />
-                                    没有文件？直接粘贴正文
-                                </button>
-                                <div className="drama-quick-card">
-                                    <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-foreground">
-                                        <Sparkles className="size-3.5 text-primary" />
-                                        <span>从故事梗概快速立项</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="drama-studio-hub">
+                            {/* 1. 顶部影视级仪式标题 */}
+                            <header className="drama-hub-hero">
+                                <div className="drama-hub-badge">
+                                    <Clapperboard />
+                                    <span>短剧 Agent 制片工坊 · DRAMA STUDIO</span>
+                                </div>
+                                <h1>将故事构思，快速熔铸为视听成片</h1>
+                                <p>从一句话核心设定起步构思大纲，或直接导入小说原著，由短剧 Agent 全自动或精细把控推进成片。</p>
+                            </header>
+
+                            {/* 2. 一体化制片立项控制舱 */}
+                            <div className="drama-hub-console">
+                                {/* 上层：灵感快速立项台 */}
+                                <div className="drama-hub-quick">
+                                    <div className="drama-hub-quick-head">
+                                        <div className="drama-hub-quick-title">
+                                            <Sparkles />
+                                            <span>一句话故事立项</span>
+                                        </div>
+                                        <div className="drama-hub-quick-tags" role="group" aria-label="快捷题材灵感">
+                                            {QUICK_GENRES.map((genre) => (
+                                                <button
+                                                    key={genre.label}
+                                                    type="button"
+                                                    className="drama-hub-quick-tag"
+                                                    onClick={() => setQuickIdea(genre.text)}
+                                                >
+                                                    {genre.label}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            className="!h-11 !rounded-xl !bg-black/30 !border-white/8"
+                                    <div className="drama-hub-quick-bar">
+                                        <input
+                                            className="drama-hub-quick-input"
                                             value={quickIdea}
                                             onChange={(e) => setQuickIdea(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") handleQuickStart();
-                                            }}
-                                            placeholder="输入核心剧情主线，例如：隐姓退役军官重返都市，退婚之日意外卷入..."
+                                            onKeyDown={(e) => { if (e.key === "Enter") handleQuickStart(); }}
+                                            placeholder="输入核心剧作主线，例如：退隐保镖重出江湖，解开昔日悬案迷局..."
+                                            aria-label="短剧灵感主线"
                                         />
                                         <Button
                                             type="primary"
-                                            className="!h-11 !rounded-xl !px-5 !font-semibold"
+                                            className="drama-hub-quick-btn"
                                             onClick={handleQuickStart}
                                         >
-                                            立项短剧
+                                            立即立项
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="drama-drop-steps">
-                                    {["解析章节", "建立角色、道具与场景", "分集改编与段提示词", "按剧情段生成视频", "合成成片"].map((step, index) => (
-                                        <span key={step}>
-                                            <b>{index + 1}</b>
-                                            {step}
-                                        </span>
-                                    ))}
+
+                                {/* 中间分割线 */}
+                                <div className="drama-hub-divider" aria-hidden="true">
+                                    <span>或导入小说与文稿</span>
                                 </div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".txt,.md,.markdown,text/plain,text/markdown"
-                                    className="hidden"
-                                    onChange={(event) => {
-                                        const file = event.target.files?.[0];
-                                        if (file) void loadFile(file);
-                                        event.target.value = "";
-                                    }}
-                                />
-                            </>
-                        )}
-                    </div>
+
+                                {/* 下层：原著文稿双通道 */}
+                                <div className="drama-hub-intake-grid">
+                                    <div
+                                        className="drama-hub-intake-card"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+                                    >
+                                        <div className="drama-hub-intake-head">
+                                            <span className="drama-hub-intake-icon" aria-hidden="true">
+                                                <BookOpenText />
+                                            </span>
+                                            <div className="drama-hub-intake-copy">
+                                                <h3>导入小说文件</h3>
+                                                <p>支持 TXT、Markdown（最高 40MB），自动检测编码与目录结构，智能拆分集目。</p>
+                                            </div>
+                                        </div>
+                                        <div className="drama-hub-intake-actions">
+                                            <Button type="default" icon={<FileUp className="size-3.5" />}>
+                                                选择文件
+                                            </Button>
+                                            <span className="text-xs text-muted-foreground">也可直接拖入页面</span>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        className="drama-hub-intake-card"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setPasteMode(true)}
+                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setPasteMode(true); }}
+                                    >
+                                        <div className="drama-hub-intake-head">
+                                            <span className="drama-hub-intake-icon" aria-hidden="true">
+                                                <ClipboardPaste />
+                                            </span>
+                                            <div className="drama-hub-intake-copy">
+                                                <h3>直接粘贴文稿</h3>
+                                                <p>无需准备文件，直接粘贴小说章节或剧本文稿，按标题自动分集入库。</p>
+                                            </div>
+                                        </div>
+                                        <div className="drama-hub-intake-actions">
+                                            <Button type="default" icon={<ClipboardPaste className="size-3.5" />}>
+                                                粘贴正文
+                                            </Button>
+                                            <span className="text-xs text-muted-foreground">支持长文本直接解析</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. 影视工业 5 步全流程时间轴 */}
+                            <div className="drama-hub-pipeline-rail" aria-label="全流程短剧工业流水线">
+                                {PIPELINE_STEPS_INFO.map((step) => (
+                                    <div key={step.num} className="drama-hub-pipeline-node">
+                                        <span className="drama-hub-pipeline-num">
+                                            <span />
+                                            {step.num}
+                                        </span>
+                                        <span className="drama-hub-pipeline-name">{step.title}</span>
+                                        <span className="drama-hub-pipeline-desc">{step.desc}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 4. 如果用户已有短剧作品，在下方优雅陈列 */}
+                            {existingDramas.length ? (
+                                <div className="drama-hub-projects">
+                                    <div className="drama-hub-projects-head">
+                                        <div className="drama-hub-projects-title">
+                                            <Clapperboard className="size-4 text-primary" />
+                                            <span>我的短剧作品</span>
+                                            <span className="drama-hub-projects-count">{existingDramas.length} 部</span>
+                                        </div>
+                                    </div>
+                                    <div className="drama-library-grid">
+                                        {existingDramas.map((item) => (
+                                            <DramaHubCard key={item.project.id} item={item} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".txt,.md,.markdown,text/plain,text/markdown"
+                                className="hidden"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0];
+                                    if (file) void loadFile(file);
+                                    event.target.value = "";
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </WorkspacePage>
         );
@@ -561,5 +704,47 @@ function DramaLivePreviewCard({
                 </div>
             </div>
         </div>
+    );
+}
+
+function DramaCover({ item }: { item: DramaListItem }) {
+    const covers = (item.coverResourceIds?.length ? item.coverResourceIds : item.coverResourceId ? [item.coverResourceId] : []).slice(0, 4);
+    if (!covers.length) {
+        return (
+            <div className="drama-library-cover is-empty">
+                <span className="drama-library-glyph">{item.project.name.slice(0, 1)}</span>
+                <Clapperboard className="drama-library-empty-icon" />
+            </div>
+        );
+    }
+    return (
+        <div className={`drama-library-cover is-${covers.length}`}>
+            {covers.map((id) => <span key={id}><MediaThumb resourceId={id} alt="" /></span>)}
+        </div>
+    );
+}
+
+function DramaHubCard({ item }: { item: DramaListItem }) {
+    const progress = item.episodeCount ? Math.round((item.doneCount / item.episodeCount) * 100) : 0;
+    const stage = item.episodeCount ? `${item.doneCount}/${item.episodeCount} 集成片` : item.status === "running" ? "正在改编" : "准备中";
+    return (
+        <article className={`drama-library-card is-${item.status}`}>
+            <Link to={`/projects/${item.project.id}`} className="drama-library-open" aria-label={`打开《${item.project.name}》`}>
+                <DramaCover item={item} />
+                <span className={`drama-chip drama-library-badge is-${item.status}`}><span className="drama-dot" />{STATUS_LABEL[item.status]}</span>
+                <div className="drama-library-body">
+                    <h3 title={item.project.name}>{item.project.name}</h3>
+                    <div className="drama-library-meta">
+                        {item.styleName ? <span>{item.styleName}</span> : null}
+                        <span>{item.aspectRatio}</span>
+                        <RelativeTime value={item.updatedAt || item.project.updatedAt} />
+                    </div>
+                    <div className="drama-library-progress">
+                        <span className="drama-library-progress-bar"><span style={progressFillStyle(Math.max(progress, 2))} /></span>
+                        <span className="drama-library-progress-text"><b>{stage}</b></span>
+                    </div>
+                </div>
+            </Link>
+        </article>
     );
 }

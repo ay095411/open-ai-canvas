@@ -160,183 +160,417 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 0 16px 16px;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 24px;
+    background:
+        radial-gradient(ellipse 65% 360px at 50% -30px, color-mix(in srgb, var(--workspace-accent) 14%, transparent), transparent 75%),
+        var(--background);
 }
 .drama-compose-empty .drama-compose-head {
     padding: 0;
 }
 
-.drama-drop {
+/* ===== 现代影视制片工坊大厅 (Drama Studio Hub) ===== */
+.drama-studio-hub {
     position: relative;
-    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
-    min-height: 440px;
-    padding: 48px 32px;
-    border-radius: var(--radius-2xl);
-    border: 2px dashed color-mix(in oklab, var(--workspace-accent) 18%, var(--drama-line-strong));
-    background: 
-        radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in oklab, var(--workspace-accent) 12%, transparent), transparent 75%),
-        radial-gradient(circle at 80% 100%, color-mix(in oklab, var(--workspace-accent) 6%, transparent), transparent 50%),
-        var(--drama-sunken);
-    text-align: center;
-    transition:
-        border-color 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-        background-color 0.25s,
-        transform 0.25s;
-    overflow: hidden;
-}
-.drama-drop::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: 50%;
-    width: 120%;
-    height: 100%;
-    background: conic-gradient(
-        from 180deg at 50% 50%,
-        transparent,
-        color-mix(in oklab, var(--workspace-accent) 6%, transparent) 25%,
-        transparent 50%
-    );
-    transform: translateX(-50%);
-    opacity: 0.4;
-    pointer-events: none;
-    animation: drama-ambient-rotate 20s linear infinite;
-}
-@keyframes drama-ambient-rotate {
-    from { transform: translateX(-50%) rotate(0deg); }
-    to { transform: translateX(-50%) rotate(360deg); }
-}
-
-.drama-quick-card {
-    position: relative;
     width: 100%;
-    max-width: 600px;
-    margin-top: 8px;
-    padding: 20px 24px;
-    border-radius: 20px;
-    border: 1px solid color-mix(in oklab, var(--workspace-accent) 15%, var(--drama-line));
-    background: linear-gradient(
-        120deg,
-        color-mix(in oklab, var(--workspace-accent) 8%, var(--surface)),
-        color-mix(in oklab, var(--surface) 95%, var(--workspace-accent))
-    );
-    box-shadow: 
-        0 8px 32px color-mix(in oklab, var(--workspace-accent) 6%, transparent),
-        inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
-    backdrop-filter: blur(12px);
-    text-align: left;
-}
-.drama-quick-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle at 90% 10%, color-mix(in oklab, var(--workspace-accent) 12%, transparent), transparent 60%);
-    pointer-events: none;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 12px 0 20px;
+    gap: 22px;
+    text-align: center;
 }
 
-.drama-drop .ant-btn-primary {
-    height: 48px;
-    padding: 0 32px;
-    font-size: 15px;
+/* 顶部影视级仪式标题 */
+.drama-hub-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    max-width: 680px;
+}
+.drama-hub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--workspace-accent) 24%, var(--drama-line));
+    background: color-mix(in srgb, var(--workspace-accent) 10%, var(--surface));
+    color: var(--workspace-accent);
+    font-size: var(--fs-label);
     font-weight: 600;
-    border-radius: 14px;
-    background: linear-gradient(135deg, var(--workspace-accent), color-mix(in oklab, var(--workspace-accent) 85%, black));
-    border: 0;
-    box-shadow: 
-        0 4px 16px color-mix(in oklab, var(--workspace-accent) 32%, transparent),
-        0 1px 3px color-mix(in oklab, black 12%, transparent),
-        inset 0 1px 0 color-mix(in oklab, white 18%, transparent);
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    letter-spacing: 0.04em;
 }
-.drama-drop .ant-btn-primary:hover:not(:disabled) {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 
-        0 8px 28px color-mix(in oklab, var(--workspace-accent) 45%, transparent),
-        0 2px 8px color-mix(in oklab, black 16%, transparent),
-        inset 0 1px 0 color-mix(in oklab, white 24%, transparent);
+.drama-hub-badge svg {
+    width: 14px;
+    height: 14px;
 }
-.drama-drop .ant-btn-primary:active:not(:disabled) {
-    transform: translateY(0) scale(0.98);
-}
-
-.drama-drop.is-over {
-    border-color: var(--workspace-accent);
-    background-color: color-mix(in oklab, var(--workspace-accent) 10%, var(--surface));
-    transform: scale(1.01);
-    box-shadow: 
-        0 0 0 4px color-mix(in oklab, var(--workspace-accent) 12%, transparent),
-        inset 0 0 60px color-mix(in oklab, var(--workspace-accent) 8%, transparent);
-}
-.drama-drop h2 {
-    font-size: 22px;
+.drama-hub-hero h1 {
+    margin: 0;
+    font-size: clamp(24px, 2.6vw, 32px);
     font-weight: 650;
-    letter-spacing: -0.01em;
-    background: linear-gradient(135deg, var(--foreground), color-mix(in oklab, var(--foreground) 75%, var(--workspace-accent)));
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    background: linear-gradient(135deg, var(--foreground) 60%, color-mix(in srgb, var(--foreground) 70%, var(--workspace-accent)));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-.drama-drop p {
-    font-size: 15px;
-    color: color-mix(in oklab, var(--foreground) 68%, transparent);
-    max-width: 580px;
-    line-height: 1.75;
-    font-weight: 450;
+.drama-hub-hero p {
+    margin: 0;
+    color: var(--drama-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+    text-wrap: balance;
 }
-.drama-drop-icon {
-    display: grid;
-    place-items: center;
-    width: 88px;
-    height: 88px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, 
-        color-mix(in oklab, var(--workspace-accent) 18%, var(--surface)),
-        color-mix(in oklab, var(--workspace-accent) 8%, var(--surface))
-    );
-    box-shadow: 
-        0 8px 32px color-mix(in oklab, var(--workspace-accent) 14%, transparent),
-        0 2px 8px color-mix(in oklab, black 6%, transparent),
-        inset 0 1px 0 color-mix(in oklab, white 10%, transparent);
-    color: var(--workspace-accent);
+
+/* 一体化制片立项控制舱 */
+.drama-hub-console {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border-radius: 20px;
+    border: 1px solid var(--user-border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 56px -16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     overflow: hidden;
+    text-align: left;
 }
-.drama-drop-icon::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--workspace-accent) 25%, transparent), transparent 60%);
-    opacity: 0.6;
+
+/* 上层：灵感快速立项台 */
+.drama-hub-quick {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 24px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--workspace-accent) 6%, transparent) 0%, transparent 100%);
+    border-bottom: 1px solid var(--drama-line);
 }
-.drama-drop-icon svg {
-    width: 36px;
-    height: 36px;
-    filter: drop-shadow(0 2px 4px color-mix(in oklab, var(--workspace-accent) 20%, transparent));
+.drama-hub-quick-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.drama-hub-quick-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--foreground);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+.drama-hub-quick-title svg {
+    width: 15px;
+    height: 15px;
+    color: var(--workspace-accent);
+}
+.drama-hub-quick-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.drama-hub-quick-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--drama-line);
+    background: var(--user-surface-muted);
+    color: var(--drama-muted);
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: background-color var(--user-motion), color var(--user-motion), border-color var(--user-motion);
+}
+.drama-hub-quick-tag:hover {
+    border-color: var(--workspace-accent);
+    color: var(--workspace-accent);
+    background: color-mix(in srgb, var(--workspace-accent) 8%, var(--surface));
+}
+.drama-hub-quick-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.drama-hub-quick-input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    border-radius: 12px !important;
+    background: var(--background) !important;
+    border: 1px solid var(--user-border) !important;
+    padding: 0 16px;
+    color: var(--foreground) !important;
+    font-size: 13.5px;
+    transition: border-color var(--user-motion), box-shadow var(--user-motion);
+}
+.drama-hub-quick-input:focus {
+    border-color: var(--workspace-accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--workspace-accent) 20%, transparent) !important;
+}
+.drama-hub-quick-btn {
+    height: 44px !important;
+    border-radius: 12px !important;
+    padding: 0 22px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+}
+
+/* 下层：原著文稿双通道卡片 */
+.drama-hub-intake-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 20px 24px;
+}
+.drama-hub-intake-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid var(--drama-line);
+    background: color-mix(in srgb, var(--user-surface) 65%, var(--background));
+    transition: border-color var(--user-motion), transform var(--user-motion), background-color var(--user-motion);
+    cursor: pointer;
+}
+.drama-hub-intake-card:hover {
+    border-color: color-mix(in srgb, var(--workspace-accent) 45%, var(--drama-line));
+    background: color-mix(in srgb, var(--user-surface) 85%, var(--background));
+    transform: translateY(-2px);
+}
+.drama-hub-intake-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+.drama-hub-intake-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--workspace-accent) 12%, var(--surface));
+    color: var(--workspace-accent);
+    flex-shrink: 0;
+    transition: transform var(--user-motion);
+}
+.drama-hub-intake-card:hover .drama-hub-intake-icon {
+    transform: scale(1.05);
+}
+.drama-hub-intake-icon svg {
+    width: 20px;
+    height: 20px;
+}
+.drama-hub-intake-copy h3 {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.35;
+}
+.drama-hub-intake-copy p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--drama-muted);
+    line-height: 1.5;
+}
+.drama-hub-intake-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: auto;
+}
+
+/* 5 步全流程时间轴流水线 */
+.drama-hub-pipeline-rail {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid var(--drama-line);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    padding: 12px 16px;
+    gap: 6px;
+}
+.drama-hub-pipeline-node {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
     position: relative;
-    z-index: 1;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color var(--user-motion);
 }
-.drama-drop:hover .drama-drop-icon {
-    animation: drama-icon-pulse 2.4s ease-in-out infinite;
+.drama-hub-pipeline-node:not(:last-child)::after {
+    content: "→";
+    position: absolute;
+    right: -6px;
+    top: 4px;
+    font-size: 11px;
+    color: var(--drama-faint);
 }
-@keyframes drama-icon-pulse {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 
-            0 8px 32px color-mix(in oklab, var(--workspace-accent) 14%, transparent),
-            0 2px 8px color-mix(in oklab, black 6%, transparent);
+.drama-hub-pipeline-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    color: var(--workspace-accent);
+}
+.drama-hub-pipeline-num span {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.drama-hub-pipeline-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.25;
+}
+.drama-hub-pipeline-desc {
+    font-size: 11px;
+    color: var(--drama-muted);
+    line-height: 1.35;
+}
+
+/* 全屏拖入感应浮层 */
+.drama-fullscreen-dropzone {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: color-mix(in srgb, var(--background) 82%, var(--workspace-accent));
+    backdrop-filter: blur(16px);
+    border: 2px dashed var(--workspace-accent);
+    color: var(--foreground);
+    text-align: center;
+    animation: drama-drop-in 200ms ease-out;
+}
+@keyframes drama-drop-in {
+    from { opacity: 0; transform: scale(0.99); }
+    to { opacity: 1; transform: scale(1); }
+}
+.drama-fullscreen-dropzone-icon {
+    display: grid;
+    width: 80px;
+    height: 80px;
+    place-items: center;
+    border-radius: 20px;
+    background: var(--surface);
+    color: var(--workspace-accent);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--workspace-accent) 30%, transparent);
+}
+.drama-fullscreen-dropzone-icon svg {
+    width: 40px;
+    height: 40px;
+}
+.drama-fullscreen-dropzone strong {
+    font-size: 22px;
+    font-weight: 650;
+    color: var(--foreground);
+}
+.drama-fullscreen-dropzone p {
+    font-size: 14px;
+    color: var(--drama-muted);
+    max-width: 420px;
+    margin: 0;
+}
+
+/* 控制台内分割线 */
+.drama-hub-divider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 28px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--drama-line) 20%, var(--drama-line) 80%, transparent);
+}
+.drama-hub-divider span {
+    position: absolute;
+    padding: 0 14px;
+    background: var(--surface);
+    color: var(--drama-muted);
+    font-size: 11.5px;
+    font-weight: 500;
+    border-radius: 999px;
+    border: 1px solid var(--drama-line);
+}
+
+/* 已有作品资产展示区 */
+.drama-hub-projects {
+    width: 100%;
+    margin-top: 12px;
+    text-align: left;
+}
+.drama-hub-projects-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+.drama-hub-projects-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--foreground);
+}
+.drama-hub-projects-count {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--user-surface-muted);
+    color: var(--drama-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 兼容小屏幕 */
+@media (max-width: 768px) {
+    .drama-hub-intake-grid {
+        grid-template-columns: 1fr;
+        padding: 16px;
     }
-    50% {
-        transform: scale(1.04);
-        box-shadow: 
-            0 12px 48px color-mix(in oklab, var(--workspace-accent) 22%, transparent),
-            0 4px 16px color-mix(in oklab, black 8%, transparent);
+    .drama-hub-divider {
+        margin: 0 16px;
+    }
+    .drama-hub-quick {
+        padding: 16px;
+    }
+    .drama-hub-quick-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .drama-hub-pipeline-rail {
+        grid-template-columns: 1fr;
+    }
+    .drama-hub-pipeline-node:not(:last-child)::after {
+        display: none;
     }
 }
 .drama-drop-steps {
