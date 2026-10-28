@@ -4,7 +4,8 @@ import { readFileAsDataUrl, readImageMeta, formatBytes } from "@/lib/image-utils
 import { uploadMediaFile } from "@/services/file-storage";
 import { exportAssets, readAssetPackage } from "./asset-transfer";
 import { WorkspacePage, PageHeader, CollectionGrid, PaginationBar } from "@/components/layout/workspace-page";
-import { Trash2, RotateCcw, Plus, Images, FolderOpen, FileUp, Upload, Download, MoreHorizontal, Search, LayoutGrid, FolderPlus, PencilLine, AlertTriangle } from "lucide-react";
+import { Trash2, RotateCcw, Plus, Images, FolderOpen, FileUp, Upload, Download, MoreHorizontal, Search, LayoutGrid, FolderPlus, PencilLine, AlertTriangle, HardDrive } from "lucide-react";
+import { openStoragePurchase } from "@/lib/workspace-storage";
 import { CollectionToolbar } from "@/components/layout/collection-toolbar";
 import { Select } from "@/components/ui/base/select";
 import { AssetFilterGroup, AssetsBatchBar, AssetsEmptyState, AssetDrawer } from "./asset-library-panels";
@@ -579,6 +580,7 @@ export default function AssetsPage() {
                                         <>
                                             <Button type="primary" icon={<Plus />} onClick={openCreate}>新增素材</Button>
                                             <Button icon={<Images />} onClick={() => setBatchUploadOpen(true)}>上传图片</Button>
+                                            <Button icon={<HardDrive />} onClick={() => openStoragePurchase()}>空间扩容</Button>
                                             <Dropdown trigger={["click"]} menu={{ items: [
                                                 { key: "eagle", icon: <FolderOpen />, label: "Eagle 素材库", onClick: () => navigate("/plugins/eagle") },
                                                 { key: "package", icon: <FileUp />, label: "导入素材包", onClick: () => assetInputRef.current?.click() },
