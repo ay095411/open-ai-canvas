@@ -178,10 +178,13 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 960px;
+    /* 原来 960 在 1600 屏上两侧各空近 200px，读起来像一张窄卡片。
+       改成「跟着内容区走、只在超宽屏封顶」：1600 下几乎占满内容区，
+       1920 下封顶 1420，两侧各留约 130px。左右 20px 内边距保证贴边时也有呼吸。 */
+    max-width: 1420px;
     margin: 0 auto;
-    padding: 12px 0 20px;
-    gap: 22px;
+    padding: 16px 20px 24px;
+    gap: 26px;
     text-align: center;
 }
 
@@ -190,8 +193,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    max-width: 680px;
+    gap: 12px;
+    max-width: 780px;
 }
 .drama-hub-badge {
     display: inline-flex;
@@ -212,10 +215,10 @@
 }
 .drama-hub-hero h1 {
     margin: 0;
-    font-size: clamp(24px, 2.6vw, 32px);
+    font-size: clamp(26px, 2.7vw, 36px);
     font-weight: 650;
     letter-spacing: -0.025em;
-    line-height: 1.25;
+    line-height: 1.22;
     background: linear-gradient(135deg, var(--foreground) 60%, color-mix(in srgb, var(--foreground) 70%, var(--workspace-accent)));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -224,7 +227,7 @@
 .drama-hub-hero p {
     margin: 0;
     color: var(--drama-muted);
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.6;
     text-wrap: balance;
 }
@@ -248,8 +251,8 @@
 .drama-hub-quick {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 20px 24px;
+    gap: 14px;
+    padding: 24px 28px;
     background: linear-gradient(180deg, color-mix(in srgb, var(--workspace-accent) 6%, transparent) 0%, transparent 100%);
     border-bottom: 1px solid var(--drama-line);
 }
@@ -299,29 +302,31 @@
 .drama-hub-quick-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 .drama-hub-quick-input {
     flex: 1;
     min-width: 0;
-    height: 44px;
-    border-radius: 12px !important;
+    height: 36px;
+    border-radius: 9px !important;
     background: var(--background) !important;
     border: 1px solid var(--user-border) !important;
-    padding: 0 16px;
+    padding: 0 13px;
     color: var(--foreground) !important;
-    font-size: 13.5px;
+    font-size: 12.5px;
     transition: border-color var(--user-motion), box-shadow var(--user-motion);
 }
 .drama-hub-quick-input:focus {
     border-color: var(--workspace-accent) !important;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--workspace-accent) 20%, transparent) !important;
 }
+/* 与控制舱其余元素（32px 次按钮、24px 题材胶囊）同一档位：原来 44 高、22 横向内边距的实心块
+   比这一屏里任何元素都重，压在行尾像块黑牌，把「输入并提交」的节奏也拉长了。 */
 .drama-hub-quick-btn {
-    height: 44px !important;
-    border-radius: 12px !important;
-    padding: 0 22px !important;
-    font-size: 13.5px !important;
+    height: 36px !important;
+    border-radius: 9px !important;
+    padding: 0 12px !important;
+    font-size: 12.5px !important;
     font-weight: 600 !important;
 }
 
@@ -329,16 +334,16 @@
 .drama-hub-intake-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    padding: 20px 24px;
+    gap: 16px;
+    padding: 24px 28px;
 }
 .drama-hub-intake-card {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 14px;
-    padding: 20px;
+    gap: 16px;
+    padding: 22px;
     border-radius: 14px;
     border: 1px solid var(--drama-line);
     background: color-mix(in srgb, var(--user-surface) 65%, var(--background));
@@ -375,20 +380,25 @@
 }
 .drama-hub-intake-copy h3 {
     margin: 0;
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--foreground);
     line-height: 1.35;
 }
 .drama-hub-intake-copy p {
-    margin: 4px 0 0;
-    font-size: 12px;
+    margin: 5px 0 0;
+    font-size: 12.5px;
     color: var(--drama-muted);
     line-height: 1.5;
+    /* 加宽后这段正好卡在折行临界点，末行只剩「目。」两个字。 */
+    text-wrap: pretty;
 }
 .drama-hub-intake-actions {
     display: flex;
     align-items: center;
+    /* 加宽后卡片右侧空出一大片：把补充说明推到右端，让两张卡横向读起来是"满的"，
+       而不是所有内容都挤在左边。 */
+    justify-content: space-between;
     gap: 8px;
     width: 100%;
     margin-top: auto;
@@ -402,8 +412,8 @@
     border-radius: 16px;
     border: 1px solid var(--drama-line);
     background: color-mix(in srgb, var(--surface) 60%, transparent);
-    padding: 12px 16px;
-    gap: 6px;
+    padding: 16px 20px;
+    gap: 10px;
 }
 .drama-hub-pipeline-node {
     display: flex;
@@ -440,13 +450,13 @@
     background: currentColor;
 }
 .drama-hub-pipeline-name {
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--foreground);
     line-height: 1.25;
 }
 .drama-hub-pipeline-desc {
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--drama-muted);
     line-height: 1.35;
 }
@@ -565,6 +575,13 @@
     .drama-hub-quick-bar {
         flex-direction: column;
         align-items: stretch;
+    }
+    /* 单列后按钮铺满整行，36px 的触控目标偏矮，回到 44；输入框跟着一起长高。 */
+    .drama-hub-quick-input {
+        height: 44px;
+    }
+    .drama-hub-quick-btn {
+        height: 44px !important;
     }
     .drama-hub-pipeline-rail {
         grid-template-columns: 1fr;
