@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Input, Skeleton } from "antd";
-import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, Globe2, HardDrive, History, RefreshCw, ShieldCheck, TicketCheck, WalletCards, Zap } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, HardDrive, History, RefreshCw, TicketCheck, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
@@ -333,29 +333,6 @@ export function WorkspaceWalletModal({
                                     </Button>
                                 </div>
                             </section>
-                            <div className="workspace-wallet-redeem-guarantees" aria-label="服务保障">
-                                <div className="workspace-wallet-guarantee-card">
-                                    <div className="workspace-wallet-guarantee-icon"><Zap /></div>
-                                    <div className="workspace-wallet-guarantee-copy">
-                                        <strong>即时充值入账</strong>
-                                        <p>卡密兑换成功后，积分或存储空间秒级生效并实时同步账户余额。</p>
-                                    </div>
-                                </div>
-                                <div className="workspace-wallet-guarantee-card">
-                                    <div className="workspace-wallet-guarantee-icon"><ShieldCheck /></div>
-                                    <div className="workspace-wallet-guarantee-copy">
-                                        <strong>积分永久有效</strong>
-                                        <p>账户充值积分无失效期限，按模型生成与工具实际用量公平扣减。</p>
-                                    </div>
-                                </div>
-                                <div className="workspace-wallet-guarantee-card">
-                                    <div className="workspace-wallet-guarantee-icon"><Globe2 /></div>
-                                    <div className="workspace-wallet-guarantee-copy">
-                                        <strong>多端实时互通</strong>
-                                        <p>同一账号在网页端、画布工作台与创作助手各终端实时共享额度。</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     ) : (
                         <div className="workspace-wallet-content is-history">

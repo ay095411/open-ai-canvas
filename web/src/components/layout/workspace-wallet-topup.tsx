@@ -89,6 +89,14 @@ function TopupGroup({ kind, products, selectedProductId, onSelectProduct, aside,
                         <ProductCard key={product.id} product={product} selected={selectedProductId === product.id} onSelect={() => onSelectProduct(product.id)} />
                     ))}
                 </div>
+            ) : kind === "storage" ? (
+                <div className="wallet-topup-group-empty is-storage">
+                    <div className="wallet-topup-empty-icon" aria-hidden="true">
+                        <Icon />
+                    </div>
+                    <strong>当前暂未上架专属扩容套餐</strong>
+                    <p>账号基础容量可正常使用。如需大容量团队或商业归档存储，可使用卡密兑换或联系管理员。</p>
+                </div>
             ) : (
                 <div className="wallet-topup-group-empty">暂未上架{meta.label}套餐</div>
             )}
@@ -102,17 +110,31 @@ function StorageSummary({ usage, grants, onCleanAssets }: { usage?: AccountFileS
     const activeGrants = grants.filter((grant) => storageGrantActive(grant));
     return (
         <div className="wallet-topup-storage">
-            <div className="wallet-topup-storage-usage">
-                <span>
-                    已用 <b>{usage ? meter.usedLabel : "--"}</b> / {usage ? meter.totalLabel : "--"}
-                </span>
-                <span className={cn("wallet-topup-storage-track", meter.tone !== "ok" && `is-${meter.tone}`)} role="progressbar" aria-label="账号文件容量使用进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(meter.percent)}>
+            <div className="wallet-topup-storage-dashboard">
+                <div className="wallet-topup-storage-row">
+                    <div className="wallet-topup-storage-stat">
+                        <span className="wallet-topup-storage-stat-label">空间使用情况</span>
+                        <div className="wallet-topup-storage-stat-val">
+                            <strong>{usage ? meter.usedLabel : "--"}</strong>
+                            <small>/ {usage ? meter.totalLabel : "--"}</small>
+                        </div>
+                    </div>
+                    <span className={cn("wallet-topup-storage-badge", meter.tone !== "ok" && `is-${meter.tone}`)}>
+                        {meter.percentLabel}
+                    </span>
+                </div>
+                <div className={cn("wallet-topup-storage-track", meter.tone !== "ok" && `is-${meter.tone}`)} role="progressbar" aria-label="账号文件容量使用进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(meter.percent)}>
                     <span style={{ width: `${meter.percent}%` }} />
-                </span>
-                <span className="wallet-topup-storage-split">
-                    基础 {meter.baseLabel}
-                    {meter.purchasedLabel ? ` + 已购 ${meter.purchasedLabel}` : ""}
-                </span>
+                </div>
+                <div className="wallet-topup-storage-footer">
+                    <span className="wallet-topup-storage-split">
+                        基础配额 {meter.baseLabel}
+                        {meter.purchasedLabel ? ` · 额外已购 ${meter.purchasedLabel}` : ""}
+                    </span>
+                    <span className="wallet-topup-storage-remaining">
+                        剩余可用 {meter.remainingLabel}
+                    </span>
+                </div>
             </div>
             {stateMessage ? (
                 <div className={cn("wallet-topup-storage-alert", meter.state === "read_only" && "is-read-only")} role="status">
@@ -124,14 +146,17 @@ function StorageSummary({ usage, grants, onCleanAssets }: { usage?: AccountFileS
                 </div>
             ) : null}
             {activeGrants.length ? (
-                <ul className="wallet-topup-grants" aria-label="生效中的扩容">
-                    {activeGrants.slice(0, 4).map((grant) => (
-                        <li key={grant.id} title={grant.productName || (grant.source === "admin" ? "管理员赠送" : "存储扩容")}>
-                            +{formatStorageCapacity(grant.bytes)} · {grant.expiresAt ? `${formatStorageDate(grant.expiresAt)} 到期` : "永久"}
-                        </li>
-                    ))}
-                    {activeGrants.length > 4 ? <li>另有 {activeGrants.length - 4} 份</li> : null}
-                </ul>
+                <div className="wallet-topup-grants-wrap">
+                    <span className="wallet-topup-grants-title">已生效扩容：</span>
+                    <ul className="wallet-topup-grants" aria-label="生效中的扩容">
+                        {activeGrants.slice(0, 4).map((grant) => (
+                            <li key={grant.id} title={grant.productName || (grant.source === "admin" ? "管理员赠送" : "存储扩容")}>
+                                +{formatStorageCapacity(grant.bytes)} · {grant.expiresAt ? `${formatStorageDate(grant.expiresAt)} 到期` : "永久有效"}
+                            </li>
+                        ))}
+                        {activeGrants.length > 4 ? <li>另有 {activeGrants.length - 4} 份</li> : null}
+                    </ul>
+                </div>
             ) : null}
         </div>
     );

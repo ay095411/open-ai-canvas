@@ -16703,52 +16703,19 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     color: var(--user-accent);
 }
 
-.workspace-wallet-redeem-guarantees {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.workspace-wallet-guarantee-card {
+.workspace-wallet-content.is-redeem {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
-    border-radius: 14px;
-    border: 1px solid var(--user-border);
-    background: var(--user-surface);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-width: 600px;
+    width: 100%;
+    margin-inline: auto;
 }
 
-.workspace-wallet-guarantee-icon {
-    display: grid;
-    width: 32px;
-    height: 32px;
-    place-items: center;
-    border-radius: 10px;
-    background: var(--user-accent-soft);
-    color: var(--user-accent);
-    flex-shrink: 0;
-}
-
-.workspace-wallet-guarantee-icon svg {
-    width: 16px;
-    height: 16px;
-}
-
-.workspace-wallet-guarantee-copy strong {
-    display: block;
-    color: var(--user-ink);
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.3;
-}
-
-.workspace-wallet-guarantee-copy p {
-    margin: 4px 0 0;
-    color: var(--user-ink-muted);
-    font-size: 11.5px;
-    line-height: 1.5;
+.workspace-wallet-section.is-redeem {
+    width: 100%;
+    padding: 28px 24px;
 }
 
 .workspace-wallet-provider-row,
