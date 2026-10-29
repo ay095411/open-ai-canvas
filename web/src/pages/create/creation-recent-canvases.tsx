@@ -1,159 +1,146 @@
-import { useMemo, useRef, useState } from "react";
-import { App } from "antd";
+import { useId, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Clock3, LoaderCircle, PanelsTopLeft, Plus } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { ArrowUpRight, Clapperboard, History, Layers3, PanelsTopLeft } from "lucide-react";
+import { Link } from "react-router";
 
 import { ProjectPreview } from "@/components/canvas/canvas-project-card";
-import { getActiveUserScope } from "@/lib/user-scope";
+import { CachedResourceImage } from "@/components/cached-resource-image";
+import { DRAMA_STATUS_LABEL } from "@/lib/drama/drama-format";
 import { loadCanvasProjectPage } from "@/lib/workspace-route-modules";
+import { listDramas, type DramaListItem } from "@/services/api/drama";
 import { listRemoteCanvasProjectsPage, type CanvasLibrarySummary } from "@/services/api/user-data";
-import { createCanvasProjectWithRemoteSync } from "@/services/user-data-sync";
-import { flushCanvasStorePersistence, useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useUserStore } from "@/stores/use-user-store";
 
-const RECENT_COUNT = 4;
-const createdFormatter = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+import "./creation-recent-projects.css";
 
-// 每张卡上的时间取建立时间；老数据没有 createdAt 时退回最后编辑时间，不让格子空着。
-function canvasTimeLabel(project: CanvasLibrarySummary) {
-    const created = Date.parse(project.createdAt);
-    if (Number.isFinite(created)) return { label: createdFormatter.format(new Date(created)), dateTime: project.createdAt };
-    const updated = Date.parse(project.updatedAt);
-    if (Number.isFinite(updated)) return { label: createdFormatter.format(new Date(updated)), dateTime: project.updatedAt };
-    return { label: "时间未知", dateTime: undefined };
-}
+const RECENT_COUNT = 6;
+const updatedFormatter = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+type RecentTab = "canvas" | "drama";
 
-// 本地（未登录）画布只有串行化过的时间戳：建立时间缺失时退回最后编辑时间，
-// 避免 Date.parse 得到 NaN 让比较函数退化成不稳定的 0。
-function localCanvasCreatedAt(project: { createdAt: string; updatedAt: string }) {
-    const created = Date.parse(project.createdAt);
-    if (Number.isFinite(created)) return created;
-    const updated = Date.parse(project.updatedAt);
-    return Number.isFinite(updated) ? updated : 0;
-}
+export type CreationRecentProjectsProps = { onOpenHistory: () => void };
 
-export function CreationRecentCanvases({ onRequireLogin }: { onRequireLogin: () => void }) {
-    const { message } = App.useApp();
-    const navigate = useNavigate();
+export function CreationRecentProjects({ onOpenHistory }: CreationRecentProjectsProps) {
     const userId = useUserStore((state) => state.user?.id);
-    const sessionHydrated = useUserStore((state) => state.hydrated);
-    const canvasHydrated = useCanvasStore((state) => state.hydrated);
-    const localProjects = useCanvasStore((state) => state.projects);
-    const [creating, setCreating] = useState(false);
-    const creatingRef = useRef(false);
-    const recentQuery = useQuery({
-        queryKey: ["canvas-library", userId, "recent-created"],
-        // 这里要的是「最近创建」而不是「最近更新」，所以显式带上 created 排序。
-        queryFn: ({ signal }) => listRemoteCanvasProjectsPage({ page: 1, pageSize: RECENT_COUNT, sort: "created", signal }),
-        enabled: Boolean(userId) && sessionHydrated,
+    const hydrated = useUserStore((state) => state.hydrated);
+    const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled);
+    if (!hydrated || !userId) return null;
+
+    // 会话变化时卸载旧查询与媒体，既不读取本地画布，也不保留上一账号的卡片或选中项。
+    return <RecentProjects key={userId} userId={userId} shortDramaEnabled={shortDramaEnabled} onOpenHistory={onOpenHistory} />;
+}
+
+function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRecentProjectsProps & { userId: string; shortDramaEnabled: boolean }) {
+    const [selectedTab, setSelectedTab] = useState<RecentTab>("canvas");
+    const tab = shortDramaEnabled ? selectedTab : "canvas";
+    const id = useId();
+    const canvasQuery = useQuery({
+        queryKey: ["canvas-library", userId, "recent-updated", RECENT_COUNT],
+        queryFn: ({ signal }) => listRemoteCanvasProjectsPage({ page: 1, pageSize: RECENT_COUNT, sort: "updated", signal }),
+        enabled: tab === "canvas",
+        placeholderData: undefined,
     });
-    const recentProjects = useMemo<CanvasLibrarySummary[]>(
-        () =>
-            userId
-                ? recentQuery.data?.projects || []
-                : [...localProjects]
-                      .sort((left, right) => localCanvasCreatedAt(right) - localCanvasCreatedAt(left))
-                      .slice(0, RECENT_COUNT)
-                      .map((project) => ({ ...project, nodeCount: project.nodes.length, previewNodes: project.nodes.slice(0, 4) })),
-        [localProjects, recentQuery.data, userId],
-    );
-    const loading = !sessionHydrated || !canvasHydrated || Boolean(userId && recentQuery.isPending);
-    const preload = () => {
-        void loadCanvasProjectPage();
-    };
-    const createCanvas = async () => {
-        if (!userId) {
-            onRequireLogin();
-            return;
-        }
-        if (!canvasHydrated || creatingRef.current) return;
-        const scope = getActiveUserScope();
-        creatingRef.current = true;
-        setCreating(true);
-        try {
-            const { id, syncError } = await createCanvasProjectWithRemoteSync("未命名画布");
-            await flushCanvasStorePersistence();
-            if (getActiveUserScope() !== scope || useUserStore.getState().user?.id !== userId) return;
-            if (syncError) message.warning("画布已保存在本机，云端同步尚未完成，将自动重试。");
-            navigate(`/canvas/${id}`);
-        } catch (error) {
-            if (getActiveUserScope() === scope) message.error(error instanceof Error ? error.message : "创建画布失败，请重试");
-        } finally {
-            creatingRef.current = false;
-            setCreating(false);
-        }
+    const dramaQuery = useQuery({
+        queryKey: ["my-dramas-recent", userId, "home", RECENT_COUNT],
+        // DramaProjectsPage 默认按 projects.updated_at desc 排序，摘要接口无需逐项加载详情。
+        queryFn: ({ signal }) => listDramas({ page: 1, pageSize: RECENT_COUNT }, signal),
+        enabled: shortDramaEnabled && tab === "drama",
+        placeholderData: undefined,
+    });
+    const query = tab === "canvas" ? canvasQuery : dramaQuery;
+    const label = tab === "canvas" ? "画布" : "短剧";
+    const canvases = (canvasQuery.data?.projects ?? []).slice(0, RECENT_COUNT);
+    const dramas = (dramaQuery.data?.items ?? []).slice(0, RECENT_COUNT);
+    const count = tab === "canvas" ? canvases.length : dramas.length;
+    const selectTab = (next: RecentTab) => setSelectedTab(next);
+    const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === "Home" ? "canvas" : event.key === "End" ? "drama" : tab === "canvas" ? "drama" : "canvas";
+        selectTab(next);
+        document.getElementById(`${id}-${next}`)?.focus();
     };
 
     return (
-        <section className="creation-recent-canvases" aria-labelledby="creation-recent-title">
-            <header className="creation-section-heading">
-                <h2 id="creation-recent-title">
-                    <Clock3 aria-hidden="true" />
-                    最近创建的画布
-                </h2>
-                <Link to="/canvas" className="creation-section-link">
-                    查看全部
-                    <ArrowUpRight aria-hidden="true" />
-                </Link>
-            </header>
-            <div className="creation-canvas-strip creation-scrollbar" role="list" aria-label="最近创建的画布" aria-busy={loading}>
-                <div className="creation-canvas-strip-item" role="listitem">
-                    <button type="button" className="creation-canvas-tile is-create" disabled={!sessionHydrated || !canvasHydrated || creating} onClick={() => void createCanvas()} onPointerEnter={preload} onFocus={preload}>
-                        <span className="creation-canvas-thumbnail is-create">{creating ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}</span>
-                        <span className="creation-canvas-copy">
-                            <strong>{creating ? "正在创建…" : "创建画布"}</strong>
-                            <small>从空白开始</small>
-                        </span>
-                    </button>
+        <section className="creation-recent-projects" aria-labelledby={`${id}-title`}>
+            <header className="creation-recent-projects-heading">
+                <h2 id={`${id}-title`}>继续创作</h2>
+                <div className="creation-recent-projects-actions">
+                    <button type="button" onClick={onOpenHistory}><History aria-hidden="true" />历史对话</button>
+                    <Link to={tab === "canvas" ? "/canvas" : "/projects"}>查看全部<ArrowUpRight aria-hidden="true" /></Link>
                 </div>
-                {loading ? (
-                    Array.from({ length: RECENT_COUNT }, (_, index) => (
-                        <div key={index} className="creation-canvas-strip-item creation-canvas-skeleton" role="listitem" aria-label="正在读取画布">
-                            <span />
-                            <span />
-                        </div>
-                    ))
-                ) : userId && recentQuery.isError ? (
-                    <div className="creation-canvas-strip-state" role="listitem">
-                        <span role="alert">最近创建的画布暂时无法读取</span>
-                        <button type="button" onClick={() => void recentQuery.refetch()} disabled={recentQuery.isFetching}>
-                            {recentQuery.isFetching ? "重试中…" : "重试"}
+            </header>
+            {shortDramaEnabled ? (
+                <div className="creation-recent-projects-tabs" role="tablist" aria-label="继续创作类型">
+                    {(["canvas", "drama"] as const).map((value) => (
+                        <button key={value} id={`${id}-${value}`} type="button" role="tab" aria-selected={tab === value} aria-controls={`${id}-panel`} tabIndex={tab === value ? 0 : -1} onClick={() => selectTab(value)} onKeyDown={onTabKeyDown}>
+                            {value === "canvas" ? "画布" : "短剧"}
                         </button>
+                    ))}
+                </div>
+            ) : null}
+            <div id={`${id}-panel`} role={shortDramaEnabled ? "tabpanel" : undefined} aria-labelledby={shortDramaEnabled ? `${id}-${tab}` : undefined} aria-busy={query.isFetching} className="creation-recent-projects-panel">
+                {query.isPending ? (
+                    <div className="creation-recent-projects-grid" role="status" aria-label={`正在读取最近更新的${label}`}>
+                        {Array.from({ length: RECENT_COUNT }, (_, index) => <div className="creation-recent-projects-skeleton" key={index} aria-hidden="true"><span /><span /></div>)}
                     </div>
-                ) : recentProjects.length ? (
-                    recentProjects.map((project) => {
-                        const time = canvasTimeLabel(project);
-                        // 卡面只留建立时间：格子宽度约 214px，再塞节点数会把时间挤成省略号；
-                        // 节点数放进 title，悬停仍能看到完整信息。
-                        const title = `${project.title || "未命名画布"} · ${project.nodeCount} 个节点 · 创建于 ${time.label}`;
-                        return (
-                            <div className="creation-canvas-strip-item" role="listitem" key={project.id}>
-                                <Link to={`/canvas/${project.id}`} className="creation-canvas-tile" onPointerEnter={preload} onFocus={preload} title={title}>
-                                    <span className="creation-canvas-thumbnail" aria-hidden="true">
-                                        <ProjectPreview project={{ id: project.id, nodes: project.previewNodes }} preferLatestImage />
-                                    </span>
-                                    <span className="creation-canvas-copy">
-                                        <strong>{project.title || "未命名画布"}</strong>
-                                        <small>
-                                            创建于 <time dateTime={time.dateTime}>{time.label}</time>
-                                        </small>
-                                    </span>
-                                </Link>
-                            </div>
-                        );
-                    })
-                ) : userId ? (
-                    <div className="creation-canvas-strip-state" role="listitem">
-                        <PanelsTopLeft aria-hidden="true" />
-                        <span>还没有画布，把第一个想法留在这里。</span>
+                ) : query.isError ? (
+                    <div className="creation-recent-projects-state">
+                        <span role="alert">最近更新的{label}暂时无法读取</span>
+                        <button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? "重试中…" : "重试"}</button>
                     </div>
-                ) : null}
-                {/* 未登录时这一栏只留左边那张「创建画布」：原来这里还有一段
-                    「登录后，最近创建的画布会显示在这里。」加一颗登录按钮，
-                    和创建卡说的是同一件事，两个入口反而让人犹豫点哪个。
-                    点创建卡本身就会弹登录框（见 createCanvas 里的 !userId 分支）。 */}
+                ) : count ? (
+                    <ul className="creation-recent-projects-grid" aria-label={`最近更新的${label}`}>
+                        {tab === "canvas" ? canvases.map((project) => <RecentCanvasCard key={project.id} project={project} />) : dramas.map((item) => <RecentDramaCard key={item.project.id} item={item} />)}
+                    </ul>
+                ) : (
+                    <div className="creation-recent-projects-state">
+                        {tab === "canvas" ? <PanelsTopLeft aria-hidden="true" /> : <Clapperboard aria-hidden="true" />}
+                        <span>还没有{label}，从上方开始你的第一个创作。</span>
+                    </div>
+                )}
             </div>
         </section>
+    );
+}
+
+function UpdatedTime({ value }: { value: string }) {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? <span>更新于 <time dateTime={value}>{updatedFormatter.format(new Date(timestamp))}</time></span> : <span>更新时间未知</span>;
+}
+
+function RecentCanvasCard({ project }: { project: CanvasLibrarySummary }) {
+    const preload = () => { void loadCanvasProjectPage(); };
+    return (
+        <li>
+            <Link to={`/canvas/${project.id}`} className="creation-recent-project-card" onPointerEnter={preload} onFocus={preload}>
+                <div className="creation-recent-project-cover canvas-collection-preview">
+                    <div className="canvas-collection-preview-media" aria-hidden="true"><ProjectPreview project={{ id: project.id, nodes: project.previewNodes }} preferLatestImage quiet mosaic /></div>
+                    <span className="canvas-collection-badge" title={`${project.nodeCount} 个节点`}><Layers3 aria-hidden="true" /><span>{project.nodeCount}</span><span className="sr-only">个节点</span></span>
+                </div>
+                <span className="creation-recent-project-copy">
+                    <strong title={project.title || "未命名画布"}>{project.title || "未命名画布"}</strong>
+                    <span className="creation-recent-project-time"><UpdatedTime value={project.updatedAt} /></span>
+                </span>
+            </Link>
+        </li>
+    );
+}
+
+function RecentDramaCard({ item }: { item: DramaListItem }) {
+    const cover = item.coverResourceIds?.[0] || item.coverResourceId;
+    const fallback = <Clapperboard className="creation-recent-project-cover-icon" aria-hidden="true" />;
+    return (
+        <li>
+            <Link to={`/projects/${item.project.id}`} className="creation-recent-project-card">
+                <span className="creation-recent-project-cover" aria-hidden="true">
+                    {cover ? <CachedResourceImage storageKey={`resource:${cover}`} alt="" variant="thumbnail" fallback={fallback} loadingFallback={fallback} draggable={false} /> : fallback}
+                </span>
+                <span className="creation-recent-project-copy">
+                    <strong title={item.project.name}>{item.project.name}</strong>
+                    <span className="creation-recent-project-facts"><span>{DRAMA_STATUS_LABEL[item.status]}</span><span>{item.doneCount}/{item.episodeCount} 集成片</span></span>
+                    <span className="creation-recent-project-time"><UpdatedTime value={item.updatedAt || item.project.updatedAt} /></span>
+                </span>
+            </Link>
+        </li>
     );
 }

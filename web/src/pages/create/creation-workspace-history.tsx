@@ -1,13 +1,13 @@
 // 创作页历史会话抽屉、导出与时间格式化。
 
 import { conversationTimeFormatter, type CreationConversation, type CreationMessage, historyDayFormatter, modeLabels } from "./creation-types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { App, Dropdown } from "antd";
 import { displayCreationPrompt } from "./creation-references";
 import { AppDrawer } from "@/components/ui/product/app-drawer";
-import { Clapperboard, Download, Image as ImageIcon, MessageSquareText, MoreHorizontal, Pencil, Plus, Search, Trash2, X, Orbit } from "lucide-react";
+import { Clapperboard, Download, Image as ImageIcon, MessageSquareText, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { conversationTimestamp } from "./creation-conversations";
 import { formatMessageTime } from "./creation-workspace-messages";
 
@@ -104,6 +104,8 @@ export function CreationHistoryDrawer({
         });
     }, [conversations, keyword]);
 
+    const titleId = useId();
+
     return (
         <AppDrawer
             flush
@@ -112,11 +114,12 @@ export function CreationHistoryDrawer({
             placement="right"
             size="min(440px, 100vw)"
             closeIcon={<X className="size-4" />}
+            aria-labelledby={titleId}
             className="creation-history-drawer"
             rootClassName="creation-history-drawer-root"
             title={
                 <div className="creation-history-title">
-                    <span>历史对话</span>
+                    <span id={titleId}>历史对话</span>
                     <small>{conversations.length} 个对话</small>
                 </div>
             }
@@ -125,6 +128,9 @@ export function CreationHistoryDrawer({
                 <label className="creation-history-search">
                     <Search aria-hidden="true" />
                     <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索对话标题或内容" aria-label="搜索历史对话" />
+                    <span className="creation-history-search-clear-slot">
+                        {keyword ? <button type="button" aria-label="清除对话搜索" onClick={() => setKeyword("")}><X aria-hidden="true" /></button> : null}
+                    </span>
                 </label>
 
                 <button type="button" className="creation-history-new" onClick={onNew}>
@@ -136,13 +142,14 @@ export function CreationHistoryDrawer({
                         <small>开启一个新的创作对话</small>
                     </span>
                 </button>
+                <div className="creation-history-scroll creation-scrollbar">
                 {visibleConversations.length ? (
                     <ul className="creation-history-list" aria-label="历史对话，按更新时间倒序排列">
                         {visibleConversations.flatMap((conversation, index) => {
                             const showGroupHead = !keyword.trim() && (index === 0 || creationConversationBucket(conversation.updatedAt) !== creationConversationBucket(visibleConversations[index - 1].updatedAt));
                             const latest = conversationPreviewMessage(conversation);
                             const active = conversation.id === activeId;
-                            const HistoryTypeIcon = latest?.mode === "video" ? Clapperboard : latest?.mode === "image" ? ImageIcon : latest?.mode === "text" ? MessageSquareText : Orbit;
+                            const HistoryTypeIcon = latest?.mode === "video" ? Clapperboard : latest?.mode === "image" ? ImageIcon : MessageSquareText;
                             return [
                                 showGroupHead ? (
                                     <li key={`${conversation.id}-group`} className="creation-history-group-head">
@@ -201,7 +208,7 @@ export function CreationHistoryDrawer({
                                                     </span>
                                                 </span>
                                             </button>
-                                            <span className="creation-history-time-slot" aria-hidden={menuOpenId === conversation.id}>
+                                            <span className="creation-history-time-slot">
                                                 <time dateTime={conversation.updatedAt}>{formatHistoryRelativeTime(conversation.updatedAt)}</time>
                                             </span>
                                             <Dropdown
@@ -245,8 +252,12 @@ export function CreationHistoryDrawer({
                         })}
                     </ul>
                 ) : (
-                    <div className="creation-history-empty">{keyword.trim() ? "没有找到匹配的对话" : "暂无历史对话"}</div>
+                    <div className="creation-history-empty" role="status">
+                        <strong>{keyword.trim() ? "没有找到匹配的对话" : "暂无历史对话"}</strong>
+                        <p>{keyword.trim() ? "试试其他关键词，或清除搜索查看全部。" : "新建一个创作对话，之后可在这里继续。"}</p>
+                    </div>
                 )}
+                </div>
             </div>
         </AppDrawer>
     );

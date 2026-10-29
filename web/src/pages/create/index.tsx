@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { App, Spin } from "antd";
 import { Tooltip } from "@/components/ui/base/tooltip";
-import { History, Maximize2, PenLine } from "lucide-react";
+import { Maximize2, PenLine } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useLocation, useNavigate } from "react-router";
 
@@ -36,8 +36,8 @@ import { creationLibraryDisabledReason, creationLibrarySelectionToAttachments } 
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
 import { attachCreationTaskContexts, completedCreationGenerationTask, conversationTimestamp, creationMessageNeedsResultSync, creationShotRail, creationVideoShotOrdinal, isImageAttachment, isVideoAttachment, materializeCreationTaskResults, newConversation, newMessage, reconcileCreationTaskMessages, type PersistedCreationTask } from "./creation-conversations";
 import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
-import { CreationHomeFeatureMatrix } from "./creation-home-feature-matrix";
-import { CreationRecentCanvases } from "./creation-recent-canvases";
+import { CreationHomeAgentEntry } from "./creation-home-feature-matrix";
+import { CreationRecentProjects } from "./creation-recent-canvases";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialogPixTV as CreationLoginDialog } from "./creation-login-dialog-pixtv";
@@ -73,7 +73,8 @@ export default function CreatePage() {
     const navigate = useNavigate();
     const location = useLocation();
     const user = useUserStore((state) => state.user);
-    const inspirationSourcesVisible = useUserStore((state) => state.features.inspirationSourcesVisible);
+    const features = useUserStore((state) => state.features);
+    const inspirationSourcesVisible = features.inspirationSourcesVisible;
     // 创作首页对游客开放；模型目录由登录后的 user-session 按用户组权限加载。
     // 创作 / Agent / 参考内容 / 历史对话需要登录，统一从这里打开登录弹窗并携带回跳地址。
     const openLogin = useCallback(() => {
@@ -83,6 +84,8 @@ export default function CreatePage() {
         openWorkspaceAuth({ next: `${location.pathname}${location.search}` });
     }, [location.pathname, location.search]);
     const [openingCanvas, setOpeningCanvas] = useState(false);
+    const [openingAgentCanvas, setOpeningAgentCanvas] = useState(false);
+    const openingAgentCanvasRef = useRef(false);
     const openingCanvasRef = useRef(false);
     const brandName = useAppearanceStore((state) => state.appearance.brandName);
     const config = useEffectiveConfig();
@@ -1246,9 +1249,6 @@ export default function CreatePage() {
     return <>
         <div className="creation-home relative flex h-full min-h-0 flex-col overflow-hidden">
             {isEmpty ? <>
-                <div className="creation-top-actions">
-                    <Tooltip title="历史对话"><button type="button" aria-label="查看历史对话" aria-expanded={historyOpen} className="creation-top-action" onClick={() => (user ? setHistoryOpen(true) : openLogin())}><History /></button></Tooltip>
-                </div>
                 <AnimatePresence>
                     {launchpadCondensed ? <motion.div className="creation-floating-prompt" key="floating-prompt"
                         style={{ x: "-50%" }}
@@ -1271,33 +1271,35 @@ export default function CreatePage() {
                         <div className="creation-empty-composer"><CreationComposer {...composerProps} variant="empty" /></div>
                     </div>
                 </section>
-                <CreationHomeFeatureMatrix
-                    onOpenAgentNewCanvas={async () => {
-                        if (!user) {
-                            openLogin();
-                            return;
-                        }
-                        try {
-                            const result = await createCanvasProjectWithRemoteSync("Agent 创作");
-                            if (result.id) {
-                                navigate(`/canvas/${encodeURIComponent(result.id)}?agent=1`);
+                <div className="creation-home-dashboard">
+                    <CreationHomeAgentEntry
+                        openingAgentCanvas={openingAgentCanvas}
+                        onOpenAgentNewCanvas={async () => {
+                            if (!user) {
+                                openLogin();
                                 return;
                             }
-                        } catch {
-                            // 降级：若直接创建异常则打开画布列表
-                        }
-                        navigate("/canvas?agent=1");
-                    }}
-                    onOpenExistingCanvas={() => {
-                        if (!user) {
-                            openLogin();
-                            return;
-                        }
-                        navigate("/canvas?agent=1");
-                    }}
-                />
-                {/* 未登录时与首页其它入口一致走跳转登录页，不再弹登录弹窗。 */}
-                <CreationRecentCanvases onRequireLogin={openLogin} />
+                            if (openingAgentCanvasRef.current) return;
+                            const scope = getActiveUserScope();
+                            const userId = user.id;
+                            openingAgentCanvasRef.current = true;
+                            setOpeningAgentCanvas(true);
+                            const isCurrent = () => scope === getActiveUserScope() && useUserStore.getState().user?.id === userId;
+                            try {
+                                const result = await createCanvasProjectWithRemoteSync("Agent 创作");
+                                if (!isCurrent()) return;
+                                if (result.syncError) toast.warning("画布已保存在本机，云端同步尚未完成，将自动重试。");
+                                navigate(`/canvas/${encodeURIComponent(result.id)}?agent=1`);
+                            } catch (error) {
+                                if (isCurrent()) toast.error(error instanceof Error ? error.message : "新建画布失败，请重试");
+                            } finally {
+                                openingAgentCanvasRef.current = false;
+                                setOpeningAgentCanvas(false);
+                            }
+                        }}
+                    />
+                    <CreationRecentProjects onOpenHistory={() => setHistoryOpen(true)} />
+                </div>
                 {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，
                     所以这条跟着首页走：画廊换成纵深轮播后它一度掉了，这里补回来。 */}
                 {inspirationSourcesVisible ? <div className="creation-inspiration-credit">

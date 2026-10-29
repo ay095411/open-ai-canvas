@@ -1,185 +1,24 @@
-import { ArrowUpRight, Clock3, FolderOpen, PlugZap, Sparkles, WandSparkles } from "lucide-react";
-import { useReducedMotion } from "motion/react";
-import { useNavigate } from "react-router";
+import { ArrowUpRight } from "lucide-react";
+import type { MouseEvent } from "react";
+import { Link } from "react-router";
 
-import { useAmbientVideoPlayback } from "@/hooks/use-ambient-video-playback";
 import { mayNavigateWithAuth } from "@/lib/guard-navigation";
 import "./creation-home-feature-matrix.css";
 
-interface CreationHomeFeatureMatrixProps {
-    onOpenAgentNewCanvas: () => void;
-    onOpenExistingCanvas: () => void;
+function guardHomeLink(event: MouseEvent<HTMLAnchorElement>, to: string) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!mayNavigateWithAuth(to)) event.preventDefault();
 }
 
-/**
- * 大卡的动态底片。
- *
- * 原本是一张静态的《黑白黑色电影》风格照，换成循环雾气视频后整块会缓慢呼吸。
- * 素材与旧的舞台底片同源（`/create/hero-ambient.mp4`，1280×720 / 15s / 无音轨 / 1.1MB），
- * 压暗后当底纹用，不额外引入资源；`preload="metadata"` 避免首屏就抢带宽，
- * poster 与视频同色调，所以未就绪 / 降级时观感一致。
- */
-const LEAD_MEDIA_VIDEO = "/create/hero-ambient.mp4";
-const LEAD_MEDIA_POSTER = "/create/hero-ambient-poster.jpg";
-
-/**
- * 四个能力入口。封面复用短剧风格图：这一带与上方画廊同宽，纯图标撑不起这个尺度，
- * 配一张封面才和画廊连成一条内容带；图标压在封面上保留入口语义，不让照片盖掉"去哪儿"。
- */
-const capabilities = [
-    {
-        title: "技能工坊",
-        tag: "Skills",
-        description: "沉淀与复用专业影视工作流与定制方法库。",
-        icon: WandSparkles,
-        iconClassName: "is-skills",
-        cover: "/short-drama-styles/ink-narrative.jpg",
-        route: "/skills",
-    },
-    {
-        title: "素材资产库",
-        tag: "Assets",
-        description: "管理角色设定卡、参考原画与视频片段。",
-        icon: FolderOpen,
-        iconClassName: "is-assets",
-        cover: "/short-drama-styles/period-live-action.jpg",
-        route: "/assets",
-    },
-    {
-        title: "插件中心",
-        tag: "Plugins",
-        description: "连接模型供应商与第三方工作流应用扩展。",
-        icon: PlugZap,
-        iconClassName: "is-plugins",
-        cover: "/short-drama-styles/future-tech.jpg",
-        route: "/plugins",
-    },
-    {
-        title: "任务与历史",
-        tag: "Tasks",
-        description: "追踪云端异步生成任务，随时回溯历史版本。",
-        icon: Clock3,
-        iconClassName: "is-tasks",
-        cover: "/short-drama-styles/space-opera.jpg",
-        route: "/tasks",
-    },
-] as const;
-
-export function CreationHomeFeatureMatrix({
-    onOpenAgentNewCanvas,
-    onOpenExistingCanvas,
-}: CreationHomeFeatureMatrixProps) {
-    const navigate = useNavigate();
-    const reducedMotion = useReducedMotion();
-    const leadVideoRef = useAmbientVideoPlayback(Boolean(reducedMotion));
-
-    const handleKeyboardAction = (event: React.KeyboardEvent, action: () => void) => {
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            action();
-        }
-    };
-
+export function CreationHomeAgentEntry({ onOpenAgentNewCanvas, openingAgentCanvas }: { onOpenAgentNewCanvas: () => void; openingAgentCanvas: boolean }) {
     return (
-        <section className="creation-feature-matrix" aria-label="核心创作与工具能力">
-            <div className="creation-feature-layout">
-                <article
-                    className="creation-feature-lead"
-                    role="button"
-                    tabIndex={0}
-                    onClick={onOpenAgentNewCanvas}
-                    onKeyDown={(event) => handleKeyboardAction(event, onOpenAgentNewCanvas)}
-                >
-                    <div className="creation-feature-lead-media" aria-hidden="true">
-                        <video
-                            ref={leadVideoRef}
-                            className="creation-feature-lead-video"
-                            src={LEAD_MEDIA_VIDEO}
-                            poster={LEAD_MEDIA_POSTER}
-                            muted
-                            loop
-                            playsInline
-                            preload="metadata"
-                            controls={false}
-                            disablePictureInPicture
-                            tabIndex={-1}
-                            onContextMenu={(event) => event.preventDefault()}
-                        />
-                    </div>
-                    <div className="creation-feature-lead-scrim" aria-hidden="true" />
-                    <div className="creation-feature-lead-content">
-                        <div className="creation-feature-lead-copy">
-                            <h2>短剧 Agent 创作助手</h2>
-                            <p>使用画布里的同一个 Agent，结合素材、技能与创作上下文协作。从一句想法拆解大纲分镜，自动推进成片。</p>
-                        </div>
-                        <div className="creation-feature-lead-actions">
-                            <button
-                                type="button"
-                                className="creation-feature-lead-primary"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onOpenAgentNewCanvas();
-                                }}
-                            >
-                                <Sparkles className="size-3.5" />
-                                <span>新建画布，与 Agent 创作</span>
-                                <ArrowUpRight className="size-4" />
-                            </button>
-                            <button
-                                type="button"
-                                className="creation-feature-lead-secondary"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onOpenExistingCanvas();
-                                }}
-                            >
-                                <FolderOpen className="size-3.5" />
-                                <span>在已有画布中打开</span>
-                            </button>
-                        </div>
-                    </div>
-                </article>
-
-                <div className="creation-capability-panel">
-                    <div className="creation-capability-list">
-                        {capabilities.map((capability) => {
-                            const Icon = capability.icon;
-                            // 四张卡的目标页（/skills /assets /plugins /tasks）全要登录：
-                            // 未登录时由闸门换成弹登录框，别先跳过去再被 RequireAuth 弹回来。
-                            const openCapability = () => {
-                                if (mayNavigateWithAuth(capability.route)) navigate(capability.route);
-                            };
-                            return (
-                                <div
-                                    key={capability.route}
-                                    className="creation-cap-card"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={openCapability}
-                                    onKeyDown={(event) => handleKeyboardAction(event, openCapability)}
-                                >
-                                    <div className={`creation-cap-card-thumb ${capability.iconClassName}`} aria-hidden="true">
-                                        <img src={capability.cover} alt="" loading="lazy" decoding="async" draggable={false} />
-                                        <span className="creation-cap-card-thumb-icon">
-                                            <Icon className="size-4" />
-                                        </span>
-                                    </div>
-                                    <div className="creation-cap-card-content">
-                                        <div className="creation-cap-card-heading">
-                                            <h3>{capability.title}</h3>
-                                            <span className="creation-cap-card-tag">{capability.tag}</span>
-                                        </div>
-                                        <p className="creation-cap-card-desc">{capability.description}</p>
-                                    </div>
-                                    <div className="creation-cap-card-arrow" aria-hidden="true">
-                                        <ArrowUpRight className="size-4" />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
+        <section className="creation-home-agent-entry" aria-label="画布 Agent 协作">
+            <span>需要一起梳理素材和镜头？</span>
+            <button type="button" disabled={openingAgentCanvas} onClick={onOpenAgentNewCanvas}>
+                {openingAgentCanvas ? "正在新建画布…" : "新建画布，与 Agent 创作"}
+                <ArrowUpRight aria-hidden="true" />
+            </button>
+            <Link to="/canvas?agent=1" onClick={(event) => guardHomeLink(event, "/canvas?agent=1")}>使用已有画布</Link>
         </section>
     );
 }
