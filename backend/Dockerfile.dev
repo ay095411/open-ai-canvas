@@ -5,8 +5,10 @@ ARG GOPROXY=https://proxy.golang.org,direct
 ARG ALPINE_MIRROR
 ENV GOPROXY=$GOPROXY
 
+# ffmpeg（含同包 ffprobe）：短剧抽尾帧、时间线合成、播放转码与 whisper 音频预处理。
+# 生产镜像 backend/Dockerfile 已内置；开发容器缺它会在这几处直接失败，所以一并对齐。
 RUN if [ -n "$ALPINE_MIRROR" ]; then sed -i "s#https://dl-cdn.alpinelinux.org#${ALPINE_MIRROR}#g" /etc/apk/repositories; fi \
-    && apk add --no-cache build-base git \
+    && apk add --no-cache build-base git ffmpeg \
     && go install github.com/air-verse/air@v1.63.0
 
 WORKDIR /workspace/backend

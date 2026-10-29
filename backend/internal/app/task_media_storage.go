@@ -316,10 +316,11 @@ func probeMediaDurationMs(path string) int64 {
 	if strings.TrimSpace(path) == "" {
 		return 0
 	}
-	if _, err := exec.LookPath("ffprobe"); err != nil {
+	bin, err := renderFfprobeBinary()
+	if err != nil {
 		return 0
 	}
-	output, err := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path).Output()
+	output, err := exec.Command(bin, "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path).Output()
 	if err != nil {
 		return 0
 	}

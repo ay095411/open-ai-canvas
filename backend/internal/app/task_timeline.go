@@ -128,7 +128,8 @@ func isTranscribableMime(mime string) bool {
 // prepareWhisperWav 将媒体流经本地 ffmpeg 转为 whisper.cpp 期望的
 // 16k 单声道 PCM wav；返回临时文件路径与清理函数。
 func prepareWhisperWav(ctx context.Context, reader io.Reader, mime string) (string, func(), error) {
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
+	ffmpegBin, err := renderFfmpegBinary()
+	if err != nil {
 		return "", nil, fmt.Errorf("音频预处理依赖未安装（需要 ffmpeg）")
 	}
 	tmpDir, err := os.MkdirTemp("", "yingce-whisper-*")
@@ -152,7 +153,7 @@ func prepareWhisperWav(ctx context.Context, reader io.Reader, mime string) (stri
 		return "", nil, fmt.Errorf("关闭临时文件失败: %w", err)
 	}
 	wavPath := filepath.Join(tmpDir, "audio16k.wav")
-	cmd := exec.CommandContext(ctx, "ffmpeg", "-nostdin", "-y", "-i", inPath, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", wavPath)
+	cmd := exec.CommandContext(ctx, ffmpegBin, "-nostdin", "-y", "-i", inPath, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", wavPath)
 	output, runErr := cmd.CombinedOutput()
 	if runErr != nil {
 		cleanup()

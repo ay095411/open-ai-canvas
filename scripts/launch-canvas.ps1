@@ -52,6 +52,14 @@ if (-not (Test-PortListen 8080)) {
     $env:GOPROXY = "https://goproxy.cn,direct"
     $env:GOCACHE = $goBuildCache
     $env:GOMODCACHE = $goModuleCache
+    # 抽尾帧、成片渲染、播放转码依赖 ffmpeg（ffprobe 同包）；显式传绝对路径，
+    # 避免从旧 PATH 的终端启动时只在跑任务阶段才报「未安装 ffmpeg」。
+    $ffmpegPath = (Get-Command ffmpeg.exe -ErrorAction SilentlyContinue).Source
+    if ($ffmpegPath) {
+        $env:CANVAS_FFMPEG_PATH = $ffmpegPath
+    } else {
+        Write-Host "未在 PATH 中找到 ffmpeg：短剧抽尾帧、成片导出与播放转码会失败。请安装 ffmpeg，或先设置 CANVAS_FFMPEG_PATH。" -ForegroundColor Yellow
+    }
     Start-Process -FilePath "go" -ArgumentList "run", "./cmd/server" `
         -WorkingDirectory $backendDir `
         -RedirectStandardOutput (Join-Path $repoRoot ".local\backend.stdout.log") `

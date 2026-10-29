@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -129,5 +132,56 @@ func TestTimelineRenderFailsFastWhenSourceUnreadable(t *testing.T) {
 	}
 	if !strings.Contains(stored.Error, "时间线引用的媒体") {
 		t.Fatalf("error = %q, want mention of 无法读取时间线引用的媒体", stored.Error)
+	}
+}
+
+func TestRenderFfprobeBinaryUsesSiblingOfConfiguredFfmpeg(t *testing.T) {
+	dir := t.TempDir()
+	ffmpegName, ffprobeName := "ffmpeg", "ffprobe"
+	if runtime.GOOS == "windows" {
+		ffmpegName += ".exe"
+		ffprobeName += ".exe"
+	}
+	ffmpegPath := filepath.Join(dir, ffmpegName)
+	ffprobePath := filepath.Join(dir, ffprobeName)
+	for _, path := range []string{ffmpegPath, ffprobePath} {
+		if err := os.WriteFile(path, []byte("stub"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv(renderFfmpegEnv, ffmpegPath)
+	t.Setenv(renderFfprobeEnv, "")
+
+	got, err := renderFfprobeBinary()
+	if err != nil {
+		t.Fatalf("renderFfprobeBinary: %v", err)
+	}
+	if got != ffprobePath {
+		t.Fatalf("ffprobe = %q, want sibling %q", got, ffprobePath)
+	}
+}
+
+func TestRenderFfprobeBinaryPrefersExplicitEnv(t *testing.T) {
+	t.Setenv(renderFfprobeEnv, filepath.Join("opt", "ff", "ffprobe"))
+	t.Setenv(renderFfmpegEnv, filepath.Join("no", "such", "ffmpeg"))
+
+	got, err := renderFfprobeBinary()
+	if err != nil {
+		t.Fatalf("renderFfprobeBinary: %v", err)
+	}
+	if got != filepath.Join("opt", "ff", "ffprobe") {
+		t.Fatalf("ffprobe = %q, want the explicit env path", got)
+	}
+}
+
+func TestRenderFfprobeBinaryFailsWhenNothingConfigured(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(renderFfmpegEnv, filepath.Join(dir, "ffmpeg")) // 目录里没有 ffprobe
+	t.Setenv(renderFfprobeEnv, "")
+	t.Setenv("PATH", dir) // 保证 PATH 也找不到
+
+	_, err := renderFfprobeBinary()
+	if err == nil || !strings.Contains(err.Error(), "ffprobe") {
+		t.Fatalf("err = %v, want mention of ffprobe", err)
 	}
 }

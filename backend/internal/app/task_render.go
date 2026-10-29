@@ -8,13 +8,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"yingce/backend/internal/model"
 )
 
-const renderFfmpegEnv = "CANVAS_FFMPEG_PATH"
+const (
+	renderFfmpegEnv  = "CANVAS_FFMPEG_PATH"
+	renderFfprobeEnv = "CANVAS_FFPROBE_PATH"
+)
 
 // processTimelineRender 执行时间线渲染：按快照把引用的媒体落盘 →
 // ffprobe 探测音轨 → ffmpeg concat 合成 → 产物写入资源存储。
@@ -137,6 +141,29 @@ func renderFfmpegBinary() (string, error) {
 	return path, nil
 }
 
+// renderFfprobeBinary 解析 ffprobe（音轨探测、成片时长）。
+// ffprobe 与 ffmpeg 由同一个发行包提供，所以 CANVAS_FFMPEG_PATH 指向的目录里通常就有它——
+// 只认 PATH 会让"配置了 CANVAS_FFMPEG_PATH、但没改系统 PATH"的部署在探测环节静默降级。
+func renderFfprobeBinary() (string, error) {
+	if configured := strings.TrimSpace(os.Getenv(renderFfprobeEnv)); configured != "" {
+		return configured, nil
+	}
+	if ffmpegBin := strings.TrimSpace(os.Getenv(renderFfmpegEnv)); ffmpegBin != "" {
+		candidate := filepath.Join(filepath.Dir(ffmpegBin), "ffprobe")
+		if runtime.GOOS == "windows" {
+			candidate += ".exe"
+		}
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate, nil
+		}
+	}
+	path, err := exec.LookPath("ffprobe")
+	if err != nil {
+		return "", fmt.Errorf("后端未安装 ffprobe（安装后重试，或通过 %s 指向 ffmpeg 所在的可执行文件）", renderFfmpegEnv)
+	}
+	return path, nil
+}
+
 // materializeRenderSources 把计划中每个媒体片段对应的资源下载到临时目录，
 // 同资源复用同一份本地文件；返回工作目录与清理函数。
 func materializeRenderSources(ctx context.Context, s *Service, userID string, plan *renderPlan) (string, func(), error) {
@@ -195,7 +222,7 @@ func materializeRenderSources(ctx context.Context, s *Service, userID string, pl
 
 // probeHasAudioStream 用 ffprobe 判断媒体是否含音轨，供滤镜图选择静音回退。
 func probeHasAudioStream(ctx context.Context, path string) (bool, error) {
-	bin, err := exec.LookPath("ffprobe")
+	bin, err := renderFfprobeBinary()
 	if err != nil {
 		return false, fmt.Errorf("媒体探测依赖未安装（需要 ffprobe）")
 	}

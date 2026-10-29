@@ -528,7 +528,7 @@ SEO 标题、描述、可选关键词会投影到浏览器 metadata、Open Graph
 ### 运行环境要求
 
 - 语音转写依赖本地 whisper.cpp 服务（`CANVAS_WHISPER_BASE_URL`），未配置时转写任务明确失败。
-- 成片导出依赖服务端 ffmpeg（`CANVAS_FFMPEG_PATH`，留空时在 PATH 中查找）。
+- 成片导出、播放副本转码、短剧抽尾帧与 whisper 音频预处理依赖服务端 ffmpeg（`CANVAS_FFMPEG_PATH`，留空时在 PATH 中查找）；音轨探测与成片时长读取依赖同发行包的 ffprobe（`CANVAS_FFPROBE_PATH`，留空时取 `CANVAS_FFMPEG_PATH` 同目录，再退回 PATH）。
 - AI 编辑助手需要可用的文本模型渠道。
 
 ### 相关实现

@@ -176,7 +176,7 @@ func (s *Service) maybeStartPlaybackTranscode(resource *model.Resource) {
 	}
 	// 不可转码场景（无 ffmpeg）落 none：状态为空会被前端当成 processing 无限轮询，
 	// 也会让启动回填每次重试探测。none 表示"无需转码"，按原生播放处理。
-	if _, err := exec.LookPath("ffmpeg"); err != nil {
+	if _, err := renderFfmpegBinary(); err != nil {
 		markPlaybackNone(s, resource)
 		return
 	}
@@ -269,10 +269,14 @@ func persistPlaybackResource(saver resourcePersister, resource *model.Resource, 
 
 // runH264Transcode 用 ffmpeg 将任意输入转为 H.264/AAC mp4（faststart、yuv420p、偶数尺寸）。
 func runH264Transcode(src string, dst string) error {
+	ffmpegBin, err := renderFfmpegBinary()
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return err
 	}
-	cmd := exec.Command("ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+	cmd := exec.Command(ffmpegBin, "-hide_banner", "-loglevel", "error", "-y",
 		"-i", src,
 		"-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
 		"-pix_fmt", "yuv420p", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",

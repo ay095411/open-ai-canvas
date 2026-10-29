@@ -67,11 +67,21 @@ $backendDirLiteral = ConvertTo-PowerShellLiteral $backendDir
 $webDirLiteral = ConvertTo-PowerShellLiteral $webDir
 $dataDirLiteral = ConvertTo-PowerShellLiteral $dataDir
 
+# 抽尾帧、成片渲染、播放转码都依赖 ffmpeg（ffprobe 在同一个发行包里）。
+# 这里解析成绝对路径显式传给后端：在「改过 PATH 之前就开着的终端」里启动时，
+# 新窗口继承的仍是旧 PATH，后端会一路跑到抽尾帧才报「未安装 ffmpeg」。
+$ffmpegPath = (Get-Command ffmpeg.exe -ErrorAction SilentlyContinue).Source
+if (-not $ffmpegPath) {
+    Write-Host "未在 PATH 中找到 ffmpeg：短剧抽尾帧、成片导出与播放转码会失败。请安装 ffmpeg，或先设置 CANVAS_FFMPEG_PATH。" -ForegroundColor Yellow
+}
+$ffmpegLiteral = if ($ffmpegPath) { ConvertTo-PowerShellLiteral $ffmpegPath } else { "''" }
+
 $backendCommand = @"
 `$ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $backendDirLiteral
 `$env:CANVAS_BACKEND_ADDR = '127.0.0.1:28601'
 `$env:CANVAS_BACKEND_DATA_DIR = $dataDirLiteral
+`$env:CANVAS_FFMPEG_PATH = $ffmpegLiteral
 `$env:GOCACHE = $(ConvertTo-PowerShellLiteral $goBuildCache)
 `$env:GOMODCACHE = $(ConvertTo-PowerShellLiteral $goModuleCache)
 Write-Host '影策后端：http://127.0.0.1:28601' -ForegroundColor Cyan
