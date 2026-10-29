@@ -108,15 +108,16 @@ export function WorkspaceSettingsModal({
             // 外壳自带关闭按钮（与弹窗头同一行），关掉 AntD 默认那颗，否则两颗 X 会叠在一起。
             closable={false}
             centered
-            width="min(1280px, calc(100vw - 32px))"
+            width="min(1360px, calc(100vw - 32px))"
             rootClassName="workspace-settings-modal"
+            aria-labelledby="workspace-settings-title"
             onCancel={onClose}
         >
             <div className="settings-modal-frame">
                 <header className="settings-modal-header">
                     <div className="min-w-0">
-                        <h2>账户与设置</h2>
-                        <p>渠道、模型、生成偏好与问题诊断都在这一处维护。</p>
+                        <h2 id="workspace-settings-title">账户与设置</h2>
+                        <p>管理账户、连接服务与创作偏好</p>
                     </div>
                     <button type="button" className="settings-modal-close" onClick={onClose} aria-label="关闭设置">
                         <X className="size-4" strokeWidth={2} aria-hidden />

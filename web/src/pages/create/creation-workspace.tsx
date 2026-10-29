@@ -1,30 +1,20 @@
 import { ImageSizePicker } from "@/components/image-size-picker";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
-import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
+import { imageResolutionUsesQuality } from "@/lib/image-size-presets";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
-import { App, Button, Dropdown, Popover } from "antd";
-import { AppDrawer } from "@/components/ui/product/app-drawer";
-import { AppModal } from "@/components/ui/product/app-modal";
+import { Button, Popover } from "antd";
 import { useWorkspaceTopBarMount } from "@/components/layout/workspace-top-bar-extension";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { Reorder, LayoutGroup, motion } from "motion/react";
-import { ArrowDown, ArrowUp, Brain, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Clock3, Copy, Download, FileText, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, MoreHorizontal, Music2, Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Sparkles, Trash2, WandSparkles, Waves, X } from "lucide-react";
+import { ArrowUp, Brain, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Clock3, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, PenLine, Plus, SlidersHorizontal, Trash2, Waves, X } from "lucide-react";
 
-import { AIMessageMarkdown } from "@/components/ai/ai-message-markdown";
-import { CoalAvatar } from "@/components/brand/coal-avatar";
-import { GenerationToolCard, type GenerationToolStatus } from "@/components/ai/generation-tool-card";
-import { WorkingDots, WorkingGlow } from "@/components/ai/working-indicator";
-import { MessageReasoning } from "@/components/ai/message-reasoning";
-import { creationResultAssetIds, creationResultStorageKeys } from "@/lib/canvas/canvas-asset-handoff";
-import { generationErrorMessage } from "@/lib/generation-error";
 import { formatVideoResolutionLabel as videoResolutionLabel } from "@/lib/video-generation-options";
 import { CanvasResourceMentionTextarea } from "@/components/canvas/canvas-resource-mention-textarea";
 import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
 import { SpotlightSurface } from "@/components/ui/aceternity/spotlight-surface";
 import { ModelPicker } from "@/components/model-picker";
-import { aceternityMotion } from "@/lib/aceternity-motion";
 import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { ASSET_CATEGORY_LABELS } from "@/lib/asset-category";
 import { formatShotOrdinal } from "@/lib/shot-label";
@@ -40,6 +30,7 @@ import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { type CreationReference } from "./creation-references";
 import { creationAttachmentKind, type CreationAttachment, type CreationMode } from "./creation-assets";
 import { countOptions, modeLabels, qualityOptions, resolutionOptions, type CreationShotRailEntry } from "./creation-types";
+import { creationMessageNeedsResultSync } from "./creation-conversations";
 import "./creation-product.css";
 import "./creation-scrollbars.css";
 import { CreationAttachmentThumbnail, CreationMediaPreviewModal } from "./creation-workspace-messages";
@@ -68,11 +59,12 @@ export function CreationWorkspaceToolbar({ shots, onJumpToShot, onNewConversatio
                 <div className="creation-rail-pop-head"><span className="creation-rail-pop-title">镜头时间线<small>{shots.length ? `共 ${shots.length} 镜` : "空轨道"}</small></span><button type="button" className="creation-rail-pop-close" aria-label="关闭镜头列表" onClick={() => setRailOpen(false)}><X /></button></div>
                 {shots.length ? <ol className="creation-rail-list">{shots.map((shot) => {
                     const resultStatus = shot.result?.status;
-                    const statusLabel = resultStatus === "done" ? "完成" : resultStatus === "error" ? "生成失败" : resultStatus === "pending" ? "生成中" : resultStatus === "cancelled" ? "已停止" : "待生成";
+                    const resultNeedsSync = Boolean(shot.result && creationMessageNeedsResultSync(shot.result));
+                    const statusLabel = resultStatus === "done" ? "完成" : resultNeedsSync ? "待同步" : resultStatus === "error" ? "生成失败" : resultStatus === "pending" ? "生成中" : resultStatus === "cancelled" ? "已停止" : "待生成";
                     return <li key={shot.key}><button type="button" role="option" aria-selected="false" className="creation-rail-row" onClick={() => { setRailOpen(false); onJumpToShot(shot); }}>
                         <span className="creation-rail-row-shot">{formatShotOrdinal(shot.ordinal - 1)}</span>
                         <span className="creation-rail-row-prompt">{shot.user.content || "视频镜头"}</span>
-                        <span className={`creation-rail-row-state is-${resultStatus || "idle"}`}>{statusLabel}</span>
+                        <span className={`creation-rail-row-state is-${resultNeedsSync ? "sync" : resultStatus || "idle"}`}>{statusLabel}</span>
                     </button></li>;
                 })}</ol> : <p className="creation-rail-empty">在下方发送一条视频消息，就会自动成为第 1 镜。</p>}
             </div> : null}
@@ -390,7 +382,7 @@ export function CreationComposer(props: ComposerProps) {
                         aria-expanded={promptOptimizerOpen}
                         aria-haspopup="dialog"
                     >
-                        <WandSparkles />
+                        <PenLine />
                         <span>优化</span>
                     </button>
                 </Tooltip> : null}

@@ -694,11 +694,12 @@ export function applySkinTheme(skinValue: unknown, mode: SkinThemeMode, targetDo
     const skin = normalizeSkinDefinition(skinValue);
     const root = targetDocument.documentElement;
     for (const property of MANAGED_VARIABLES) root.style.removeProperty(property);
+    // 经典皮肤的全部 token（包括主按钮）都由 globals.css 定义；只有自定义皮肤写入行内变量，
+    // 这样首屏 JS 执行前主按钮也有颜色，旧后端返回的历史填充也不会改变经典外观。
     if (skin.id !== "classic") {
-        const values = skinCSSVariables(skin, mode);
+        const values = { ...skinCSSVariables(skin, mode), ...skinButtonCSSVariables(skin, mode) };
         for (const [property, value] of Object.entries(values)) root.style.setProperty(property, value);
     }
-    for (const [property, value] of Object.entries(skinButtonCSSVariables(skin, mode))) root.style.setProperty(property, value);
     root.dataset.skin = skin.id;
 }
 

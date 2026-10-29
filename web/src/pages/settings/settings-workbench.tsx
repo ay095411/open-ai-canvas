@@ -25,22 +25,25 @@ export type SettingsSectionKey = "profile" | "channels" | "models" | "runninghub
  * 分区清单是「页面版」和「弹窗版」唯一的真源：两个形态共用同一个数组和同一套文案，
  * 所以不存在「弹窗里少一个分区 / 顺序不一样」这种漂移。
  */
-/**
- * 导航副标题一律控制在 8 个汉字以内：侧栏固定 200px，实测文字可用宽度 127px，
- * 13px 字号下 10 个字就会折成两行（「模型服务与个人工作流」「批准、添加、导出导入、压缩」
- * 原本都是两行，整列高度被撑得参差不齐）。折叠成行是这里唯一需要守的约束。
- */
-export const settingsSections: Array<{ key: SettingsSectionKey; label: string; description: string; icon: ReactNode }> = [
-    { key: "profile", label: "个人信息", description: "头像、密码与邮箱", icon: <UserRound className="size-4" /> },
-    { key: "channels", label: "个人渠道", description: "模型服务与工作流", icon: <RadioTower className="size-4" /> },
-    { key: "runninghub", label: "RunningHub 工作流", description: "云端工作流配置", icon: <Workflow className="size-4" /> },
-    { key: "models", label: "模型选择", description: "按领域选默认模型", icon: <Boxes className="size-4" /> },
-    { key: "preferences", label: "生成偏好", description: "画布生成默认值", icon: <SlidersHorizontal className="size-4" /> },
-    { key: "prompts", label: "提示词偏好", description: "定制平台模板", icon: <MessageSquareText className="size-4" /> },
-    { key: "agent-memory", label: "Agent 记忆", description: "记忆批准与压缩", icon: <Brain className="size-4" /> },
-    { key: "storage", label: "我的对象存储", description: "个人媒体存储", icon: <Cloud className="size-4" /> },
-    { key: "diagnostics", label: "问题诊断", description: "导出日志排查", icon: <Bug className="size-4" /> },
-    { key: "feedbacks", label: "我的反馈", description: "提交问题与官方答复", icon: <Inbox className="size-4" /> },
+const settingsSectionGroups = [
+    { key: "account", label: "账户" },
+    { key: "creation", label: "创作" },
+    { key: "support", label: "支持" },
+] as const;
+
+type SettingsSectionGroup = typeof settingsSectionGroups[number]["key"];
+
+export const settingsSections: Array<{ key: SettingsSectionKey; group: SettingsSectionGroup; label: string; description: string; icon: ReactNode }> = [
+    { key: "profile", group: "account", label: "个人信息", description: "头像、密码与邮箱", icon: <UserRound className="size-4" /> },
+    { key: "channels", group: "creation", label: "个人渠道", description: "模型服务与工作流", icon: <RadioTower className="size-4" /> },
+    { key: "runninghub", group: "creation", label: "RunningHub 工作流", description: "云端工作流配置", icon: <Workflow className="size-4" /> },
+    { key: "models", group: "creation", label: "模型选择", description: "按领域选默认模型", icon: <Boxes className="size-4" /> },
+    { key: "preferences", group: "creation", label: "生成偏好", description: "画布生成默认值", icon: <SlidersHorizontal className="size-4" /> },
+    { key: "prompts", group: "creation", label: "提示词偏好", description: "定制平台模板", icon: <MessageSquareText className="size-4" /> },
+    { key: "agent-memory", group: "creation", label: "Agent 记忆", description: "记忆文档与历史", icon: <Brain className="size-4" /> },
+    { key: "storage", group: "account", label: "我的对象存储", description: "个人媒体存储", icon: <Cloud className="size-4" /> },
+    { key: "diagnostics", group: "support", label: "问题诊断", description: "导出日志排查", icon: <Bug className="size-4" /> },
+    { key: "feedbacks", group: "support", label: "我的反馈", description: "提交问题与官方答复", icon: <Inbox className="size-4" /> },
 ];
 
 export function isSettingsSection(value: string | null): value is SettingsSectionKey {
@@ -164,7 +167,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
         prompts: <SettingsPane fill><PromptPreferencesPane /></SettingsPane>,
         "agent-memory": (
             <SettingsPane>
-                <SettingsPaneHeader title="Agent 记忆" description="只属于你。Agent 记下的先待批准；手动添加立刻生效。可导入导出，也可用文本模型压缩相近条目。" />
+                <SettingsPaneHeader title="Agent 记忆" description="管理仅属于你的长期记忆文档，设置更新方式，编辑内容并查看或撤销修改历史。" />
                 <div className="settings-section">
                     <AgentMemoryPane />
                 </div>
@@ -200,32 +203,38 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                 </div>
             ) : null}
             <div className="settings-library-frame flex min-h-0 flex-1 flex-col md:flex-row">
-                <aside className="settings-nav-panel w-full shrink-0 md:w-[200px]">
-                    <nav className="thin-scrollbar flex gap-1 overflow-x-auto p-2 md:block md:space-y-1 md:p-2.5" aria-label="配置分类">
-                        {visibleSections.map((item) => {
-                            const selected = item.key === activeTab;
+                <aside className="settings-nav-panel">
+                    <nav className="settings-nav thin-scrollbar" aria-label="配置分类">
+                        {settingsSectionGroups.map((group) => {
+                            const items = visibleSections.filter((item) => item.group === group.key);
+                            if (!items.length) return null;
                             return (
-                                <button
-                                    key={item.key}
-                                    type="button"
-                                    className={`settings-nav-item flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-auto md:w-full md:items-start md:gap-3 md:py-2.5 ${selected ? "is-active" : "text-foreground/58 hover:bg-muted/55 hover:text-foreground"}`}
-                                    onClick={() => selectSection(item.key)}
-                                    aria-current={selected ? "page" : undefined}
-                                >
-                                    <span className={`shrink-0 md:mt-0.5 ${selected ? "text-[var(--workspace-accent)]" : ""}`}>{item.icon}</span>
-                                    <span className="min-w-0">
-                                        {/* truncate 而不是 whitespace-nowrap：长标签（如 RunningHub 工作流）
-                                            在 200px 侧栏里 nowrap 会撑出横向滚动条。 */}
-                                        <span className="block truncate text-sm font-medium">{item.label}</span>
-                                        <span className="mt-1 hidden text-[var(--fs-label)] leading-4 text-current opacity-65 md:block">{item.description}</span>
-                                    </span>
-                                </button>
+                                <div key={group.key} className="settings-nav-group">
+                                    <span className="settings-nav-group-label" aria-hidden>{group.label}</span>
+                                    {items.map((item) => {
+                                        const selected = item.key === activeTab;
+                                        return (
+                                            <button
+                                                key={item.key}
+                                                type="button"
+                                                className={`settings-nav-item${selected ? " is-active" : ""}`}
+                                                onClick={() => selectSection(item.key)}
+                                                aria-current={selected ? "page" : undefined}
+                                                aria-pressed={selected}
+                                                title={item.description}
+                                            >
+                                                <span className="settings-nav-icon" aria-hidden>{item.icon}</span>
+                                                <span className="settings-nav-label">{item.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             );
                         })}
                     </nav>
                 </aside>
                 <section className="settings-content flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="app-workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-5">
+                    <div className="settings-content-scroll app-workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
                         <div className={`settings-pane-root ${activeTab === "prompts" ? "h-full w-full" : "mx-auto w-full max-w-none"}`}>
                             {panes[activeTab]}
                         </div>

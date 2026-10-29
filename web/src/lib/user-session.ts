@@ -52,6 +52,7 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
     useUserStore.getState().setFeatures(payload.features);
     useUserStore.getState().setReferralAvailable(payload.referralAvailable);
+    useUserStore.getState().setUserGroup(payload.userGroup);
     installRemoteUserDataAutoSync();
     try {
         // 缓存恢复和同步基线必须先于工作区开放，防止生成/编辑抢跑，或被初始化误记为已同步。
@@ -108,28 +109,33 @@ async function hydrateUserSessionData(payload: AuthSessionPayload, generation: n
         resetRemoteUserDataSync();
     }
 
-    void (async () => {
-        try {
-            const catalog = await getModelCatalog();
-            if (!isCurrentSession(generation, userId)) return;
-            if (!persistedConfig) {
-                // 只有首次配置缺失时才生成能力推荐；已有配置中的空数组代表用户明确清空。
-                const initialSystemConfig = {
-                    ...defaultConfig,
-                    channels: modelCatalogChannels(catalog),
-                    imageModels: undefined,
-                    videoModels: undefined,
-                    textModels: undefined,
-                    audioModels: undefined,
-                };
-                useConfigStore.getState().replaceConfig(normalizeConfigSnapshot({ config: initialSystemConfig }).config);
-            } else {
-                useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalog));
+    if (!isCurrentSession(generation, userId)) return;
+    if (userId) {
+        void (async () => {
+            try {
+                const catalog = await getModelCatalog();
+                if (!isCurrentSession(generation, userId)) return;
+                if (!persistedConfig) {
+                    // 只有首次配置缺失时才生成能力推荐；已有配置中的空数组代表用户明确清空。
+                    const initialSystemConfig = {
+                        ...defaultConfig,
+                        channels: modelCatalogChannels(catalog),
+                        imageModels: undefined,
+                        videoModels: undefined,
+                        textModels: undefined,
+                        audioModels: undefined,
+                    };
+                    useConfigStore.getState().replaceConfig(normalizeConfigSnapshot({ config: initialSystemConfig }).config);
+                } else {
+                    useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalog));
+                }
+            } catch (error) {
+                if (isCurrentSession(generation, userId)) console.warn("模型目录后台刷新失败，保留本地配置", error);
             }
-        } catch (error) {
-            if (isCurrentSession(generation, userId)) console.warn("模型目录后台刷新失败，保留本地配置", error);
-        }
-    })();
+        })();
+    } else {
+        useConfigStore.getState().mergeSystemChannels([]);
+    }
     if (isCurrentSession(generation, userId)) {
         recordDiagnosticEvent({
             category: "navigation",
@@ -163,7 +169,11 @@ function safeScopedStorageGet(key: string) {
 }
 
 export async function refreshSystemChannels() {
+    const userId = useUserStore.getState().user?.id;
+    if (!userId) return;
+    const generation = sessionGeneration;
     const catalog = await getModelCatalog();
+    if (!isCurrentSession(generation, userId)) return;
     useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalog));
 }
 

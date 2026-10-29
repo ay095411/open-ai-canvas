@@ -174,10 +174,10 @@ export function ChannelSettingsPane({ onOpenModels, onOpenRunningHub }: ChannelS
 
     return (
         <Form layout="vertical" requiredMark={false}>
-            <div className="settings-pane-header">
-                <div className="min-w-0">
+            <div className="settings-pane-header settings-channel-header">
+                <div className="settings-channel-heading">
                     <h2>个人渠道</h2>
-                    <p>管理个人模型服务和工作流渠道。普通渠道只保存连接类型；模型能力在“模型与能力”中配置。<Button type="link" size="small" className="h-auto p-0 text-xs font-semibold" onClick={onOpenModels}>打开模型选择</Button></p>
+                    <p className="settings-channel-description" tabIndex={0}>管理个人模型服务和工作流渠道。普通渠道只保存连接类型；模型能力在“模型与能力”中配置。<Button type="link" size="small" className="h-auto p-0 text-xs font-semibold" onClick={onOpenModels}>打开模型选择</Button></p>
                 </div>
                 <div className="flex w-full gap-2 sm:w-auto sm:shrink-0">
                     <Button className="h-10 flex-1 sm:h-8 sm:flex-none" icon={<RefreshCw className="size-4" />} loading={loadingChannelIds.includes("all")} disabled={loadingChannelIds.some((id) => id !== "all")} onClick={() => void refreshAllModels()}>拉取全部</Button>
@@ -268,7 +268,7 @@ export function ChannelSettingsPane({ onOpenModels, onOpenRunningHub }: ChannelS
                         );
                     })}
                 </div>
-            ) : <WorkspaceState icon="settings" compact title="当前没有个人模型渠道" description="管理员配置的系统渠道会出现在模型选择中；也可以添加自己的模型服务。" action={<Button icon={<Plus className="size-4" />} onClick={addChannel}>新增个人模型渠道</Button>} />}
+            ) : <WorkspaceState icon="settings" compact title="尚未添加个人渠道" description="系统渠道由管理员维护。你也可以在这里连接自己的模型服务。" action={<Button icon={<Plus className="size-4" />} onClick={addChannel}>添加个人渠道</Button>} />}
         </Form>
     );
 }

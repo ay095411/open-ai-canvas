@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { changeAgentPanelLayout, clampAgentPanelLayout, defaultAgentPanelLayout, restoreAgentPanelLayout } from "@/lib/canvas/agent-panel-layout";
+import { AGENT_DOCK_MIN_VIEWPORT, agentDockWidthBounds, clampAgentDockWidth, restoreAgentPanelDock } from "@/lib/canvas/agent-panel-dock";
 import { agentErrorPresentation, agentSubmissionErrorTitle } from "@/lib/canvas/agent-error-presentation";
 import { ApiError } from "@/services/api/request";
 
@@ -59,6 +60,40 @@ describe("Agent window layout", () => {
     });
 });
 
+describe("Agent dock layout", () => {
+    it("keeps at least half the canvas visible within the dock width bounds", () => {
+        expect(agentDockWidthBounds(AGENT_DOCK_MIN_VIEWPORT)).toEqual({ min: 360, max: 480 });
+        expect(clampAgentDockWidth(900, 1280)).toBe(640);
+        expect(clampAgentDockWidth(900, 1920)).toBe(720);
+        expect(clampAgentDockWidth(200, 1280)).toBe(360);
+        expect(clampAgentDockWidth(Number.NaN, 1280)).toBe(420);
+    });
+
+    it("restores the dock preference independently of the floating window", () => {
+        expect(restoreAgentPanelDock('{"docked":true,"width":500}')).toEqual({ docked: true, width: 500 });
+        for (const raw of [null, "invalid", "null", "{}", '{"docked":true,"width":"500"}', '{"docked":true,"width":1e999}']) {
+            expect(restoreAgentPanelDock(raw)).toEqual({ docked: false, width: 420 });
+        }
+        expect(restoreAgentPanelLayout(JSON.stringify(start), viewport)).toEqual(start);
+    });
+
+    it("preserves the local Agent availability switch with the canvas dock gutter", () => {
+        const source = readFileSync(resolve(import.meta.dir, "../src/layouts/user-layout.tsx"), "utf8");
+        expect(source).toContain("state.features.globalAgentEnabled");
+        expect(source).toContain("userId && (canvasEditor || globalAgentEnabled)");
+        expect(source).toContain("Boolean(userId) && canvasEditor && agentDock.active");
+        expect(source).toContain("paddingRight: agentDock.width");
+    });
+
+    it("retains a keyboard resize target without reintroducing the corner icon", () => {
+        const source = readFileSync(resolve(import.meta.dir, "../src/components/canvas/canvas-cloud-agent-panel.tsx"), "utf8");
+        expect(source).toContain('data-agent-resize="dock"');
+        expect(source).toContain('data-agent-resize="northwest"');
+        expect(source).toContain("onKeyDown={panelLayout.onResizeKeyDown}");
+        expect(source).not.toContain("MoveDiagonal2");
+    });
+});
+
 describe("Agent submission sync preflight contract", () => {
     it("scopes submit and approval saves to the active canvas before Agent POST", () => {
         const source = readFileSync(resolve(import.meta.dir, "../src/components/canvas/canvas-cloud-agent-panel.tsx"), "utf8");
@@ -69,7 +104,7 @@ describe("Agent submission sync preflight contract", () => {
         expect(source).not.toContain("cloudNodeIds");
         expect(source).toContain("submitDisabled={otherAgentRunning");
         expect(source).toContain("重新读取记录");
-        expect(source).toContain("requestSent = true;\n            const result = submission.parentRunId ? await sendAgentMessage");
+        expect(source).toMatch(/requestSent = true;\r?\n\s+const result = submission\.parentRunId \? await sendAgentMessage/);
         expect(source).toContain("agentSubmissionErrorTitle(cause, accepted, requestSent)");
     });
 

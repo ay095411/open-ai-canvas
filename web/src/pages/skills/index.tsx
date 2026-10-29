@@ -1,7 +1,7 @@
 import { AppModal } from "@/components/ui/product/app-modal";
 import { App, Button, Input } from "antd";
 
-import { ArrowLeft, Check, ChevronRight, FolderPlus, Globe2, Plus, Search, Sparkles, Trash2, Upload, UserRound } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FolderPlus, Globe2, Info, Plus, Search, Sparkles, Trash2, Upload, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -17,9 +17,10 @@ import { addSkill, createSkillLibraryCategory, deleteSkill, deleteSkillLibraryCa
 import { useUserStore } from "@/stores/use-user-store";
 import { Select } from "@/components/ui/base/select";
 import { SkillCurationBrowser, useSkillCuration, curationQuery, effectiveCurationRoot } from "@/components/skills/skill-curation-browser";
+import { SkillRecommendationsModal } from "@/components/skills/skill-recommendations-modal";
 import "./skills-page.css";
 
-const scopeOptions = [
+const scopeOptions: { label: string; value: SkillScope }[] = [
     { label: "全部", value: "mine" },
     { label: "我创建的", value: "created" },
     { label: "我的收藏", value: "favorites" },
@@ -65,6 +66,7 @@ export default function SkillsPage() {
     const [mutatingID, setMutatingID] = useState("");
     const [editorOpen, setEditorOpen] = useState(false);
     const [installOpen, setInstallOpen] = useState(false);
+    const [recommendationsOpen, setRecommendationsOpen] = useState(false);
     const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
     const isAdmin = useUserStore((state) => state.user?.role === "admin");
     const navigate = useNavigate();
@@ -367,6 +369,7 @@ export default function SkillsPage() {
                                 <h1>探索和管理技能</h1>
                                 <p>将提示词、工作流程与创作方法沉淀为技能，随时调用，也可以分享给更多创作者。</p>
                                 <div className="skills-page-actions">
+                                    <Button icon={<Sparkles className="size-3.5" />} onClick={() => setRecommendationsOpen(true)}>按行业推荐</Button>
                                     <Button icon={<Upload className="size-3.5" />} onClick={() => setInstallOpen(true)}>上传 skill</Button>
                                     <Button type="primary" icon={<Sparkles className="size-3.5" />} onClick={() => void openEditor()}>创建 Skill</Button>
                                 </div>
@@ -394,12 +397,13 @@ export default function SkillsPage() {
                         <header className="skills-personal-header">
                             <div className="skills-personal-title"><button type="button" aria-label="返回探索技能" onClick={() => selectScope("public")}><ArrowLeft className="size-4" /></button><h1>我的技能</h1></div>
                             <div className="skills-page-actions">
+                                <Button icon={<Sparkles className="size-3.5" />} onClick={() => setRecommendationsOpen(true)}>按行业推荐</Button>
                                 <Button icon={<Upload className="size-3.5" />} onClick={() => setInstallOpen(true)}>上传 skill</Button>
                                 <Button type="primary" icon={<Sparkles className="size-3.5" />} onClick={() => void openEditor()}>创建 Skill</Button>
                             </div>
                         </header>
                         <div className="skills-personal-tabs" role="group" aria-label="我的技能范围">
-                            {scopeOptions.map((option) => <button key={option.value} type="button" className="skills-filter-chip" aria-pressed={scope === option.value} onClick={() => selectScope(option.value as SkillScope)}>{option.label}</button>)}
+                            {scopeOptions.map((option) => <button key={option.value} type="button" className="skills-filter-chip" aria-pressed={scope === option.value} onClick={() => selectScope(option.value)}>{option.label}</button>)}
                         </div>
                     </>
                 )}
@@ -481,7 +485,7 @@ export default function SkillsPage() {
                         </div>
                     ) : null}
                     <div className={`skills-library-category-note${categoryScope === "platform" && isAdmin ? " is-platform" : ""}`}>
-                        <Sparkles className="size-4" aria-hidden="true" />
+                        <Info className="size-4" aria-hidden="true" />
                         <p>{categoryScope === "platform" && isAdmin
                             ? "平台分类对所有用户可见、可分配，并可用于各自的技能库和画布 Agent；不会替换技能广场分类。"
                             : "个人分类只影响你的技能库和画布 Agent。短剧影视、电商营销等共享分类，可在“探索技能”页顶部筛选。"}</p>
@@ -490,6 +494,7 @@ export default function SkillsPage() {
             </AppModal>
             <SkillDetailModal skill={activeSkill} loading={detailLoading} mutating={Boolean(activeSkill && mutatingID === activeSkill.skillId)} categories={categories} onClose={() => setActiveSkill(null)} onAdd={(skill) => void toggleAdded(skill)} onLike={(skill) => void toggleLiked(skill)} onEdit={(skill) => void openEditor(skill)} onOpenWorkbench={openWorkbench} onSync={(skill) => void synchronizeSkill(skill)} />
             <SkillInstallModal open={installOpen} onClose={() => setInstallOpen(false)} onInstalled={(skill) => { setInstallOpen(false); setActiveSkill(skill); reload(); }} onManualCreate={() => { setInstallOpen(false); void openEditor(); }} />
+            <SkillRecommendationsModal open={recommendationsOpen} onClose={() => setRecommendationsOpen(false)} onInstalled={(installed) => { if (installed.length) reload(); }} />
             <SkillEditorDrawer open={editorOpen} skill={editingSkill} onClose={() => setEditorOpen(false)} onSaved={(skill) => { setEditorOpen(false); setEditingSkill(null); setActiveSkill(skill); reload(); }} />
         </>
     );

@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { App, Button, Modal, Tag, Image as AntImage, Segmented } from "antd";
-import { Archive, Bug, CheckCircle2, Clock, Inbox, Lightbulb, MessageSquare, Paperclip, Play, Plus, RefreshCw, Sparkles } from "lucide-react";
+import { Archive, Bug, CheckCircle2, Lightbulb, LoaderCircle, MessageSquare, Paperclip, Play, Plus, RefreshCw } from "lucide-react";
 
 import { getMyFeedbacks, type FeedbackItem, type FeedbackType, type FeedbackAttachment } from "@/services/api/feedback";
 import { FeedbackModal } from "@/components/feedback/feedback-modal";
+import { WorkspaceState } from "@/components/layout/workspace-state";
 import { cn } from "@/lib/utils";
 
 export function FeedbackInboxPane() {
@@ -36,10 +37,10 @@ export function FeedbackInboxPane() {
     return (
         <section className="space-y-4" aria-label="我的反馈收件箱">
             {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+            <div className="settings-pane-header">
                 <div>
-                    <h3 className="text-base font-semibold text-foreground">我的反馈与建议</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">查看您提交的问题缺陷、功能提议、官方回复进展与历史归档。</p>
+                    <h2>我的反馈</h2>
+                    <p>查看已提交的问题、建议和回复。</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button size="small" icon={<RefreshCw className={cn("size-3.5", loading && "animate-spin")} />} onClick={() => void loadData()}>
@@ -68,43 +69,25 @@ export function FeedbackInboxPane() {
 
             {/* List */}
             {loading && feedbacks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-xs gap-2">
-                    <Clock className="size-6 animate-pulse text-primary/60" />
+                <div className="flex min-h-44 items-center justify-center gap-2 py-8 text-[var(--fs-caption)] text-muted-foreground" role="status" aria-busy="true">
+                    <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
                     <span>正在加载反馈列表…</span>
                 </div>
             ) : feedbacks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-xs gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/10">
-                    <Inbox className="size-10 text-muted-foreground/30" />
-                    <div className="text-center">
-                        <p className="font-medium text-foreground">暂无提交记录</p>
-                        <p className="text-[var(--fs-label)] text-muted-foreground/80 mt-1">遇到问题或有新想法，可以随时提交反馈。</p>
-                    </div>
-                    <Button type="primary" size="small" onClick={() => setSubmitModalOpen(true)}>
-                        提交第一条反馈
-                    </Button>
-                </div>
+                <WorkspaceState
+                    compact
+                    title="暂无提交记录"
+                    description="遇到问题或有新想法，可以随时提交反馈。"
+                    action={<Button type="primary" onClick={() => setSubmitModalOpen(true)}>提交第一条反馈</Button>}
+                />
             ) : displayedFeedbacks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-xs gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/10">
-                    {activeTab === "active" ? (
-                        <>
-                            <CheckCircle2 className="size-8 text-green-500/80" />
-                            <div className="text-center">
-                                <p className="font-medium text-foreground">当前没有进行中的反馈</p>
-                                {archivedFeedbacks.length > 0 ? <p className="text-[var(--fs-label)] text-muted-foreground/80 mt-1">您有 {archivedFeedbacks.length} 条已归档的历史反馈</p> : null}
-                            </div>
-                            {archivedFeedbacks.length > 0 ? (
-                                <Button size="small" onClick={() => setActiveTab("archived")}>
-                                    查看历史归档
-                                </Button>
-                            ) : null}
-                        </>
-                    ) : (
-                        <>
-                            <Archive className="size-8 text-muted-foreground/40" />
-                            <p className="font-medium text-foreground">暂无历史归档记录</p>
-                        </>
-                    )}
-                </div>
+                <WorkspaceState
+                    compact
+                    kind="no-results"
+                    title={activeTab === "active" ? "当前没有进行中的反馈" : "暂无历史归档记录"}
+                    description={activeTab === "active" && archivedFeedbacks.length > 0 ? `您有 ${archivedFeedbacks.length} 条已归档的历史反馈。` : undefined}
+                    action={activeTab === "active" && archivedFeedbacks.length > 0 ? <Button onClick={() => setActiveTab("archived")}>查看历史归档</Button> : undefined}
+                />
             ) : (
                 <div className="space-y-3">
                     {displayedFeedbacks.map((item) => (
@@ -143,7 +126,7 @@ function FeedbackDetailCard({ item, onPreviewVideo }: { item: FeedbackItem; onPr
     const typeConfig: Record<FeedbackType, { label: string; color: string; icon: typeof Bug }> = {
         bug: { label: "Bug 缺陷", color: "error", icon: Bug },
         feature: { label: "功能提议", color: "processing", icon: Lightbulb },
-        improvement: { label: "体验建议", color: "cyan", icon: Sparkles },
+        improvement: { label: "体验建议", color: "cyan", icon: Lightbulb },
         other: { label: "其他反馈", color: "default", icon: MessageSquare },
     };
 

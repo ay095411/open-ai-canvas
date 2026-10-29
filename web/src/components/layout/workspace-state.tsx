@@ -1,6 +1,7 @@
 import { Button, Skeleton } from "antd";
+import { CircleAlert, LoaderCircle, LockKeyhole } from "lucide-react";
 import type { ReactNode } from "react";
-import { WorkspaceSignalIcon, type WorkspaceSignalIconVariant } from "@/components/ui/aceternity/workspace-signal-icon";
+import type { WorkspaceSignalIconVariant } from "@/components/ui/aceternity/workspace-signal-icon";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,7 +12,8 @@ import { cn } from "@/lib/utils";
  * - forbidden：说明没有权限 + 返回或申请入口。用 WorkspaceForbiddenState。
  *
  * 版式：页面级空态落在内容区约 40% 高度处（上 2 份、下 3 份留白），大屏上不显得偏低；
- * compact 用于面板、抽屉内的局部空态，保持居中。
+ * compact 用于面板、抽屉内的局部空态，保持居中。普通空态以文案和操作为主，
+ * 仅错误、权限和加载状态保留有明确含义的图标，不为缺少内容添加装饰底板。
  */
 export type WorkspaceStateKind = "first-use" | "no-results" | "error" | "forbidden";
 
@@ -34,10 +36,15 @@ export function WorkspaceState({
     compact?: boolean;
     className?: string;
 }) {
+    const isError = kind === "error" || icon === "error";
+    const isLoading = icon === "loading";
+    const StatusIcon = isError ? CircleAlert : kind === "forbidden" ? LockKeyhole : isLoading ? LoaderCircle : null;
+
     return (
         <section
             data-kind={kind}
-            role={kind === "error" ? "alert" : undefined}
+            role={isError ? "alert" : isLoading ? "status" : undefined}
+            aria-busy={isLoading || undefined}
             className={cn(
                 "workspace-state grid w-full justify-items-center text-center",
                 compact ? "min-h-44 content-center py-8" : "min-h-[360px] grid-rows-[2fr_auto_3fr] py-12",
@@ -45,12 +52,12 @@ export function WorkspaceState({
             )}
         >
             {compact ? null : <span aria-hidden />}
-            <div className="flex max-w-[44ch] flex-col items-center">
-                <WorkspaceSignalIcon variant={icon} size={compact ? "md" : "lg"} />
-                <h2 className={cn("mt-4 font-medium leading-[var(--lh-heading)] text-[var(--text-primary)]", compact ? "text-[var(--fs-body)]" : "text-[var(--fs-heading)]")}>{title}</h2>
-                {description ? <p className="mt-2 text-[var(--fs-ui)] leading-[var(--lh-body)] text-[var(--text-secondary)]">{description}</p> : null}
+            <div className="workspace-state-copy flex w-full max-w-[48ch] flex-col items-center px-4">
+                {StatusIcon ? <StatusIcon aria-hidden className={cn("mb-3 size-5 text-muted-foreground", isLoading && "motion-safe:animate-spin")} strokeWidth={1.75} /> : null}
+                <h2 className={cn("workspace-state-title", compact && "is-compact")}>{title}</h2>
+                {description ? <p className="workspace-state-description">{description}</p> : null}
                 {action || secondaryAction ? (
-                    <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <div className="workspace-state-actions mt-5 flex flex-wrap items-center justify-center gap-3">
                         {action}
                         {secondaryAction}
                     </div>
@@ -105,10 +112,10 @@ export function WorkspaceLoadingState({ label = "正在加载内容", detail, ro
     return (
         <section className={cn("workspace-loading-state py-8", className)} aria-busy="true" aria-live="polite">
             <div className="mb-5 flex items-center gap-3">
-                <WorkspaceSignalIcon variant="loading" size="sm" />
+                <LoaderCircle aria-hidden className="size-4 shrink-0 text-muted-foreground motion-safe:animate-spin" strokeWidth={1.75} />
                 <div>
                     <div className="text-sm font-medium">{label}</div>
-                    {detail ? <div className="mt-1 text-xs text-[var(--text-tertiary)]">{detail}</div> : null}
+                    {detail ? <div className="mt-1 text-xs text-muted-foreground">{detail}</div> : null}
                 </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -6,6 +6,8 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 
 import { BrandLogoFrame } from "@/components/brand/brand-logo";
 import { CoalAvatar } from "@/components/brand/coal-avatar";
+import { UserAvatar } from "@/components/layout/user-avatar";
+import { UserGroupAvatarRing } from "@/components/layout/user-group-badge";
 import { Kbd } from "@/components/ui/base/kbd";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
@@ -79,12 +81,8 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
 }
 
 function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user: NonNullable<ReturnType<typeof useUserStore.getState>["user"]> | null }) {
-    const [failed, setFailed] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const avatarUrl = /^https?:\/\//i.test(user?.avatarUrl || "") ? user?.avatarUrl : "";
     const profileName = user?.displayName || user?.username || "未登录";
-
-    useEffect(() => setFailed(false), [avatarUrl]);
 
     if (!user) {
         // 游客态：登录入口 + 公告铃铛（公告列表对游客公开，查看不标记已读）。
@@ -105,7 +103,6 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
         );
     }
 
-    const avatar = avatarUrl && !failed ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : <CoalAvatar />;
     const content = <WorkspaceAccountCard onNavigate={() => setMenuOpen(false)} onWallet={() => { setMenuOpen(false); openWorkspaceWallet(); }} />;
 
     return (
@@ -114,7 +111,7 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
             <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
                 <Popover open={menuOpen} onOpenChange={setMenuOpen} trigger="click" placement="topLeft" arrow={false} rootClassName="workspace-account-popover" content={content}>
                     <button type="button" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="打开账户菜单" title={profileName}>
-                        <span className="app-workspace-sidebar-profile-avatar">{avatar}</span>
+                        <UserGroupAvatarRing><UserAvatar user={user} className="app-workspace-sidebar-profile-avatar" /></UserGroupAvatarRing>
                         {/* 侧栏常驻行只显示名字，不放副标题（邮箱 / 账号标识）——
                             账号信息在点开的账户弹窗里给，常驻行保持单行且不在侧栏泄露账号标识。
                             外层 profile-copy 不能因为只剩一个子节点就拍平：它承载 min-w-0，
@@ -199,7 +196,7 @@ function NavItem({
             <span className="app-workspace-nav-main flex min-w-0 items-center gap-2.5">
                 {Icon ? (
                     <span className="app-workspace-nav-icon" aria-hidden>
-                        <Icon className="size-4 shrink-0" strokeWidth={1.8} />
+                        <Icon className="size-4 shrink-0" strokeWidth={2} />
                     </span>
                 ) : (
                     <span className="size-1.5 shrink-0 rounded-full bg-current opacity-40" aria-hidden />

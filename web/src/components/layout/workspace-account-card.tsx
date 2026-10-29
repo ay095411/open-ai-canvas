@@ -11,6 +11,7 @@ import { openWorkspaceSettings } from "@/lib/workspace-settings";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { UserAvatar } from "./user-avatar";
+import { UserGroupAvatarRing, UserGroupBadge } from "./user-group-badge";
 import "./workspace-account-card.css";
 
 /**
@@ -37,10 +38,10 @@ export function WorkspaceAccountCard({ onWallet, onNavigate }: { onWallet: () =>
     const accountEmail = user.email?.trim() || "";
     return <section className="workspace-account-card" aria-label="我的账户">
         <header className="workspace-account-card-identity">
-            <UserAvatar user={user} className="workspace-account-card-avatar" />
+            <UserGroupAvatarRing><UserAvatar user={user} className="workspace-account-card-avatar" /></UserGroupAvatarRing>
             {/* 副标题从「@用户名」换成绑定邮箱：账号标识对用户没有信息量，邮箱才是他要核对的东西。
                 没绑邮箱的账号（如第三方登录）不占位 —— 回退成 @username 就退回了这次要去掉的那行。 */}
-            <div><strong>{user.displayName || user.username}</strong>{accountEmail ? <span title={accountEmail}>{accountEmail}</span> : null}</div>
+            <div><strong className="workspace-account-card-name"><span>{user.displayName || user.username}</span><UserGroupBadge /></strong>{accountEmail ? <span title={accountEmail}>{accountEmail}</span> : null}</div>
             <em>{user.role === "admin" ? "管理员" : "创作者"}</em>
         </header>
         {creditsEnabled ? <div className="workspace-account-card-wallet">

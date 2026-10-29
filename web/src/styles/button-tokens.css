@@ -1,0 +1,72 @@
+/* 新组件的按钮变量映射到现有语义角色，不重设站点主题或既有按钮几何。
+   经典填充由 CSS 提供，避免首屏闪色；自定义皮肤仍可写入经过校验的渐变。
+   主操作、普通选择和危险操作分别取自己的前景/背景，页面光效由页面样式维护。 */
+:root {
+    --button-height: 36px;
+    --button-height-sm: 30px;
+    --button-height-lg: 42px;
+    --button-padding-x: 12px;
+    --button-padding-x-sm: 8px;
+    --button-padding-x-lg: 16px;
+    --button-gap: 8px;
+    --button-font-size: 13px;
+    --button-font-size-sm: 12px;
+    --button-font-size-lg: 14px;
+    --button-font-weight: 500;
+    --button-icon-size: 16px;
+    --button-icon-size-sm: 14px;
+    --button-icon-stroke: 1.7;
+    --button-motion: var(--motion-state, 180ms) cubic-bezier(.16, 1, .3, 1);
+
+    --button-primary-bg: var(--btn-solid-bg);
+    --button-primary-hover-bg: var(--btn-solid-hover-bg);
+    --button-primary-active-bg: var(--btn-solid-active-bg);
+    --button-primary-fg: var(--btn-solid-fg);
+    --button-primary-shadow: none;
+    --button-primary-active-shadow: none;
+
+    --button-secondary-bg: transparent;
+    --button-secondary-hover-bg: var(--control-selected-bg);
+    --button-secondary-active-bg: var(--control-selected-hover-bg);
+    --button-secondary-fg: var(--control-selected-fg);
+    --button-secondary-border: var(--control-selected-border);
+    --button-secondary-hover-border: var(--control-selected-border);
+    --button-secondary-shadow: none;
+
+    --button-ghost-fg: var(--muted-foreground);
+    --button-ghost-hover-fg: var(--foreground);
+    --button-ghost-hover-bg: var(--surface-hover);
+    --button-ghost-active-bg: var(--surface-active);
+    --button-tonal-bg: var(--surface-hover);
+    --button-tonal-hover-bg: var(--surface-active);
+
+    --button-danger-bg: var(--destructive);
+    --button-danger-hover-bg: var(--destructive-hover);
+    --button-danger-active-bg: var(--destructive-active);
+    --button-danger-fg: var(--destructive-foreground);
+    --button-danger-shadow: none;
+    --button-danger-text: var(--destructive);
+    --button-danger-soft-bg: color-mix(in srgb, var(--destructive) 7%, transparent);
+    --button-danger-soft-border: color-mix(in srgb, var(--destructive) 28%, transparent);
+    --button-disabled-opacity: 0.42;
+}
+
+/* 在工作台边界重新绑定，避免根元素提前解析后丢失当前表面和皮肤的颜色。 */
+.app-user-workspace,
+.app-user-overlays,
+.app-product-overlays {
+    --button-height: var(--user-control-height);
+    --button-height-sm: 30px;
+    --button-height-lg: 40px;
+    --button-secondary-hover-bg: var(--user-surface-muted);
+    --button-secondary-active-bg: var(--user-surface-hover);
+    --button-secondary-fg: var(--user-ink);
+    --button-secondary-border: var(--user-border);
+    --button-secondary-hover-border: var(--user-border-strong);
+    --button-ghost-fg: var(--user-ink-muted);
+    --button-ghost-hover-fg: var(--user-ink);
+    --button-ghost-hover-bg: var(--user-surface-muted);
+    --button-ghost-active-bg: var(--user-surface-hover);
+    --button-tonal-bg: var(--user-surface-muted);
+    --button-tonal-hover-bg: var(--user-surface-hover);
+}
