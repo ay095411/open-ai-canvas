@@ -19,7 +19,7 @@ export const CreateNavIcon = Palette;
 /** 灵感（灵感发现）：探索罗盘 */
 export const InspirationNavIcon = Compass;
 
-/** 生成工坊（图片/视频工坊）：大眼萌相机，饱满圆润 */
+/** 创作影棚（图片/视频生成）：大眼萌相机，饱满圆润 */
 export const ToolboxNavIcon = Camera;
 
 /** 自由画布：几何图形三剑客（圆、方、三角），童趣画布 */
