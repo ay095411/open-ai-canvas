@@ -268,7 +268,7 @@ export function ChannelSettingsPane({ onOpenModels, onOpenRunningHub }: ChannelS
                         );
                     })}
                 </div>
-            ) : <WorkspaceState icon="settings" compact title="尚未添加个人渠道" description="系统渠道由管理员维护。你也可以在这里连接自己的模型服务。" action={<Button icon={<Plus className="size-4" />} onClick={addChannel}>添加个人渠道</Button>} />}
+            ) : <WorkspaceState className="settings-channel-empty" icon="settings" compact title="尚未添加个人渠道" description="系统渠道由管理员维护。你也可以在这里连接自己的模型服务。" action={<Button icon={<Plus className="size-4" />} onClick={addChannel}>添加个人渠道</Button>} />}
         </Form>
     );
 }

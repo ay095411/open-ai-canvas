@@ -10926,6 +10926,12 @@ html:not(.dark) .canvas-generation-settings-trigger.ant-btn[aria-expanded="true"
 }
 [data-slot="empty-state"] .empty-state-description { margin: 0; }
 
+/* 个人渠道空态只有一行说明（“系统渠道由管理员维护。你也可以在这里连接自己的模型服务。”），
+   13px 下这一行要 364px，却被通用空态的 max-w-[48ch]（13px 下 = 390px 容器、358px 段落）
+   挤成两行；而个人渠道面板有 1000px 以上余量。只在该空态上把上限放到 60ch。
+   不加 white-space: nowrap —— 窄屏（弹窗收窄到 pane < 364px）仍应自然折行，避免溢出面板。 */
+.workspace-state.settings-channel-empty .workspace-state-copy { max-width: min(100%, 60ch); }
+
 @media (prefers-reduced-motion: reduce) {
     .workspace-state { animation: none; }
     :where(.ant-btn:not(:disabled)):active { transform: none; }
