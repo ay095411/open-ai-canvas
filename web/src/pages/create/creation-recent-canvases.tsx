@@ -9,6 +9,7 @@ import { RelativeTime } from "@/components/ui/product/relative-time";
 import { DRAMA_STATUS_LABEL } from "@/lib/drama/drama-format";
 import { progressFillStyle } from "@/lib/progress-fill";
 import { loadCanvasProjectPage } from "@/lib/workspace-route-modules";
+import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { listDramas, type DramaListItem } from "@/services/api/drama";
 import { listRemoteCanvasProjectsPage, type CanvasLibrarySummary } from "@/services/api/user-data";
 import { useUserStore } from "@/stores/use-user-store";
@@ -25,27 +26,31 @@ export function CreationRecentProjects({ onOpenHistory }: CreationRecentProjects
     const userId = useUserStore((state) => state.user?.id);
     const hydrated = useUserStore((state) => state.hydrated);
     const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled);
-    if (!hydrated || !userId) return null;
+    // 未登录也保留这一块：藏起来会让首页少一整段、登录前后高度差很大；
+    // 而且对游客来说「这里以后会有你的作品」比凭空少一块更能说明产品在干什么。
+    if (!hydrated) return null;
 
     // 会话变化时卸载旧查询与媒体，既不读取本地画布，也不保留上一账号的卡片或选中项。
-    return <RecentProjects key={userId} userId={userId} shortDramaEnabled={shortDramaEnabled} onOpenHistory={onOpenHistory} />;
+    return <RecentProjects key={userId ?? "guest"} userId={userId} shortDramaEnabled={shortDramaEnabled} onOpenHistory={onOpenHistory} />;
 }
 
-function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRecentProjectsProps & { userId: string; shortDramaEnabled: boolean }) {
+function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRecentProjectsProps & { userId?: string; shortDramaEnabled: boolean }) {
+    const guest = !userId;
     const [selectedTab, setSelectedTab] = useState<RecentTab>("canvas");
-    const tab = shortDramaEnabled ? selectedTab : "canvas";
+    const tab = shortDramaEnabled && !guest ? selectedTab : "canvas";
     const id = useId();
     const canvasQuery = useQuery({
         queryKey: ["canvas-library", userId, "recent-updated", RECENT_COUNT],
         queryFn: ({ signal }) => listRemoteCanvasProjectsPage({ page: 1, pageSize: RECENT_COUNT, sort: "updated", signal }),
-        enabled: tab === "canvas",
+        // 游客没有会话，请求只会拿到 401，直接不发起。
+        enabled: !guest && tab === "canvas",
         placeholderData: undefined,
     });
     const dramaQuery = useQuery({
         queryKey: ["my-dramas-recent", userId, "home", RECENT_COUNT],
         // DramaProjectsPage 默认按 projects.updated_at desc 排序，摘要接口无需逐项加载详情。
         queryFn: ({ signal }) => listDramas({ page: 1, pageSize: RECENT_COUNT }, signal),
-        enabled: shortDramaEnabled && tab === "drama",
+        enabled: !guest && shortDramaEnabled && tab === "drama",
         placeholderData: undefined,
     });
     const query = tab === "canvas" ? canvasQuery : dramaQuery;
@@ -68,10 +73,11 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
                 <h2 id={`${id}-title`}>继续创作</h2>
                 <div className="creation-recent-projects-actions">
                     <button type="button" onClick={onOpenHistory}><History aria-hidden="true" />历史对话</button>
-                    <Link to={tab === "canvas" ? "/canvas" : "/projects"}>查看全部<ArrowUpRight aria-hidden="true" /></Link>
+                    {/* 游客不给「查看全部」：列表页要登录，点过去只会被弹回来，下面那块里已经有登录入口。 */}
+                    {guest ? null : <Link to={tab === "canvas" ? "/canvas" : "/projects"}>查看全部<ArrowUpRight aria-hidden="true" /></Link>}
                 </div>
             </header>
-            {shortDramaEnabled ? (
+            {shortDramaEnabled && !guest ? (
                 <div className="creation-recent-projects-tabs" role="tablist" aria-label="继续创作类型">
                     {(["canvas", "drama"] as const).map((value) => (
                         <button key={value} id={`${id}-${value}`} type="button" role="tab" aria-selected={tab === value} aria-controls={`${id}-panel`} tabIndex={tab === value ? 0 : -1} onClick={() => selectTab(value)} onKeyDown={onTabKeyDown}>
@@ -80,8 +86,13 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
                     ))}
                 </div>
             ) : null}
-            <div id={`${id}-panel`} role={shortDramaEnabled ? "tabpanel" : undefined} aria-labelledby={shortDramaEnabled ? `${id}-${tab}` : undefined} aria-busy={query.isFetching} className="creation-recent-projects-panel">
-                {query.isPending ? (
+            <div id={`${id}-panel`} role={shortDramaEnabled && !guest ? "tabpanel" : undefined} aria-labelledby={shortDramaEnabled && !guest ? `${id}-${tab}` : undefined} aria-busy={query.isFetching} className="creation-recent-projects-panel">
+                {guest ? (
+                    <div className="creation-recent-projects-state is-guest">
+                        <span>登录后这里会显示你最近更新的画布与短剧。</span>
+                        <button type="button" onClick={() => openWorkspaceAuth()}>登录 / 注册</button>
+                    </div>
+                ) : query.isPending ? (
                     <div className={`creation-recent-projects-grid${tab === "drama" ? " is-drama" : ""}`} role="status" aria-label={`正在读取最近更新的${label}`}>
                         {Array.from({ length: RECENT_COUNT }, (_, index) => <div className="creation-recent-projects-skeleton" key={index} aria-hidden="true"><span /><span /></div>)}
                     </div>

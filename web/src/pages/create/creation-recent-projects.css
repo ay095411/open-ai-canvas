@@ -215,6 +215,38 @@
     cursor: wait;
 }
 
+/* 游客态：空态里唯一的动作要看得见，别走上面那条「文字下划线」的样式。 */
+.creation-recent-projects-state.is-guest {
+    flex-direction: column;
+    gap: var(--space-4);
+    min-height: calc(var(--space-20) + var(--space-10));
+    border-style: dashed;
+}
+
+.creation-recent-projects-state.is-guest > span {
+    max-width: 36ch;
+    line-height: 1.7;
+    text-wrap: pretty;
+}
+
+.creation-recent-projects-state.is-guest button {
+    display: inline-flex;
+    align-items: center;
+    min-height: calc(var(--space-8) + var(--space-1));
+    padding: 0 var(--space-5);
+    border-radius: var(--r-full);
+    background: var(--recent-project-ink);
+    color: var(--recent-project-surface);
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity var(--motion-state) ease;
+}
+
+.creation-recent-projects-state.is-guest button:hover {
+    color: var(--recent-project-surface);
+    opacity: 0.86;
+}
+
 .creation-recent-projects-actions > :is(a, button):hover,
 .creation-recent-projects-tabs button:hover {
     color: var(--recent-project-ink);
