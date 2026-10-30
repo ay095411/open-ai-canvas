@@ -54,7 +54,8 @@
 .creation-showcase-track {
     display: flex;
     width: max-content;
-    animation: creation-showcase-drift 110s linear infinite;
+    /* 时长随卡片数走（21 张约 7.9s/张）：改 SHOWCASE 条目数时记得同步，不然会变快或变慢。 */
+    animation: creation-showcase-drift 165s linear infinite;
     will-change: transform;
 }
 
@@ -188,7 +189,7 @@
 @media (max-width: 768px) {
     .creation-showcase-head p { display: none; }
     .creation-showcase-item { width: 62vw; }
-    .creation-showcase-track { animation-duration: 80s; }
+    .creation-showcase-track { animation-duration: 120s; }
 }
 
 /* 关掉动效时不能变成一堵不动又滚不动的墙：退回横向可滚（此时浏览器会出滚动条，
