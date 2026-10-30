@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Input, Skeleton } from "antd";
-import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, HardDrive, History, RefreshCw, TicketCheck, WalletCards } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, History, RefreshCw, TicketCheck, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
@@ -12,7 +12,6 @@ import { useAccountFileStorageUsage } from "@/hooks/use-account-file-storage-usa
 import { accountFileStorageUsageQueryKey, accountStorageMeter } from "@/lib/account-storage-usage";
 import { generationErrorMessage } from "@/lib/generation-error";
 import { listPaymentProviders, listTopupProducts, type PaymentOrder, type PaymentProvider, type TopupProduct, type TopupProductKind } from "@/services/api/payments";
-import { listMyStorageGrants } from "@/services/api/storage-grants";
 import { getWallet, redeemCredits, type CreditLedgerEntry, type WalletSummary } from "@/services/api/wallet";
 import { cn } from "@/lib/utils";
 import { openWorkspaceWallet, WORKSPACE_WALLET_OPEN_EVENT, type WorkspaceWalletOpenDetail } from "@/lib/workspace-wallet";
@@ -20,8 +19,6 @@ import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
 
 type WalletModalTab = "topup" | "redeem" | "history";
-
-const storageGrantsQueryKey = ["account-storage-grants"] as const;
 
 export function WorkspaceWalletHost() {
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
@@ -109,7 +106,6 @@ export function WorkspaceWalletModal({
     const [redeeming, setRedeeming] = useState(false);
     const requestSequence = useRef(0);
     const storageQuery = useAccountFileStorageUsage(open);
-    const grantsQuery = useQuery({ queryKey: storageGrantsQueryKey, queryFn: listMyStorageGrants, enabled: open });
     const storageMeter = accountStorageMeter(storageQuery.data);
 
     const selectedProduct = useMemo(() => products.find((item) => item.id === selectedProductId), [products, selectedProductId]);
@@ -168,7 +164,7 @@ export function WorkspaceWalletModal({
 
     const announceGranted = async (order: PaymentOrder) => {
         if (order.productKind === "storage") {
-            await Promise.all([queryClient.invalidateQueries({ queryKey: accountFileStorageUsageQueryKey }), queryClient.invalidateQueries({ queryKey: storageGrantsQueryKey })]);
+            await queryClient.invalidateQueries({ queryKey: accountFileStorageUsageQueryKey });
             return;
         }
         await announceWalletUpdated();
@@ -251,10 +247,7 @@ export function WorkspaceWalletModal({
                                 </div>
                             ) : null}
                             <button type="button" className="workspace-wallet-balance is-storage" aria-label="查看存储空间套餐" onClick={() => focusProducts("storage")}>
-                                <span className="wallet-stat-label">
-                                    <span className="flex items-center gap-1.5"><HardDrive className="size-3" aria-hidden="true" />存储空间</span>
-                                    <ArrowRight className="size-3 opacity-60" aria-hidden="true" />
-                                </span>
+                                <span className="wallet-stat-label">存储空间</span>
                                 <strong>{storageQuery.data ? `${storageMeter.usedLabel} / ${storageMeter.totalLabel}` : "--"}</strong>
                                 <span className={cn("wallet-topup-storage-track", storageMeter.tone !== "ok" && `is-${storageMeter.tone}`)} aria-hidden="true">
                                     <span style={{ width: `${storageMeter.percent}%` }} />
@@ -302,12 +295,7 @@ export function WorkspaceWalletModal({
                             onSelectProvider={setSelectedProviderId}
                             creating={payment.creating}
                             onPay={() => void startPayment()}
-                            storageUsage={storageQuery.data}
-                            storageGrants={grantsQuery.data?.grants || []}
-                            onCleanAssets={() => {
-                                onClose();
-                                navigate("/assets");
-                            }}
+                            onGoRedeem={() => setTab("redeem")}
                         />
                     ) : activeTab === "redeem" ? (
                         <div className="workspace-wallet-content is-redeem">
