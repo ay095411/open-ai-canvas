@@ -5,7 +5,9 @@ import { Link } from "react-router";
 
 import { ProjectPreview } from "@/components/canvas/canvas-project-card";
 import { CachedResourceImage } from "@/components/cached-resource-image";
+import { RelativeTime } from "@/components/ui/product/relative-time";
 import { DRAMA_STATUS_LABEL } from "@/lib/drama/drama-format";
+import { progressFillStyle } from "@/lib/progress-fill";
 import { loadCanvasProjectPage } from "@/lib/workspace-route-modules";
 import { listDramas, type DramaListItem } from "@/services/api/drama";
 import { listRemoteCanvasProjectsPage, type CanvasLibrarySummary } from "@/services/api/user-data";
@@ -80,7 +82,7 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
             ) : null}
             <div id={`${id}-panel`} role={shortDramaEnabled ? "tabpanel" : undefined} aria-labelledby={shortDramaEnabled ? `${id}-${tab}` : undefined} aria-busy={query.isFetching} className="creation-recent-projects-panel">
                 {query.isPending ? (
-                    <div className="creation-recent-projects-grid" role="status" aria-label={`正在读取最近更新的${label}`}>
+                    <div className={`creation-recent-projects-grid${tab === "drama" ? " is-drama" : ""}`} role="status" aria-label={`正在读取最近更新的${label}`}>
                         {Array.from({ length: RECENT_COUNT }, (_, index) => <div className="creation-recent-projects-skeleton" key={index} aria-hidden="true"><span /><span /></div>)}
                     </div>
                 ) : query.isError ? (
@@ -89,7 +91,7 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
                         <button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? "重试中…" : "重试"}</button>
                     </div>
                 ) : count ? (
-                    <ul className="creation-recent-projects-grid" aria-label={`最近更新的${label}`}>
+                    <ul className={`creation-recent-projects-grid${tab === "drama" ? " is-drama" : ""}`} aria-label={`最近更新的${label}`}>
                         {tab === "canvas" ? canvases.map((project) => <RecentCanvasCard key={project.id} project={project} />) : dramas.map((item) => <RecentDramaCard key={item.project.id} item={item} />)}
                     </ul>
                 ) : (
@@ -127,18 +129,43 @@ function RecentCanvasCard({ project }: { project: CanvasLibrarySummary }) {
 }
 
 function RecentDramaCard({ item }: { item: DramaListItem }) {
-    const cover = item.coverResourceIds?.[0] || item.coverResourceId;
-    const fallback = <Clapperboard className="creation-recent-project-cover-icon" aria-hidden="true" />;
+    // 与短剧 Agent 页「我的短剧作品」的卡片（pages/projects/create.tsx: DramaHubCard）同一套视觉：
+    // 横版拼图封面 + 状态角标 + 进度条。封面最多 4 张，按张数平均分栏。
+    const covers = (item.coverResourceIds?.length ? item.coverResourceIds : item.coverResourceId ? [item.coverResourceId] : []).slice(0, 4);
+    const progress = item.episodeCount ? Math.round((item.doneCount / item.episodeCount) * 100) : 0;
+    const stage = item.episodeCount ? `${item.doneCount}/${item.episodeCount} 集成片` : item.status === "running" ? "正在改编" : "准备中";
+    const fallback = <Clapperboard className="creation-recent-drama-empty-icon" aria-hidden="true" />;
     return (
         <li>
-            <Link to={`/projects/${item.project.id}`} className="creation-recent-project-card">
-                <span className="creation-recent-project-cover" aria-hidden="true">
-                    {cover ? <CachedResourceImage storageKey={`resource:${cover}`} alt="" variant="thumbnail" fallback={fallback} loadingFallback={fallback} draggable={false} /> : fallback}
+            <Link
+                to={`/projects/${item.project.id}`}
+                className={`creation-recent-drama-card is-${item.status}`}
+                aria-label={`打开《${item.project.name}》，${DRAMA_STATUS_LABEL[item.status]}，${stage}`}
+            >
+                <span className={`creation-recent-drama-cover${covers.length ? ` is-${covers.length}` : " is-empty"}`} aria-hidden="true">
+                    {covers.length
+                        ? covers.map((resourceId) => (
+                            <span key={resourceId}>
+                                <CachedResourceImage storageKey={`resource:${resourceId}`} alt="" variant="thumbnail" fallback={fallback} loadingFallback={fallback} draggable={false} />
+                            </span>
+                        ))
+                        : <>
+                            <span className="creation-recent-drama-glyph">{item.project.name.slice(0, 1)}</span>
+                            {fallback}
+                        </>}
                 </span>
-                <span className="creation-recent-project-copy">
+                <span className="creation-recent-drama-badge"><span className="creation-recent-drama-dot" aria-hidden="true" />{DRAMA_STATUS_LABEL[item.status]}</span>
+                <span className="creation-recent-drama-body">
                     <strong title={item.project.name}>{item.project.name}</strong>
-                    <span className="creation-recent-project-facts"><span>{DRAMA_STATUS_LABEL[item.status]}</span><span>{item.doneCount}/{item.episodeCount} 集成片</span></span>
-                    <span className="creation-recent-project-time"><UpdatedTime value={item.updatedAt || item.project.updatedAt} /></span>
+                    <span className="creation-recent-drama-meta">
+                        {item.styleName ? <span>{item.styleName}</span> : null}
+                        <span>{item.aspectRatio}</span>
+                        <RelativeTime value={item.updatedAt || item.project.updatedAt} />
+                    </span>
+                    <span className="creation-recent-drama-progress">
+                        <span className="creation-recent-drama-track"><span style={progressFillStyle(Math.max(progress, 2))} /></span>
+                        <b>{stage}</b>
+                    </span>
                 </span>
             </Link>
         </li>

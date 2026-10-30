@@ -16377,6 +16377,29 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     }
 }
 
+/* 顶部常驻通知条：关闭按钮
+   产品区统一的「纯图标按钮」悬停（workspace-product.css）会给按钮加 `translate: 0 -1px`
+   和强调色底。这个按钮靠 `translate: 0 -50%` 垂直居中，被改成 -1px 后整颗 X 会下坠半个身位。
+   这里把 translate 钉回 -50%（特异性 (0,4,0) > 那条规则的 (0,3,3)，不需要 !important），
+   并把悬停配色维持成「白字压在彩色条上」，不吃强调色。 */
+.app-product-workspace .banner-notice-dismiss:not(:disabled),
+.app-product-overlays .banner-notice-dismiss:not(:disabled) {
+    translate: 0 -50%;
+}
+
+.app-product-workspace .banner-notice-dismiss:not(:disabled):hover,
+.app-product-overlays .banner-notice-dismiss:not(:disabled):hover {
+    translate: 0 -50%;
+    box-shadow: none !important;
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.app-product-workspace .banner-notice-dismiss:not(:disabled):active,
+.app-product-overlays .banner-notice-dismiss:not(:disabled):active {
+    translate: 0 -50%;
+}
+
 /* 顶部常驻通知条：背景渐变呼吸流动效果 */
 .app-banner-slider,
 .admin-banner-title-preview-light,
@@ -18633,11 +18656,13 @@ html:not(.dark) .app-user-workspace .creation-home {
     border-radius: 22px !important;
 }
 .app-user-workspace .creation-launchpad .creation-chat-composer.is-empty .creation-chat-writing-surface {
-    min-height: 152px !important;
+    /* 首页输入框是整页的视觉锚点，比其他场景高一档：正文行数多一点、上下留白也足。
+       改这里要同步下面的 mention-editor min-height，否则内容区撑不满、底部会空一块。 */
+    min-height: 184px !important;
     padding: var(--space-8) var(--space-8) var(--space-4) !important;
 }
 .app-user-workspace .creation-launchpad .creation-chat-composer.is-empty .creation-chat-mention-editor {
-    min-height: 48px !important;
+    min-height: 76px !important;
     font-size: 16px !important;
 }
 .app-user-workspace .creation-launchpad .creation-chat-dock {
@@ -18678,9 +18703,12 @@ html:not(.dark) .app-user-workspace .creation-home {
     min-height: 0 !important;
     padding: var(--space-5) var(--space-6) var(--space-2) !important;
 }
+/* 对话记录里的输入框：和首页空态那个一样按「三行」给高度（14px × 1.5 = 21，三行 63 → 64）。
+   这里 writing-surface 的 min-height 是 0，高度完全由编辑器撑开，所以只调编辑器就够，
+   不需要再抬 min-height，否则底部会空一块。 */
 .app-user-workspace .creation-chat-composer.is-thread .creation-chat-editor textarea,
 .app-user-workspace .creation-chat-composer.is-thread .creation-chat-mention-editor {
-    min-height: 40px !important;
+    min-height: 64px !important;
     font-size: 14px !important;
     line-height: 1.5 !important;
 }

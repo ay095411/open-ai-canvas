@@ -109,7 +109,10 @@ export function BannerAnnouncementsSlider() {
                 onClick={handleDismiss}
                 aria-label="关闭通知"
                 title="关闭"
-                className="absolute right-3 top-1/2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-full text-white/80 transition-all hover:bg-white/20 hover:text-white active:scale-95 cursor-pointer"
+                // 居中用 translate，但产品区那条「纯图标按钮悬停上移」的规则
+                // （workspace-product.css）会把 translate 改成 0 -1px，按钮会整体下坠半个身位；
+                // globals.css 里的 .banner-notice-dismiss 规则把它钉回 -50%，改类名时要一起看。
+                className="banner-notice-dismiss absolute right-3 top-1/2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-full text-white/80 transition-all hover:bg-white/20 hover:text-white active:scale-95 cursor-pointer"
             >
                 <X className="size-3.5" aria-hidden="true" />
             </button>

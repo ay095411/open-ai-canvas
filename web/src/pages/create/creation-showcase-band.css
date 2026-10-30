@@ -1,0 +1,205 @@
+/**
+ * 首页作品带：自动向左滚动的无缝轨道。
+ *
+ * 三个必须守住的点：
+ * 1. `overflow: hidden` 在视口上，不是 `overflow-x: auto` —— 用户明确要求不要横向滚动条。
+ * 2. 轨道里放的是**两份完全相同**的卡片集合，`translateX(-50%)` 正好等于一份的宽度，
+ *    所以循环点没有跳帧。拼接靠 `.creation-showcase-set` 的 `padding-inline-end` 补上一个间距，
+ *    不然两份接缝处会少一个 gap（约 12px，肉眼能看出来）。
+ * 3. 暂停用 `animation-play-state`，不要用改 `animation` 或重置位移 —— 那样会从当前位置弹回开头。
+ */
+
+.creation-showcase {
+    width: 100%;
+    min-width: 0;
+    /* 它现在一直挂在 `.creation-home-dashboard` 里，间距交给那个 flex 的 gap，自己不再叠外边距。 */
+    margin: 0;
+}
+
+.creation-showcase-head {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-4);
+    margin-bottom: var(--space-3);
+}
+
+.creation-showcase-head h2 {
+    margin: 0;
+    color: var(--user-ink);
+    font-size: var(--fs-body);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.creation-showcase-head p {
+    margin: 0;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.5;
+}
+
+.creation-showcase-viewport {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    /* 上下留 8px：卡片悬停抬起后的阴影不被裁；左右用遮罩淡出，滚动到边缘不会硬切。 */
+    padding: 8px 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 3.5%, #000 96.5%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 3.5%, #000 96.5%, transparent 100%);
+}
+
+.creation-showcase-track {
+    display: flex;
+    width: max-content;
+    animation: creation-showcase-drift 110s linear infinite;
+    will-change: transform;
+}
+
+/* 悬停在任意卡片上、或用键盘 Tab 进来，都停在当前位置。 */
+.creation-showcase-viewport:hover .creation-showcase-track,
+.creation-showcase-viewport:focus-within .creation-showcase-track {
+    animation-play-state: paused;
+}
+
+@keyframes creation-showcase-drift {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+}
+
+.creation-showcase-set {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin: 0;
+    /* 一份集合尾部再补一个间距，两份拼起来才和 translateX(-50%) 严丝合缝。 */
+    padding: 0 var(--space-3) 0 0;
+    list-style: none;
+}
+
+.creation-showcase-item {
+    flex: 0 0 auto;
+    width: clamp(200px, 21vw, 272px);
+}
+
+.creation-showcase-card {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-2);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.creation-showcase-cover {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-control);
+    background: var(--user-surface);
+    transition: border-color var(--user-motion, 180ms) ease, transform var(--user-motion, 180ms) ease, box-shadow var(--user-motion, 180ms) ease;
+}
+
+.creation-showcase-cover :is(img, video) {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 520ms cubic-bezier(.2, .7, .2, 1);
+}
+
+/* 悬停时封面缓慢推近 + 卡片抬起，滚动仍停住，看起来是「停在手里」而不是「漂过去」。 */
+.creation-showcase-card:hover .creation-showcase-cover,
+.creation-showcase-card:focus-visible .creation-showcase-cover {
+    border-color: color-mix(in srgb, var(--user-ink) 26%, transparent);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px color-mix(in srgb, #000 26%, transparent);
+}
+
+.creation-showcase-card:hover .creation-showcase-cover :is(img, video),
+.creation-showcase-card:focus-visible .creation-showcase-cover :is(img, video) {
+    transform: scale(1.045);
+}
+
+.creation-showcase-card:focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 3px;
+    border-radius: var(--user-radius-control);
+}
+
+.creation-showcase-card:active .creation-showcase-cover {
+    transform: translateY(-1px) scale(.99);
+}
+
+.creation-showcase-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, #000 58%, transparent);
+    color: #f4f2ee;
+    font-size: 11px;
+    line-height: 1.6;
+    letter-spacing: .02em;
+    backdrop-filter: blur(6px);
+}
+
+.creation-showcase-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.creation-showcase-copy strong {
+    overflow: hidden;
+    color: var(--user-ink);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.creation-showcase-copy span {
+    overflow: hidden;
+    color: var(--user-ink-muted);
+    font-size: 11.5px;
+    line-height: 1.6;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .creation-showcase-head p { display: none; }
+    .creation-showcase-item { width: 62vw; }
+    .creation-showcase-track { animation-duration: 80s; }
+}
+
+/* 关掉动效时不能变成一堵不动又滚不动的墙：退回横向可滚（此时浏览器会出滚动条，
+   属于无障碍优先的取舍，桌面端默认不会走到这里）。 */
+@media (prefers-reduced-motion: reduce) {
+    .creation-showcase-track { animation: none; }
+    .creation-showcase-viewport { overflow-x: auto; scroll-snap-type: x proximity; }
+    .creation-showcase-set[aria-hidden="true"] { display: none; }
+    .creation-showcase-item { scroll-snap-align: start; }
+    .creation-showcase-cover,
+    .creation-showcase-cover :is(img, video) { transition: none; }
+    .creation-showcase-card:hover .creation-showcase-cover { transform: none; }
+    .creation-showcase-card:hover .creation-showcase-cover :is(img, video) { transform: none; }
+}

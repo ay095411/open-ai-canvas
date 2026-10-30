@@ -38,6 +38,7 @@ import { attachCreationTaskContexts, completedCreationGenerationTask, conversati
 import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
 import { CreationHomeAgentEntry } from "./creation-home-feature-matrix";
 import { CreationRecentProjects } from "./creation-recent-canvases";
+import { CreationShowcaseBand } from "./creation-showcase-band";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 import { CreationLoginDialogPixTV as CreationLoginDialog } from "./creation-login-dialog-pixtv";
@@ -1298,6 +1299,9 @@ export default function CreatePage() {
                             }
                         }}
                     />
+                    {/* 顺序是「输入框 → Agent 提示 → 作品带 → 继续创作」。
+                        游客没有「继续创作」（组件自己返回 null），所以作品带自然落到页面最下面。 */}
+                    <CreationShowcaseBand onStartPrompt={startPrompt} />
                     <CreationRecentProjects onOpenHistory={() => setHistoryOpen(true)} />
                 </div>
                 {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，

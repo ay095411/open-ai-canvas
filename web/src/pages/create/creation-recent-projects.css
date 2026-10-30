@@ -264,6 +264,235 @@
     .creation-recent-projects-actions { gap: var(--space-3); }
 }
 
+/* ===== 短剧卡片 =====
+   对齐短剧 Agent 页「我的短剧作品」的展示效果（pages/projects/create.tsx 的 DramaHubCard）：
+   横版拼图封面 + 状态角标 + 标题/元信息/进度条三段信息。
+   这里重写一份样式而**不复用** drama.css 里的 `.drama-library-*`：那份 6600 行、且只属于
+   /projects 的懒加载 chunk，为了首页 6 张卡把它拉进首屏不值得；两边的设计语言靠这段注释对齐。 */
+
+.creation-recent-projects-grid.is-drama {
+    /* 短剧封面要放下最多 4 张拼图，6 等分会把每格压到 50px 以下，改成按最小宽度自动排。 */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-4) var(--space-3);
+}
+
+.creation-recent-drama-card {
+    position: relative;
+    display: grid;
+    height: 100%;
+    min-width: 0;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--user-radius-card, var(--recent-project-radius));
+    background: var(--recent-project-surface);
+    color: var(--recent-project-ink);
+    text-decoration: none;
+    transition: background-color var(--motion-state) ease;
+}
+
+.creation-recent-drama-card:hover {
+    background: color-mix(in srgb, var(--recent-project-surface) 60%, var(--recent-project-surface-muted));
+}
+
+.creation-recent-drama-cover {
+    position: relative;
+    display: grid;
+    aspect-ratio: 16 / 10;
+    gap: 2px;
+    overflow: hidden;
+    border-radius: var(--user-radius-media, var(--recent-project-radius));
+    background: var(--recent-project-surface-muted);
+}
+
+.creation-recent-drama-cover > span {
+    position: relative;
+    display: block;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.creation-recent-drama-cover .cached-resource-image-shell {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.creation-recent-drama-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* 角色三视图/四视图的关键信息在偏上位置，居中裁会把脸切掉。 */
+    object-position: center 22%;
+}
+
+.creation-recent-drama-card:hover .creation-recent-drama-cover img {
+    transform: scale(1.02);
+}
+
+.creation-recent-drama-cover img { transition: transform 250ms var(--motion-ease-out); }
+
+.creation-recent-drama-cover.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.creation-recent-drama-cover.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.creation-recent-drama-cover.is-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* 底部压一层暗渐变，浅色封面上也能看清与下方标题的层次。 */
+.creation-recent-drama-cover::after {
+    position: absolute;
+    inset: 55% 0 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.38), transparent);
+    content: "";
+    pointer-events: none;
+}
+
+.creation-recent-drama-cover.is-empty {
+    place-items: center;
+    background:
+        radial-gradient(120% 80% at 20% 0%, color-mix(in srgb, var(--user-accent, var(--workspace-accent)) 22%, transparent), transparent 60%),
+        linear-gradient(160deg, var(--recent-project-surface-muted), var(--recent-project-surface));
+}
+
+.creation-recent-drama-cover.is-empty::after { display: none; }
+
+.creation-recent-drama-glyph {
+    color: color-mix(in srgb, var(--recent-project-ink) 14%, transparent);
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.creation-recent-drama-empty-icon {
+    position: absolute;
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: 18px;
+    height: 18px;
+    color: color-mix(in srgb, var(--recent-project-ink) 30%, transparent);
+}
+
+/* 角标按卡片 padding（8px）贴住封面左上角，等于短剧页的 top/left:16px。
+   底色只取主题 surface（深色主题下就是深底），状态色只走文字与圆点 —— 短剧页那边
+   用 --workspace-accent-soft 打底，深色主题叠在浅色封面上会变成「浅底浅字」，这里不跟。 */
+.creation-recent-drama-badge {
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 2;
+    display: inline-flex;
+    height: 22px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: var(--r-full, 999px);
+    background: color-mix(in srgb, var(--recent-project-surface) 88%, transparent);
+    color: var(--recent-project-muted);
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+}
+
+.creation-recent-drama-dot {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.creation-recent-drama-card.is-running .creation-recent-drama-badge {
+    border-color: color-mix(in srgb, var(--user-accent, var(--workspace-accent)) 26%, transparent);
+    color: var(--user-accent, var(--workspace-accent));
+}
+
+.creation-recent-drama-card.is-running .creation-recent-drama-dot {
+    animation: creation-recent-drama-pulse 1.6s ease-in-out infinite;
+}
+
+.creation-recent-drama-card.is-paused .creation-recent-drama-badge {
+    border-color: color-mix(in srgb, var(--status-warning) 32%, transparent);
+    color: var(--status-warning);
+}
+
+.creation-recent-drama-card.is-completed .creation-recent-drama-badge {
+    border-color: color-mix(in srgb, var(--status-success) 32%, transparent);
+    color: var(--status-success);
+}
+
+@keyframes creation-recent-drama-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+.creation-recent-drama-body {
+    display: grid;
+    min-width: 0;
+    gap: 6px;
+    padding: 0 var(--space-1) var(--space-1);
+}
+
+.creation-recent-drama-body > strong {
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.creation-recent-drama-meta {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 4px 0;
+    color: var(--recent-project-faint);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* 分隔点挂在「非首项」上，span 和 <time>（相对时间）都能吃到。 */
+.creation-recent-drama-meta > * + *::before {
+    margin: 0 8px;
+    color: var(--recent-project-border);
+    content: "·";
+}
+
+.creation-recent-drama-progress {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--recent-project-muted);
+    font-size: 11px;
+}
+
+.creation-recent-drama-track {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--recent-project-surface-muted);
+}
+
+.creation-recent-drama-track > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--user-accent, var(--workspace-accent));
+    transition: transform 250ms var(--motion-ease-out);
+}
+
+.creation-recent-drama-card.is-completed .creation-recent-drama-track > span { background: var(--status-success); }
+.creation-recent-drama-card.is-paused .creation-recent-drama-track > span { background: var(--status-warning); }
+
+.creation-recent-drama-progress > b {
+    color: var(--recent-project-ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .creation-recent-projects *,
     .creation-recent-projects *::before,
