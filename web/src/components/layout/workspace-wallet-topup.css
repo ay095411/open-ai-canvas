@@ -15,6 +15,57 @@
     overflow: hidden;
 }
 
+/* 无任何可售套餐时的唯一空态：居中、不铺满，也不带灰框，避免看起来像一块占位模块。 */
+.wallet-topup-empty {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px 20px 32px;
+    text-align: center;
+}
+
+.wallet-topup-empty-icon {
+    display: inline-grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--user-surface-muted);
+    box-shadow: inset 0 0 0 1px var(--user-border);
+    color: var(--user-ink-muted);
+}
+
+.wallet-topup-empty-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.7;
+}
+
+.wallet-topup-empty strong {
+    color: var(--user-ink);
+    font-size: 14.5px;
+    font-weight: 600;
+}
+
+.wallet-topup-empty p {
+    max-width: 46ch;
+    margin: 0;
+    color: var(--user-ink-muted);
+    font-size: 12.5px;
+    line-height: 1.65;
+}
+
+.wallet-topup-empty-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+
 .wallet-topup .is-credits {
     --wallet-topup-kind-ink: var(--wallet-topup-credits-ink);
 }
@@ -94,55 +145,24 @@
     font-size: 12px;
 }
 
+/* 某个分类单独为空（另一分类有货）时的提示：一行左对齐的浅色小条，
+   不做 24px 内边距的居中大框——那会和上面的分组头抢层级。 */
 .wallet-topup-group-empty {
-    border-radius: 14px;
-    border: 1px dashed var(--user-border);
-    background: var(--user-surface-muted);
-    padding: 24px 20px;
-    color: var(--user-ink-muted);
-    font-size: 13px;
-    text-align: center;
-}
-
-.wallet-topup-group-empty.is-storage {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 32px 24px;
-    border: 1px dashed var(--user-border);
-    background: var(--user-surface-muted);
-    border-radius: 16px;
-}
-
-.wallet-topup-empty-icon {
-    display: grid;
-    width: 44px;
-    height: 44px;
-    place-items: center;
     border-radius: 12px;
-    background: var(--user-accent-soft);
-    color: var(--user-accent);
-    margin-bottom: 4px;
-}
-
-.wallet-topup-empty-icon svg {
-    width: 20px;
-    height: 20px;
-}
-
-.wallet-topup-group-empty.is-storage strong {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--user-ink);
-}
-
-.wallet-topup-group-empty.is-storage p {
-    margin: 0;
-    max-width: 460px;
-    font-size: 12px;
+    border: 1px dashed var(--user-border);
+    background: var(--user-surface-muted);
+    padding: 12px 14px;
     color: var(--user-ink-muted);
+    font-size: 12.5px;
+    line-height: 1.6;
+}
+
+/* 补充说明跟在主文案下面，不额外撑高：两个分类的空态保持同一体量。 */
+.wallet-topup-group-empty small {
+    display: block;
+    margin-top: 4px;
+    color: var(--user-ink-muted);
+    font-size: 12px;
     line-height: 1.5;
 }
 
@@ -203,12 +223,6 @@
     border-color: var(--user-accent);
     background: color-mix(in srgb, var(--user-accent) 8%, var(--user-surface));
     box-shadow: 0 0 0 1px var(--user-accent);
-}
-
-.wallet-topup-card.is-storage .wallet-topup-card-value {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
 }
 
 .wallet-topup-card:disabled {
