@@ -1082,10 +1082,34 @@
     font-weight: 650;
 }
 
+/* 行内操作：所有后台表格共用一套紧凑按钮（基础样式在 styles/admin-ui.css，这里是收紧覆盖）。
+   左对齐（admin-ui.css 是 flex-end）——操作列左缘和表头文字对齐，每行位置可预期。 */
 [data-admin-root] .admin-row-actions {
     display: inline-flex;
-    justify-content: center;
+    align-items: center;
+    justify-content: flex-start;
     gap: 4px;
+    flex-wrap: nowrap;
+}
+
+/* 30px → 26px：渠道内模型表的固定操作列只有 206px，
+   四颗按钮（编辑 / 停用 / 复制 / 删除）按原尺寸会撑出去，最后一颗被表格右缘裁掉。 */
+[data-admin-root] .admin-row-action.ant-btn {
+    height: 26px;
+    min-height: 26px;
+    padding-inline: 7px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+[data-admin-root] .admin-row-action.ant-btn .ant-btn-icon {
+    margin-inline-end: 4px;
+}
+
+/* 纯图标操作（复制 / 删除）：与文字按钮同高、定宽正方形，放在后面盖掉上面的 padding。 */
+[data-admin-root] .admin-row-action-icon.ant-btn {
+    width: 26px;
+    padding-inline: 0;
 }
 
 [data-admin-root] .admin-unauthorized {

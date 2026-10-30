@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { App, Button, Checkbox, Input, Popconfirm, Space } from "antd";
+import { App, Button, Checkbox, Input, Space } from "antd";
 import { AdminModal } from "@/pages/admin/ui/overlays";
-import { AntTooltip as Tooltip } from "@/components/ui/base/tooltip/ant-tooltip";
 import type { ColumnsType } from "antd/es/table";
-import { Copy, Pencil, Plus, Power, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 
 import { PaginationBar } from "@/pages/admin/components/admin-ui";
 import { ModelIcon } from "@/components/model-picker";
@@ -13,7 +12,7 @@ import { deleteAdminChannelModel, deleteAdminChannelModels, fetchAdminChannelMod
 import { ChannelModelHealthCell, channelModelHealthKey } from "./channel-model-health";
 import type { ModelChannel } from "@/stores/use-config-store";
 import { ChannelModelEditor } from "./channel-model-editor";
-import { AdminBatchBar, AdminDataTable, AdminFilterChip, AdminStatusBadge, AdminTableEmpty } from "./admin-ui";
+import { AdminBatchBar, AdminDataTable, AdminFilterChip, AdminRowActions, AdminStatusBadge, AdminTableEmpty } from "./admin-ui";
 import { ChannelOrderDialog } from "./channel-order-dialog";
 import { ChannelModelCostSummary } from "./channel-model-cost-summary";
 import { ChannelModelRepriceDialog } from "./channel-model-reprice-dialog";
@@ -261,28 +260,39 @@ export function ChannelModelManager({ channel, onChanged, health, healthLoading 
                     <AdminStatusBadge label="待配置" tone="warning" />
                 ),
         },
-        { title: "规格成本价 / 销售价 / 加价", width: 310, render: (_, item) => <ChannelModelCostSummary item={item} /> },
+        { title: "规格成本价 / 销售价 / 加价", width: 270, render: (_, item) => <ChannelModelCostSummary item={item} /> },
         { title: "版本", dataIndex: "priceVersion", width: 75, render: (value) => `v${value}` },
         { title: "状态", dataIndex: "enabled", width: 85, render: (enabled) => <AdminStatusBadge label={enabled ? "启用" : "停用"} tone={enabled ? "success" : "neutral"} /> },
         {
             title: "操作",
             width: 206,
             fixed: "right",
+            // 与其他后台表格统一走 AdminRowActions 的紧凑文本按钮：
+            // 原来这里混用带边框的 small 按钮，四颗加起来 200px 撑爆固定列，
+            // 最后一个图标会被挤出表格右缘。
             render: (_, item) => (
-                <Space size={4}>
-                    <Button size="small" icon={<Pencil className="size-3.5" />} disabled={deletingSelected} onClick={() => startEdit(item)}>
-                        编辑
-                    </Button>
-                    <Button size="small" danger={item.enabled} icon={<Power className="size-3.5" />} loading={togglingId === item.id} disabled={deletingSelected || (togglingId !== null && togglingId !== item.id)} onClick={() => toggleEnabled(item)}>
-                        {item.enabled ? "停用" : "启用"}
-                    </Button>
-                    <Tooltip title="复制模型">
-                        <Button size="small" aria-label={`复制模型 ${item.displayName || item.modelKey}`} disabled={deletingSelected} icon={<Copy className="size-3.5" />} onClick={() => startCopy(item)} />
-                    </Tooltip>
-                    <Popconfirm title="删除模型" description="已被前台供应线路或进行中任务使用的模型不能删除；删除后模型不再显示，且不能在页面恢复。" okText="删除" cancelText="取消" onConfirm={() => void remove(item)}>
-                        <Button size="small" danger disabled={deletingSelected} title="删除模型" aria-label="删除模型" icon={<Trash2 className="size-3.5" />} />
-                    </Popconfirm>
-                </Space>
+                <AdminRowActions
+                    primary={{ label: "编辑", disabled: deletingSelected, onClick: () => startEdit(item) }}
+                    actions={[
+                        {
+                            key: "toggle",
+                            label: item.enabled ? "停用" : "启用",
+                            danger: item.enabled,
+                            loading: togglingId === item.id,
+                            disabled: deletingSelected || (togglingId !== null && togglingId !== item.id),
+                            onClick: () => toggleEnabled(item),
+                        },
+                        { key: "copy", label: "复制", disabled: deletingSelected, onClick: () => startCopy(item) },
+                        {
+                            key: "delete",
+                            label: "删除",
+                            danger: true,
+                            disabled: deletingSelected,
+                            confirm: { title: "删除模型", description: "已被前台供应线路或进行中任务使用的模型不能删除；删除后模型不再显示，且不能在页面恢复。", okText: "删除" },
+                            onClick: () => remove(item),
+                        },
+                    ]}
+                />
             ),
         },
     ];

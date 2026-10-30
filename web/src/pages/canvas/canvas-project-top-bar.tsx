@@ -195,7 +195,9 @@ export function CanvasTopBar({
                     {syncIcon}
                 </div>
 
-                <div className="canvas-topbar-cluster canvas-topbar-tools-cluster pointer-events-auto flex items-center gap-2" style={dockStyle}>
+                {/* 中间那列原本留给视图切换；它下线后如果没有显式占位，这组命令会被自动排进中间列，
+                    变成「居中偏左」的浮岛。固定到第 3 列并靠右贴边。 */}
+                <div className="canvas-topbar-cluster canvas-topbar-tools-cluster pointer-events-auto col-start-3 flex items-center gap-2 justify-self-end" style={dockStyle}>
                     <CanvasTopBarTooltip label="搜索画布节点">
                         <Button
                             type="text"

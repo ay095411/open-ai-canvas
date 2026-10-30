@@ -1,6 +1,6 @@
 import { App, Button, Form, Input, InputNumber, Segmented, Spin, Switch } from "antd";
 import { AdminModal } from "@/pages/admin/ui/overlays";
-import { ChevronRight, Copy, Download, Pencil, Plus, Power, Search, Trash2, Upload } from "lucide-react";
+import { ChevronRight, Download, Plus, Search, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { AdminSearchInput } from "../components/admin-search-input";
@@ -309,15 +309,14 @@ export default function ChannelsPage() {
     // 渠道操作全部外露：编辑、复制、导出、启停、删除，危险操作仍二次确认。
     const channelActions = (channel: ModelChannel) => (
         <AdminRowActions
-            primary={{ label: "编辑", icon: <Pencil className="size-3.5" />, onClick: () => openDrawer(channel) }}
+            primary={{ label: "编辑", onClick: () => openDrawer(channel) }}
             visibleActionCount={4}
             actions={[
-                { key: "duplicate", label: "复制", icon: <Copy className="size-3.5" />, disabled: Boolean(duplicatingChannelId), onClick: () => duplicateChannel(channel) },
-                { key: "export", label: "导出", icon: <Download className="size-3.5" />, disabled: transferring, onClick: () => exportChannels(channel) },
+                { key: "duplicate", label: "复制", disabled: Boolean(duplicatingChannelId), onClick: () => duplicateChannel(channel) },
+                { key: "export", label: "导出", disabled: transferring, onClick: () => exportChannels(channel) },
                 {
                     key: "toggle",
                     label: channel.enabled !== false ? "停用" : "启用",
-                    icon: <Power className="size-3.5" />,
                     danger: channel.enabled !== false,
                     confirm: {
                         title: channel.enabled !== false ? "停用这个系统渠道？" : "启用这个系统渠道？",
@@ -329,7 +328,6 @@ export default function ChannelsPage() {
                 {
                     key: "delete",
                     label: "删除",
-                    icon: <Trash2 className="size-3.5" />,
                     danger: true,
                     confirm: { title: "删除这个系统渠道？", description: "删除后渠道及所属模型将不再显示，API Key 会被清除，历史账单和调用记录继续保留。该操作不能在页面恢复。", okText: "确认删除" },
                     onClick: () => removeChannel(channel),

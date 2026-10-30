@@ -1,6 +1,6 @@
-import { App, Button, Space } from "antd";
+import { App, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { Pencil, Power, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -10,7 +10,7 @@ import { type ModelProtocolDefinition } from "@/lib/model-protocols";
 import { fetchPluginProviderCatalog } from "@/services/api/plugin-catalog";
 import { listAdminAllChannelModels, setAdminChannelModelEnabled, type AdminChannelModelHealth, type AdminChannelModelListItem } from "@/services/api/wallet";
 import type { ModelChannel } from "@/stores/use-config-store";
-import { AdminDataTable, AdminStatusBadge, AdminTableEmpty, PaginationBar } from "../components/admin-ui";
+import { AdminDataTable, AdminRowActions, AdminStatusBadge, AdminTableEmpty, PaginationBar } from "../components/admin-ui";
 import { AdminSearchInput } from "../components/admin-search-input";
 import { ChannelModelCostSummary } from "../components/channel-model-cost-summary";
 import { ChannelModelEditor } from "../components/channel-model-editor";
@@ -193,7 +193,8 @@ export function AllChannelModelsPanel({
         },
         { title: "能力", dataIndex: "capability", width: 72, render: (value: string) => capabilityOptions.find((option) => option.value === value)?.label || "待配置" },
         { title: "稳定性（24h）", key: "health", width: 150, render: (_, item) => <ChannelModelHealthCell health={health.get(channelModelHealthKey(item.channelId, item.modelKey))} loading={healthLoading} /> },
-        { title: "规格成本价 / 销售价 / 加价", width: 300, render: (_, item) => <ChannelModelCostSummary item={item} /> },
+        // 该表容器宽于 scroll.x，antd 会按声明宽度比例拉伸分配；220 经实测渲染约 272px，与其他表一致。
+        { title: "规格成本价 / 销售价 / 加价", width: 220, render: (_, item) => <ChannelModelCostSummary item={item} /> },
         {
             title: "状态",
             width: 90,
@@ -204,14 +205,20 @@ export function AllChannelModelsPanel({
             width: 150,
             fixed: "right",
             render: (_, item) => (
-                <Space size={4}>
-                    <Button size="small" icon={<Pencil className="size-3.5" />} onClick={() => openEditor(item)}>
-                        编辑
-                    </Button>
-                    <Button size="small" danger={item.enabled} icon={<Power className="size-3.5" />} loading={togglingId === item.id} disabled={togglingId !== null && togglingId !== item.id} onClick={() => toggleEnabled(item)}>
-                        {item.enabled ? "停用" : "启用"}
-                    </Button>
-                </Space>
+                // 与渠道内模型表保持同一套行内操作样式（紧凑文本按钮），不再用带边框的 small 按钮。
+                <AdminRowActions
+                    primary={{ label: "编辑", onClick: () => openEditor(item) }}
+                    actions={[
+                        {
+                            key: "toggle",
+                            label: item.enabled ? "停用" : "启用",
+                            danger: item.enabled,
+                            loading: togglingId === item.id,
+                            disabled: togglingId !== null && togglingId !== item.id,
+                            onClick: () => toggleEnabled(item),
+                        },
+                    ]}
+                />
             ),
         },
     ];

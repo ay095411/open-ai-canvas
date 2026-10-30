@@ -305,8 +305,11 @@ export type AdminRowAction = {
     key: string;
     label: ReactNode;
     icon?: ReactNode;
+    /** 只显示图标：适合「复制 / 删除」这类语义明确的次级操作，label 转为无障碍名称与 title。 */
+    iconOnly?: boolean;
     danger?: boolean;
     disabled?: boolean;
+    loading?: boolean;
     onClick: () => void | Promise<void>;
     confirm?: {
         title: string;
@@ -315,7 +318,7 @@ export type AdminRowAction = {
     };
 };
 
-export function AdminRowActions({ primary, actions, visibleActionCount }: { primary?: { label: ReactNode; icon?: ReactNode; onClick: () => void | Promise<void>; disabled?: boolean }; actions: AdminRowAction[]; visibleActionCount?: number }) {
+export function AdminRowActions({ primary, actions, visibleActionCount }: { primary?: { label: ReactNode; icon?: ReactNode; onClick: () => void | Promise<void>; disabled?: boolean; loading?: boolean }; actions: AdminRowAction[]; visibleActionCount?: number }) {
     const { modal } = App.useApp();
     // 行内操作默认全部外露；只有超过 3 个次要操作时才把其余收进“更多”，避免只藏一两个按钮。
     const resolvedVisibleActionCount = visibleActionCount ?? (actions.length <= 3 ? actions.length : 2);
@@ -345,15 +348,26 @@ export function AdminRowActions({ primary, actions, visibleActionCount }: { prim
     };
 
     const renderActionButton = (action: AdminRowAction) => (
-        <Button key={action.key} type="text" size="small" className={cn("admin-row-action", action.danger && "admin-row-action-danger")} icon={action.icon} disabled={action.disabled} onClick={() => runAction(action)}>
-            {action.label}
+        <Button
+            key={action.key}
+            type="text"
+            size="small"
+            className={cn("admin-row-action", action.danger && "admin-row-action-danger", action.iconOnly && "admin-row-action-icon")}
+            icon={action.icon}
+            disabled={action.disabled}
+            loading={action.loading}
+            aria-label={action.iconOnly && typeof action.label === "string" ? action.label : undefined}
+            title={action.iconOnly && typeof action.label === "string" ? action.label : undefined}
+            onClick={() => runAction(action)}
+        >
+            {action.iconOnly ? null : action.label}
         </Button>
     );
 
     return (
         <div className="admin-row-actions">
             {primary ? (
-                <Button type="text" size="small" className="admin-row-action admin-row-action-primary" icon={primary.icon} disabled={primary.disabled} onClick={primary.onClick}>
+                <Button type="text" size="small" className="admin-row-action admin-row-action-primary" icon={primary.icon} disabled={primary.disabled} loading={primary.loading} onClick={primary.onClick}>
                     {primary.label}
                 </Button>
             ) : null}
