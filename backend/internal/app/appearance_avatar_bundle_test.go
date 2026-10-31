@@ -74,10 +74,11 @@ func TestAgentAvatarBundleArchiveValidation(t *testing.T) {
 	}
 }
 
-func TestDefaultCanvasAppearanceUsesBuiltInAvatarBundle(t *testing.T) {
+func TestDefaultCanvasAppearanceUsesLocalOrbAvatar(t *testing.T) {
 	value := defaultCanvasAppearance()
-	if value.AvatarType != "bundle" || value.AvatarBundleResourceID != "" {
-		t.Fatalf("default canvas appearance = %+v, want built-in avatar bundle", value)
+	// 本地品牌默认 Navo AI + orb；动画包映射保留，供管理员上传 bundle 后切换。
+	if value.AgentName != "Navo AI" || value.AvatarType != "orb" || value.AvatarBundleResourceID != "" {
+		t.Fatalf("default canvas appearance = %+v, want local orb avatar", value)
 	}
 	wantStates := map[string]string{
 		"idle": "idle", "queued": "sleep_loop", "running": "working_loop", "waiting_approval": "think",
