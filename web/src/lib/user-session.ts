@@ -44,9 +44,13 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     await switchUserStorageScope(payload.user?.id);
     // 切换存储 scope 时 user store 仍保留旧身份；此处只能先检查 generation。
     if (!isCurrentGeneration(generation)) return;
-    withCanvasStorePersistenceSuppressed(() => withAssetStorePersistenceSuppressed(() => withUserScopedPersistenceSuppressed(() => {
-        resetUserScopedMemory();
-    })));
+    withCanvasStorePersistenceSuppressed(() =>
+        withAssetStorePersistenceSuppressed(() =>
+            withUserScopedPersistenceSuppressed(() => {
+                resetUserScopedMemory();
+            }),
+        ),
+    );
     useUserStore.getState().setUser(payload.user);
     useUserStore.getState().setRuntimeLimits(payload.runtimeLimits);
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
@@ -134,7 +138,16 @@ async function hydrateUserSessionData(payload: AuthSessionPayload, generation: n
             }
         })();
     } else {
-        useConfigStore.getState().mergeSystemChannels([]);
+        // 创作首页对游客开放模型目录：后端按默认分组返回当前部署可用的公开读模型；失败保持空目录。
+        void (async () => {
+            try {
+                const catalog = await getModelCatalog();
+                if (!isCurrentSession(generation, "")) return;
+                useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalog));
+            } catch (error) {
+                if (isCurrentSession(generation, "")) console.warn("游客模型目录加载失败，保持空目录", error);
+            }
+        })();
     }
     if (isCurrentSession(generation, userId)) {
         recordDiagnosticEvent({

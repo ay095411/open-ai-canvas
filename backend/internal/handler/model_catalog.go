@@ -30,10 +30,16 @@ func RegisterModelCatalogRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"quote": quote})
 	})
 	r.GET("/model-catalog", func(c *gin.Context) {
-		// 目录包含分组渠道权限和计价，不能用匿名或系统目录兜底。
+		// 创作首页对游客开放目录：登录用户按其分组过滤，游客按默认分组的可见性与价格展示。
+		// 目录仍只包含系统渠道的公开读模型；任务创建、报价与渠道中转各自另有登录与分组校验。
 		user, err := currentUser(c, svc)
 		if err != nil {
-			failService(c, err)
+			catalog, guestErr := svc.ModelCatalogForGuest(nil)
+			if guestErr != nil {
+				failService(c, guestErr)
+				return
+			}
+			ok(c, catalog)
 			return
 		}
 		catalog, err := svc.ModelCatalogForUser(user, nil)

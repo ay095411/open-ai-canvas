@@ -67,7 +67,10 @@ test("catalog responses do not overwrite another account or a logged-out session
         setPersonalConfig();
         const config = useConfigStore.getState().config;
         let respond!: (value: ReturnType<typeof response>) => void;
-        apiClient.request = (() => new Promise((resolve) => { respond = resolve; })) as typeof apiClient.request;
+        apiClient.request = (() =>
+            new Promise((resolve) => {
+                respond = resolve;
+            })) as typeof apiClient.request;
 
         const pending = refreshSystemChannels();
         useUserStore.setState({ user: nextUser });
@@ -83,16 +86,21 @@ test("catalog errors propagate without replacing local configuration", async () 
     useUserStore.setState({ user });
     setPersonalConfig();
     const config = useConfigStore.getState().config;
-    apiClient.request = (async () => { throw new Error("catalog unavailable"); }) as typeof apiClient.request;
+    apiClient.request = (async () => {
+        throw new Error("catalog unavailable");
+    }) as typeof apiClient.request;
 
     await expect(refreshSystemChannels()).rejects.toThrow("catalog unavailable");
     expect(useConfigStore.getState().config).toBe(config);
 });
 
-test("session hydration skips guest catalog fetching and removes cached system permissions", () => {
+test("session hydration fetches the guest catalog and keeps login-scoped hydration gated", () => {
     const source = readFileSync(new URL("../src/lib/user-session.ts", import.meta.url), "utf8");
     const hydration = source.split("async function hydrateUserSessionData")[1].split("function isCurrentSession")[0];
     expect(hydration).toMatch(/if \(userId\) \{\s+void \(async \(\) => \{/);
-    expect(hydration).toContain("useConfigStore.getState().mergeSystemChannels([])");
+    // 游客分支：创作首页允许未登录看到模型目录（后端按默认分组返回）。
+    expect(hydration).toMatch(/else \{\s+\/\/ 创作首页对游客开放模型目录[\s\S]*?await getModelCatalog\(\)/);
+    expect(hydration).toContain('if (!isCurrentSession(generation, "")) return;');
+    // 登录分支的代次校验仍然存在，防止目录写回其他账号会话。
     expect(hydration).toContain("if (!isCurrentSession(generation, userId)) return;");
 });

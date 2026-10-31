@@ -5,6 +5,12 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+## 首页游客可见模型目录
+
+- 需求：用户未登录时，创作首页也能看到当前部署可使用的模型。`GET /api/model-catalog` 改为允许匿名访问：登录用户按其分组过滤渠道并换算价格，游客按默认分组的可见性与价格返回公开读模型（`backend/internal/app/user_groups.go` 新增 `ModelCatalogForGuest`，仅用于展示读模型）；`POST /model-catalog/available`、`/model-catalog/quote` 与渠道中转仍要求登录。前端 `user-session.ts` 游客会话分支同样拉取目录写入配置存储（失败保持空目录），创作/生成动作的登录门不变。
+- 已验证：后端 handler 测试（游客 200 且含公开模型、无成本价泄漏、available/quote 匿名 401）、前端 `user-session-catalog` 5 项、`bun run typecheck`；尚未在真实首页做未登录浏览器验收。
+- [ ] 浏览器验收：未登录打开首页模型选择器可见分组内模型与价格，点击生成仍触发登录弹窗；分组受限渠道不出现在游客目录。
+
 ## 一键复刻：页面整体改版待验收
 
 - 工作台 `/remakes/:id` 改为阶段标签式：常驻顶栏（可编辑标题、状态徽章、保存态、本次运行费用）+ 运行进度条（暂停/继续/重试失败/取消、待审核横条带「挑选关键帧」跳转）+ 四个可点击阶段（参考片 / 复刻方案 / 分镜制作 / 成片），样式集中在 `web/src/pages/remakes/remake-workbench.css` 的 `rk-*` 作用域 token（映射 `--user-*`，明暗成对）。草稿逻辑抽为 `use-remake-draft.ts`，阶段组件拆分为 `workbench-{source,plan,shots,export}-stage.tsx` 与 `workbench-{stage-nav,run-bar,shot-strip}.tsx`。

@@ -654,6 +654,16 @@ func (s *Service) ModelCatalogForUser(user *model.User, intent *ModelRequestInte
 	return s.ModelCatalog(access, intent)
 }
 
+// ModelCatalogForGuest 供未登录的首页模型目录使用：可见性与价格都按默认分组计算，
+// 不含任何用户维度，只能作为展示读模型，不能用于报价以外的账单或任务准入。
+func (s *Service) ModelCatalogForGuest(intent *ModelRequestIntent) (*ModelCatalogResponse, error) {
+	group, err := s.resolvedUserGroup(model.DefaultUserGroupCode)
+	if err != nil {
+		return nil, err
+	}
+	return s.ModelCatalog(&userGroupAccess{group: group}, intent)
+}
+
 // PublicLogicalModelsForUser 是前台模型目录的 HTTP 入口。
 func (s *Service) PublicLogicalModelsForUser(user *model.User, intent *ModelRequestIntent) ([]PublicLogicalModel, error) {
 	access, err := s.userGroupAccessForUser(user)

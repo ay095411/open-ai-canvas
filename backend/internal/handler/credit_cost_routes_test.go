@@ -179,4 +179,21 @@ func TestChannelCostHTTPAuthorizationAndPublicProjection(t *testing.T) {
 			t.Fatalf("public cost leaked: %s", w.Body.String())
 		}
 	}
+	// 首页对游客开放目录：未登录 GET /model-catalog 按默认分组返回公开读模型，其余目录写路径仍要求登录。
+	guest := call("", http.MethodGet, "/api/model-catalog", nil)
+	if guest.Code != http.StatusOK {
+		t.Fatalf("guest catalog: %d %s", guest.Code, guest.Body.String())
+	}
+	if !strings.Contains(guest.Body.String(), "text-model") || !strings.Contains(guest.Body.String(), `"source":"system"`) {
+		t.Fatalf("guest catalog missing system models: %s", guest.Body.String())
+	}
+	if strings.Contains(guest.Body.String(), "costPricing") || strings.Contains(guest.Body.String(), "123456") {
+		t.Fatalf("guest catalog leaked cost: %s", guest.Body.String())
+	}
+	for _, path := range []string{"/api/model-catalog/available", "/api/model-catalog/quote"} {
+		w := call("", http.MethodPost, path, []byte(`{"capability":"text"}`))
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("guest %s should stay login-gated: %d %s", path, w.Code, w.Body.String())
+		}
+	}
 }
