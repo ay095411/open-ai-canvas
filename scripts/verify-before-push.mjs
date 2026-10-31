@@ -24,6 +24,7 @@ const WEB = path.join(ROOT, "web");
 const BACKEND = path.join(ROOT, "backend");
 const LOG_DIR = path.join(ROOT, ".local", "cache", "verify");
 const TASK_TIMEOUT_MS = 25 * 60 * 1000;
+const IS_WINDOWS = process.platform === "win32";
 
 const options = parseArgs(process.argv.slice(2));
 
@@ -63,7 +64,7 @@ function fail(message) {
 }
 
 function git(args, env) {
-    const result = spawnSync("git", args, { cwd: ROOT, encoding: "utf8", env: env ? { ...process.env, ...env } : process.env, maxBuffer: 64 * 1024 * 1024 });
+    const result = spawnSync("git", args, { cwd: ROOT, encoding: "utf8", env: env ? { ...process.env, ...env } : process.env, maxBuffer: 64 * 1024 * 1024, windowsHide: true });
     if (result.status !== 0) throw new Error(`git ${args.join(" ")} 失败：${result.stderr.trim()}`);
     return result.stdout.trim();
 }
@@ -125,7 +126,7 @@ if (wantWeb) {
 } else skipped.push("Web 检查（没有 web/ 改动）");
 
 if (wantBackend) {
-    if (spawnSync("go", ["version"]).status !== 0) {
+    if (spawnSync("go", ["version"], { windowsHide: true }).status !== 0) {
         console.error("✗ 有后端改动，但本机没有可用的 go；请安装 backend/go.mod 要求的 Go 版本。");
         process.exit(1);
     }
@@ -137,11 +138,11 @@ if (wantBackend) {
         weight: 5,
         check: (output) => (output.trim() ? `以下文件需要 gofmt -w：\n${output.trim()}` : ""),
     });
-    if (spawnSync("golangci-lint", ["--version"], { encoding: "utf8" }).status === 0) {
+    if (spawnSync("golangci-lint", ["--version"], { encoding: "utf8", windowsHide: true }).status === 0) {
         tasks.push({ name: "backend:agent-lint", cwd: BACKEND, cmd: "golangci-lint", args: ["run", "--config=.golangci.yml", "./internal/agent/..."], weight: 60 });
     } else notCovered.push("Agent 静态检查 golangci-lint v2.5.0（本机未安装；Agent 架构测试已包含在 backend:test-rest）");
     const appPackage = "yingce/backend/internal/app";
-    const otherPackages = lines(spawnSync("go", ["list", "./..."], { cwd: BACKEND, encoding: "utf8" }).stdout).filter((pkg) => pkg !== appPackage);
+    const otherPackages = lines(spawnSync("go", ["list", "./..."], { cwd: BACKEND, encoding: "utf8", windowsHide: true }).stdout).filter((pkg) => pkg !== appPackage);
     tasks.push({ name: "backend:test-rest", cwd: BACKEND, cmd: "go", args: ["test", "-timeout=20m", ...otherPackages], weight: 100 });
     // 与 CI 相同：internal/app 的顶层用例按名字排序后轮转分片，子用例跟随顶层用例。
     tasks.push({ name: "backend:list-app", cwd: BACKEND, cmd: "go", args: ["test", "-list", ".", "./internal/app"], weight: 200 });
@@ -162,7 +163,7 @@ if (wantBackend) {
             },
         });
     }
-    if (!process.env.CANVAS_TEST_POSTGRES_DSN || spawnSync("redis-server", ["--version"]).status !== 0) notCovered.push("依赖 PostgreSQL / redis-server 的 5 个后端用例（本机缺少服务时会跳过，由 CI 检查）");
+    if (!process.env.CANVAS_TEST_POSTGRES_DSN || spawnSync("redis-server", ["--version"], { windowsHide: true }).status !== 0) notCovered.push("依赖 PostgreSQL / redis-server 的 5 个后端用例（本机缺少服务时会跳过，由 CI 检查）");
 } else skipped.push("后端检查（没有 backend/ 改动）");
 
 if (!tasks.length) {
@@ -187,8 +188,13 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 }
 
 function killTree(child) {
-    // pid 必须是真实子进程：process.kill(-0) 会向本脚本所在的进程组发信号。
     if (!child?.pid) return;
+    if (IS_WINDOWS) {
+        // Windows 没有负 pid 的进程组语义（process.kill(-pid) 不生效），用 taskkill 连同子孙进程一起结束。
+        spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+        return;
+    }
+    // pid 必须是真实子进程：process.kill(-0) 会向本脚本所在的进程组发信号。
     try {
         process.kill(-child.pid, "SIGTERM");
     } catch {
@@ -213,8 +219,10 @@ function runTask(task) {
         const log = createWriteStream(logPath);
         let output = "";
         const startedAt = Date.now();
-        // 独立进程组：超时或中断时能结束 vite、chrome、go 子进程。
-        const child = spawn(task.cmd, args, { cwd: task.cwd, env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0", ...task.env }, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+        // POSIX 用独立进程组：超时或中断时能结束 vite、chrome、go 子进程。
+        // Windows 不用 detached：DETACHED_PROCESS 会给每个子进程新建可见控制台窗口（windowsHide 压不住），
+        // 改为继承脚本控制台 + windowsHide 彻底隐藏，杀进程树走 killTree 的 taskkill 分支。
+        const child = spawn(task.cmd, args, { cwd: task.cwd, env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0", ...task.env }, detached: !IS_WINDOWS, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
         running.set(task.name, child);
         const collect = (chunk) => {
             output += chunk;
