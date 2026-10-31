@@ -20,6 +20,12 @@ export const navigationTools = [
         section: "创作空间",
     },
     {
+        slug: "remakes",
+        label: "一键复刻",
+        icon: Clapperboard,
+        section: "创作空间",
+    },
+    {
         slug: "tasks",
         label: "任务",
         icon: ListTodo,

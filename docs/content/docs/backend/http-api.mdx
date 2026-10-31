@@ -843,3 +843,21 @@ install 的 Base URL、协议、能力和成本全部从服务端快照读取，
 - 预算口径：`GET /dramas/:id` 的 `production.spentMicrocredits` 是作品总花费，含关联画布上生成任务的花费；其中画布部分为 `canvasSpentMicrocredits`。画布花费在读取时汇总：任务的 `project_id` 是关联到作品的画布，按其计费订单下单金额计（已退款除外，在途订单也计入），口径与流水线一致。派发、继续制作与修改设置都按总花费判断预算；关联画布上创建生成任务时作品预算已用完返回 400 `drama_budget_exhausted`。
 - 资源保护：短剧表直接持有的资源（设定参考图、剧情段视频与尾帧、成片以及全部版本记录）在资源引用快照里记为 `短剧` 引用，素材“彻底删除”与 24 小时孤儿资源清理都会保留它们。
 - 段视图新增 `revision`（采用时的乐观并发校验）与 `videoSeconds`（当前视频进入成片的秒数，与成片时间线一致）。
+
+## 一键复刻
+
+复刻 API 由独立功能开关 `videoRemakeEnabled` 控制，所有项目、运行与资源引用按登录用户隔离。视频和图片先通过现有 `/api/resources` 上传；创建复刻不会创建画布或短剧项目。服务端调度器负责分析、生成与合成，浏览器读取项目快照并在运行时轮询，不新增 SSE。
+
+| API | 合同 |
+| --- | --- |
+| `GET /api/remakes/models` | 当前用户可执行的文本、图片和视频模型目录及默认选择。无人值守运行仅接受逻辑模型或系统渠道模型。 |
+| `POST /api/remakes`、`GET /api/remakes` | 创建/分页查询项目。创建传 `title`、已上传的 `sourceResourceId` 与 `settings`；列表支持 `q`、`status`、`page`、`pageSize`。 |
+| `GET /api/remakes/:id` | 返回项目、分析、镜头、运行、步骤、候选 `takes`、选择状态及成片 `exports`，刷新后以此恢复工作台。 |
+| `PATCH /api/remakes/:id` | 修改标题、设置或镜头。写入必须携带 `expectedVersion`；镜头时间线须完整覆盖所选区间且不能有缺段、重叠或越界。版本冲突返回 409。 |
+| `POST /api/remakes/:id/runs` | 传 `expectedVersion`、唯一 `idempotencyKey`、`goal`（`analysis` / `keyframes` / `complete`）及可选 `mode`（`quick` / `review`）。分析目标只要求文本模型；生成目标还要求图片/视频模型和替换主体。 |
+| `POST /api/remakes/:id/runs/:runId/actions` | `pause`、`resume`、`cancel`、`retry_failed` 或 `approve_and_continue`。关键帧审核继续时传 `expectedSelectionVersion`。 |
+| `PUT /api/remakes/:id/runs/:runId/selections` | 按生成单元保存 `imageTakeId` / `videoTakeId`；传 `expectedSelectionVersion`，候选必须属于该项目和运行。 |
+| `POST /api/remakes/:id/exports` | 读取指定运行的导出结果；成片在所有必需视频步骤完成后由服务端自动合成，此接口不额外重复派发渲染。 |
+| `DELETE /api/remakes/:id` | 删除项目业务记录；仍有在途运行时拒绝删除。资源文件不随项目记录级联物理删除。 |
+
+运行状态保存在服务端，包括 `queued`、`running`、`awaiting_review`、`needs_attention`、`paused`、`partial_failed`、`rendering`、`completed`、`cancelling`、`cancelled`、`failed`。单次模型费用仍由既有 Task 结算，运行汇总实际花费；达到预算后停止后续派发，已提交的上游任务可能继续产生费用。详细设计见仓库 `docs/design/video-remake-module-design.md`。

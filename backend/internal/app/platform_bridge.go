@@ -34,6 +34,7 @@ const (
 	FeatureTimelineTranscription = platform.FeatureTimelineTranscription
 	FeatureImageWorkbench        = platform.FeatureImageWorkbench
 	FeatureVideoWorkbench        = platform.FeatureVideoWorkbench
+	FeatureVideoRemake           = platform.FeatureVideoRemake
 	FeatureGlobalAgent           = platform.FeatureGlobalAgent
 )
 

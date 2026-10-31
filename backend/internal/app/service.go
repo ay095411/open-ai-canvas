@@ -115,6 +115,7 @@ type Service struct {
 	// dramaTaskHook 只在测试中替换短剧调度的任务提交，生产路径始终走 CreateTask 准入。
 	dramaTailFrameHook func(userID, resourceID string) (string, error)
 	dramaTaskHook      func(userID string, req CreateTaskRequest, timeline *renderProject) (*model.Task, error)
+	remakeTaskHook     func(userID string, req CreateTaskRequest, timeline *renderProject) (*model.Task, error)
 }
 
 const taskWorkerConcurrency = 3
@@ -201,6 +202,7 @@ func (s *Service) StartWorker() {
 	s.startPaymentWorker(ctx)
 	s.startBillingAutoRefundWorker()
 	s.startDramaScheduler()
+	s.startRemakeScheduler()
 	go s.syncAgentSessionLimit()
 	s.runWorkerLoop(func(ctx context.Context) {
 		ticker := time.NewTicker(3 * time.Second)

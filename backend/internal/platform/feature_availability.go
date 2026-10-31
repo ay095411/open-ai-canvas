@@ -24,26 +24,28 @@ const (
 	FeatureSystemPlugins         = "systemPluginsVisibleToUsers"
 	FeatureInspirationSources    = "inspirationSourcesVisible"
 	FeatureTimelineTranscription = "timelineTranscription"
-		FeatureImageWorkbench        = "imageWorkbench"
-		FeatureVideoWorkbench        = "videoWorkbench"
-		FeatureGlobalAgent           = "globalAgent"
-	)
+	FeatureVideoRemake           = "videoRemake"
+	FeatureImageWorkbench        = "imageWorkbench"
+	FeatureVideoWorkbench        = "videoWorkbench"
+	FeatureGlobalAgent           = "globalAgent"
+)
 
-	type FeatureAvailability struct {
-		WelcomeEnabled               bool `json:"welcomeEnabled"`
-		ShortDramaEnabled            bool `json:"shortDramaEnabled"`
-		TaskCenterEnabled            bool `json:"taskCenterEnabled"`
-		CreditsEnabled               bool `json:"creditsEnabled"`
-		CustomChannelsEnabled        bool `json:"customChannelsEnabled"`
-		FrontendModelsEnabled        bool `json:"frontendModelsEnabled"`
-		PluginCenterEnabled          bool `json:"pluginCenterEnabled"`
-		SystemPluginsVisibleToUsers  bool `json:"systemPluginsVisibleToUsers"`
-		InspirationSourcesVisible    bool `json:"inspirationSourcesVisible"`
-		TimelineTranscriptionEnabled bool `json:"timelineTranscriptionEnabled"`
-		ImageWorkbenchEnabled        bool `json:"imageWorkbenchEnabled"`
-		VideoWorkbenchEnabled        bool `json:"videoWorkbenchEnabled"`
-		GlobalAgentEnabled           bool `json:"globalAgentEnabled"`
-	}
+type FeatureAvailability struct {
+	WelcomeEnabled               bool `json:"welcomeEnabled"`
+	ShortDramaEnabled            bool `json:"shortDramaEnabled"`
+	TaskCenterEnabled            bool `json:"taskCenterEnabled"`
+	CreditsEnabled               bool `json:"creditsEnabled"`
+	CustomChannelsEnabled        bool `json:"customChannelsEnabled"`
+	FrontendModelsEnabled        bool `json:"frontendModelsEnabled"`
+	PluginCenterEnabled          bool `json:"pluginCenterEnabled"`
+	SystemPluginsVisibleToUsers  bool `json:"systemPluginsVisibleToUsers"`
+	InspirationSourcesVisible    bool `json:"inspirationSourcesVisible"`
+	TimelineTranscriptionEnabled bool `json:"timelineTranscriptionEnabled"`
+	ImageWorkbenchEnabled        bool `json:"imageWorkbenchEnabled"`
+	VideoWorkbenchEnabled        bool `json:"videoWorkbenchEnabled"`
+	VideoRemakeEnabled           bool `json:"videoRemakeEnabled"`
+	GlobalAgentEnabled           bool `json:"globalAgentEnabled"`
+}
 
 type PublicFeatureAvailability struct {
 	FeatureAvailability
@@ -66,11 +68,11 @@ func DefaultFeatureAvailability() FeatureAvailability {
 		SystemPluginsVisibleToUsers:  true,
 		InspirationSourcesVisible:    false,
 		TimelineTranscriptionEnabled: true,
-			ImageWorkbenchEnabled:        false,
-			VideoWorkbenchEnabled:        false,
-			GlobalAgentEnabled:           false,
-		}
+		ImageWorkbenchEnabled:        false,
+		VideoWorkbenchEnabled:        false,
+		GlobalAgentEnabled:           false,
 	}
+}
 
 func (s *Service) FeatureAvailability() (*PublicFeatureAvailability, error) {
 	setting, value, err := s.readFeatureAvailability()
@@ -136,13 +138,15 @@ func (s *Service) FeatureEnabled(feature string) (bool, error) {
 		return value.InspirationSourcesVisible, nil
 	case FeatureTimelineTranscription:
 		return value.TimelineTranscriptionEnabled, nil
-		case FeatureImageWorkbench:
-			return value.ImageWorkbenchEnabled, nil
-		case FeatureVideoWorkbench:
-			return value.VideoWorkbenchEnabled, nil
-		case FeatureGlobalAgent:
-			return value.GlobalAgentEnabled, nil
-		default:
+	case FeatureImageWorkbench:
+		return value.ImageWorkbenchEnabled, nil
+	case FeatureVideoWorkbench:
+		return value.VideoWorkbenchEnabled, nil
+	case FeatureVideoRemake:
+		return value.VideoRemakeEnabled, nil
+	case FeatureGlobalAgent:
+		return value.GlobalAgentEnabled, nil
+	default:
 		return false, errors.New("未知功能开放配置")
 	}
 }
@@ -174,13 +178,15 @@ func (s *Service) RequireFeature(feature string) error {
 		return kernel.Forbidden("素材来源说明暂未开放")
 	case FeatureTimelineTranscription:
 		return kernel.Forbidden("字幕转写暂未开放")
-		case FeatureImageWorkbench:
-			return kernel.Forbidden("生图暂未开放")
-		case FeatureVideoWorkbench:
-			return kernel.Forbidden("视频暂未开放")
-		case FeatureGlobalAgent:
-			return kernel.Forbidden("全局 Agent 暂未开放")
-		default:
+	case FeatureImageWorkbench:
+		return kernel.Forbidden("生图暂未开放")
+	case FeatureVideoWorkbench:
+		return kernel.Forbidden("视频暂未开放")
+	case FeatureVideoRemake:
+		return kernel.Forbidden("一键复刻暂未开放")
+	case FeatureGlobalAgent:
+		return kernel.Forbidden("全局 Agent 暂未开放")
+	default:
 		return kernel.Forbidden("该功能暂未开放")
 	}
 }

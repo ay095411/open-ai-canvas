@@ -5,6 +5,13 @@ description: 从产品功能快速定位主要代码入口
 
 # 代码功能地图
 
+## 一键复刻
+
+- 独立入口：`web/src/constant/navigation-tools.ts`、`workspace-sidebar-nav.tsx`、`router.tsx`；功能开放字段为 `videoRemakeEnabled`。
+- 前端：`web/src/pages/remakes/index.tsx`（项目库）、`create.tsx`（上传与创建）、`workbench.tsx`（服务端进度恢复、分镜编辑、关键帧审核与成片）；API 合同在 `services/api/remakes.ts`，展示与时间线纯逻辑在 `lib/remake/presentation.ts`。
+- 后端：`handler/remake.go` → `app/remake_service.go`（权限、校验与写流程）→ `app/remake_scheduler.go` / `remake_media.go`（持久运行、Task 派发、ffmpeg 分析与合成）→ `internal/remake/`（时间轴与模型输出校验）。数据结构在 `model/models_remake.go`，查询与 CAS 在 `repository/remake.go`，schema v78 在 `database/video_remake.go` / `database/migrations.go`。
+- 资源删除保护由 `repository.RemakeResourceReferences` 与 `RemakeResourceReference` 提供；跨 SQLite/PostgreSQL 数据迁移表清单在 `backend/cmd/migrate-sqlite-postgres/main.go`。
+
 ## 短剧自动制作
 
 - 纯逻辑：`backend/internal/production/`（作品圣经、分集与剧本提示词 `prompts.go`，模型输出解析 `parse.go`，分镜规则与时长 `storyboard.go` / `timing.go`，按视频模型上限切剧情段 `SegmentShotsForVideo`，段提示词素材稿 `segment_prompt.go` 与撰写要求 `segment_writer.go`，参考图方案 `assets.go`，用户分镜表直接导入 `storyboard_import.go`，原文台词逐句核对 `dialogue_check.go`）。

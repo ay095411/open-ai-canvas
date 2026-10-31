@@ -5,6 +5,9 @@ const workspaceRouteLoaders = {
     projects: () => import("@/pages/projects/create"),
     projectDetail: () => import("@/pages/projects/detail"),
     projectCreate: () => import("@/pages/projects/create"),
+    remakes: () => import("@/pages/remakes"),
+    remakeCreate: () => import("@/pages/remakes/create"),
+    remakeWorkbench: () => import("@/pages/remakes/workbench"),
     skillWorkbench: () => import("@/pages/skills/workbench"),
 };
 
@@ -15,6 +18,9 @@ export const loadCreatePage = workspaceRouteLoaders.create;
 export const loadProjectDetailPage = workspaceRouteLoaders.projectDetail;
 export const loadProjectsPage = workspaceRouteLoaders.projects;
 export const loadProjectCreatePage = workspaceRouteLoaders.projectCreate;
+export const loadRemakesPage = workspaceRouteLoaders.remakes;
+export const loadRemakeCreatePage = workspaceRouteLoaders.remakeCreate;
+export const loadRemakeWorkbenchPage = workspaceRouteLoaders.remakeWorkbench;
 export const loadSkillWorkbenchPage = workspaceRouteLoaders.skillWorkbench;
 
 export function preloadWorkspaceRoute(pathnameOrSlug: string) {
@@ -25,6 +31,10 @@ export function preloadWorkspaceRoute(pathnameOrSlug: string) {
     if (slug === "canvas" && segments.length > 1) return;
     if (slug === "projects" && segments.length > 1) {
         void (segments[1] === "new" ? workspaceRouteLoaders.projectCreate() : workspaceRouteLoaders.projectDetail());
+        return;
+    }
+    if (slug === "remakes" && segments.length > 1) {
+        void (segments[1] === "new" ? workspaceRouteLoaders.remakeCreate() : workspaceRouteLoaders.remakeWorkbench());
         return;
     }
     if (slug === "skills" && segments[2] === "edit") {

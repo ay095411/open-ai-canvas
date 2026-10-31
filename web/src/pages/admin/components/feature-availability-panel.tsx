@@ -12,7 +12,7 @@ import { AdminStatusBadge } from "./admin-ui";
 import "./feature-availability-panel.css";
 
 type FeatureKey =
-    "shortDramaEnabled" | "taskCenterEnabled" | "creditsEnabled" | "customChannelsEnabled" | "inspirationSourcesVisible" | "frontendModelsEnabled" | "pluginCenterEnabled" | "systemPluginsVisibleToUsers" | "imageWorkbenchEnabled" | "videoWorkbenchEnabled" | "globalAgentEnabled";
+    "shortDramaEnabled" | "taskCenterEnabled" | "creditsEnabled" | "customChannelsEnabled" | "inspirationSourcesVisible" | "frontendModelsEnabled" | "pluginCenterEnabled" | "systemPluginsVisibleToUsers" | "imageWorkbenchEnabled" | "videoWorkbenchEnabled" | "videoRemakeEnabled" | "globalAgentEnabled";
 type FeatureRow = {
     key: FeatureKey;
     title: string;
@@ -29,6 +29,7 @@ const editableFeatureKeys: FeatureKey[] = [
     "inspirationSourcesVisible",
     "imageWorkbenchEnabled",
     "videoWorkbenchEnabled",
+    "videoRemakeEnabled",
     "globalAgentEnabled",
     "frontendModelsEnabled",
     "pluginCenterEnabled",
@@ -83,6 +84,12 @@ const workspaceFeatureRows: FeatureRow[] = [
         title: "全局 Agent",
         description: "控制除自由画布外的其他页面右下角全局 Agent 悬浮面板的展示与隐藏（画布内始终开启）；默认隐藏。",
         icon: <Bot className="size-4" aria-hidden="true" />,
+    },
+    {
+        key: "videoRemakeEnabled",
+        title: "一键复刻",
+        description: "开放独立参考视频复刻模块，支持拆镜、主体替换、生成与成片。关闭后不删除已有项目。",
+        icon: <Clapperboard className="size-4" aria-hidden="true" />,
     },
 ];
 
@@ -398,6 +405,7 @@ function toEditablePayload(features: FeatureAvailability) {
         inspirationSourcesVisible: features.inspirationSourcesVisible,
         imageWorkbenchEnabled: features.imageWorkbenchEnabled,
         videoWorkbenchEnabled: features.videoWorkbenchEnabled,
+        videoRemakeEnabled: features.videoRemakeEnabled,
         globalAgentEnabled: features.globalAgentEnabled,
         frontendModelsEnabled: features.frontendModelsEnabled,
         pluginCenterEnabled: features.pluginCenterEnabled,
@@ -425,6 +433,7 @@ function parseFeatureAvailability(value: unknown): FeatureAvailability {
         inspirationSourcesVisible: record.inspirationSourcesVisible as boolean,
         imageWorkbenchEnabled: record.imageWorkbenchEnabled as boolean,
         videoWorkbenchEnabled: record.videoWorkbenchEnabled as boolean,
+        videoRemakeEnabled: record.videoRemakeEnabled as boolean,
         globalAgentEnabled: Boolean(record.globalAgentEnabled),
         frontendModelsEnabled: record.frontendModelsEnabled as boolean,
         pluginCenterEnabled: record.pluginCenterEnabled as boolean,

@@ -5,6 +5,22 @@ description: 影策后端核心持久化表与状态边界
 
 # 后端数据库
 
+## 一键复刻（Schema 78）
+
+版本 78 `video_remake` 新增独立复刻项目、修订、运行、步骤、候选产物、成片与资源引用记录。媒体二进制仍由 `resources` 管理，不复制到复刻表中。
+
+| 表 | 用途与约束 |
+| --- | --- |
+| `remake_projects` | 按 `user_id` 隔离项目；保存源视频资源、设置/分析/分镜 JSON、`draft_version`、汇总状态与阶段。草稿写入按版本 CAS。 |
+| `remake_revisions` | 固定某次执行使用的设置、分析、分镜与生成单元，保留输入快照。 |
+| `remake_runs` | 运行状态、目标、模式、预算/实际花费、候选选择及 Worker 租约；`(project_id, idempotency_key)` 唯一，避免重复启动。 |
+| `remake_steps` | 每个运行的分析、图片、视频与合成步骤；`(run_id, step_key)` 唯一，记录 Task、尝试、输入摘要和状态。 |
+| `remake_takes` | 记录步骤产生的图片/视频候选、Task 与资源；`step_id` 唯一，避免重复写入同一结果。 |
+| `remake_exports` | 记录成片资源、时长与修订清单；`step_id` 唯一。 |
+| `remake_resource_references` | 复刻项目持有源片、主体参考图、关键帧、候选及成片引用；项目删除或资源清理按此保护共享资源。 |
+
+SQLite 与 PostgreSQL 都由 GORM 自动迁移创建。跨库数据迁移工具也需同步登记这七张表。回退应用时保留这些表和媒体资源，不通过删表回滚。
+
 ## Agent 记忆文件列补齐（Schema 77）
 
 版本 77 `agent_memory_document_columns` 只做补列：确保 `agent_memory_documents.next_entry_seq` 与 `agent_memory_document_revisions.call_id` 存在，并把空值回填为 `0` / 空串。开发期的早期构建执行 v76 时这两列还没加入模型，v76 已记为完成、校验和不能再改，缺列会让创建 Agent 轮次时读取记忆文件失败（`no column named next_entry_seq`）。新库由 v76 一次建全，v77 是空操作；不改写既有记忆内容。

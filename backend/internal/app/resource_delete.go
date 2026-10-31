@@ -117,6 +117,11 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 				dramaReferences, snapshotErr = s.repo.DramaResourceReferences(userID, ownedIDs)
 				snapshot.Direct = append(snapshot.Direct, dramaReferences...)
 			}
+			if snapshotErr == nil {
+				var remakeReferences []repository.ResourceDirectReference
+				remakeReferences, snapshotErr = s.repo.RemakeResourceReferences(userID, ownedIDs)
+				snapshot.Direct = append(snapshot.Direct, remakeReferences...)
+			}
 		} else {
 			snapshot, snapshotErr = s.repo.ResourceReferenceSnapshotExcludingAssets(userID, assetIDs, ownedIDs)
 		}
@@ -126,7 +131,7 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 		sharedAssetResourceIDs := map[string]struct{}{}
 		for _, reference := range snapshot.Direct {
 			if _, exists := ownedIDSet[reference.ResourceID]; exists {
-				if reference.Kind == "素材" || reference.Kind == repository.DramaResourceReferenceKind {
+				if reference.Kind == "素材" || reference.Kind == repository.DramaResourceReferenceKind || reference.Kind == repository.RemakeResourceReferenceKind {
 					sharedAssetResourceIDs[reference.ResourceID] = struct{}{}
 					continue
 				}
@@ -199,6 +204,9 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 		}
 		if errors.Is(err, repository.ErrCanvasHistoryResourceReferenced) {
 			return BadAuthRequest("素材仍被画布历史版本引用，已保留文件")
+		}
+		if errors.Is(err, repository.ErrResourceCleanupStillReferenced) {
+			return BadAuthRequest("资源已被复刻项目引用，已保留文件，请刷新后重试")
 		}
 		return fmt.Errorf("素材记录删除失败，请重试：%w", err)
 	}

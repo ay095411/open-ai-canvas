@@ -140,6 +140,13 @@ func Models() []any {
 		&model.DramaTake{},
 		&model.DramaSegment{},
 		&model.DramaJob{},
+		&model.RemakeProject{},
+		&model.RemakeRevision{},
+		&model.RemakeRun{},
+		&model.RemakeStep{},
+		&model.RemakeTake{},
+		&model.RemakeExport{},
+		&model.RemakeResourceReference{},
 	}
 }
 

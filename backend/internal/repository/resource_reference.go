@@ -137,6 +137,11 @@ func (r *Repository) ResourceReferenceSnapshotExcludingAssets(userID string, exc
 		return snapshot, err
 	}
 	snapshot.Direct = append(snapshot.Direct, dramaReferences...)
+	remakeReferences, err := r.RemakeResourceReferences(userID, resourceIDs)
+	if err != nil {
+		return snapshot, err
+	}
+	snapshot.Direct = append(snapshot.Direct, remakeReferences...)
 	var leases []model.CloudAgentResourceLease
 	if err := r.db.Where("user_id = ? AND resource_id IN ? AND expires_at > ?", userID, resourceIDs, time.Now()).Find(&leases).Error; err != nil {
 		return snapshot, err
@@ -459,6 +464,15 @@ func (r *Repository) DeleteAssetsAndResources(userID string, assetIDs []string, 
 		}
 		if len(assetIDs) == 0 || len(ownedAssets) != len(assetIDs) {
 			return gorm.ErrRecordNotFound
+		}
+		if len(resourceIDs) > 0 {
+			var protected int64
+			if err := tx.Model(&model.RemakeResourceReference{}).Where("resource_id IN ?", resourceIDs).Count(&protected).Error; err != nil {
+				return err
+			}
+			if protected > 0 {
+				return ErrResourceCleanupStillReferenced
+			}
 		}
 		if deleteReferencedResources {
 			// 彻底删除：移除被删资源的画布历史索引，让删除 worker 可以释放物理对象；

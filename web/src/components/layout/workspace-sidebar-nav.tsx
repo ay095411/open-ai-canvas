@@ -62,6 +62,7 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
                 ...(toolboxTo ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: toolboxTo }] : []),
                 { ...toolItem("canvas", "/canvas"), title: "自由画布" },
                 { ...toolItem("projects", "/projects"), title: "短剧 Agent" },
+                ...(features.videoRemakeEnabled ? [toolItem("remakes", "/remakes")] : []),
             ],
         },
         {

@@ -43,6 +43,7 @@ export type FeatureAvailability = {
     inspirationSourcesVisible: boolean;
     imageWorkbenchEnabled: boolean;
     videoWorkbenchEnabled: boolean;
+    videoRemakeEnabled: boolean;
     globalAgentEnabled: boolean;
     configured?: boolean;
     updatedBy?: string;
@@ -61,6 +62,7 @@ export const defaultFeatureAvailability: FeatureAvailability = {
     inspirationSourcesVisible: false,
     imageWorkbenchEnabled: false,
     videoWorkbenchEnabled: false,
+    videoRemakeEnabled: false,
     globalAgentEnabled: false,
 };
 
