@@ -61,6 +61,8 @@ export function WorkspaceTopBarActions() {
                 >
                     {refreshing && availableMicrocredits === null ? <LoaderCircle className="app-workspace-topbar-credit-spinner" aria-hidden="true" /> : <WorkspaceCreditMark className="is-compact" />}
                     <span className="app-workspace-topbar-credit-value" aria-hidden="true">{availableMicrocredits === null ? "--" : formatCredits(availableMicrocredits, 2)}</span>
+                    {/* 金币图标不足以说明数字含义，补一个「积分」单位；读屏仍读整句 aria-label。 */}
+                    <span className="app-workspace-topbar-credit-unit" aria-hidden="true">积分</span>
                 </button>
             ) : null}
             {themeToggler}

@@ -9,6 +9,7 @@ import { CoalAvatar } from "@/components/brand/coal-avatar";
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { UserGroupAvatarRing } from "@/components/layout/user-group-badge";
 import { Kbd } from "@/components/ui/base/kbd";
+import { navigationBadges, type WorkspaceNavBadge } from "@/constant/navigation-badges";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
@@ -28,7 +29,7 @@ export type WorkspaceNavItem = {
     icon?: ComponentType<{ className?: string; strokeWidth?: number }>;
     to?: string;
     shortcut?: string;
-    badge?: string | number;
+    badge?: WorkspaceNavBadge;
     action?: "search" | "logout";
     children?: WorkspaceNavItem[];
 };
@@ -78,6 +79,10 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
 
     // 管理、设置和退出登录不再占据参考站式侧栏底部，而是通过用户卡片菜单进入。
     // 路由和写操作仍保留，避免把用户端导航变成无法访问的装饰。
+    // 角标按 id 从 constant/navigation-badges.ts 挂载，导航结构里不写死文案与配色。
+    for (const group of groups) {
+        group.items = group.items.map((item) => (navigationBadges[item.id] ? { ...item, badge: navigationBadges[item.id] } : item));
+    }
     return { groups, footer: [] };
 }
 
@@ -162,6 +167,29 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
     );
 }
 
+/**
+ * 折叠态窄轨里的两字标题。
+ *
+ * ⚠️ 「一键复刻」不能交给最后的 `title.slice(0, 2)` 兜底：截出来是「一键」，
+ * 而窄轨里这一格代表的是「复刻」这条流水线，不是「一键」这种副词前缀。
+ * 带独立语义的菜单统一在这里登记，没登记的才退回前两字。
+ */
+const COLLAPSED_NAV_TITLES: Record<string, string> = {
+    home: "创作",
+    projects: "短剧",
+    canvas: "画布",
+    remakes: "复刻",
+    toolbox: "影棚",
+    assets: "资产",
+    skills: "Skills",
+    plugins: "插件",
+    tasks: "历史",
+};
+
+function collapsedNavTitle(item: WorkspaceNavItem): string {
+    return COLLAPSED_NAV_TITLES[item.id] ?? item.title.slice(0, 2);
+}
+
 function NavItem({
     item,
     activeId,
@@ -191,24 +219,35 @@ function NavItem({
     const Icon = item.icon;
     const rowStyle = collapsed ? undefined : ({ paddingLeft: `${level * 12 + 10}px` } as CSSProperties);
 
-    const collapsedTitle = item.id === "home" ? "创作" : item.id === "projects" ? "短剧" : item.id === "canvas" ? "画布" : item.id === "toolbox" ? "影棚" : item.id === "assets" ? "资产" : item.id === "skills" ? "Skills" : item.id === "plugins" ? "插件" : item.id === "tasks" ? "历史" : item.title.slice(0, 2);
+    const collapsedTitle = collapsedNavTitle(item);
+    // 收起侧栏后文字胶囊会被藏掉，只剩图标上的色点，提示语因此要并进 title，避免角标信息丢失。
+    const collapsedHint = item.badge ? `${item.title} · ${item.badge.title ?? item.badge.label}` : item.title;
     const rowContent = (
         <>
             <span className="app-workspace-nav-main flex min-w-0 items-center gap-2.5">
                 {Icon ? (
                     <span className="app-workspace-nav-icon" aria-hidden>
                         <Icon className="size-4 shrink-0" strokeWidth={2} />
+                        {collapsed && item.badge ? <span className={cn("app-workspace-nav-badge-dot", `is-${item.badge.tone}`)} /> : null}
                     </span>
                 ) : (
                     <span className="size-1.5 shrink-0 rounded-full bg-current opacity-40" aria-hidden />
                 )}
-                <span className="app-workspace-nav-title truncate">{collapsed ? collapsedTitle : item.title}</span>
+                {/* 角标紧贴菜单名（而不是甩到行尾 meta 列）：它注释的是这一项是什么，
+                    不是这一项有多少条数据；标题可截断，角标永远留在标题右侧不被吃掉。 */}
+                <span className="app-workspace-nav-label flex min-w-0 items-center gap-1.5">
+                    <span className="app-workspace-nav-title truncate">{collapsed ? collapsedTitle : item.title}</span>
+                    {item.badge && !collapsed ? (
+                        <span className={cn("app-workspace-nav-badge", `is-${item.badge.tone}`)} title={item.badge.title}>
+                            {item.badge.label}
+                        </span>
+                    ) : null}
+                </span>
             </span>
             <span className="app-workspace-nav-meta flex shrink-0 items-center gap-2">
                 {item.shortcut ? (
                     <Kbd className="hidden group-hover:inline-flex">{item.shortcut}</Kbd>
                 ) : null}
-                {item.badge !== undefined ? <span className="flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[var(--fs-tiny)] font-medium tabular-nums text-primary">{item.badge}</span> : null}
                 {hasChildren ? <ChevronRight className={cn("size-3.5 shrink-0 text-foreground/40 transition-transform duration-200", isOpen && "rotate-90")} strokeWidth={2} /> : null}
             </span>
         </>
@@ -256,9 +295,9 @@ function NavItem({
                     className={rowClassName}
                     data-nav-id={item.id}
                     style={rowStyle}
-                    aria-label={collapsed ? item.title : undefined}
+                    aria-label={collapsed ? collapsedHint : undefined}
                     aria-current={isActive ? "page" : undefined}
-                    title={collapsed ? item.title : undefined}
+                    title={collapsed ? collapsedHint : undefined}
                     onClick={handleClick}
                     onFocus={() => preloadWorkspaceRoute(linkTo)}
                     onPointerDown={() => preloadWorkspaceRoute(linkTo)}
@@ -268,7 +307,7 @@ function NavItem({
                     {rowContent}
                 </Link>
             ) : (
-                <button type="button" className={rowClassName} data-nav-id={item.id} style={rowStyle} aria-label={collapsed ? item.title : undefined} title={collapsed ? item.title : undefined} onClick={handleClick} aria-expanded={hasChildren ? isOpen : undefined}>
+                <button type="button" className={rowClassName} data-nav-id={item.id} style={rowStyle} aria-label={collapsed ? collapsedHint : undefined} title={collapsed ? collapsedHint : undefined} onClick={handleClick} aria-expanded={hasChildren ? isOpen : undefined}>
                     {activePill}
                     {rowContent}
                 </button>
