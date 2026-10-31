@@ -44,6 +44,19 @@ export function remakeTime(ms: number) {
         .padStart(2, "0")}:${(total % 60).toFixed(1).padStart(4, "0")}`;
 }
 export const remakeCredits = (amount: number) => new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format((amount || 0) / 1_000_000);
+/** 紧凑时长（mm:ss），用于卡片与信息行；精确到 0.1s 的时间轴文本继续用 remakeTime。 */
+export function remakeDuration(ms: number) {
+    const total = Math.max(0, Math.round(ms / 1000));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+/** 状态 → StatusBadge tone。 */
+export function remakeStatusTone(status: string): "success" | "warning" | "error" | "loading" | "neutral" {
+    if (["completed", "succeeded"].includes(status)) return "success";
+    if (["partial_failed", "failed"].includes(status)) return "error";
+    if (["awaiting_review", "needs_attention", "paused", "cancelling"].includes(status)) return "warning";
+    if (["queued", "running", "analyzing", "rendering"].includes(status)) return "loading";
+    return "neutral";
+}
 export function isRemakeRunActive(run: Pick<RemakeRun, "status"> | null | undefined) {
     return Boolean(run && ["queued", "running", "analyzing", "rendering", "cancelling"].includes(run.status));
 }

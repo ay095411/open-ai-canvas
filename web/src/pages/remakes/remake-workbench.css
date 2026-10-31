@@ -1,0 +1,788 @@
+/* ========================================================================
+   一键复刻 · 工作台（/remakes/:id）
+   阶段标签式布局：常驻顶栏 + 运行条 + 四阶段主区（参考片/方案/分镜/成片）。
+   材质对齐用户工作台 --user-* token；rk- 前缀为本页私有，亮暗双态成对维护。
+   ======================================================================== */
+
+.remake-workbench-page {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.remake-workbench-page > div:first-child {
+    display: flex;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding: 12px !important;
+    overflow: hidden;
+    background: var(--user-page-bg, var(--workspace-page, #f8f8fa));
+}
+
+.remake-workbench-shell {
+    /* 作用域 token：右值全部映射 --user-* / 语义 token，明暗随主题切换 */
+    --rk-page: var(--user-page-bg, var(--workspace-page, #f8f8fa));
+    --rk-surface: var(--user-surface, #ffffff);
+    --rk-surface-strong: var(--user-surface-raised, #ffffff);
+    --rk-muted: var(--user-surface-muted, #f1f1f3);
+    --rk-hover: var(--user-surface-hover, #eaeaec);
+    --rk-edge: var(--user-border, rgba(25, 25, 30, 0.1));
+    --rk-text: var(--user-ink, var(--foreground));
+    --rk-text-muted: var(--user-ink-muted, var(--muted-foreground));
+    --rk-accent: var(--user-accent, var(--primary));
+    --rk-accent-soft: color-mix(in srgb, var(--rk-accent) 12%, transparent);
+    --rk-accent-soft-strong: color-mix(in srgb, var(--rk-accent) 22%, transparent);
+    --rk-success: var(--status-success, #16a34a);
+    --rk-warning: var(--status-warning, #d97706);
+    --rk-error: var(--status-error, #dc2626);
+    --rk-edge-soft: color-mix(in srgb, var(--rk-edge) 72%, transparent);
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    color: var(--rk-text);
+}
+
+.dark .remake-workbench-shell {
+    --rk-page: var(--user-page-bg, #151517);
+    --rk-surface: var(--user-surface, #1c1c1f);
+    --rk-surface-strong: var(--user-surface-raised, #222226);
+    --rk-muted: var(--user-surface-muted, #26262a);
+    --rk-hover: var(--user-surface-hover, #303036);
+    --rk-edge: var(--user-border, rgba(255, 255, 255, 0.09));
+    --rk-text: var(--user-ink, #f0f0f2);
+    --rk-text-muted: var(--user-ink-muted, #a0a0a8);
+}
+
+/* ---------------------------------------------------------------- 顶栏 */
+
+.rk-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-edge-soft);
+    border-radius: 16px;
+}
+
+.rk-header-main {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 240px;
+    align-items: center;
+    gap: 10px;
+}
+
+.rk-title-group {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.rk-title-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+}
+
+.rk-title {
+    overflow: hidden;
+    min-width: 0;
+    font-size: var(--fs-body-lg);
+    font-weight: 620;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rk-title-edit {
+    font-size: var(--fs-body-lg);
+}
+
+.rk-header-meta {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    font-size: var(--fs-label);
+    color: var(--rk-text-muted);
+}
+
+/* 运行进度条 */
+
+.rk-runbar {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 8px;
+    padding: 11px 14px;
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-edge-soft);
+    border-radius: 14px;
+}
+
+.rk-runbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+}
+
+.rk-runbar-info {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+}
+
+.rk-runbar-error {
+    font-size: var(--fs-label);
+    color: var(--rk-error);
+}
+
+.rk-runbar-review {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+    padding: 8px 10px 8px 12px;
+    border-left: 3px solid var(--rk-warning);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--rk-warning) 7%, transparent);
+}
+
+/* 阶段导航 */
+
+.rk-stage-nav {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid var(--rk-edge-soft);
+    border-radius: 12px;
+    background: var(--rk-muted);
+}
+
+.rk-stage-item {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 36px;
+    min-width: 0;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--rk-text-muted);
+    font: inherit;
+    font-size: var(--fs-caption);
+    font-weight: 580;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.rk-stage-item:hover {
+    color: var(--rk-text);
+}
+
+.rk-stage-item.is-active {
+    background: var(--rk-surface-strong);
+    color: var(--rk-text);
+    box-shadow: var(--elevation-hairline, 0 1px 2px rgba(0, 0, 0, 0.08));
+}
+
+.rk-stage-item:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.rk-stage-item:focus-visible {
+    outline: 2px solid var(--rk-accent);
+    outline-offset: 1px;
+}
+
+.rk-stage-num {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    font-size: var(--fs-micro, 10px);
+    background: color-mix(in srgb, var(--rk-text) 8%, transparent);
+    color: inherit;
+}
+
+.rk-stage-item.is-active .rk-stage-num {
+    background: var(--rk-accent);
+    color: #fff;
+}
+
+.dark .rk-stage-item.is-active .rk-stage-num {
+    color: #16161a;
+}
+
+.rk-stage-dot {
+    position: absolute;
+    top: 7px;
+    right: 9px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--rk-text-muted);
+    opacity: 0.55;
+}
+
+.rk-stage-dot.is-done {
+    background: var(--rk-success);
+    opacity: 1;
+}
+
+.rk-stage-dot.is-busy {
+    background: var(--rk-accent);
+    opacity: 1;
+}
+
+.rk-stage-dot.is-warn {
+    background: var(--rk-warning);
+    opacity: 1;
+}
+
+/* 阶段主区骨架 */
+
+.rk-stage {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* 阶段① 参考片：主播放器 + 右侧信息栏 */
+
+.rk-stage-source-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 12px;
+    align-items: start;
+}
+
+.rk-stage-scroll {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 4px;
+}
+
+/* 面板与信息卡 */
+
+.rk-panel {
+    padding: 14px;
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-edge-soft);
+    border-radius: 16px;
+}
+
+.rk-panel-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+}
+
+.rk-panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-body);
+    font-weight: 620;
+}
+
+.rk-panel-hint {
+    font-size: var(--fs-label);
+    line-height: 1.6;
+    color: var(--rk-text-muted);
+}
+
+.rk-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    gap: 8px;
+}
+
+.rk-info-cell {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--rk-muted);
+}
+
+.rk-info-label {
+    font-size: var(--fs-micro, 10px);
+    color: var(--rk-text-muted);
+}
+
+.rk-info-value {
+    margin-top: 2px;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 播放器 */
+
+.rk-player {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #000;
+}
+
+.rk-player video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.rk-player-empty {
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px dashed var(--rk-edge);
+    border-radius: 12px;
+    background: var(--rk-muted);
+    color: var(--rk-text-muted);
+    text-align: center;
+    font-size: var(--fs-caption);
+    padding: 16px;
+}
+
+/* 镜头时间条 */
+
+.rk-strip {
+    position: relative;
+    display: flex;
+    gap: 3px;
+    width: 100%;
+    height: 44px;
+}
+
+.rk-strip.is-compact {
+    height: 36px;
+}
+
+.rk-strip-seg {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 16px;
+    overflow: hidden;
+    border: 1px solid var(--rk-edge);
+    border-radius: 6px;
+    background: var(--rk-muted);
+    color: var(--rk-text-muted);
+    font: inherit;
+    cursor: pointer;
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease;
+}
+
+.rk-strip-seg:hover {
+    background: var(--rk-hover);
+}
+
+.rk-strip-seg.is-selected {
+    border-color: var(--rk-accent);
+    background: var(--rk-accent-soft);
+    color: var(--rk-text);
+    box-shadow: inset 0 0 0 1px var(--rk-accent);
+}
+
+.rk-strip-seg.is-playing {
+    background: var(--rk-accent-soft-strong);
+    color: var(--rk-text);
+}
+
+.rk-strip-seg:focus-visible {
+    outline: 2px solid var(--rk-accent);
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+.rk-strip-num {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: var(--fs-micro, 10px);
+    font-weight: 620;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+.rk-strip-flag {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    margin-left: -2.5px;
+    border-radius: 50%;
+    background: var(--rk-success);
+}
+
+.rk-strip-cursor {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--rk-accent);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* 分镜阶段双栏 */
+
+.rk-shots-grid {
+    display: grid;
+    flex: 1 1 0;
+    grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+    gap: 12px;
+    min-height: 0;
+}
+
+.rk-shots-side {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.rk-shots-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
+    padding-bottom: 4px;
+}
+
+/* 镜头编辑卡 */
+
+.rk-shot-card {
+    padding: 14px;
+    background: var(--rk-surface);
+    border: 1px solid var(--rk-edge-soft);
+    border-radius: 16px;
+}
+
+.rk-shot-card.is-selected {
+    border-color: color-mix(in srgb, var(--rk-accent) 55%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rk-accent) 55%, transparent);
+}
+
+.rk-shot-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 10px;
+}
+
+.rk-shot-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    font-size: var(--fs-body);
+    font-weight: 620;
+}
+
+.rk-shot-sub {
+    font-size: var(--fs-label);
+    color: var(--rk-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 关键帧对照与候选 */
+
+.rk-tile {
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    padding: 0;
+    border: 1px solid var(--rk-edge);
+    border-radius: 10px;
+    background: var(--rk-muted);
+    font: inherit;
+    cursor: pointer;
+    transition:
+        border-color 140ms ease,
+        box-shadow 140ms ease;
+}
+
+.rk-tile:hover {
+    border-color: color-mix(in srgb, var(--rk-accent) 50%, transparent);
+}
+
+.rk-tile.is-active {
+    border-color: var(--rk-accent);
+    box-shadow: 0 0 0 1px var(--rk-accent);
+}
+
+.rk-tile:focus-visible {
+    outline: 2px solid var(--rk-accent);
+    outline-offset: 1px;
+}
+
+.rk-tile img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: var(--rk-muted);
+}
+
+/* 原始关键帧保持参考片画幅（--rk-frame-ar 由调用方按分析结果传入） */
+.rk-tile-media img {
+    aspect-ratio: var(--rk-frame-ar, 16 / 9);
+}
+
+.rk-tile-flag {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--rk-accent);
+    color: #fff;
+}
+
+.dark .rk-tile-flag {
+    color: #16161a;
+}
+
+.rk-tile-label {
+    display: block;
+    padding: 4px 6px;
+    font-size: var(--fs-micro, 10px);
+    color: var(--rk-text-muted);
+    text-align: left;
+}
+
+/* 执行模式选择卡 */
+
+.rk-mode-card {
+    display: flex;
+    flex: 1 1 0;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    text-align: left;
+    border: 1px solid var(--rk-edge);
+    border-radius: 12px;
+    background: var(--rk-surface);
+    font: inherit;
+    cursor: pointer;
+    transition:
+        border-color 140ms ease,
+        background-color 140ms ease,
+        box-shadow 140ms ease;
+}
+
+.rk-mode-card:hover {
+    border-color: color-mix(in srgb, var(--rk-accent) 45%, transparent);
+}
+
+.rk-mode-card.is-active {
+    border-color: var(--rk-accent);
+    background: color-mix(in srgb, var(--rk-accent) 5%, var(--rk-surface));
+    box-shadow: 0 0 0 1px var(--rk-accent);
+}
+
+.rk-mode-card:focus-visible {
+    outline: 2px solid var(--rk-accent);
+    outline-offset: 1px;
+}
+
+.rk-mode-radio {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex: 0 0 auto;
+    border: 1.5px solid var(--rk-edge);
+    border-radius: 50%;
+    background: var(--rk-surface);
+}
+
+.rk-mode-card.is-active .rk-mode-radio {
+    border-color: var(--rk-accent);
+}
+
+.rk-mode-card.is-active .rk-mode-radio::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--rk-accent);
+}
+
+/* 参考图槽位 */
+
+.rk-ref-slot {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    background: var(--rk-muted);
+}
+
+.rk-ref-slot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rk-ref-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.62);
+    color: #fff;
+    cursor: pointer;
+}
+
+.rk-ref-remove:focus-visible {
+    outline: 2px solid var(--rk-accent);
+}
+
+/* 未保存修改条 */
+
+.rk-unsaved {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+    padding: 10px 14px;
+    border: 1px solid color-mix(in srgb, var(--rk-warning) 35%, var(--rk-edge-soft));
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--rk-warning) 6%, var(--rk-surface));
+}
+
+/* 就绪清单（方案页） */
+
+.rk-check-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-label);
+}
+
+/* 响应式 */
+
+@media (max-width: 1439px) {
+    .rk-stage-source-grid {
+        grid-template-columns: minmax(0, 1fr) 288px;
+    }
+}
+
+@media (max-width: 1199px) {
+    .rk-shots-grid {
+        grid-template-columns: minmax(0, 1fr);
+        overflow-y: auto;
+    }
+
+    .rk-shots-side {
+        flex: 0 0 auto;
+    }
+
+    .rk-shots-editor {
+        flex: 0 0 auto;
+        overflow: visible;
+    }
+
+    .rk-stage-source-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 767px) {
+    .remake-workbench-page > div:first-child {
+        padding: 8px !important;
+    }
+
+    .remake-workbench-shell {
+        gap: 8px;
+    }
+
+    .rk-stage-item {
+        height: 34px;
+        padding: 0 6px;
+        font-size: var(--fs-label);
+    }
+
+    .rk-stage-item .rk-stage-label-full {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rk-stage-item,
+    .rk-strip-seg,
+    .rk-tile,
+    .rk-mode-card {
+        transition: none;
+    }
+}

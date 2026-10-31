@@ -1,85 +1,171 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Spin, Tag } from "antd";
-import { Clapperboard, Plus, Search, Video } from "lucide-react";
+import { Button, Input } from "antd";
+import { Clapperboard, Plus, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
-import { PageHeader, WorkspacePage } from "@/components/layout/workspace-page";
+import { PageHeader, ListToolbar, CollectionGrid, PaginationBar, WorkspacePage } from "@/components/layout/workspace-page";
+import { WorkspaceErrorState, WorkspaceLoadingState, WorkspaceNoResultsState, WorkspaceState } from "@/components/layout/workspace-state";
+import { StatusBadge } from "@/components/ui/base/badges";
+import { Select } from "@/components/ui/base/select";
+import { RelativeTime } from "@/components/ui/product/relative-time";
+import { remakeDuration, remakeStageLabel, remakeStatusLabel, remakeStatusTone } from "@/lib/remake/presentation";
 import { listRemakes } from "@/services/api/remakes";
-import { remakeStageLabel, remakeStatusLabel } from "@/lib/remake/presentation";
+import { resourceFileUrl } from "@/services/api/resources";
+
+const ACTIVE_STATUSES = ["queued", "running", "analyzing", "rendering"];
+
+const statusFilterOptions = [
+    { value: "draft", label: "草稿" },
+    { value: "running", label: "制作中" },
+    { value: "awaiting_review", label: "等待审核" },
+    { value: "needs_attention", label: "需要处理" },
+    { value: "paused", label: "已暂停" },
+    { value: "completed", label: "已完成" },
+    { value: "partial_failed", label: "部分失败" },
+    { value: "failed", label: "失败" },
+    { value: "cancelled", label: "已取消" },
+];
 
 export default function RemakesPage() {
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
+    const [status, setStatus] = useState<string | undefined>(undefined);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const listQuery = useQuery({
-        queryKey: ["remakes", query],
-        queryFn: ({ signal }) => listRemakes({ page: 1, pageSize: 100, query: query || undefined, signal }),
+        queryKey: ["remakes", page, pageSize, query, status],
+        queryFn: ({ signal }) => listRemakes({ page, pageSize, query: query || undefined, status, signal }),
+        placeholderData: (previous) => previous,
+        refetchInterval: (current) => (current.state.data?.items.some((item) => ACTIVE_STATUSES.includes(item.status)) ? 5000 : false),
     });
-    const items = listQuery.data?.items || [];
+    const items = useMemo(() => listQuery.data?.items || [], [listQuery.data]);
+    const total = listQuery.data?.total ?? 0;
+    const filtered = Boolean(query || status);
+
+    const resetPaging = () => {
+        setPage(1);
+    };
 
     return (
         <WorkspacePage>
             <PageHeader
                 title="一键复刻"
+                description="上传一条参考视频，系统拆镜分析后替换主体并重新生成，保留镜头顺序与节奏。"
                 actions={
                     <Button type="primary" icon={<Plus size={16} />} onClick={() => navigate("/remakes/new")}>
                         新建复刻
                     </Button>
                 }
             />
-            <div className="mt-4 flex max-w-xl items-center gap-2">
-                <Input allowClear value={query} onChange={(event) => setQuery(event.target.value)} prefix={<Search size={15} />} placeholder="搜索复刻项目" aria-label="搜索复刻项目" />
-            </div>
-            {listQuery.isPending ? (
-                <div className="flex justify-center py-16">
-                    <Spin />
-                </div>
-            ) : null}
-            {listQuery.isError ? (
-                <div className="mt-8 flex flex-col items-center gap-3 py-12 text-center">
-                    <p className="text-sm text-foreground/65">{listQuery.error.message || "复刻项目加载失败"}</p>
-                    <Button onClick={() => void listQuery.refetch()}>重试</Button>
-                </div>
-            ) : null}
+            <ListToolbar
+                active={filtered}
+                onReset={() => {
+                    setQuery("");
+                    setStatus(undefined);
+                    resetPaging();
+                }}
+            >
+                <Input
+                    allowClear
+                    className="max-w-xs"
+                    value={query}
+                    onChange={(event) => {
+                        setQuery(event.target.value);
+                        resetPaging();
+                    }}
+                    prefix={<Search size={15} className="text-foreground/40" />}
+                    placeholder="搜索复刻项目"
+                    aria-label="搜索复刻项目"
+                />
+                <Select
+                    className="min-w-32"
+                    allowClear
+                    placeholder="全部状态"
+                    ariaLabel="按状态筛选"
+                    value={status}
+                    options={statusFilterOptions}
+                    onChange={(value) => {
+                        setStatus(value || undefined);
+                        resetPaging();
+                    }}
+                />
+            </ListToolbar>
+            {listQuery.isPending ? <WorkspaceLoadingState label="正在加载复刻项目" rows={3} /> : null}
+            {listQuery.isError ? <WorkspaceErrorState description={listQuery.error.message || "复刻项目加载失败"} onRetry={() => void listQuery.refetch()} /> : null}
             {!listQuery.isPending && !listQuery.isError && items.length === 0 ? (
-                <div className="mt-10 flex flex-col items-center gap-3 py-16 text-center">
-                    <Clapperboard className="size-8 text-foreground/35" strokeWidth={1.5} />
-                    <strong className="text-sm font-medium">{query ? "没有匹配的项目" : "还没有复刻项目"}</strong>
-                    {!query ? (
-                        <Button type="default" icon={<Plus size={15} />} onClick={() => navigate("/remakes/new")}>
-                            新建复刻
-                        </Button>
-                    ) : null}
-                </div>
+                filtered ? (
+                    <WorkspaceNoResultsState
+                        query={query}
+                        onClear={() => {
+                            setQuery("");
+                            setStatus(undefined);
+                            resetPaging();
+                        }}
+                    />
+                ) : (
+                    <WorkspaceState
+                        title="还没有复刻项目"
+                        description="从一条参考视频开始：上传片段、绑定新主体素材，系统会拆镜、生成关键帧并逐镜重拍。"
+                        action={
+                            <Button type="primary" icon={<Plus size={15} />} onClick={() => navigate("/remakes/new")}>
+                                新建复刻
+                            </Button>
+                        }
+                    />
+                )
             ) : null}
             {items.length > 0 ? (
-                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                    {items.map((item) => (
-                        <Link
-                            key={item.id}
-                            to={`/remakes/${encodeURIComponent(item.id)}`}
-                            className="group min-w-0 rounded-md border border-border/70 bg-surface p-4 transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="flex min-w-0 items-center gap-3">
-                                    <span className="grid size-10 shrink-0 place-items-center rounded bg-foreground/5 text-foreground/60">
-                                        <Video size={18} />
-                                    </span>
-                                    <div className="min-w-0">
-                                        <h2 className="truncate text-sm font-semibold text-foreground">{item.title}</h2>
-                                        <p className="mt-1 truncate text-xs text-foreground/50">
-                                            {remakeStageLabel(item.stage)} · 更新于 {new Date(item.updatedAt).toLocaleDateString("zh-CN")}
-                                        </p>
+                <>
+                    <CollectionGrid>
+                        {items.map((item) => {
+                            const durationMs = Math.max(0, item.settings.sourceOutMs - item.settings.sourceInMs);
+                            return (
+                                <Link
+                                    key={item.id}
+                                    to={`/remakes/${encodeURIComponent(item.id)}`}
+                                    className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-surface transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                >
+                                    <div className="relative aspect-video w-full overflow-hidden bg-black">
+                                        <video
+                                            src={`${resourceFileUrl(item.sourceResourceId)}#t=0.1`}
+                                            preload="metadata"
+                                            muted
+                                            playsInline
+                                            className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
+                                            crossOrigin="use-credentials"
+                                        />
+                                        <span className="absolute left-2 top-2">
+                                            <StatusBadge variant="filled" size="sm" tone={remakeStatusTone(item.status)} label={remakeStatusLabel(item.status)} />
+                                        </span>
+                                        {durationMs > 0 ? <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-px text-[var(--fs-label)] tabular-nums text-white">{remakeDuration(durationMs)}</span> : null}
                                     </div>
-                                </div>
-                                <Tag bordered={false} color={item.status === "completed" ? "success" : item.status === "partial_failed" || item.status === "failed" ? "error" : "default"}>
-                                    {remakeStatusLabel(item.status)}
-                                </Tag>
-                            </div>
-                            {item.error ? <p className="mt-3 line-clamp-2 text-xs text-red-500">{item.error}</p> : null}
-                        </Link>
-                    ))}
-                </div>
+                                    <div className="flex min-w-0 flex-1 flex-col gap-1 p-3">
+                                        <h2 className="truncate text-sm font-semibold text-foreground">{item.title}</h2>
+                                        <p className="flex items-center gap-1.5 text-xs text-foreground/55">
+                                            <Clapperboard size={12} className="shrink-0 opacity-60" aria-hidden />
+                                            {remakeStageLabel(item.stage)}
+                                            <span aria-hidden>·</span>
+                                            <RelativeTime value={item.updatedAt} suffix="更新" />
+                                        </p>
+                                        {item.error ? <p className="line-clamp-2 text-xs text-red-500">{item.error}</p> : null}
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </CollectionGrid>
+                    <PaginationBar
+                        className="mt-4"
+                        current={page}
+                        pageSize={pageSize}
+                        total={total}
+                        onChange={(nextPage, nextSize) => {
+                            setPage(nextPage);
+                            setPageSize(nextSize);
+                        }}
+                        itemLabel="个项目"
+                    />
+                </>
             ) : null}
         </WorkspacePage>
     );
