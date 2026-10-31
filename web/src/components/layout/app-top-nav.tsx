@@ -27,7 +27,9 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const hideChrome = pathname.startsWith("/admin") || /^\/canvas\/[^/]+/.test(pathname);
     const showGlobalTopBar = !hideChrome;
     const spatialWorkbench = isSpatialWorkbenchPath(pathname);
-    const creationWorkspace = pathname === "/" || pathname === "/create";
+    // 创作首页与短剧立项页共用同一套舞台背景（.home-background 的 ShapeGrid 动态网格 +
+    // .is-creation-workspace 的舞台底色），日/夜视觉保持一致。
+    const creationWorkspace = pathname === "/" || pathname === "/create" || pathname === "/projects";
 
     const isMobileViewport = () => window.innerWidth < 1024;
 

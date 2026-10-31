@@ -16283,6 +16283,13 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     color: var(--user-ink);
 }
 
+/* 日间主题顶栏整体透明、去掉毛玻璃：页面背景（点阵）直接透上来，分隔只留下边框。
+   夜间保持原 75% 磨砂底。 */
+html:not(.dark) .app-user-workspace .app-workspace-topbar {
+    background: transparent;
+    backdrop-filter: none;
+}
+
 .app-user-workspace .app-workspace-topbar-announcement {
     position: absolute;
     left: 50%;
@@ -16397,6 +16404,15 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     transition: background var(--user-motion), border-color var(--user-motion), transform var(--user-motion);
 }
 
+/* 日间主题下积分胶囊融进页面背景（点阵）：底色透明只留描边，不要白色块；夜间保持原深色胶囊。 */
+html:not(.dark) .app-user-workspace .app-workspace-topbar-credit {
+    background: transparent;
+}
+
+html:not(.dark) .app-user-workspace .app-workspace-topbar-credit:hover {
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
 .app-user-workspace .app-workspace-topbar-credit:hover {
     border-color: var(--user-border-strong);
     background: var(--user-surface-hover);
@@ -16424,6 +16440,24 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap { box-shadow: 0 
     font-weight: 640;
     line-height: 1;
     letter-spacing: -.01em;
+}
+
+/* 「积分」单位：比数值轻一档，跟数值一起构成「102.01 积分」一个读数。
+   负 margin 抵消胶囊 7px 的 gap，避免数字和单位之间裂开。 */
+.app-user-workspace .app-workspace-topbar-credit-unit {
+    margin-left: -3px;
+    color: var(--user-ink-muted);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* 窄屏顶栏还要塞主题切换，把单位收掉，数值与 title/aria-label 仍是完整含义。 */
+@media (max-width: 480px) {
+    .app-user-workspace .app-workspace-topbar-credit-unit {
+        display: none;
+    }
 }
 
 .app-user-workspace .app-workspace-topbar-credit-spinner {
@@ -18553,6 +18587,80 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .app-user-workspace .app-workspace-nav-group-toggle { color: var(--workspace-sidebar-muted) !important; }
 .app-user-workspace .app-workspace-sidebar.is-collapsed .app-workspace-sidebar-scroll-area { padding-inline: 8px !important; }
 .app-user-workspace .app-workspace-sidebar.is-collapsed .app-workspace-nav-link { width: 48px !important; }
+
+/* 侧栏菜单角标：NEW / HOT / BETA / 数字。
+   只挂在真的需要提示状态的入口上（配置集中在 constant/navigation-badges.ts），
+   尺寸刻意比菜单正文（14px）矮两档、比行高（36px）小一半：读的时候是「给标题的注脚」，
+   而不是第二个按钮。配色固定，不随 hover / 选中态变化，避免选中时整行跳色。 */
+.app-user-workspace .app-workspace-nav-badge {
+    display: inline-flex;
+    height: 16px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .06em;
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+    white-space: nowrap;
+    /* 拉丁字母在 9.5px 下重心偏低，上抬 0.5px 才在胶囊里视觉居中。 */
+    transform: translateY(-.5px);
+}
+
+.app-user-workspace .app-workspace-nav-badge.is-new {
+    background: linear-gradient(135deg, #ffc46f, #ff8a28 60%, #f2700a);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 1px 3px rgba(242, 112, 10, .26);
+}
+
+.app-user-workspace .app-workspace-nav-badge.is-hot {
+    background: linear-gradient(135deg, #ff93a8, #f4456f 60%, #df1d54);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 1px 3px rgba(223, 29, 84, .22);
+}
+
+/* BETA 是无彩色描边：语义是「还在长」，视觉必须比 NEW/HOT 弱，否则侧栏三处彩色会互相抢。 */
+.app-user-workspace .app-workspace-nav-badge.is-beta {
+    border: 1px solid color-mix(in srgb, var(--workspace-sidebar-ink) 15%, transparent);
+    background: color-mix(in srgb, var(--workspace-sidebar-ink) 4%, transparent);
+    color: var(--workspace-sidebar-muted);
+    letter-spacing: .08em;
+}
+
+.app-user-workspace .app-workspace-nav-badge.is-count {
+    min-width: 18px;
+    padding: 0 4px;
+    background: color-mix(in srgb, var(--workspace-sidebar-ink) 8%, transparent);
+    color: var(--workspace-sidebar-ink);
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+/* 收起侧栏时文字胶囊被藏掉（见 .app-workspace-nav-link.is-collapsed .app-workspace-nav-meta），
+   改在图标右上角留一颗色点：窄轨里仍能看出「这个入口有新东西」。 */
+.app-user-workspace .app-workspace-nav-link .app-workspace-nav-icon { position: relative; }
+
+.app-user-workspace .app-workspace-nav-badge-dot {
+    position: absolute;
+    top: -1px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    /* 用侧栏底色描一圈，色点才不会糊在图标笔画上。 */
+    box-shadow: 0 0 0 2px var(--workspace-sidebar-bg);
+}
+
+.app-user-workspace .app-workspace-nav-badge-dot.is-new,
+.app-user-workspace .app-workspace-nav-badge-dot.is-count { background: #ff8a28; }
+
+.app-user-workspace .app-workspace-nav-badge-dot.is-hot { background: #f4456f; }
+
+.app-user-workspace .app-workspace-nav-badge-dot.is-beta { background: var(--workspace-sidebar-muted); }
 
 .app-user-workspace .app-workspace-stage:has(> .app-workspace-topbar) {
     --workspace-topbar-clearance: var(--workspace-reference-topbar);
