@@ -54,7 +54,13 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     useUserStore.getState().setUser(payload.user);
     useUserStore.getState().setRuntimeLimits(payload.runtimeLimits);
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
-    useUserStore.getState().setFeatures(payload.features);
+    if (payload.features) {
+        useUserStore.getState().setFeatures(payload.features);
+    } else {
+        // 游客/登出 payload 不带 features：异步拉一次公开开关，保证创作影棚等
+        // 菜单的显隐对未登录用户也和线上一致（失败时保留现状，不阻塞会话）。
+        void refreshFeatureAvailability().catch(() => undefined);
+    }
     useUserStore.getState().setReferralAvailable(payload.referralAvailable);
     useUserStore.getState().setUserGroup(payload.userGroup);
     installRemoteUserDataAutoSync();

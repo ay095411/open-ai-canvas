@@ -168,7 +168,14 @@ func RegisterAuthRoutes(r *gin.RouterGroup, svc *service.Service) {
 	r.GET("/auth/session", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
-			ok(c, gin.H{"user": nil})
+			// 游客也要拿到功能开关：侧栏菜单（创作影棚等）的显隐由它决定，
+			// 不下发的话未登录用户只能看到前端硬编码的默认菜单。
+			features, ferr := svc.FeatureAvailability()
+			if ferr != nil {
+				failService(c, ferr)
+				return
+			}
+			ok(c, gin.H{"user": nil, "features": features})
 			return
 		}
 		publicUser, err := svc.PublicAuthUser(user)

@@ -20,10 +20,8 @@ func RegisterFeatureAvailabilityRoutes(r *gin.RouterGroup, svc *service.Service)
 	})
 
 	r.GET("/features", func(c *gin.Context) {
-		if _, err := currentUser(c, svc); err != nil {
-			failService(c, err)
-			return
-		}
+		// 公开：功能开关同时决定游客侧栏的菜单显隐，无敏感数据。
+		// （/public/welcome 已经公开同一个配置，这里没有再拦的理由。）
 		setting, err := svc.FeatureAvailability()
 		if err != nil {
 			failService(c, err)
