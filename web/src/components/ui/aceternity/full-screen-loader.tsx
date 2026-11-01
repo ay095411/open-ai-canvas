@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { BrandLogoFrame } from "@/components/brand/brand-logo";
 import { cn } from "@/lib/utils";
 
 type FullScreenLoaderProps = {
@@ -18,10 +17,14 @@ export function FullScreenLoader({ label = "正在恢复工作区", detail = "�
             aria-label={`${label}，${detail}`}
             className={cn("full-screen-loader", className)}
         >
-            <div className="full-screen-loader-scene" aria-hidden="true">
-                <BrandLogoFrame className="full-screen-loader-logo" logoClassName="full-screen-loader-logo-image" alt="" fallback={<span className="full-screen-loader-logo-fallback" />} />
-            </div>
-            <div className="full-screen-loader-copy"><strong>{label}</strong><span>{detail}</span><LoadingSignal /></div>
+            {/* 与 index.html 启动屏同一母题：中央一根细线 + 流光，下方大字距文案。 */}
+            <span className="full-screen-loader-track" aria-hidden="true">
+                <span className="full-screen-loader-sweep" />
+            </span>
+            <span className="full-screen-loader-copy">
+                <strong>{label}</strong>
+                <span>{detail}</span>
+            </span>
         </div>
     );
 }
@@ -37,14 +40,11 @@ export function WorkspaceRouteLoader({ label = "正在打开页面" }: { label?:
     return (
         <section data-workspace-route-loader className={cn("workspace-route-loader", visible && "is-visible")} role="status" aria-live="polite" aria-label={label}>
             <div className="workspace-route-loader-content">
-                <span className="workspace-route-loader-mark"><BrandLogoFrame className="workspace-route-loader-logo" logoClassName="size-4" alt="" fallback={<span className="full-screen-loader-logo-fallback" />} /></span>
-                <LoadingSignal />
-                <span>{label}</span>
+                <span className="full-screen-loader-track" aria-hidden="true">
+                    <span className="full-screen-loader-sweep" />
+                </span>
+                <span className="workspace-route-loader-label">{label}</span>
             </div>
         </section>
     );
-}
-
-function LoadingSignal() {
-    return <span className="loading-signal" aria-hidden="true"><i /><i /><i /></span>;
 }

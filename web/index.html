@@ -21,41 +21,80 @@
             html:not(.dark) body {
                 background: #ffffff;
             }
+            /* 启动过渡页：只留一根细线流光 + 大字距文案，靠留白与慢节奏出气质。
+                纯 CSS、品牌中性；#root 渲染出内容后 :empty 失配，整层自然消失。 */
             #root:empty {
                 min-height: 100vh;
             }
+            /* 细线轨道，两端渐隐 */
             #root:empty::before {
                 content: "";
                 position: fixed;
                 left: 50%;
                 top: 50%;
-                width: 12px;
-                height: 12px;
-                margin: -6px 0 0 -6px;
-                background: rgba(255, 255, 255, 0.84);
-                border-radius: 999px;
-                box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.08);
-                animation: appearance-bootstrap-pulse 1.8s ease-in-out infinite;
+                width: 160px;
+                height: 1px;
+                margin: -0.5px 0 0 -80px;
+                background: rgba(255, 255, 255, 0.1);
+                -webkit-mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+                mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+                animation: boot-in 0.8s ease-out both;
             }
+            html:not(.dark) #root:empty::before {
+                background: rgba(20, 20, 20, 0.1);
+            }
+            /* 流光：一段柔光沿线扫过 */
             #root:empty::after {
                 content: "";
                 position: fixed;
                 left: 50%;
                 top: 50%;
-                width: 82px;
-                height: 82px;
-                margin: -42px 0 0 -42px;
-                border: 1px solid rgba(255, 255, 255, 0.14);
-                border-right-color: transparent;
-                border-radius: 999px;
-                animation: appearance-bootstrap-orbit 2.8s linear infinite;
+                width: 160px;
+                height: 1px;
+                margin: -0.5px 0 0 -80px;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+                background-size: 72px 100%;
+                background-repeat: no-repeat;
+                -webkit-mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+                mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+                animation:
+                    boot-in 0.8s ease-out both,
+                    boot-sweep 2.4s ease-in-out 0.8s infinite;
             }
-            @keyframes appearance-bootstrap-pulse { 0%, 100% { opacity: .62; transform: scale(.82); } 50% { opacity: 1; transform: scale(1.08); } }
-            @keyframes appearance-bootstrap-orbit { to { transform: rotate(360deg); } }
+            html:not(.dark) #root:empty::after {
+                background-image: linear-gradient(90deg, transparent, rgba(20, 20, 20, 0.55), transparent);
+            }
+            /* 功能文案（非品牌） */
+            body:has(#root:empty)::after {
+                content: "正在加载";
+                position: fixed;
+                left: 50%;
+                top: calc(50% + 28px);
+                transform: translateX(-50%);
+                font-family: -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+                font-size: 11px;
+                font-weight: 500;
+                line-height: 1;
+                letter-spacing: 0.5em;
+                text-indent: 0.5em;
+                white-space: nowrap;
+                color: rgba(255, 255, 255, 0.32);
+                animation: boot-in 0.8s ease-out both;
+            }
+            html:not(.dark) body:has(#root:empty)::after {
+                color: rgba(20, 20, 20, 0.4);
+            }
+            @keyframes boot-in {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes boot-sweep {
+                0% { background-position: -72px 0; }
+                100% { background-position: 160px 0; }
+            }
             @media (prefers-reduced-motion: reduce) {
-                #root:empty::before,
                 #root:empty::after {
-                    animation: none;
+                    animation: boot-in 0.8s ease-out both;
                 }
             }
         </style>
