@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from "react";
-import { Button } from "antd";
-import { Download, FileText, Film, Play } from "lucide-react";
-import { message } from "antd";
+import { Button, message } from "antd";
+import { Download, FileText, Film, Play, RefreshCw } from "lucide-react";
 
-import { remakeDuration, remakeTime } from "@/lib/remake/presentation";
+import { isRemakeRunActive, remakeCredits, remakeDuration, remakeTime } from "@/lib/remake/presentation";
 import { remakeResultOffsets } from "@/lib/remake/shots";
 import type { RemakeDetail, RemakeRun, RemakeShot } from "@/services/api/remakes";
 import { getResourceAccess, resourceFileUrl, resourceStorageKey, resolveResourceAccessURL } from "@/services/api/resources";
 
+import { RemakeDisclosure } from "./remake-settings-fields";
 import { WorkbenchShotStrip } from "./workbench-shot-strip";
 
 async function downloadResource(resourceId: string, fileName: string) {
@@ -42,13 +42,14 @@ export type ExportStageProps = {
     onExport: () => void;
 };
 
-/** 阶段④ 成片：参考片/成片双播放器对照、按镜头映射定位、MP4 与 SRT 下载、导出历史。 */
+/** 阶段④ 导出成片：标题行即下载入口；原片 / 成片并排对照；历史版本默认收起。 */
 export function WorkbenchExportStage({ detail, run, shots, exportPending, canExport, onExport }: ExportStageProps) {
     const sourceRef = useRef<HTMLVideoElement | null>(null);
     const resultRef = useRef<HTMLVideoElement | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [currentMs, setCurrentMs] = useState(0);
     const [downloading, setDownloading] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
 
     const analysis = detail.analysis;
     const aspect = analysis && analysis.width > 0 && analysis.height > 0 ? `${analysis.width} / ${analysis.height}` : undefined;
@@ -66,6 +67,7 @@ export function WorkbenchExportStage({ detail, run, shots, exportPending, canExp
         return ready;
     }, [detail.takes, run]);
     const playingShot = useMemo(() => shots.find((shot) => currentMs >= shot.sourceInMs && currentMs < shot.sourceOutMs) || null, [shots, currentMs]);
+    const projectTitle = detail.project.title || "复刻成片";
 
     const seekBoth = (index: number) => {
         const shot = shots[index];
@@ -84,7 +86,7 @@ export function WorkbenchExportStage({ detail, run, shots, exportPending, canExp
         if (!latestExport) return;
         setDownloading(true);
         try {
-            await downloadResource(latestExport.resourceId, `${detail.project.title || "复刻成片"}.mp4`);
+            await downloadResource(latestExport.resourceId, `${projectTitle}.mp4`);
         } catch (error) {
             message.error(error instanceof Error ? error.message : "下载地址读取失败");
         } finally {
@@ -92,20 +94,42 @@ export function WorkbenchExportStage({ detail, run, shots, exportPending, canExp
         }
     };
 
+    const meta = [latestExport ? `时长 ${remakeDuration(latestExport.durationMs)}` : "", run && run.spentMicrocredits > 0 ? `本次消耗 ${remakeCredits(run.spentMicrocredits)} 积分` : ""].filter(Boolean).join(" · ");
+
     return (
         <div className="rk-stage">
             <div className="rk-stage-scroll">
                 <section className="rk-panel">
-                    <div className="rk-panel-title">
-                        <h2 className="rk-panel-heading">
-                            <Film size={15} aria-hidden />
-                            原片 / 成片对照
-                        </h2>
-                        {latestExport ? <span className="text-xs tabular-nums text-[var(--rk-text-muted)]">成片 {remakeDuration(latestExport.durationMs)}</span> : null}
-                    </div>
-                    <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    <div className="rk-export-head">
                         <div className="min-w-0">
-                            <p className="mb-1.5 text-xs font-medium text-[var(--rk-text-muted)]">参考片</p>
+                            <h2 className="rk-panel-heading">
+                                <Film size={16} aria-hidden />
+                                成片
+                            </h2>
+                            {meta ? <p className="rk-caption mt-1">{meta}</p> : null}
+                        </div>
+                        {latestExport ? (
+                            <div className="rk-export-actions">
+                                {canExport ? (
+                                    <Button type="text" icon={<RefreshCw size={14} />} loading={exportPending} onClick={onExport}>
+                                        重新合成
+                                    </Button>
+                                ) : null}
+                                {latestExport.subtitleSrt ? (
+                                    <Button icon={<FileText size={14} />} onClick={() => downloadTextFile(latestExport.subtitleSrt, `${projectTitle}.srt`)}>
+                                        字幕 SRT
+                                    </Button>
+                                ) : null}
+                                <Button type="primary" size="large" icon={<Download size={15} />} loading={downloading} onClick={onDownload}>
+                                    下载 MP4
+                                </Button>
+                            </div>
+                        ) : null}
+                    </div>
+
+                    <div className="rk-export-compare">
+                        <figure className="rk-export-figure">
+                            <figcaption>参考片</figcaption>
                             <div className="rk-player" style={aspect ? { aspectRatio: aspect } : undefined}>
                                 <video
                                     ref={sourceRef}
@@ -117,9 +141,9 @@ export function WorkbenchExportStage({ detail, run, shots, exportPending, canExp
                                     onTimeUpdate={(event) => setCurrentMs(Math.round(event.currentTarget.currentTime * 1000))}
                                 />
                             </div>
-                        </div>
-                        <div className="min-w-0">
-                            <p className="mb-1.5 text-xs font-medium text-[var(--rk-text-muted)]">当前成片</p>
+                        </figure>
+                        <figure className="rk-export-figure">
+                            <figcaption>成片</figcaption>
                             {latestExport ? (
                                 <div className="rk-player" style={aspect ? { aspectRatio: aspect } : undefined}>
                                     <video ref={resultRef} className={!aspect ? "aspect-video" : undefined} src={resourceFileUrl(latestExport.resourceId)} controls preload="metadata" crossOrigin="use-credentials" />
@@ -127,53 +151,42 @@ export function WorkbenchExportStage({ detail, run, shots, exportPending, canExp
                             ) : (
                                 <div className="rk-player-empty">
                                     <Play className="size-6 opacity-50" aria-hidden />
-                                    <span>等待所有镜头完成并合成</span>
-                                    <span className="text-[var(--fs-label)]">成片按当前选用的候选镜头拼接</span>
+                                    {canExport ? (
+                                        <>
+                                            <span>镜头视频已就绪</span>
+                                            <Button type="primary" loading={exportPending} onClick={onExport}>
+                                                合成成片
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <span>{isRemakeRunActive(run) ? "镜头视频生成中，完成后自动合成" : "所有镜头视频完成后自动合成"}</span>
+                                    )}
                                 </div>
                             )}
-                        </div>
+                        </figure>
                     </div>
+
                     {shots.length ? (
-                        <div className="mt-3">
+                        <div className="mt-5">
                             <WorkbenchShotStrip shots={shots} selectedId={selectedId} playingId={playingShot?.id || null} videoReadyIds={videoReadyIds} onSelect={(_, index) => seekBoth(index)} ariaLabel="成片镜头映射条" />
-                            <p className="mt-2 text-xs text-[var(--rk-text-muted)]">点击镜头块：参考片定位到镜头起点，成片定位到对应画面的估算位置；绿点表示该镜头已有视频产出。</p>
+                            <p className="rk-caption mt-2">点击镜头，两侧同时定位；绿点表示已有视频。</p>
                         </div>
                     ) : null}
-                </section>
 
-                <section className="rk-panel">
-                    <div className="rk-panel-title">
-                        <h2 className="rk-panel-heading">导出与下载</h2>
-                        {canExport ? (
-                            <Button size="small" loading={exportPending} onClick={onExport}>
-                                重新合成成片
-                            </Button>
-                        ) : null}
-                    </div>
-                    {latestExport ? (
-                        <>
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <Button type="primary" icon={<Download size={14} />} loading={downloading} onClick={onDownload}>
-                                    下载 MP4
-                                </Button>
-                                {latestExport.subtitleSrt ? (
-                                    <Button icon={<FileText size={14} />} onClick={() => downloadTextFile(latestExport.subtitleSrt, `${detail.project.title || "复刻成片"}.srt`)}>
-                                        下载字幕 SRT
-                                    </Button>
-                                ) : null}
-                            </div>
-                            <ul className="mt-3 flex flex-col divide-y divide-[var(--rk-edge-soft)]">
+                    {detail.exports.length > 1 ? (
+                        <RemakeDisclosure className="rk-export-history" variant="inline" title={`历史版本（${detail.exports.length}）`} open={historyOpen} onToggle={() => setHistoryOpen((open) => !open)}>
+                            <ul className="rk-export-list">
                                 {detail.exports.map((item) => (
-                                    <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs">
-                                        <span className="tabular-nums text-[var(--rk-text-muted)]">
+                                    <li key={item.id}>
+                                        <span className="tabular-nums">
                                             {new Date(item.createdAt).toLocaleString("zh-CN")} · {remakeTime(item.durationMs)}
                                             {run && item.runId === run.id ? " · 当前运行" : ""}
                                         </span>
                                         <button
                                             type="button"
-                                            className="inline-flex items-center gap-1 bg-transparent text-xs text-[var(--rk-accent)] hover:underline"
+                                            className="remake-link inline-flex items-center gap-1"
                                             onClick={() => {
-                                                void downloadResource(item.resourceId, `${detail.project.title || "复刻成片"}-${item.id}.mp4`).catch((error: unknown) => message.error(error instanceof Error ? error.message : "下载地址读取失败"));
+                                                void downloadResource(item.resourceId, `${projectTitle}-${item.id}.mp4`).catch((error: unknown) => message.error(error instanceof Error ? error.message : "下载地址读取失败"));
                                             }}
                                         >
                                             <Download size={12} aria-hidden />
@@ -182,10 +195,8 @@ export function WorkbenchExportStage({ detail, run, shots, exportPending, canExp
                                     </li>
                                 ))}
                             </ul>
-                        </>
-                    ) : (
-                        <p className="rk-panel-hint mt-2">还没有成片。完整运行（或所有镜头视频就绪后）会自动合成；也可以在上一次运行完成后点「重新合成成片」。</p>
-                    )}
+                        </RemakeDisclosure>
+                    ) : null}
                 </section>
             </div>
         </div>

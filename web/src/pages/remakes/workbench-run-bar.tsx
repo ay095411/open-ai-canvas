@@ -12,31 +12,38 @@ export type WorkbenchRunBarProps = {
     actionPending?: boolean;
     selectionPending?: boolean;
     onAction: (action: RemakeAction) => void;
-    /** 「挑选关键帧」跳转到分镜阶段 */
-    onReview: () => void;
+    /** 跳转到审核分镜；已在该阶段时不传，隐藏按钮 */
+    onReview?: () => void;
 };
 
-/** 运行进度条：阶段、完成数、进度、花费与运行操作；awaiting_review 时显示审核横条。 */
+/** 运行条：一行展示阶段、进度、费用与操作；awaiting_review 时追加审核提示。 */
 export function WorkbenchRunBar({ run, selectedCount = 0, selectableCount = 0, actionPending, selectionPending, onAction, onReview }: WorkbenchRunBarProps) {
     const running = ["queued", "running", "analyzing", "rendering"].includes(run.status);
     const canContinue = ["paused", "needs_attention"].includes(run.status);
     const canCancel = !["completed", "cancelled", "failed", "cancelling"].includes(run.status);
     const reviewSelectionDone = selectableCount === 0 || selectedCount >= selectableCount;
+    const percent = run.totalSteps ? Math.round((run.completedSteps / run.totalSteps) * 100) : 0;
     return (
         <section className="rk-runbar" aria-label="运行进度">
             <div className="rk-runbar-row">
                 <div className="rk-runbar-info">
-                    <span className="text-sm font-medium">{remakeStageLabel(run.stage)}</span>
-                    <span className="text-xs text-[var(--rk-text-muted)]">{remakeStatusLabel(run.status)}</span>
-                    {run.totalSteps ? (
-                        <span className="text-xs tabular-nums text-[var(--rk-text-muted)]">
-                            {run.completedSteps}/{run.totalSteps} 项完成
-                        </span>
-                    ) : null}
-                    <span className="text-xs tabular-nums text-[var(--rk-text-muted)]">本次 {remakeCredits(run.spentMicrocredits)} 积分</span>
-                    {run.budgetMicrocredits > 0 ? <span className="text-xs tabular-nums text-[var(--rk-text-muted)]">预算 {remakeCredits(run.budgetMicrocredits)}</span> : null}
+                    <span className="rk-runbar-stage">{remakeStageLabel(run.stage)}</span>
+                    <span className="rk-runbar-status">{remakeStatusLabel(run.status)}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="rk-runbar-progress">
+                    {run.totalSteps ? (
+                        <>
+                            <Progress percent={percent} size="small" showInfo={false} aria-label="运行进度百分比" />
+                            <span className="tabular-nums">
+                                {run.completedSteps}/{run.totalSteps}
+                            </span>
+                        </>
+                    ) : null}
+                </div>
+                <span className="rk-runbar-cost tabular-nums">
+                    {remakeCredits(run.spentMicrocredits)} 积分{run.budgetMicrocredits > 0 ? ` / 预算 ${remakeCredits(run.budgetMicrocredits)}` : ""}
+                </span>
+                <div className="rk-runbar-actions">
                     {running && run.status !== "cancelling" ? (
                         <Button size="small" icon={<Pause size={14} />} onClick={() => onAction("pause")} loading={actionPending}>
                             暂停
@@ -53,26 +60,24 @@ export function WorkbenchRunBar({ run, selectedCount = 0, selectableCount = 0, a
                         </Button>
                     ) : null}
                     {canCancel ? (
-                        <Button size="small" danger icon={<X size={14} />} onClick={() => onAction("cancel")} loading={actionPending}>
+                        <Button size="small" type="text" danger icon={<X size={14} />} onClick={() => onAction("cancel")} loading={actionPending}>
                             取消
                         </Button>
                     ) : null}
                 </div>
             </div>
-            {run.totalSteps ? <Progress percent={Math.round((run.completedSteps / run.totalSteps) * 100)} size="small" showInfo={false} aria-label="运行进度百分比" /> : null}
             {run.error ? <p className="rk-runbar-error">{run.error}</p> : null}
             {run.status === "awaiting_review" ? (
                 <div className="rk-runbar-review">
-                    <div className="min-w-0">
-                        <strong className="text-sm">检查新主体关键帧</strong>
-                        <p className="mt-0.5 text-xs text-[var(--rk-text-muted)]">
-                            已选择 {selectedCount}/{selectableCount} 个生成单元，全部选用后才能继续生成视频。
-                        </p>
-                    </div>
+                    <p className="min-w-0">
+                        <strong>关键帧已生成</strong>，请为每个镜头选定一张（已选 {selectedCount}/{selectableCount}），全部选定后继续生成视频。
+                    </p>
                     <div className="flex flex-wrap gap-2">
-                        <Button size="small" onClick={onReview}>
-                            挑选关键帧
-                        </Button>
+                        {onReview ? (
+                            <Button size="small" onClick={onReview}>
+                                去挑选
+                            </Button>
+                        ) : null}
                         <Button type="primary" size="small" icon={<Check size={14} />} disabled={!reviewSelectionDone} loading={actionPending || selectionPending} onClick={() => onAction("approve_and_continue")}>
                             确认并继续生成视频
                         </Button>

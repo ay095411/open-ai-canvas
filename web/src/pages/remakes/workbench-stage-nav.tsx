@@ -5,10 +5,10 @@ export type RemakeStageKey = "source" | "plan" | "shots" | "export";
 export type RemakeStageStatus = "idle" | "done" | "busy" | "warn";
 
 const STAGE_ITEMS: Array<{ key: RemakeStageKey; label: string }> = [
-    { key: "source", label: "参考片" },
-    { key: "plan", label: "复刻方案" },
-    { key: "shots", label: "分镜制作" },
-    { key: "export", label: "成片" },
+    { key: "source", label: "分析参考片" },
+    { key: "plan", label: "设定新主体" },
+    { key: "shots", label: "审核分镜" },
+    { key: "export", label: "导出成片" },
 ];
 
 /** 工作台四阶段导航：可点击切换主内容区；右侧状态点标注每阶段进度。 */

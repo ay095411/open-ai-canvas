@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input } from "antd";
-import { Clapperboard, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { PageHeader, ListToolbar, CollectionGrid, PaginationBar, WorkspacePage } from "@/components/layout/workspace-page";
@@ -12,6 +12,8 @@ import { RelativeTime } from "@/components/ui/product/relative-time";
 import { remakeDuration, remakeStageLabel, remakeStatusLabel, remakeStatusTone } from "@/lib/remake/presentation";
 import { listRemakes } from "@/services/api/remakes";
 import { resourceFileUrl } from "@/services/api/resources";
+
+import "./remake-pages.css";
 
 const ACTIVE_STATUSES = ["queued", "running", "analyzing", "rendering"];
 
@@ -42,55 +44,62 @@ export default function RemakesPage() {
     const items = useMemo(() => listQuery.data?.items || [], [listQuery.data]);
     const total = listQuery.data?.total ?? 0;
     const filtered = Boolean(query || status);
+    // 确认是空库时只保留引导，不显示无事可筛的搜索与筛选。
+    const showToolbar = listQuery.isPending || filtered || items.length > 0 || total > 0;
 
     const resetPaging = () => {
         setPage(1);
     };
 
     return (
-        <WorkspacePage>
-            <PageHeader
-                title="一键复刻"
-                description="上传一条参考视频，系统拆镜分析后替换主体并重新生成，保留镜头顺序与节奏。"
-                actions={
-                    <Button type="primary" icon={<Plus size={16} />} onClick={() => navigate("/remakes/new")}>
-                        新建复刻
-                    </Button>
-                }
-            />
-            <ListToolbar
-                active={filtered}
-                onReset={() => {
-                    setQuery("");
-                    setStatus(undefined);
-                    resetPaging();
-                }}
-            >
-                <Input
-                    allowClear
-                    className="max-w-xs"
-                    value={query}
-                    onChange={(event) => {
-                        setQuery(event.target.value);
+        <WorkspacePage grid className="library-page remake-library-page">
+            <div className="studio-band">
+                <PageHeader
+                    title="一键复刻"
+                    description="上传参考视频，换上你的人物或产品，按原片镜头节奏重新生成。"
+                    actions={
+                        <Button type="primary" icon={<Plus size={16} />} onClick={() => navigate("/remakes/new")}>
+                            新建复刻
+                        </Button>
+                    }
+                />
+            </div>
+            {showToolbar ? (
+                <ListToolbar
+                    className="remake-library-toolbar"
+                    active={filtered}
+                    onReset={() => {
+                        setQuery("");
+                        setStatus(undefined);
                         resetPaging();
                     }}
-                    prefix={<Search size={15} className="text-foreground/40" />}
-                    placeholder="搜索复刻项目"
-                    aria-label="搜索复刻项目"
-                />
-                <Select
-                    className="min-w-32"
-                    allowClear
-                    placeholder="全部状态"
-                    ariaLabel="按状态筛选"
-                    value={status}
-                    options={statusFilterOptions}
-                    onChange={(value) => {
-                        setStatus(value || undefined);
-                        resetPaging();
-                    }}
-                />
-            </ListToolbar>
+                >
+                    <Input
+                        allowClear
+                        className="remake-library-search"
+                        value={query}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            resetPaging();
+                        }}
+                        prefix={<Search size={15} className="text-foreground/40" />}
+                        placeholder="搜索复刻项目"
+                        aria-label="搜索复刻项目"
+                    />
+                    <Select
+                        className="remake-library-status"
+                        allowClear
+                        placeholder="全部状态"
+                        ariaLabel="按状态筛选"
+                        value={status}
+                        options={statusFilterOptions}
+                        onChange={(value) => {
+                            setStatus(value || undefined);
+                            resetPaging();
+                        }}
+                    />
+                </ListToolbar>
+            ) : null}
             {listQuery.isPending ? <WorkspaceLoadingState label="正在加载复刻项目" rows={3} /> : null}
             {listQuery.isError ? <WorkspaceErrorState description={listQuery.error.message || "复刻项目加载失败"} onRetry={() => void listQuery.refetch()} /> : null}
             {!listQuery.isPending && !listQuery.isError && items.length === 0 ? (
@@ -106,7 +115,7 @@ export default function RemakesPage() {
                 ) : (
                     <WorkspaceState
                         title="还没有复刻项目"
-                        description="从一条参考视频开始：上传片段、绑定新主体素材，系统会拆镜、生成关键帧并逐镜重拍。"
+                        description="从一条参考视频开始，系统会拆镜并用新主体逐镜重新生成。"
                         action={
                             <Button type="primary" icon={<Plus size={15} />} onClick={() => navigate("/remakes/new")}>
                                 新建复刻
@@ -117,16 +126,16 @@ export default function RemakesPage() {
             ) : null}
             {items.length > 0 ? (
                 <>
-                    <CollectionGrid>
+                    <CollectionGrid className="project-library-grid remake-library-grid">
                         {items.map((item) => {
                             const durationMs = Math.max(0, item.settings.sourceOutMs - item.settings.sourceInMs);
                             return (
                                 <Link
                                     key={item.id}
                                     to={`/remakes/${encodeURIComponent(item.id)}`}
-                                    className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-surface transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                    className="product-collection-card remake-project-card group flex min-w-0 flex-col focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                                 >
-                                    <div className="relative aspect-video w-full overflow-hidden bg-black">
+                                    <div className="remake-project-media relative aspect-video w-full overflow-hidden bg-black">
                                         <video
                                             src={`${resourceFileUrl(item.sourceResourceId)}#t=0.1`}
                                             preload="metadata"
@@ -135,27 +144,26 @@ export default function RemakesPage() {
                                             className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
                                             crossOrigin="use-credentials"
                                         />
-                                        <span className="absolute left-2 top-2">
+                                        <span className="remake-project-status absolute left-3 top-3">
                                             <StatusBadge variant="filled" size="sm" tone={remakeStatusTone(item.status)} label={remakeStatusLabel(item.status)} />
                                         </span>
-                                        {durationMs > 0 ? <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-px text-[var(--fs-label)] tabular-nums text-white">{remakeDuration(durationMs)}</span> : null}
+                                        {durationMs > 0 ? <span className="remake-duration-chip absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-xs tabular-nums text-white backdrop-blur-sm">{remakeDuration(durationMs)}</span> : null}
                                     </div>
-                                    <div className="flex min-w-0 flex-1 flex-col gap-1 p-3">
-                                        <h2 className="truncate text-sm font-semibold text-foreground">{item.title}</h2>
-                                        <p className="flex items-center gap-1.5 text-xs text-foreground/55">
-                                            <Clapperboard size={12} className="shrink-0 opacity-60" aria-hidden />
+                                    <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-5 py-4">
+                                        <h2 className="remake-project-title truncate font-semibold text-foreground">{item.title}</h2>
+                                        <p className="remake-project-meta flex items-center gap-2 text-foreground/55">
                                             {remakeStageLabel(item.stage)}
                                             <span aria-hidden>·</span>
                                             <RelativeTime value={item.updatedAt} suffix="更新" />
                                         </p>
-                                        {item.error ? <p className="line-clamp-2 text-xs text-red-500">{item.error}</p> : null}
+                                        {item.error ? <p className="line-clamp-2 text-[13px] leading-5 text-red-500">{item.error}</p> : null}
                                     </div>
                                 </Link>
                             );
                         })}
                     </CollectionGrid>
                     <PaginationBar
-                        className="mt-4"
+                        className="mt-6"
                         current={page}
                         pageSize={pageSize}
                         total={total}

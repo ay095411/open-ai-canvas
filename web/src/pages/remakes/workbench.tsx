@@ -6,7 +6,7 @@ import { useNavigate, useParams } from "react-router";
 
 import { StatusBadge } from "@/components/ui/base/badges";
 import { WorkspacePage } from "@/components/layout/workspace-page";
-import { isRemakeRunActive, remakeCredits, remakeStatusLabel, remakeStatusTone, validateRemakeShots } from "@/lib/remake/presentation";
+import { isRemakeRunActive, remakeStatusLabel, remakeStatusTone, validateRemakeShots } from "@/lib/remake/presentation";
 import { actOnRemakeRun, exportRemake, getRemake, selectRemakeTakes, startRemakeRun, updateRemake, type RemakeAction, type RemakeDetail, type RemakeGoal, type RemakeSelection } from "@/services/api/remakes";
 
 import { WorkbenchExportStage } from "./workbench-export-stage";
@@ -17,6 +17,8 @@ import { WorkbenchSourceStage } from "./workbench-source-stage";
 import { WorkbenchStageNav, type RemakeStageKey, type RemakeStageStatus } from "./workbench-stage-nav";
 import { useRemakeDraft } from "./use-remake-draft";
 import "./remake-workbench.css";
+
+const SETTLED_RUN_STATUSES = ["completed", "succeeded", "cancelled", "superseded"];
 
 function unitKeys(run: NonNullable<RemakeDetail["activeRun"]>) {
     return [...new Set(run.steps.map((step) => step.unitId).filter((unitId): unitId is string => Boolean(unitId)))];
@@ -197,14 +199,16 @@ export default function RemakeWorkbenchPage() {
             </WorkspacePage>
         );
 
-    const statusLabel = remakeStatusLabel(run?.status || detail.project.status);
+    const projectStatus = run?.status || detail.project.status;
+    // 已结束且无报错的运行不再常驻进度条，状态由标题旁徽章表达。
+    const showRunBar = Boolean(run && (!SETTLED_RUN_STATUSES.includes(run.status) || run.error));
 
     return (
         <WorkspacePage fluid scroll={false} className="remake-workbench-page">
             <div className="remake-workbench-shell">
                 <header className="rk-header">
-                    <Button type="text" icon={<ArrowLeft size={16} />} aria-label="返回项目库" onClick={() => navigate("/remakes")} />
-                    <div className="rk-header-main">
+                    <div className="rk-header-top">
+                        <Button type="text" icon={<ArrowLeft size={16} />} aria-label="返回项目库" onClick={() => navigate("/remakes")} />
                         <div className="rk-title-group">
                             {editingTitle ? (
                                 <Input
@@ -220,35 +224,31 @@ export default function RemakeWorkbenchPage() {
                             ) : (
                                 <div className="rk-title-row">
                                     <h1 className="rk-title">{title || detail.project.title}</h1>
-                                    <button
-                                        type="button"
-                                        className="grid size-6 shrink-0 place-items-center rounded bg-transparent text-[var(--rk-text-muted)] hover:bg-[var(--rk-hover)] focus-visible:outline-2 focus-visible:outline-[var(--rk-accent)]"
-                                        aria-label="重命名项目"
-                                        onClick={() => setEditingTitle(true)}
-                                    >
+                                    <button type="button" className="rk-title-rename" aria-label="重命名项目" onClick={() => setEditingTitle(true)}>
                                         <Pencil size={13} />
                                     </button>
+                                    <StatusBadge size="sm" tone={remakeStatusTone(projectStatus)} label={remakeStatusLabel(projectStatus)} />
                                 </div>
                             )}
-                            <div className="rk-header-meta">
-                                <StatusBadge size="sm" tone={remakeStatusTone(run?.status || detail.project.status)} label={statusLabel} />
-                                <span>{dirty ? "有未保存修改" : "草稿已同步"}</span>
-                                {run ? (
-                                    <span className="tabular-nums">
-                                        本次 {remakeCredits(run.spentMicrocredits)} 积分{run.budgetMicrocredits > 0 ? ` · 预算 ${remakeCredits(run.budgetMicrocredits)}` : ""}
-                                    </span>
-                                ) : null}
-                            </div>
                         </div>
+                        {dirty ? (
+                            <div className="rk-save-state">
+                                <span className={`rk-save-text${shotValidation ? " is-error" : ""}`} title={shotValidation || undefined} aria-live="polite">
+                                    {shotValidation || "有未保存的修改"}
+                                </span>
+                                <Button size="small" type="text" icon={<X size={14} />} onClick={resetDraft}>
+                                    放弃
+                                </Button>
+                                <Button size="small" icon={<Save size={14} />} loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+                                    保存
+                                </Button>
+                            </div>
+                        ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                        <Button icon={<Save size={14} />} disabled={!dirty || saveMutation.isPending} loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-                            保存草稿
-                        </Button>
-                    </div>
+                    <WorkbenchStageNav value={stage ?? "source"} onChange={setStage} status={stageStatus} />
                 </header>
 
-                {run ? (
+                {run && showRunBar ? (
                     <WorkbenchRunBar
                         run={run}
                         selectedCount={selectedCount}
@@ -256,11 +256,9 @@ export default function RemakeWorkbenchPage() {
                         actionPending={actionMutation.isPending}
                         selectionPending={selectionMutation.isPending}
                         onAction={onAction}
-                        onReview={() => setStage("shots")}
+                        onReview={stage === "shots" ? undefined : () => setStage("shots")}
                     />
                 ) : null}
-
-                <WorkbenchStageNav value={stage ?? "source"} onChange={setStage} status={stageStatus} />
 
                 {stage === "plan" ? (
                     <WorkbenchPlanStage settings={settings} updateSettings={updateSettings} canLaunch={canLaunch} runPending={runMutation.isPending} onKeyframes={() => onRun("keyframes")} onComplete={() => onRun("complete")} />
@@ -278,6 +276,7 @@ export default function RemakeWorkbenchPage() {
                         selectionPending={selectionMutation.isPending}
                         onSelectImageTake={selectImageTake}
                         onGoSource={() => setStage("source")}
+                        onGoPlan={() => setStage("plan")}
                         sourceRange={sourceRange}
                     />
                 ) : stage === "export" ? (
@@ -292,22 +291,9 @@ export default function RemakeWorkbenchPage() {
                         analyzePending={runMutation.isPending}
                         canLaunch={canLaunch}
                         onAnalyze={() => onRun("analysis")}
+                        onNext={() => setStage("plan")}
                     />
                 )}
-
-                {dirty ? (
-                    <div className="rk-unsaved">
-                        <span className={`text-xs${shotValidation ? " text-[var(--rk-error)]" : " text-[var(--rk-warning)]"}`}>{shotValidation || "有未保存的修改，保存后进入后续生成。"}</span>
-                        <div className="flex gap-2">
-                            <Button icon={<X size={14} />} onClick={resetDraft}>
-                                放弃修改
-                            </Button>
-                            <Button type="primary" icon={<Save size={14} />} loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-                                保存草稿
-                            </Button>
-                        </div>
-                    </div>
-                ) : null}
             </div>
         </WorkspacePage>
     );
