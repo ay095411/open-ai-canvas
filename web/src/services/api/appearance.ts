@@ -10,15 +10,12 @@ export type PublicAppearance = {
     schemaVersion: number;
     brandName: string;
     brandSlug: string;
-    authHeroTitle: string;
-    authHeroDescription: string;
     logoUrl: string;
     darkLogoUrl: string;
     logoFrameEnabled: boolean;
     authVideoUrl: string;
     authVideoPosterUrl: string;
-    authVideoAutoplay: boolean;
-    /** 登录弹窗左侧轮播；为空时前端回退到 authVideoUrl / authVideoPosterUrl 那一张。 */
+    /** 登录弹窗左侧轮播；为空时前端展示内置默认素材。 */
     authCarousel?: PublicAppearanceCarouselItem[];
     skinId: string;
     activeSkin: SkinDefinition;
@@ -69,14 +66,11 @@ export type AdminAppearance = {
     schemaVersion: number;
     brandName: string;
     brandSlug: string;
-    authHeroTitle: string;
-    authHeroDescription: string;
     logoResourceId: string;
     darkLogoResourceId: string;
     logoFrameEnabled: boolean;
     authVideoResourceId: string;
     authVideoPosterResourceId: string;
-    authVideoAutoplay: boolean;
     authCarousel: AdminAppearanceCarouselItem[];
     skinId: string;
     skinThemes: SkinDefinition[];
@@ -130,14 +124,11 @@ export async function updateAdminAppearance(
         | "canvas"
         | "updates"
         | "brandSlug"
-        | "authHeroTitle"
-        | "authHeroDescription"
         | "logoResourceId"
         | "darkLogoResourceId"
         | "logoFrameEnabled"
         | "authVideoResourceId"
         | "authVideoPosterResourceId"
-        | "authVideoAutoplay"
         | "authCarousel"
         | "skinId"
         | "skinThemes"

@@ -32,8 +32,6 @@ function modeOfPathname(pathname: string): WorkspaceAuthMode {
 function modeOfDetail(mode: WorkspaceAuthMode | undefined): WorkspaceAuthMode {
     return mode === "register" || mode === "recovery" ? mode : "login";
 }
-/** 自动切换间隔：与首页画廊一致，太快会让人来不及读标题。 */
-const SLIDE_INTERVAL_MS = 6000;
 
 function readReturnTarget() {
     try {
@@ -44,18 +42,22 @@ function readReturnTarget() {
 }
 
 /**
- * 弹窗左侧要放什么：优先用后台配置的轮播；一条都没配就退到内置登录影片，
+ * 内置默认轮播：管理员一条都没配时展示。三条 5 秒竖版视频（宫崎骏治愈 /
+ * 仙侠御剑 / 都市霸总），覆盖 AI 短剧的主要题材面；封面图同时是视频起播前的海报。
+ */
+const BUILTIN_SLIDES: CarouselSlide[] = [
+    { id: "builtin-ghibli", kind: "video", url: "/auth/slide-ghibli.mp4", posterUrl: "/auth/slide-ghibli.jpg", title: "宫崎骏 · 夏日治愈", subtitle: "云层之上，是故事开始的地方" },
+    { id: "builtin-xianxia", kind: "video", url: "/auth/slide-xianxia.mp4", posterUrl: "/auth/slide-xianxia.jpg", title: "仙侠 · 御剑山海", subtitle: "一剑光寒，从文字走向银幕" },
+    { id: "builtin-ceo", kind: "video", url: "/auth/slide-ceo.mp4", posterUrl: "/auth/slide-ceo.jpg", title: "都市短剧 · 霸道女总裁", subtitle: "天台之上，她只信自己" },
+];
+
+/**
+ * 弹窗左侧要放什么：优先用后台配置的轮播；一条都没配就用内置三张默认素材，
  * 这样新装实例也不至于左侧一片空白。
  */
-function carouselSlides(carousel: CarouselSlide[] | undefined, fallbackVideo: string, fallbackPoster: string): CarouselSlide[] {
+function carouselSlides(carousel: CarouselSlide[] | undefined): CarouselSlide[] {
     if (carousel && carousel.length) return carousel;
-    if (fallbackVideo) {
-        return [{ id: "builtin-video", kind: "video", url: fallbackVideo, posterUrl: fallbackPoster, title: "", subtitle: "" }];
-    }
-    if (fallbackPoster) {
-        return [{ id: "builtin-poster", kind: "image", url: fallbackPoster, posterUrl: "", title: "", subtitle: "" }];
-    }
-    return [];
+    return BUILTIN_SLIDES;
 }
 
 /**
@@ -195,7 +197,7 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
                     <X aria-hidden="true" />
                 </button>
 
-                <AuthCarousel slides={carouselSlides(appearance.authCarousel, appearance.authVideoUrl, appearance.authVideoPosterUrl)} />
+                <AuthCarousel slides={carouselSlides(appearance.authCarousel)} />
 
                 <section className="workspace-auth-pane" aria-label={mode === "register" ? "注册" : mode === "recovery" ? "找回密码" : "登录"}>
                     <div className="workspace-auth-scroll">
@@ -246,18 +248,16 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
 /**
  * 左侧轮播：图片与视频混排，自动切换、悬停暂停。
  * 视频一律静音循环播放——登录页不该突然发出声音；开了「减少动效」就只停在封面。
+ *
+ * 自动切换的唯一计时器是**指示条上的进度动画**（6s，与 CSS `auth-bar-progress`
+ * 时长一一对应）：填充从 0 走到 100% 时触发 `animationend` 才切下一张，悬停暂停
+ * 时动画随容器 `is-paused` 同步停住——条走满和真正切换永远同时发生，不会错位。
  */
 function AuthCarousel({ slides }: { slides: CarouselSlide[] }) {
     const [active, setActive] = useState(0);
     const [paused, setPaused] = useState(false);
     const reducedMotion = useReducedMotion();
     const count = slides.length;
-
-    useEffect(() => {
-        if (count < 2 || paused || reducedMotion) return;
-        const timer = window.setInterval(() => setActive((current) => (current + 1) % count), SLIDE_INTERVAL_MS);
-        return () => window.clearInterval(timer);
-    }, [count, paused, reducedMotion]);
 
     // 条目变少（后台改了配置）时把越界的下标收回来。
     useEffect(() => {
@@ -269,7 +269,7 @@ function AuthCarousel({ slides }: { slides: CarouselSlide[] }) {
     const current = slides[Math.min(active, count - 1)];
 
     return (
-        <div className="workspace-auth-media" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+        <div className={`workspace-auth-media ${paused ? "is-paused" : ""}`} onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
             {slides.map((slide, index) => {
                 const isActive = index === active;
                 return (
@@ -308,7 +308,14 @@ function AuthCarousel({ slides }: { slides: CarouselSlide[] }) {
                             aria-label={slide.title || `第 ${index + 1} 张`}
                             className={`workspace-auth-media-bar ${index === active ? "is-active" : ""}`}
                             onClick={() => setActive(index)}
-                        />
+                        >
+                            {/* 进度填充：当前条从 0 填到 100%，走满触发切换（见 AuthCarousel 注释）。 */}
+                            <span
+                                className="workspace-auth-media-bar-fill"
+                                aria-hidden="true"
+                                onAnimationEnd={index === active ? () => setActive((current) => (current + 1) % count) : undefined}
+                            />
+                        </button>
                     ))}
                 </div>
             ) : null}

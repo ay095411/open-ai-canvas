@@ -88,7 +88,8 @@
     line-height: 1.5;
 }
 
-/* 指示条：参考图那种等宽细线，当前一条点亮。 */
+/* 指示条：等宽细线，当前一条从 0 填充到 100%（进度走满即切换下一张）。
+   时长 6s 与 AuthCarousel 的切换节奏一一对应，进度本身就是唯一的计时器。 */
 .workspace-auth-media-bars {
     position: absolute;
     right: 28px;
@@ -99,6 +100,7 @@
 }
 
 .workspace-auth-media-bar {
+    position: relative;
     flex: 1;
     height: 3px;
     padding: 0;
@@ -106,19 +108,43 @@
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.26);
     cursor: pointer;
+    overflow: hidden;
     transition: background-color 200ms ease;
-}
-
-.workspace-auth-media-bar.is-active {
-    background: #fff;
 }
 
 .workspace-auth-media-bar:hover {
     background: rgba(255, 255, 255, 0.5);
 }
 
-.workspace-auth-media-bar.is-active:hover {
+.workspace-auth-media-bar-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     background: #fff;
+    transform: scaleX(0);
+    transform-origin: left center;
+}
+
+.workspace-auth-media-bar.is-active .workspace-auth-media-bar-fill {
+    animation: auth-bar-progress 6s linear both;
+}
+
+/* 悬停/聚焦暂停：动画停住，进度与切换计时同步冻结。 */
+.workspace-auth-media.is-paused .workspace-auth-media-bar-fill {
+    animation-play-state: paused;
+}
+
+@keyframes auth-bar-progress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* 减少动效：不自动切换，当前条保持满格静态。 */
+    .workspace-auth-media-bar.is-active .workspace-auth-media-bar-fill {
+        animation: none;
+        transform: scaleX(1);
+    }
 }
 
 /* 焦点环画在伪元素上：unified-buttons.css 会把普通 button 的 outline 一起 !important 清掉。 */

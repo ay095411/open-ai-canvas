@@ -41,10 +41,8 @@ export function AuthScene() {
     const recovery = location.pathname === "/forgot-password";
     const activeTab = location.pathname === "/register" ? "register" : "login";
     const copy = recovery ? authCopy.recovery : activeTab === "register" ? authCopy.register : authCopy.login;
-    // 只保留静音自动播放：原先那颗「播放品牌影片 / 创作正在发生」按钮和自动播放表达的是
-    // 同一件事，却让这一屏多出一个控件和一个状态。关掉自动播放或用户偏好减少动效时，
-    // 退到静态首帧（poster）。
-    const videoActive = Boolean(appearance.authVideoUrl && appearance.authVideoAutoplay && !reducedMotion);
+    // 只保留静音自动播放：关掉播放或用户偏好减少动效时，退到静态首帧（poster）。
+    const videoActive = Boolean(appearance.authVideoUrl && !reducedMotion);
 
     return (
         <main className="auth-scene h-dvh min-h-0 overflow-y-auto lg:overflow-hidden">

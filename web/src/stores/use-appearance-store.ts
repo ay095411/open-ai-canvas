@@ -11,14 +11,11 @@ export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
 schemaVersion: 10,
     brandName: "Navo AI",
     brandSlug: "open-ai-canvas",
-    authHeroTitle: "让一个故事，\n从文字走向银幕。",
-    authHeroDescription: "",
     logoUrl: "/logo.svg",
     darkLogoUrl: "/logo.svg",
     logoFrameEnabled: true,
     authVideoUrl: "/auth/login-hero.mp4",
     authVideoPosterUrl: "/auth/login-hero-poster.jpg",
-    authVideoAutoplay: true,
     authCarousel: [],
     skinId: "classic",
     activeSkin: DEFAULT_CLASSIC_SKIN,
@@ -74,8 +71,6 @@ export function normalizeAppearanceCarousel(items?: PublicAppearanceCarouselItem
 export function normalizePublicAppearance(value?: Partial<PublicAppearance> | null): PublicAppearance {
     const brandName = String(value?.brandName || "").trim();
     const brandSlug = normalizeBrandSlug(value?.brandSlug);
-    const authHeroTitle = normalizeAppearanceCopy(value?.authHeroTitle, DEFAULT_PUBLIC_APPEARANCE.authHeroTitle);
-    const authHeroDescription = normalizeAppearanceCopy(value?.authHeroDescription, DEFAULT_PUBLIC_APPEARANCE.authHeroDescription, true);
     const customVideo = Boolean(value?.authVideoConfigured);
     const logoUrl = safeAppearanceURL(value?.logoUrl, DEFAULT_PUBLIC_APPEARANCE.logoUrl);
     const darkLogoUrl = safeAppearanceURL(value?.darkLogoUrl, logoUrl);
@@ -97,14 +92,11 @@ export function normalizePublicAppearance(value?: Partial<PublicAppearance> | nu
         canvas: { ...DEFAULT_CANVAS_APPEARANCE, ...value?.canvas },
         brandName: resolvedBrandName,
         brandSlug,
-        authHeroTitle,
-        authHeroDescription,
         logoUrl,
         darkLogoUrl,
         logoFrameEnabled: value?.logoFrameEnabled !== false,
         authVideoUrl: safeAppearanceURL(value?.authVideoUrl, DEFAULT_PUBLIC_APPEARANCE.authVideoUrl),
         authVideoPosterUrl: safeAppearanceURL(value?.authVideoPosterUrl, customVideo ? "" : DEFAULT_PUBLIC_APPEARANCE.authVideoPosterUrl),
-        authVideoAutoplay: value?.authVideoAutoplay !== false,
         authCarousel: normalizeAppearanceCarousel(value?.authCarousel),
         skinId: normalizeSkinDefinition(value?.activeSkin).id,
         activeSkin: normalizeSkinDefinition(value?.activeSkin),

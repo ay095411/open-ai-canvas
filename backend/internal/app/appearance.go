@@ -25,12 +25,12 @@ import (
 const appearanceSettingKey = "appearance"
 
 const (
-	AppearanceAssetLogo        = "logo"
-	AppearanceAssetDarkLogo    = "logo-dark"
-	AppearanceAssetVideo       = "video"
-	AppearanceAssetPoster      = "poster"
-	AppearanceAssetUpdateImage = "update-image"
-	AppearanceAssetUpdateVideo = "update-video"
+	AppearanceAssetLogo          = "logo"
+	AppearanceAssetDarkLogo      = "logo-dark"
+	AppearanceAssetVideo         = "video"
+	AppearanceAssetPoster        = "poster"
+	AppearanceAssetUpdateImage   = "update-image"
+	AppearanceAssetUpdateVideo   = "update-video"
 	AppearanceAssetQQGroupQRCode = "qq-group-qrcode"
 )
 
@@ -106,7 +106,6 @@ const (
 	// 外链会随第三方失效，也会把首屏起播时间交给别人的服务器。
 	defaultAppearanceVideoURL  = "/auth/login-hero.mp4"
 	defaultAppearancePosterURL = "/auth/login-hero-poster.jpg"
-	defaultAppearanceHeroTitle = "让一个故事，\n从文字走向银幕。"
 	defaultRedeemPurchaseURL   = "" // 默认不配置购买链接，前端为空时不展示入口
 )
 
@@ -116,57 +115,51 @@ type AppearanceSetting struct {
 	SchemaVersion             int                      `json:"schemaVersion"`
 	BrandName                 string                   `json:"brandName"`
 	BrandSlug                 string                   `json:"brandSlug"`
-	AuthHeroTitle             string                   `json:"authHeroTitle"`
-	AuthHeroDescription       string                   `json:"authHeroDescription"`
 	LogoResourceID            string                   `json:"logoResourceId"`
 	DarkLogoResourceID        string                   `json:"darkLogoResourceId"`
 	LogoFrameEnabled          bool                     `json:"logoFrameEnabled"`
 	AuthVideoResourceID       string                   `json:"authVideoResourceId"`
 	AuthVideoPosterResourceID string                   `json:"authVideoPosterResourceId"`
 	AuthCarousel              []AppearanceCarouselItem `json:"authCarousel"`
-	AuthVideoAutoplay         bool                     `json:"authVideoAutoplay"`
 	SkinID                    string                   `json:"skinId"`
 	SkinThemes                []AppearanceSkinTheme    `json:"skinThemes"`
 	SEOTitle                  string                   `json:"seoTitle"`
 	SEODescription            string                   `json:"seoDescription"`
 	SEOKeywords               string                   `json:"seoKeywords"`
-		FooterCopyright           string                   `json:"footerCopyright"`
-		ICPFilingEnabled          bool                     `json:"icpFilingEnabled"`
-		ICPFilingNumber           string                   `json:"icpFilingNumber"`
-		RedeemPurchaseURL         string                   `json:"redeemPurchaseUrl"`
-		QQGroupNumber             string                   `json:"qqGroupNumber"`
-		QQGroupQRCodeResourceID   string                   `json:"qqGroupQrcodeResourceId"`
-		QQGroupLink               string                   `json:"qqGroupLink"`
-	}
+	FooterCopyright           string                   `json:"footerCopyright"`
+	ICPFilingEnabled          bool                     `json:"icpFilingEnabled"`
+	ICPFilingNumber           string                   `json:"icpFilingNumber"`
+	RedeemPurchaseURL         string                   `json:"redeemPurchaseUrl"`
+	QQGroupNumber             string                   `json:"qqGroupNumber"`
+	QQGroupQRCodeResourceID   string                   `json:"qqGroupQrcodeResourceId"`
+	QQGroupLink               string                   `json:"qqGroupLink"`
+}
 
-	type PublicAppearanceSetting struct {
-		Updates                   UpdateAnnouncement             `json:"updates"`
-		Canvas                    CanvasAppearance               `json:"canvas"`
-		SchemaVersion             int                            `json:"schemaVersion"`
-		BrandName                 string                         `json:"brandName"`
-		BrandSlug                 string                         `json:"brandSlug"`
-		AuthHeroTitle             string                         `json:"authHeroTitle"`
-		AuthHeroDescription       string                         `json:"authHeroDescription"`
-		LogoURL                   string                         `json:"logoUrl"`
-		DarkLogoURL               string                         `json:"darkLogoUrl"`
-		LogoFrameEnabled          bool                           `json:"logoFrameEnabled"`
-		AuthVideoURL              string                         `json:"authVideoUrl"`
-		AuthVideoPosterURL        string                         `json:"authVideoPosterUrl"`
-		AuthCarousel              []PublicAppearanceCarouselItem `json:"authCarousel"`
-		AuthVideoAutoplay         bool                           `json:"authVideoAutoplay"`
-		SkinID                    string                         `json:"skinId"`
-		ActiveSkin                AppearanceSkinTheme            `json:"activeSkin"`
-		SEOTitle                  string                         `json:"seoTitle"`
-		SEODescription            string                         `json:"seoDescription"`
-		SEOKeywords               string                         `json:"seoKeywords"`
-		FooterCopyright           string                         `json:"footerCopyright"`
-		ICPFilingEnabled          bool                           `json:"icpFilingEnabled"`
-		ICPFilingNumber           string                         `json:"icpFilingNumber"`
-		RedeemPurchaseURL         string                         `json:"redeemPurchaseUrl"`
-		QQGroupNumber             string                         `json:"qqGroupNumber"`
-		QQGroupQRCodeURL          string                         `json:"qqGroupQrcodeUrl"`
-		QQGroupLink               string                         `json:"qqGroupLink"`
-		LogoConfigured            bool                           `json:"logoConfigured"`
+type PublicAppearanceSetting struct {
+	Updates                   UpdateAnnouncement             `json:"updates"`
+	Canvas                    CanvasAppearance               `json:"canvas"`
+	SchemaVersion             int                            `json:"schemaVersion"`
+	BrandName                 string                         `json:"brandName"`
+	BrandSlug                 string                         `json:"brandSlug"`
+	LogoURL                   string                         `json:"logoUrl"`
+	DarkLogoURL               string                         `json:"darkLogoUrl"`
+	LogoFrameEnabled          bool                           `json:"logoFrameEnabled"`
+	AuthVideoURL              string                         `json:"authVideoUrl"`
+	AuthVideoPosterURL        string                         `json:"authVideoPosterUrl"`
+	AuthCarousel              []PublicAppearanceCarouselItem `json:"authCarousel"`
+	SkinID                    string                         `json:"skinId"`
+	ActiveSkin                AppearanceSkinTheme            `json:"activeSkin"`
+	SEOTitle                  string                         `json:"seoTitle"`
+	SEODescription            string                         `json:"seoDescription"`
+	SEOKeywords               string                         `json:"seoKeywords"`
+	FooterCopyright           string                         `json:"footerCopyright"`
+	ICPFilingEnabled          bool                           `json:"icpFilingEnabled"`
+	ICPFilingNumber           string                         `json:"icpFilingNumber"`
+	RedeemPurchaseURL         string                         `json:"redeemPurchaseUrl"`
+	QQGroupNumber             string                         `json:"qqGroupNumber"`
+	QQGroupQRCodeURL          string                         `json:"qqGroupQrcodeUrl"`
+	QQGroupLink               string                         `json:"qqGroupLink"`
+	LogoConfigured            bool                           `json:"logoConfigured"`
 	DarkLogoConfigured        bool                           `json:"darkLogoConfigured"`
 	AuthVideoConfigured       bool                           `json:"authVideoConfigured"`
 	AuthVideoPosterConfigured bool                           `json:"authVideoPosterConfigured"`
@@ -191,9 +184,7 @@ func defaultAppearanceSetting() AppearanceSetting {
 		SchemaVersion:     appearanceSchemaVersion,
 		BrandName:         defaultAppearanceBrandName,
 		BrandSlug:         defaultAppearanceBrandSlug,
-		AuthHeroTitle:     defaultAppearanceHeroTitle,
 		AuthCarousel:      []AppearanceCarouselItem{},
-		AuthVideoAutoplay: true,
 		LogoFrameEnabled:  true,
 		SkinID:            defaultAppearanceSkinID,
 		SkinThemes:        defaultAppearanceSkinThemes(),
@@ -293,8 +284,6 @@ func (s *Service) UpdateAppearance(actor *model.User, value AppearanceSetting) (
 	value.Updates = updates
 	value.BrandName = strings.TrimSpace(value.BrandName)
 	value.BrandSlug = strings.ToLower(strings.TrimSpace(value.BrandSlug))
-	value.AuthHeroTitle = normalizeAppearanceCopy(value.AuthHeroTitle)
-	value.AuthHeroDescription = normalizeAppearanceCopy(value.AuthHeroDescription)
 	value.LogoResourceID = strings.TrimSpace(value.LogoResourceID)
 	value.DarkLogoResourceID = strings.TrimSpace(value.DarkLogoResourceID)
 	value.AuthVideoResourceID = strings.TrimSpace(value.AuthVideoResourceID)
@@ -313,12 +302,12 @@ func (s *Service) UpdateAppearance(actor *model.User, value AppearanceSetting) (
 	value.SEODescription = normalizeAppearanceCopy(value.SEODescription)
 	value.SEOKeywords = normalizeAppearanceSingleLine(value.SEOKeywords)
 	value.FooterCopyright = normalizeAppearanceSingleLine(value.FooterCopyright)
-		value.ICPFilingNumber = normalizeAppearanceSingleLine(value.ICPFilingNumber)
-		value.RedeemPurchaseURL = strings.TrimSpace(value.RedeemPurchaseURL)
-		value.QQGroupNumber = normalizeAppearanceSingleLine(value.QQGroupNumber)
-		value.QQGroupLink = strings.TrimSpace(value.QQGroupLink)
-		value.QQGroupQRCodeResourceID = strings.TrimSpace(value.QQGroupQRCodeResourceID)
-		if err := validateAppearanceSetting(value); err != nil {
+	value.ICPFilingNumber = normalizeAppearanceSingleLine(value.ICPFilingNumber)
+	value.RedeemPurchaseURL = strings.TrimSpace(value.RedeemPurchaseURL)
+	value.QQGroupNumber = normalizeAppearanceSingleLine(value.QQGroupNumber)
+	value.QQGroupLink = strings.TrimSpace(value.QQGroupLink)
+	value.QQGroupQRCodeResourceID = strings.TrimSpace(value.QQGroupQRCodeResourceID)
+	if err := validateAppearanceSetting(value); err != nil {
 		return nil, err
 	}
 
@@ -516,10 +505,10 @@ func (s *Service) appearanceResourceReferences(resourceIDs []string) map[string]
 		{resourceID: value.DarkLogoResourceID, title: "深色模式品牌 Logo"},
 		{resourceID: value.AuthVideoResourceID, title: "登录页品牌视频"},
 		{resourceID: value.AuthVideoPosterResourceID, title: "登录页视频封面"},
-			{resourceID: value.Canvas.Live2DResourceID, title: "画布 Agent Live2D 形象"},
-			{resourceID: value.Canvas.AvatarBundleResourceID, title: "画布 Agent 动画包"},
-			{resourceID: value.QQGroupQRCodeResourceID, title: "QQ交流群二维码"},
-		}
+		{resourceID: value.Canvas.Live2DResourceID, title: "画布 Agent Live2D 形象"},
+		{resourceID: value.Canvas.AvatarBundleResourceID, title: "画布 Agent 动画包"},
+		{resourceID: value.QQGroupQRCodeResourceID, title: "QQ交流群二维码"},
+	}
 	for _, release := range value.Updates.Releases {
 		for _, block := range release.Blocks {
 			if block.ResourceID != "" {
@@ -583,11 +572,6 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 	if value.BrandSlug == "" {
 		value.BrandSlug = defaultAppearanceBrandSlug
 	}
-	value.AuthHeroTitle = normalizeAppearanceCopy(value.AuthHeroTitle)
-	if value.AuthHeroTitle == "" {
-		value.AuthHeroTitle = defaultAppearanceHeroTitle
-	}
-	value.AuthHeroDescription = normalizeAppearanceCopy(value.AuthHeroDescription)
 	if carousel, carouselErr := normalizeAppearanceCarousel(value.AuthCarousel); carouselErr == nil {
 		value.AuthCarousel = carousel
 	} else {
@@ -612,12 +596,12 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 	value.SEODescription = normalizeAppearanceCopy(value.SEODescription)
 	value.SEOKeywords = normalizeAppearanceSingleLine(value.SEOKeywords)
 	value.FooterCopyright = normalizeAppearanceSingleLine(value.FooterCopyright)
-		value.ICPFilingNumber = normalizeAppearanceSingleLine(value.ICPFilingNumber)
-		value.RedeemPurchaseURL = strings.TrimSpace(value.RedeemPurchaseURL)
-		value.QQGroupNumber = normalizeAppearanceSingleLine(value.QQGroupNumber)
-		value.QQGroupLink = strings.TrimSpace(value.QQGroupLink)
-		value.QQGroupQRCodeResourceID = strings.TrimSpace(value.QQGroupQRCodeResourceID)
-		return setting, value, nil
+	value.ICPFilingNumber = normalizeAppearanceSingleLine(value.ICPFilingNumber)
+	value.RedeemPurchaseURL = strings.TrimSpace(value.RedeemPurchaseURL)
+	value.QQGroupNumber = normalizeAppearanceSingleLine(value.QQGroupNumber)
+	value.QQGroupLink = strings.TrimSpace(value.QQGroupLink)
+	value.QQGroupQRCodeResourceID = strings.TrimSpace(value.QQGroupQRCodeResourceID)
+	return setting, value, nil
 }
 
 // resolveAvailableAppearanceAssets prevents stale resource references from
@@ -650,11 +634,11 @@ func (s *Service) resolveAvailableAppearanceAssets(value AppearanceSetting) Appe
 			value.DarkLogoResourceID = ""
 		case slot == AppearanceAssetVideo:
 			value.AuthVideoResourceID = ""
-			case slot == AppearanceAssetPoster:
-				value.AuthVideoPosterResourceID = ""
-			case slot == AppearanceAssetQQGroupQRCode:
-				value.QQGroupQRCodeResourceID = ""
-			}
+		case slot == AppearanceAssetPoster:
+			value.AuthVideoPosterResourceID = ""
+		case slot == AppearanceAssetQQGroupQRCode:
+			value.QQGroupQRCodeResourceID = ""
+		}
 	}
 	if value.Canvas.AvatarBundleResourceID != "" && !s.agentAvatarBundleAvailable(value.Canvas.AvatarBundleResourceID) {
 		value.Canvas.AvatarBundleResourceID = ""
@@ -733,12 +717,6 @@ func validateAppearanceSetting(value AppearanceSetting) error {
 	if !validAppearanceBrandSlug(value.BrandSlug) {
 		return BadAuthRequest("英文品牌标识须为 1 到 48 位小写字母、数字或连字符，且不能以连字符开头或结尾")
 	}
-	if err := validateAppearanceCopy(value.AuthHeroTitle, "登录页主标题", 80, true); err != nil {
-		return err
-	}
-	if err := validateAppearanceCopy(value.AuthHeroDescription, "登录页说明文案", 160, false); err != nil {
-		return err
-	}
 	if err := validateAppearanceSkinThemes(value.SkinThemes, value.SkinID); err != nil {
 		return err
 	}
@@ -760,29 +738,29 @@ func validateAppearanceSetting(value AppearanceSetting) error {
 	if value.ICPFilingEnabled && value.ICPFilingNumber == "" {
 		return BadAuthRequest("显示备案号前请先填写备案号")
 	}
-		if value.RedeemPurchaseURL != "" {
-			parsed, err := url.Parse(value.RedeemPurchaseURL)
-			if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
-				return BadAuthRequest("兑换码购买链接必须是有效的 HTTPS 地址")
-			}
+	if value.RedeemPurchaseURL != "" {
+		parsed, err := url.Parse(value.RedeemPurchaseURL)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+			return BadAuthRequest("兑换码购买链接必须是有效的 HTTPS 地址")
 		}
-		if value.QQGroupLink != "" {
-			parsed, err := url.Parse(value.QQGroupLink)
-			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-				return BadAuthRequest("QQ交流群链接必须是有效的 HTTP 或 HTTPS 地址")
-			}
+	}
+	if value.QQGroupLink != "" {
+		parsed, err := url.Parse(value.QQGroupLink)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			return BadAuthRequest("QQ交流群链接必须是有效的 HTTP 或 HTTPS 地址")
 		}
-		if utf8.RuneCountInString(value.QQGroupNumber) > 32 {
-			return BadAuthRequest("QQ交流群号不能超过 32 个字符")
+	}
+	if utf8.RuneCountInString(value.QQGroupNumber) > 32 {
+		return BadAuthRequest("QQ交流群号不能超过 32 个字符")
+	}
+	if len(value.Canvas.AvatarBundleResourceID) > 80 {
+		return BadAuthRequest("Agent 动画包资源 ID 无效")
+	}
+	for _, resourceID := range []string{value.LogoResourceID, value.DarkLogoResourceID, value.AuthVideoResourceID, value.AuthVideoPosterResourceID, value.QQGroupQRCodeResourceID} {
+		if len(resourceID) > 80 {
+			return BadAuthRequest("外观资源 ID 无效")
 		}
-		if len(value.Canvas.AvatarBundleResourceID) > 80 {
-			return BadAuthRequest("Agent 动画包资源 ID 无效")
-		}
-		for _, resourceID := range []string{value.LogoResourceID, value.DarkLogoResourceID, value.AuthVideoResourceID, value.AuthVideoPosterResourceID, value.QQGroupQRCodeResourceID} {
-			if len(resourceID) > 80 {
-				return BadAuthRequest("外观资源 ID 无效")
-			}
-		}
+	}
 	return nil
 }
 
@@ -920,45 +898,45 @@ func appearanceAssetLabel(slot string) string {
 		return "视频封面"
 	case AppearanceAssetVideo:
 		return "品牌视频"
-		case AppearanceAssetUpdateImage:
-			return "公告图片"
-		case AppearanceAssetUpdateVideo:
-			return "公告视频"
-		case AppearanceAssetQQGroupQRCode:
-			return "QQ交流群二维码"
-		default:
-			return "外观资源"
-		}
+	case AppearanceAssetUpdateImage:
+		return "公告图片"
+	case AppearanceAssetUpdateVideo:
+		return "公告视频"
+	case AppearanceAssetQQGroupQRCode:
+		return "QQ交流群二维码"
+	default:
+		return "外观资源"
 	}
+}
 
-	func appearanceResourceID(value AppearanceSetting, slot string) string {
-		if itemID, kind, ok := parseAppearanceCarouselSlot(slot); ok {
-			for _, item := range value.AuthCarousel {
-				if item.ID != itemID {
-					continue
-				}
-				if kind == "poster" {
-					return item.PosterResourceID
-				}
-				return item.MediaResourceID
+func appearanceResourceID(value AppearanceSetting, slot string) string {
+	if itemID, kind, ok := parseAppearanceCarouselSlot(slot); ok {
+		for _, item := range value.AuthCarousel {
+			if item.ID != itemID {
+				continue
 			}
-			return ""
+			if kind == "poster" {
+				return item.PosterResourceID
+			}
+			return item.MediaResourceID
 		}
-		switch slot {
-		case AppearanceAssetLogo:
-			return value.LogoResourceID
-		case AppearanceAssetDarkLogo:
-			return value.DarkLogoResourceID
-		case AppearanceAssetVideo:
-			return value.AuthVideoResourceID
-		case AppearanceAssetPoster:
-			return value.AuthVideoPosterResourceID
-		case AppearanceAssetQQGroupQRCode:
-			return value.QQGroupQRCodeResourceID
-		default:
-			return ""
-		}
+		return ""
 	}
+	switch slot {
+	case AppearanceAssetLogo:
+		return value.LogoResourceID
+	case AppearanceAssetDarkLogo:
+		return value.DarkLogoResourceID
+	case AppearanceAssetVideo:
+		return value.AuthVideoResourceID
+	case AppearanceAssetPoster:
+		return value.AuthVideoPosterResourceID
+	case AppearanceAssetQQGroupQRCode:
+		return value.QQGroupQRCodeResourceID
+	default:
+		return ""
+	}
+}
 
 // publicAppearanceCarousel 把资源 ID 换成可直接播放的地址；还没上传媒体的条目直接跳过，
 // 于是「配了一半」的条目不会在访客那里占一格空白。
@@ -1000,32 +978,29 @@ func publicAppearanceSetting(setting *model.SystemSetting, value AppearanceSetti
 		revision = strconv.FormatInt(setting.UpdatedAt.UTC().UnixNano(), 36)
 	}
 	result := &PublicAppearanceSetting{
-		Updates:             publicUpdateAnnouncement(value.Updates, revision),
-		Canvas:              value.Canvas,
-		SchemaVersion:       appearanceSchemaVersion,
-		BrandName:           value.BrandName,
-		BrandSlug:           value.BrandSlug,
-		AuthHeroTitle:       value.AuthHeroTitle,
-		AuthHeroDescription: value.AuthHeroDescription,
-		LogoURL:             defaultAppearanceLogoURL,
-		DarkLogoURL:         defaultAppearanceLogoURL,
-		LogoFrameEnabled:    value.LogoFrameEnabled,
-		AuthVideoURL:        defaultAppearanceVideoURL,
-		AuthVideoPosterURL:  defaultAppearancePosterURL,
-		AuthVideoAutoplay:   value.AuthVideoAutoplay,
-		SkinID:              value.SkinID,
-		ActiveSkin:          activeAppearanceSkin(value.SkinThemes, value.SkinID),
-		SEOTitle:            effectiveAppearanceSEOTitle(value),
-		SEODescription:      effectiveAppearanceSEODescription(value),
-		SEOKeywords:         value.SEOKeywords,
-		FooterCopyright:     effectiveAppearanceCopyright(value),
-			ICPFilingEnabled:    value.ICPFilingEnabled && value.ICPFilingNumber != "",
-			ICPFilingNumber:     value.ICPFilingNumber,
-			RedeemPurchaseURL:   safeAppearancePurchaseURL(value.RedeemPurchaseURL),
-			QQGroupNumber:       value.QQGroupNumber,
-			QQGroupLink:         value.QQGroupLink,
-			Configured:          setting != nil,
-		Revision:            revision,
+		Updates:            publicUpdateAnnouncement(value.Updates, revision),
+		Canvas:             value.Canvas,
+		SchemaVersion:      appearanceSchemaVersion,
+		BrandName:          value.BrandName,
+		BrandSlug:          value.BrandSlug,
+		LogoURL:            defaultAppearanceLogoURL,
+		DarkLogoURL:        defaultAppearanceLogoURL,
+		LogoFrameEnabled:   value.LogoFrameEnabled,
+		AuthVideoURL:       defaultAppearanceVideoURL,
+		AuthVideoPosterURL: defaultAppearancePosterURL,
+		SkinID:             value.SkinID,
+		ActiveSkin:         activeAppearanceSkin(value.SkinThemes, value.SkinID),
+		SEOTitle:           effectiveAppearanceSEOTitle(value),
+		SEODescription:     effectiveAppearanceSEODescription(value),
+		SEOKeywords:        value.SEOKeywords,
+		FooterCopyright:    effectiveAppearanceCopyright(value),
+		ICPFilingEnabled:   value.ICPFilingEnabled && value.ICPFilingNumber != "",
+		ICPFilingNumber:    value.ICPFilingNumber,
+		RedeemPurchaseURL:  safeAppearancePurchaseURL(value.RedeemPurchaseURL),
+		QQGroupNumber:      value.QQGroupNumber,
+		QQGroupLink:        value.QQGroupLink,
+		Configured:         setting != nil,
+		Revision:           revision,
 	}
 	if setting != nil {
 		result.UpdatedAt = setting.UpdatedAt
@@ -1057,14 +1032,14 @@ func publicAppearanceSetting(setting *model.SystemSetting, value AppearanceSetti
 			result.AuthVideoPosterURL = ""
 		}
 	}
-		if value.AuthVideoPosterResourceID != "" {
-			result.AuthVideoPosterConfigured = true
-			result.AuthVideoPosterURL = appearanceAssetURL(AppearanceAssetPoster, revision)
-		}
-		if value.QQGroupQRCodeResourceID != "" {
-			result.QQGroupQRCodeURL = appearanceAssetURL(AppearanceAssetQQGroupQRCode, revision)
-		}
-		return result
+	if value.AuthVideoPosterResourceID != "" {
+		result.AuthVideoPosterConfigured = true
+		result.AuthVideoPosterURL = appearanceAssetURL(AppearanceAssetPoster, revision)
+	}
+	if value.QQGroupQRCodeResourceID != "" {
+		result.QQGroupQRCodeURL = appearanceAssetURL(AppearanceAssetQQGroupQRCode, revision)
+	}
+	return result
 }
 
 func safeAppearancePurchaseURL(value string) string {

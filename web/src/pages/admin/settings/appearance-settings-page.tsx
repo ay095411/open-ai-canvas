@@ -1,4 +1,4 @@
-import { commitPublicAppearance, DEFAULT_PUBLIC_APPEARANCE } from "@/stores/use-appearance-store";
+import { commitPublicAppearance } from "@/stores/use-appearance-store";
 import { deleteAdminResources } from "@/services/api/admin-storage";
 import { AdminStatusBadge, SettingsSectionCard } from "@/pages/admin/components/admin-ui";
 import { AdminPageFrame } from "@/pages/admin/components/admin-shell";
@@ -34,9 +34,6 @@ export default function AppearanceSettingsPage() {
     const [updates, setUpdates] = useState<UpdateAnnouncement>(DEFAULT_UPDATE_ANNOUNCEMENT);
     const [canvasUploading, setCanvasUploading] = useState(false);
     const [brandSlug, setBrandSlug] = useState("");
-    const [authHeroTitle, setAuthHeroTitle] = useState("");
-    const [authHeroDescription, setAuthHeroDescription] = useState("");
-    const [authVideoAutoplay, setAuthVideoAutoplay] = useState(true);
     const [authCarousel, setAuthCarousel] = useState<AdminAppearanceCarouselItem[]>([]);
     const [logoFrameEnabled, setLogoFrameEnabled] = useState(true);
     const [skinId, setSkinId] = useState("classic");
@@ -73,9 +70,6 @@ export default function AppearanceSettingsPage() {
             canvasUploading ||
             brandName.trim() !== setting?.brandName ||
             brandSlug.trim().toLocaleLowerCase() !== setting?.brandSlug ||
-            normalizeDraftCopy(authHeroTitle) !== setting?.authHeroTitle ||
-            normalizeDraftCopy(authHeroDescription) !== setting?.authHeroDescription ||
-            authVideoAutoplay !== setting?.authVideoAutoplay ||
             JSON.stringify(authCarousel) !== JSON.stringify(setting?.authCarousel || []) ||
             logoFrameEnabled !== setting?.logoFrameEnabled ||
             skinId !== setting?.skinId ||
@@ -103,11 +97,8 @@ export default function AppearanceSettingsPage() {
 	        setBrandName(value.brandName);
 	        setCanvas(value.canvas || DEFAULT_CANVAS_APPEARANCE);
 	        setUpdates(normalizeUpdateAnnouncement(value.updates));
-	        setBrandSlug(value.brandSlug);
-	        setAuthHeroTitle(value.authHeroTitle);
-	        setAuthHeroDescription(value.authHeroDescription);
-	        setAuthVideoAutoplay(value.authVideoAutoplay);
-	        setAuthCarousel((Array.isArray(value.authCarousel) ? value.authCarousel : []).map((item) => ({ ...item })));
+        setBrandSlug(value.brandSlug);
+        setAuthCarousel((Array.isArray(value.authCarousel) ? value.authCarousel : []).map((item) => ({ ...item })));
 	        setLogoFrameEnabled(value.logoFrameEnabled);
 	        setSkinThemes(themes);
 	        setSkinId(selectedID);
@@ -219,9 +210,6 @@ export default function AppearanceSettingsPage() {
         setUpdates(normalizeUpdateAnnouncement(setting.updates));
         setBrandName(setting.brandName);
         setBrandSlug(setting.brandSlug);
-        setAuthHeroTitle(setting.authHeroTitle);
-        setAuthHeroDescription(setting.authHeroDescription);
-        setAuthVideoAutoplay(setting.authVideoAutoplay);
         setAuthCarousel((setting.authCarousel || []).map((item) => ({ ...item })));
         setLogoFrameEnabled(setting.logoFrameEnabled);
         setSkinId(setting.skinId);
@@ -303,8 +291,6 @@ title: "恢复 Navo AI 默认品牌标识？",
         }
         const nextBrandName = brandName.trim();
         const nextBrandSlug = brandSlug.trim().toLocaleLowerCase();
-        const nextAuthHeroTitle = normalizeDraftCopy(authHeroTitle);
-        const nextAuthHeroDescription = normalizeDraftCopy(authHeroDescription);
         const nextSeoTitle = normalizeSingleLine(seoTitle);
         const nextSeoDescription = normalizeDraftCopy(seoDescription);
         const nextSeoKeywords = normalizeSingleLine(seoKeywords);
@@ -319,16 +305,6 @@ title: "恢复 Navo AI 默认品牌标识？",
         if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(nextBrandSlug)) {
             setActiveTab("brand");
             message.error("英文品牌标识须为 1 到 48 位小写字母、数字或连字符");
-            return;
-        }
-        if (!nextAuthHeroTitle || Array.from(nextAuthHeroTitle).length > 80 || hasUnsupportedControlCharacter(nextAuthHeroTitle)) {
-            setActiveTab("auth");
-            message.error("登录页主标题必须为 1 到 80 个字符，可使用换行");
-            return;
-        }
-        if (Array.from(nextAuthHeroDescription).length > 160 || hasUnsupportedControlCharacter(nextAuthHeroDescription)) {
-            setActiveTab("auth");
-            message.error("登录页说明文案不能超过 160 个字符，可使用换行");
             return;
         }
         for (const [value, label, max, tab] of [
@@ -399,14 +375,11 @@ title: "恢复 Navo AI 默认品牌标识？",
                 updates,
                 brandName: nextBrandName,
                 brandSlug: nextBrandSlug,
-                authHeroTitle: nextAuthHeroTitle,
-                authHeroDescription: nextAuthHeroDescription,
                 logoResourceId: ids.logo,
                 darkLogoResourceId: ids["logo-dark"],
                 logoFrameEnabled,
                 authVideoResourceId: ids.video,
                 authVideoPosterResourceId: ids.poster,
-                authVideoAutoplay,
                 // PATCH 会整体覆盖配置：轮播草稿必须随本次保存一起提交，否则会被清空。
                 authCarousel,
                 skinId,
@@ -447,7 +420,7 @@ title: "恢复 Navo AI 默认品牌标识？",
     const lightLogoSelected = Boolean(files.logo || (!resets.logo && setting?.logoResourceId));
     const darkLogoSelected = Boolean(files["logo-dark"] || (!resets["logo-dark"] && setting?.darkLogoResourceId));
     const status = setting?.configured ? <AdminStatusBadge label="已自定义" tone="success" /> : <AdminStatusBadge label="使用原始外观" tone="neutral" />;
-    const copyCustomized = normalizeDraftCopy(authHeroTitle) !== DEFAULT_PUBLIC_APPEARANCE.authHeroTitle || normalizeDraftCopy(authHeroDescription) !== DEFAULT_PUBLIC_APPEARANCE.authHeroDescription;
+    const authCustomized = authCarousel.length > 0 || Boolean(setting?.authVideoResourceId) || Boolean(setting?.authVideoPosterResourceId);
     const draftBrandName = brandName.trim() || "站点名称";
     const selectedSkin = skinThemes.find((skin) => skin.id === skinId) || skinThemes[0] || DEFAULT_CLASSIC_SKIN;
 
@@ -631,39 +604,14 @@ title: "恢复 Navo AI 默认品牌标识？",
                                         description="登录、注册与找回密码共享左侧品牌文案和影片；更换视频会同时取消旧封面，避免品牌串帧。"
                                         status={
                                             <AdminStatusBadge
-                                                label={copyCustomized || setting.authVideoResourceId || setting.authVideoPosterResourceId ? "已配置" : "使用原始内容"}
-                                                tone={copyCustomized || setting.authVideoResourceId || setting.authVideoPosterResourceId ? "success" : "neutral"}
+                                                label={authCustomized ? "已配置" : "使用默认轮播"}
+                                                tone={authCustomized ? "success" : "neutral"}
                                             />
                                         }
                                     >
                                         <div className="admin-appearance-auth-layout">
                                             <div className="admin-appearance-auth-controls">
-                                                <Form className="admin-appearance-form" layout="vertical" requiredMark={false} disabled={saving || refreshing || restoring}>
-                                                    <Form.Item label="登录页主标题" extra="1–80 个字符，可换行；登录、注册和找回密码页面共用。">
-                                                        <Input.TextArea value={authHeroTitle} maxLength={80} showCount autoSize={{ minRows: 2, maxRows: 4 }} placeholder="输入登录页主标题" onChange={(event) => setAuthHeroTitle(event.target.value)} />
-                                                    </Form.Item>
-                                                    <Form.Item label="登录页说明文案（可选）" extra="最多 160 个字符，可换行；留空时不显示说明。">
-                                                        <Input.TextArea
-                                                            value={authHeroDescription}
-                                                            maxLength={160}
-                                                            showCount
-                                                            autoSize={{ minRows: 2, maxRows: 5 }}
-                                                            placeholder="补充一句品牌介绍或产品定位"
-                                                            onChange={(event) => setAuthHeroDescription(event.target.value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Form>
                                                 <div className="admin-appearance-media-list">
-                                                    <div className="admin-appearance-video-autoplay-option">
-                                                        <span className="admin-appearance-video-autoplay-copy">
-                                                            <strong>登录页视频自动播放</strong>
-                                                            <small>默认开启并静音循环播放；访客启用“减少动态效果”时仍尊重其系统偏好。</small>
-                                                        </span>
-                                                        <span className="admin-appearance-video-autoplay-control">
-                                                            <span>{authVideoAutoplay ? "已开启" : "已关闭"}</span>
-                                                            <Switch checked={authVideoAutoplay} disabled={saving || refreshing || restoring} aria-label="登录页视频自动播放" onChange={setAuthVideoAutoplay} />
-                                                        </span>
-                                                    </div>
                                                     <AssetPicker
                                                         slot="video"
                                                         title="品牌视频"
@@ -698,19 +646,14 @@ title: "恢复 Navo AI 默认品牌标识？",
                                                     <AdminStatusBadge label={dirty ? "未保存" : "线上版本"} tone={dirty ? "warning" : "success"} />
                                                 </div>
                                                 <div className="admin-appearance-preview-stage">
-                                                    <video key={`${previews.video}-${authVideoAutoplay}`} src={previews.video} poster={previews.poster || undefined} muted loop playsInline autoPlay={authVideoAutoplay} preload="metadata" />
+                                                    <video key={previews.video} src={previews.video} poster={previews.poster || undefined} muted loop playsInline autoPlay preload="metadata" />
                                                     <span className="admin-appearance-preview-shade" />
                                                     <span className="admin-appearance-preview-brand">
                                                         <img src={previews.logoDark} alt="" />
                                                         <strong>{brandName.trim() || "未命名品牌"}</strong>
                                                     </span>
-                                                    <span className="admin-appearance-preview-copy">
-                                                        <small>{(brandSlug.trim() || "brand-studio").replace(/-+/g, " ").toLocaleUpperCase()}</small>
-                                                        <strong>{normalizeDraftCopy(authHeroTitle) || "请输入登录页主标题"}</strong>
-                                                        {normalizeDraftCopy(authHeroDescription) ? <span>{normalizeDraftCopy(authHeroDescription)}</span> : null}
-                                                    </span>
                                                 </div>
-                                                <p>预览与正式登录页使用同一文案和媒体。正式页面会先解析公开配置，再渲染品牌内容。</p>
+                                                <p>预览展示品牌视频；正式登录页左侧优先播放上方配置的轮播（未配置时使用内置默认素材），品牌视频仅作回退。</p>
                                             </div>
                                         </div>
                                     </SettingsSectionCard>

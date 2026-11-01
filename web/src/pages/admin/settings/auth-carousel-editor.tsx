@@ -58,7 +58,7 @@ export function AuthCarouselEditor({ items, onChange, disabled }: { items: Admin
             <header className="auth-carousel-editor-head">
                 <div>
                     <strong>登录弹窗左侧轮播</strong>
-                    <small>图片与视频可混排；留空时弹窗回退到下方那支品牌视频。最多 {MAX_ITEMS} 条，标题 40 字、副标题 60 字。</small>
+                    <small>图片与视频可混排；一条都没配时弹窗展示内置的 3 张默认素材。最多 {MAX_ITEMS} 条，标题 40 字、副标题 60 字。</small>
                 </div>
                 <Button icon={<Plus className="size-3.5" />} disabled={disabled || items.length >= MAX_ITEMS} onClick={() => onChange([...items, newItem()])}>
                     添加条目
@@ -66,7 +66,7 @@ export function AuthCarouselEditor({ items, onChange, disabled }: { items: Admin
             </header>
 
             {items.length === 0 ? (
-                <p className="auth-carousel-editor-empty">还没有配置轮播，弹窗左侧会播放登录页品牌视频。</p>
+                <p className="auth-carousel-editor-empty">还没有配置轮播，弹窗左侧会展示内置的 3 张默认素材（中式奇幻 / 都市夜色 / 虚拟制片）。</p>
             ) : (
                 <ul className="auth-carousel-editor-list">
                     {items.map((item, index) => {

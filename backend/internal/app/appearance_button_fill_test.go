@@ -16,7 +16,7 @@ func TestAppearanceButtonFillRoundTripAndValidation(t *testing.T) {
 	custom.Tokens.Buttons.Light.Start = "#123456"
 	custom.Tokens.Buttons.Dark.Mode = "solid"
 	themes = append(themes, custom)
-	input := AppearanceSetting{BrandName: "测试站点", BrandSlug: "test", AuthHeroTitle: defaultAppearanceHeroTitle, SkinID: custom.ID, SkinThemes: themes}
+	input := AppearanceSetting{BrandName: "测试站点", BrandSlug: "test", SkinID: custom.ID, SkinThemes: themes}
 	saved, err := svc.UpdateAppearance(admin, input)
 	if err != nil {
 		t.Fatal(err)
