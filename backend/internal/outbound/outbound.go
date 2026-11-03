@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"yingce/backend/internal/kernel"
@@ -417,6 +418,50 @@ func resolveOutboundHost(ctx context.Context, host string) ([]net.IP, error) {
 	return resolveOutboundHostWithPolicy(ctx, host, allowPrivateUpstreams() || AllowedPrivateUpstreamHost(host))
 }
 
+// outboundDNSCacheTTL 是出站域名解析结果的复用窗口。短剧一次并发提交几十个任务，
+// 每个新建连接都查一次 DNS 会打满本机解析器，偶发的解析超时又会直接判作业失败。
+const outboundDNSCacheTTL = 30 * time.Second
+
+// outboundDNSCacheLimit 是缓存条目上限；出站域名数量有限，超限时整体重置即可。
+const outboundDNSCacheLimit = 256
+
+type outboundDNSEntry struct {
+	addresses []net.IP
+	expiresAt time.Time
+}
+
+var (
+	outboundDNSCacheMu sync.Mutex
+	outboundDNSCache   = map[string]outboundDNSEntry{}
+)
+
+// outboundLookupIP 是实际解析入口，单独抽出来便于测试观察缓存命中。
+var outboundLookupIP = func(ctx context.Context, host string) ([]net.IP, error) {
+	return net.DefaultResolver.LookupIP(ctx, "ip", host)
+}
+
+// lookupOutboundIP 复用短时间内的解析结果。只缓存成功结果：解析失败可能是瞬时抖动，
+// 缓存错误会让一次抖动固化成一整段时间不可用。
+func lookupOutboundIP(ctx context.Context, host string) ([]net.IP, error) {
+	outboundDNSCacheMu.Lock()
+	entry, cached := outboundDNSCache[host]
+	outboundDNSCacheMu.Unlock()
+	if cached && time.Now().Before(entry.expiresAt) {
+		return append([]net.IP(nil), entry.addresses...), nil
+	}
+	addresses, err := outboundLookupIP(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+	outboundDNSCacheMu.Lock()
+	if len(outboundDNSCache) >= outboundDNSCacheLimit {
+		outboundDNSCache = map[string]outboundDNSEntry{}
+	}
+	outboundDNSCache[host] = outboundDNSEntry{addresses: append([]net.IP(nil), addresses...), expiresAt: time.Now().Add(outboundDNSCacheTTL)}
+	outboundDNSCacheMu.Unlock()
+	return addresses, nil
+}
+
 func resolveCustomRelayHost(ctx context.Context, host string) ([]net.IP, error) {
 	host = normalizeOutboundHost(host)
 	allowPrivateHost := AllowedPrivateUpstreamHost(host)
@@ -441,7 +486,7 @@ func resolveOutboundHostWithPolicy(ctx context.Context, host string, allowPrivat
 	if !allowPrivateHost && (host == "localhost" || strings.HasSuffix(host, ".localhost")) {
 		return nil, BadAuthRequest("不允许访问本机或内网地址")
 	}
-	addresses, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	addresses, err := lookupOutboundIP(ctx, host)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

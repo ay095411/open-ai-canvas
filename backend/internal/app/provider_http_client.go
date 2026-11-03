@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platform"
 )
@@ -308,7 +309,9 @@ func doBinaryWithConsumer(req *http.Request, onChunk func(string, []byte)) ([]by
 	resp, err := client.Do(req)
 	if err != nil {
 		err = providerConnectionError(err)
-		if runtimeService != nil && !cacheManagementRequest {
+		// 域名解析失败反映的是本机/线路的 DNS 抖动，不是渠道本身不可用；
+		// 计入熔断会让一次瞬时失败放大成整条渠道长时间不可用。
+		if runtimeService != nil && !cacheManagementRequest && !upstreamDNSFailure(err) {
 			_ = runtimeService.RecordChannelResult(req.Context(), channelID, !errors.Is(err, context.Canceled))
 		}
 		recordProviderRequest(req, startedAt, 0, nil, err)
@@ -370,6 +373,12 @@ func doBinaryWithConsumer(req *http.Request, onChunk func(string, []byte)) ([]by
 func providerRequestKindFromContext(ctx context.Context) string {
 	metadata, _ := ctx.Value(providerAnalyticsKey{}).(providerAnalyticsContext)
 	return strings.TrimSpace(metadata.RequestKind)
+}
+
+// upstreamDNSFailure 判断错误是否为出站域名解析失败。
+func upstreamDNSFailure(err error) bool {
+	var appErr *kernel.AppError
+	return errors.As(err, &appErr) && appErr.Reason == kernel.ReasonUpstreamDNSFailed
 }
 
 func providerConnectionError(err error) error {
