@@ -182,12 +182,18 @@ func normalizeAgentToolChoice(body map[string]interface{}, input canvasGeneratio
 type providerTextResult struct {
 	Text      string
 	Reasoning string
+	// FinishReason 是上游声明的结束原因（length / max_tokens / end_turn 等）。
+	// 只有流式路径能拿到；调用方据此区分「输出被截断」和「输出格式不对」。
+	FinishReason string
 }
 
 func providerTextTaskResult(result providerTextResult) map[string]interface{} {
 	payload := map[string]interface{}{"mode": "text", "text": result.Text}
 	if strings.TrimSpace(result.Reasoning) != "" {
 		payload["reasoning"] = result.Reasoning
+	}
+	if reason := strings.TrimSpace(result.FinishReason); reason != "" {
+		payload["finishReason"] = reason
 	}
 	return payload
 }

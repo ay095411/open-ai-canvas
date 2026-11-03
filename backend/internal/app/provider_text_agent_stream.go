@@ -55,6 +55,7 @@ type streamingAgentParser struct {
 	toolCalls     map[int]*streamingAgentToolCall
 	toolCallByID  map[string]int
 	completed     map[string]interface{}
+	finishReason  string
 	err           error
 	emit          func(string)
 	emitReasoning func(string)
@@ -137,6 +138,10 @@ func (p *streamingAgentParser) consumeResponsesEvent(eventName string, payload m
 		p.appendReasoning(stringField(payload, "delta"))
 	case "response.completed":
 		p.completed, _ = payload["response"].(map[string]interface{})
+		// 输出达到上限时 responses 用 incomplete + incomplete_details 表达截断。
+		if details, ok := p.completed["incomplete_details"].(map[string]interface{}); ok {
+			p.finishReason = stringField(details, "reason")
+		}
 	case "response.output_item.added":
 		item, _ := payload["item"].(map[string]interface{})
 		if stringField(item, "type") == "function_call" {
@@ -169,6 +174,11 @@ func (p *streamingAgentParser) consumeChatCompletionEvent(payload map[string]int
 		delta, _ := choice["delta"].(map[string]interface{})
 		p.appendText(streamContentText(delta["content"]))
 		p.appendReasoning(firstRawString(stringField(delta, "reasoning_content"), stringField(delta, "reasoning"), stringField(delta, "reasoning_text")))
+		// finish_reason 只在最后一帧出现：length 表示被输出上限截断，缺了它就无法区分
+		// 「模型写坏了格式」和「模型没写完」，排查只能靠猜。
+		if reason := stringField(choice, "finish_reason"); reason != "" {
+			p.finishReason = reason
+		}
 		for fallbackIndex, toolValue := range interfaceSlice(delta["tool_calls"]) {
 			tool, _ := toolValue.(map[string]interface{})
 			index := intField(tool, "index", fallbackIndex)
@@ -216,6 +226,12 @@ func (p *streamingAgentParser) consumeClaudeEvent(payload map[string]interface{}
 		}
 		if stringField(delta, "type") == "input_json_delta" {
 			p.toolCall(index).arguments += stringField(delta, "partial_json")
+		}
+	case "message_delta":
+		// Claude 的结束原因在 message_delta 的 delta.stop_reason 里。
+		delta, _ := payload["delta"].(map[string]interface{})
+		if reason := stringField(delta, "stop_reason"); reason != "" {
+			p.finishReason = reason
 		}
 	case "error":
 		errValue, _ := payload["error"].(map[string]interface{})
@@ -283,6 +299,7 @@ func (p *streamingAgentParser) result() (map[string]interface{}, error) {
 		if p.reasoning.Len() > 0 {
 			result["reasoning"] = p.reasoning.String()
 		}
+		p.attachFinishReason(result)
 		return result, nil
 	}
 	result := map[string]interface{}{"mode": "text", "text": p.text.String(), "toolCalls": []interface{}{}}
@@ -318,7 +335,15 @@ func (p *streamingAgentParser) result() (map[string]interface{}, error) {
 	if p.text.Len() == 0 && len(calls) == 0 {
 		return nil, errors.New("画布 Agent 接口没有返回内容")
 	}
+	p.attachFinishReason(result)
 	return result, nil
+}
+
+// attachFinishReason 把上游结束原因带到结果里，供调用方判断输出是否被截断。
+func (p *streamingAgentParser) attachFinishReason(result map[string]interface{}) {
+	if p.finishReason != "" {
+		result["finishReason"] = p.finishReason
+	}
 }
 
 func intField(value map[string]interface{}, key string, fallback int) int {

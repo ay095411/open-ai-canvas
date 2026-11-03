@@ -42,7 +42,7 @@ func postStreamingTextResult(ctx context.Context, config providerConfig, path st
 	if err != nil {
 		return providerTextResult{}, err
 	}
-	result := providerTextResult{Text: stringField(parsed, "text"), Reasoning: stringField(parsed, "reasoning")}
+	result := providerTextResult{Text: stringField(parsed, "text"), Reasoning: stringField(parsed, "reasoning"), FinishReason: stringField(parsed, "finishReason")}
 	if result.Text == "" {
 		return providerTextResult{}, errors.New("流式文本接口没有返回内容")
 	}
