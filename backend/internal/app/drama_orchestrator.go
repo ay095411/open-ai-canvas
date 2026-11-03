@@ -754,24 +754,69 @@ func (r *dramaRun) applyJob(job *model.DramaJob, task *model.Task) error {
 	return nil
 }
 
-func dramaTaskText(task *model.Task) (string, error) {
+// dramaText 是文本任务的可用产出：正文加上上游声明的结束原因。
+type dramaText struct {
+	Text         string
+	FinishReason string
+}
+
+func dramaTaskTextResult(task *model.Task) (dramaText, error) {
 	var result struct {
-		Text string `json:"text"`
+		Text         string `json:"text"`
+		FinishReason string `json:"finishReason"`
 	}
 	if err := json.Unmarshal([]byte(task.ResultJSON), &result); err != nil || strings.TrimSpace(result.Text) == "" {
-		return "", errors.New("模型没有返回文本结果")
+		return dramaText{}, errors.New("模型没有返回文本结果")
 	}
-	return result.Text, nil
+	return dramaText{Text: result.Text, FinishReason: result.FinishReason}, nil
+}
+
+func dramaTaskText(task *model.Task) (string, error) {
+	text, err := dramaTaskTextResult(task)
+	return text.Text, err
+}
+
+// dramaParseTailRunes 是失败诊断里保留的原文尾部长度。作业错误最多留 500 字，
+// 尾部太长会把结论挤掉。
+const dramaParseTailRunes = 80
+
+// describeDramaParseFailure 给解析失败补上可定位的现场：原文长度、上游结束原因与尾部片段。
+// 缺了这些信息，「模型输出被截断」和「模型写坏了括号」在界面上完全是同一句话。
+func describeDramaParseFailure(err error, text dramaText) error {
+	runes := []rune(text.Text)
+	detail := fmt.Sprintf("共 %d 字", len(runes))
+	if reason := strings.TrimSpace(text.FinishReason); reason != "" {
+		detail += "，结束原因 " + reason
+		if dramaTruncatedFinishReason(reason) {
+			detail += "，输出达到上限被截断，请调大该模型的输出上限或缩短单集内容"
+		}
+	}
+	if len(runes) > dramaParseTailRunes {
+		runes = runes[len(runes)-dramaParseTailRunes:]
+	}
+	if len(runes) > 0 {
+		detail += "；尾部：" + string(runes)
+	}
+	return fmt.Errorf("%w（%s）", err, detail)
+}
+
+// dramaTruncatedFinishReason 判断结束原因是否表示输出被上限截断。
+func dramaTruncatedFinishReason(reason string) bool {
+	switch strings.ToLower(strings.TrimSpace(reason)) {
+	case "length", "max_tokens", "max_output_tokens", "incomplete":
+		return true
+	}
+	return false
 }
 
 func (r *dramaRun) applyBible(task *model.Task) error {
-	text, err := dramaTaskText(task)
+	text, err := dramaTaskTextResult(task)
 	if err != nil {
 		return err
 	}
-	bible, err := production.ParseBible(text)
+	bible, err := production.ParseBible(text.Text)
 	if err != nil {
-		return fmt.Errorf("作品圣经解析失败：%w", err)
+		return describeDramaParseFailure(fmt.Errorf("作品圣经解析失败：%w", err), text)
 	}
 	existing, err := r.s.repo.DramaCasts(r.project.ID)
 	if err != nil {
@@ -825,7 +870,7 @@ func (r *dramaRun) applyPlan(job *model.DramaJob, task *model.Task) error {
 		// 游标已被其他回写推进，本次结果作废。
 		return nil
 	}
-	text, err := dramaTaskText(task)
+	text, err := dramaTaskTextResult(task)
 	if err != nil {
 		return err
 	}
@@ -840,9 +885,9 @@ func (r *dramaRun) applyPlan(job *model.DramaJob, task *model.Task) error {
 	for index := payload.Start; index < payload.End; index++ {
 		batch = append(batch, production.Chapter{ID: chapters[index].ID, Index: index + 1, Title: chapters[index].Title})
 	}
-	planned, err := production.ParsePlan(text, batch)
+	planned, err := production.ParsePlan(text.Text, batch)
 	if err != nil {
-		return fmt.Errorf("分集规划解析失败：%w", err)
+		return describeDramaParseFailure(fmt.Errorf("分集规划解析失败：%w", err), text)
 	}
 	next, err := r.s.repo.MaxDramaEpisodeNumber(r.project.ID)
 	if err != nil {
@@ -881,13 +926,13 @@ func (r *dramaRun) groupRemainingChapters(chapters []model.ProjectUnit) error {
 }
 
 func (r *dramaRun) applyScript(job *model.DramaJob, task *model.Task) error {
-	text, err := dramaTaskText(task)
+	text, err := dramaTaskTextResult(task)
 	if err != nil {
 		return err
 	}
-	scripted, err := production.ParseScript(text)
+	scripted, err := production.ParseScript(text.Text)
 	if err != nil {
-		return fmt.Errorf("分镜脚本解析失败：%w", err)
+		return describeDramaParseFailure(fmt.Errorf("分镜脚本解析失败：%w", err), text)
 	}
 	episode, err := r.s.repo.DramaEpisode(r.project.ID, job.EpisodeID)
 	if err != nil {
@@ -898,7 +943,7 @@ func (r *dramaRun) applyScript(job *model.DramaJob, task *model.Task) error {
 	if episode.Stage != model.DramaEpisodeScript || episode.Revision != payload.Revision {
 		return nil
 	}
-	return r.applyScriptShots(episode, scripted, production.ParseScriptCast(text), production.ParseScriptEpisode(text), false)
+	return r.applyScriptShots(episode, scripted, production.ParseScriptCast(text.Text), production.ParseScriptEpisode(text.Text), false)
 }
 
 // applyDirectStoryboard 用户上传的分镜能直接解析时跳过文本模型，镜头与台词原样入库。返回是否已处理。
