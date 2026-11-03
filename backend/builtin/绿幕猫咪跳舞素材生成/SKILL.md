@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 72
   authorAvatarUrl: "https://p3-faceu-img-sign.byteimg.com/tos-cn-i-tb4s082cfz/47672f5db9b146d4b138abf35e8119ca~tplv-resize:200:200.image?lk3s=4eecb9e8&x-expires=1788245864&x-signature=PSTe9IfHbRm8JuJa5VDWqg3x%2FCA%3D"
   extraInfo: ""
-  showcaseMedia: [{"type":"video","showcase_uri":"v0d870g10004d8v20tnog65of6g5p3kg","showcase_url":"https://v6-artist.vlabvod.com/240ccf01d506f8a173e51528863ac524/6a7824ed/video/tos/cn/tos-cn-v-148450/o4EBCHIewJ40P1D5BgfSF8SNgBIHHGa2AiPqIH/"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816961292.webp","showcaseUrl":"/skill-covers/14811816961292.webp"}]
 ---
 
 ## 角色定位

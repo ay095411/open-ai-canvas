@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 647
   authorAvatarUrl: "https://p6-faceu-img-sign.byteimg.com/tos-cn-i-0000c2356/o0pfuBKLIBGmp6AJ4g7iX7uAgEBoQAiEzXBAqP~tplv-resize:200:200.image?lk3s=4eecb9e8&x-expires=1788245864&x-signature=nKcLyPNcc3r1XZ9exrXFH3vD%2BWU%3D"
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/efa1ddb9ad7d42cf8991ae4df51c1e9a","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/efa1ddb9ad7d42cf8991ae4df51c1e9a~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=XoSyEJKgykVq0KbTZojUIybL%2B9Y%3D"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816982796.webp","showcaseUrl":"/skill-covers/14811816982796.webp"}]
 ---
 
 ## 〇、宪章

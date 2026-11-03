@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 162
   authorAvatarUrl: "https://p26-passport.byteacctimg.com/img/user-avatar/ae73de8901e41ec10c54cfcfd633dfa0~300x300.image"
   extraInfo: ""
-  showcaseMedia: [{"type":"video","showcase_uri":"v0d870g10004d8t84vvog65uv4qobj60","showcase_url":"https://v6-artist.vlabvod.com/568e610cec45d4aba9ce7b9a16993946/6a7824ef/video/tos/cn/tos-cn-v-148450/oIBO8EYDAmHCsTLFfjUDBgk9I81mPdIfQf8Jya/"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816969996.webp","showcaseUrl":"/skill-covers/14811816969996.webp"}]
 ---
 
 分为 ”**一、交互阶段（步骤0-3，需用户参与）“** 和 ”**二、执行阶段（步骤4-5，自主完成）“**。

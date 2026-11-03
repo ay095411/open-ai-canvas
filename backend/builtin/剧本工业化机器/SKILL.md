@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-factory-script-machine.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-factory-script-machine.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000076.webp","showcaseUrl":"/skill-covers/16000000000076.webp"}]
 ---
 
 # 剧本工厂：一句创意→多集剧本的对白/情绪/规格/台账/机器检查

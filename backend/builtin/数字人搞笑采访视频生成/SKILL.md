@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 299
   authorAvatarUrl: "https://p26-passport.byteacctimg.com/thumb/c858000bafebe888e98e"
   extraInfo: ""
-  showcaseMedia: [{"type":"video","showcase_uri":"v03870g10004d8skshvog65kj2hks4o0","showcase_url":"https://v6-artist.vlabvod.com/f3497c3469560a158e4cdaed59261408/6a7824f7/video/tos/cn/tos-cn-v-148450/oMEm5BcEwPiKgSjfDQ05Kh1kTUgOHJcYiENAQc/"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816980748.webp","showcaseUrl":"/skill-covers/14811816980748.webp"}]
 ---
 
 ## **角色定位**

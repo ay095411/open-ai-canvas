@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-visual-prompt-engineering.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-visual-prompt-engineering.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000095.webp","showcaseUrl":"/skill-covers/16000000000095.webp"}]
 ---
 
 # 视觉提示词工程：五槽模板/去油腻/反推/镜头卡/三细节/决策转换/审核词

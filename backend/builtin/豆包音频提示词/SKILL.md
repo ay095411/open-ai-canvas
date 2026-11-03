@@ -9,6 +9,7 @@ metadata:
   tag: creative
   sortWeight: 500
   source: 1
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/doubao-audio-prompt.webp","showcaseUrl":"/skill-covers/doubao-audio-prompt.webp"}]
 ---
 
 # 豆包音频提示词

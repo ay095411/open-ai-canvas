@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-prose-craft.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-prose-craft.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000078.webp","showcaseUrl":"/skill-covers/16000000000078.webp"}]
 ---
 
 # 文笔与叙事：潜文本/自由间接引语/质感

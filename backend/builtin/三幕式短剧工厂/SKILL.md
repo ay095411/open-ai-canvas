@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 123
   authorAvatarUrl: "https://p3-passport.byteacctimg.com/img/user-avatar/9f0e1dc08b32bc32d8d30c21bcae13ef~300x300.image"
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/55964b6fa2ba48b7ada7cd6fd7d751cc","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/55964b6fa2ba48b7ada7cd6fd7d751cc~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=zvIuKwVsncp2odb5ZwkqTDzkQEs%3D"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816983308.webp","showcaseUrl":"/skill-covers/14811816983308.webp"}]
 ---
 
 ## 角色定位

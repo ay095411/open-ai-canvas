@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-standup-craft.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-standup-craft.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000083.webp","showcaseUrl":"/skill-covers/16000000000083.webp"}]
 ---
 
 # 脱口秀技艺：段子结构/打磨/上台与冷场

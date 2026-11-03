@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-model-routing-interaction.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-model-routing-interaction.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000091.webp","showcaseUrl":"/skill-covers/16000000000091.webp"}]
 ---
 
 # 创作路由与交互：模型族路由/官方规范优先/缺路由降级/选项呈现

@@ -39,6 +39,15 @@ metadata:
 		}
 		t.Fatal(err)
 	}
+	// The catalog now ships camelCase showcaseMedia; a real snake_case sample only
+	// exists when a package still carries the legacy keys, and the fixture above
+	// keeps that parsing path covered either way.
+	if body, err := fs.ReadFile(files, path); err != nil {
+		t.Fatal(err)
+	} else if !bytes.Contains(body, []byte("showcase_url")) {
+		t.Log("real sample migrated to camelCase; self-contained fixture verified")
+		return
+	}
 	t.Run("real-builtin", func(t *testing.T) {
 		assertBuiltinShowcasePreservesSnakeCaseURL(t, files, path)
 	})

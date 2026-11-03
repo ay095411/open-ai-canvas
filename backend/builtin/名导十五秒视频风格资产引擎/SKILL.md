@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 285
   authorAvatarUrl: "https://p3-faceu-img-sign.byteimg.com/tos-cn-i-tb4s082cfz/47672f5db9b146d4b138abf35e8119ca~tplv-resize:200:200.image?lk3s=4eecb9e8&x-expires=1788245864&x-signature=PSTe9IfHbRm8JuJa5VDWqg3x%2FCA%3D"
   extraInfo: ""
-  showcaseMedia: [{"type":"video","showcase_uri":"v02870g10004d8sg2qvog65qlk6u7fag","showcase_url":"https://v9-artist.vlabvod.com/9bc7ebc0d3b610584ad6530270ea0873/6a7824f7/video/tos/cn/tos-cn-v-148450/oo5QvAfi3QHW11VhrEACgjJlLQEti3DgB68IA5/"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816960524.webp","showcaseUrl":"/skill-covers/14811816960524.webp"}]
 ---
 
 ***

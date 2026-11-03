@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-seedance-25-director-craft.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-seedance-25-director-craft.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000092.webp","showcaseUrl":"/skill-covers/16000000000092.webp"}]
 ---
 
 # Seedance 2.5 导演工艺：模式选择/资产锁定/连续性/时长审计

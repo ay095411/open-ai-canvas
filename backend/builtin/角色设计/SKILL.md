@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 784
   authorAvatarUrl: "https://p6-faceu-img-sign.byteimg.com/tos-cn-i-0000c2356/o0pfuBKLIBGmp6AJ4g7iX7uAgEBoQAiEzXBAqP~tplv-resize:200:200.image?lk3s=4eecb9e8&x-expires=1788245864&x-signature=nKcLyPNcc3r1XZ9exrXFH3vD%2BWU%3D"
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/5f272fefa8ca474c8af89806763df92a","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/5f272fefa8ca474c8af89806763df92a~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=8t7vofsG52Q3PfUmCcWdGQtCEvM%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/ca5b330a403b4ca0a00efa0d42031636","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/ca5b330a403b4ca0a00efa0d42031636~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=Zynm5njvjIxbIGamoPR0YCdDgIc%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/7d5fc8728fa4480e85f4cfa3076e2981","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/7d5fc8728fa4480e85f4cfa3076e2981~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=HlgWLjzQecYVDtd8lgR15zi0pfU%3D"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816982284.webp","showcaseUrl":"/skill-covers/14811816982284.webp"}]
 ---
 
 ## 〇、宪章

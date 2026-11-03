@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-consumer-psychology.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-consumer-psychology.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000098.webp","showcaseUrl":"/skill-covers/16000000000098.webp"}]
 ---
 
 # 消费心理：影响力/行为经济/定价锚点

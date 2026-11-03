@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-visual-tone-design.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-visual-tone-design.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000096.webp","showcaseUrl":"/skill-covers/16000000000096.webp"}]
 ---
 
 # 视觉基调：构图/光影/色彩/运动设计

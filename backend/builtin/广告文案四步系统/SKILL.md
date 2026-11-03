@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-ad-copywriting.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-ad-copywriting.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000097.webp","showcaseUrl":"/skill-covers/16000000000097.webp"}]
 ---
 
 # 广告文案：标题/承诺/长文案与卖点转化

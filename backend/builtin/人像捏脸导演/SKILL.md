@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 269
   authorAvatarUrl: "https://p3-faceu-img-sign.byteimg.com/tos-cn-i-tb4s082cfz/47672f5db9b146d4b138abf35e8119ca~tplv-resize:200:200.image?lk3s=4eecb9e8&x-expires=1788245864&x-signature=PSTe9IfHbRm8JuJa5VDWqg3x%2FCA%3D"
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/8ef3fa7689e34156b7b5e8bc51518894","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/8ef3fa7689e34156b7b5e8bc51518894~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=7uM%2Bc%2BstJfp7J5KmrMRqnugdcTk%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/933be9702fe044bdbe629bb806e0c556","showcase_url":"https://p11-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/933be9702fe044bdbe629bb806e0c556~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=A%2BEH3LoZVQ34MuCwkLVssWtiU1M%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/c94d07b05bbe483d9444d90fed36b3ad","showcase_url":"https://p11-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/c94d07b05bbe483d9444d90fed36b3ad~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=pQL9lh9U2DZgslXbLjbSYsa42SM%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/40a606294e7f48b1a1cb5ee73491ec88","showcase_url":"https://p11-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/40a606294e7f48b1a1cb5ee73491ec88~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=YRM8U9FZWrj35cNHIArCF35GJiU%3D"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/15507072002828.webp","showcaseUrl":"/skill-covers/15507072002828.webp"}]
 ---
 
 ## 角色定位

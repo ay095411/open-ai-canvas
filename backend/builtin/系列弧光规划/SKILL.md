@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-series-arc-planning.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-series-arc-planning.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000079.webp","showcaseUrl":"/skill-covers/16000000000079.webp"}]
 ---
 
 # 系列叙事规划：分集大纲/季弧光/剧集圣经

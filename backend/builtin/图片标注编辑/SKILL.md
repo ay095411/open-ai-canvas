@@ -13,6 +13,7 @@ metadata:
   updatedAt: 1789700000000
   initialLikeCount: 0
   initialAddedCount: 0
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/yingce-image-annotation.webp","showcaseUrl":"/skill-covers/yingce-image-annotation.webp"}]
 ---
 
 # 图片标注编辑

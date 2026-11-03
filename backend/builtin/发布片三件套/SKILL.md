@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-iart-launch-trio.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-iart-launch-trio.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000101.webp","showcaseUrl":"/skill-covers/16000000000101.webp"}]
 ---
 
 # iart 发布三件套：A/B 变体/卡点揭晓/发布弧光/多画幅

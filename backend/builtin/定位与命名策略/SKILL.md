@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-positioning-strategy.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-positioning-strategy.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000102.webp","showcaseUrl":"/skill-covers/16000000000102.webp"}]
 ---
 
 # 定位与借势：心智空位/对抗领导者/事件营销

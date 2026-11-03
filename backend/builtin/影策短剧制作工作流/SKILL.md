@@ -9,6 +9,7 @@ metadata:
   tag: drama
   sortWeight: 1000
   source: 3
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/yingce-short-drama-workflow.webp","showcaseUrl":"/skill-covers/yingce-short-drama-workflow.webp"}]
 ---
 
 # Navo AI短剧制作工作流

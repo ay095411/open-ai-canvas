@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-editing-rhythm.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-editing-rhythm.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000088.webp","showcaseUrl":"/skill-covers/16000000000088.webp"}]
 ---
 
 # 剪辑节奏：连续性/转场/平行剪辑与 montage

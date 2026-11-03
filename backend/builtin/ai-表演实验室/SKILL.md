@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-ai-performance-lab.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-ai-performance-lab.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000086.webp","showcaseUrl":"/skill-covers/16000000000086.webp"}]
 ---
 
 # AI 角色表演实验室：表情/动作/焦点/资产一致性

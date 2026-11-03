@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-prompt-engineering-patterns.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-prompt-engineering-patterns.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000103.webp","showcaseUrl":"/skill-covers/16000000000103.webp"}]
 ---
 
 # 提示词工程模式：系统提示词/闭环工作流

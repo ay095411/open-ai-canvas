@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-audiovisual-theory.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-audiovisual-theory.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000087.webp","showcaseUrl":"/skill-covers/16000000000087.webp"}]
 ---
 
 # 视听理论：声画对位/聚合/视听契约

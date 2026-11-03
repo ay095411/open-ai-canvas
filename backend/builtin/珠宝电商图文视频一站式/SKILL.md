@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 311
   authorAvatarUrl: "https://p3-passport.byteacctimg.com/img/user-avatar/8d157a05737f5fd7a797aa5856494201~300x300.image"
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/4c057356cc044264ac69087c334b63ab","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/4c057356cc044264ac69087c334b63ab~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=EnKAaY5sV15v%2BH1hdCDwK%2BPlRTU%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/fe8ec650ec3a480fa983cdbca387c3da","showcase_url":"https://p11-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/fe8ec650ec3a480fa983cdbca387c3da~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=b5viLAYaLX2FoF0005Pl6q9s%2Bg0%3D"},{"type":"video","showcase_uri":"v0d870g10004d8u1qanog65qk9eiophg","showcase_url":"https://v9-artist.vlabvod.com/b5f500924f0c111914725934a2f4a60b/6a7824f2/video/tos/cn/tos-cn-v-148450/oUQiXlJhi8Q6ajIEKovNZdBExIwEwjsHoTUS0/"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816960780.webp","showcaseUrl":"/skill-covers/14811816960780.webp"}]
 ---
 
 ## 技能内容：

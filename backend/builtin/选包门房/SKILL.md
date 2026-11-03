@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: []
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000107.webp","showcaseUrl":"/skill-covers/16000000000107.webp"}]
 ---
 
 # 剧典门房：需求定位与技能指路

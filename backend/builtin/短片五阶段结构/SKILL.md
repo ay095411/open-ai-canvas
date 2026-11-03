@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-shortfilm-structure.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-shortfilm-structure.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000080.webp","showcaseUrl":"/skill-covers/16000000000080.webp"}]
 ---
 
 # 短片五段式结构：阶段/微短剧/多镜锁定/模板分支/IP 安全

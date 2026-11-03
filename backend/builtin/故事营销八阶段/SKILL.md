@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-story-marketing.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-story-marketing.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000104.webp","showcaseUrl":"/skill-covers/16000000000104.webp"}]
 ---
 
 # 故事营销：用叙事做品牌与销售

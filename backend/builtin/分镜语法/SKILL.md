@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-shot-grammar.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-shot-grammar.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000094.webp","showcaseUrl":"/skill-covers/16000000000094.webp"}]
 ---
 
 # 镜头语法：景别/运动/轴线/视线与预设

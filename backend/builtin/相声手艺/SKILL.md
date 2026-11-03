@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-xiangsheng-craft.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-xiangsheng-craft.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000085.webp","showcaseUrl":"/skill-covers/16000000000085.webp"}]
 ---
 
 # 相声技艺：说学逗唱/惯口/捧逗与包袱法

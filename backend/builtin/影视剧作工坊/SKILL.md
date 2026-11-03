@@ -9,6 +9,7 @@ metadata:
   tag: drama
   sortWeight: 1000
   source: 3
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/yingshi-drama-workshop.webp","showcaseUrl":"/skill-covers/yingshi-drama-workshop.webp"}]
 ---
 
 # 影视剧作工坊

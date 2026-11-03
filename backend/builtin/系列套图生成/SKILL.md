@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 808
   authorAvatarUrl: "https://p3-faceu-img-sign.byteimg.com/tos-cn-i-tb4s082cfz/a85057135bdf47f2a19cc1251bad8c6c~tplv-resize:200:200.image?lk3s=4eecb9e8&x-expires=1788245864&x-signature=nCOgNQVyIGQWkNYdLmNghc5Gde4%3D"
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/dd608e5f4a284956a1e422bfaa523394","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/dd608e5f4a284956a1e422bfaa523394~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=dw%2FB67Ef%2FzumgZrWRTcHw388474%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/65dfda4fb6524e24b7aac84c812e317a","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/65dfda4fb6524e24b7aac84c812e317a~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=eN%2BxWkYx57oPIppgpxixmYDalSI%3D"},{"type":"image","showcase_uri":"tos-cn-i-tb4s082cfz/d5b8d47202584daba7ad7a16cb8a3165","showcase_url":"https://p26-dreamina-sign.byteimg.com/tos-cn-i-tb4s082cfz/d5b8d47202584daba7ad7a16cb8a3165~tplv-tb4s082cfz-resize:0:0.image?lk3s=28a09430&x-expires=1817189864&x-signature=06xfH5Ozls2EjSUrSrT7E3oqDXU%3D"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816982028.webp","showcaseUrl":"/skill-covers/14811816982028.webp"}]
 ---
 
 ## 0. 角色定位

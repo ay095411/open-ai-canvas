@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-onlyshot-shortform-pipeline.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-onlyshot-shortform-pipeline.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000077.webp","showcaseUrl":"/skill-covers/16000000000077.webp"}]
 ---
 
 # OnlySHOT 短剧流水线：三阶段成本/时长变体/失败分诊/八块分镜

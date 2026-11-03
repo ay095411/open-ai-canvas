@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-comedy-mechanics.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-comedy-mechanics.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000074.webp","showcaseUrl":"/skill-covers/16000000000074.webp"}]
 ---
 
 # 喜剧机制：前提/反差/反转/包袱与幽默生成

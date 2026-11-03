@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-experience-design.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-experience-design.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000100.webp","showcaseUrl":"/skill-covers/16000000000100.webp"}]
 ---
 
 # 体验与习惯设计：五要素/上瘾模型/可用性

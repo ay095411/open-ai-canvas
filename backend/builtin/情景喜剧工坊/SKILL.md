@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-sitcom-lab.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-sitcom-lab.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000082.webp","showcaseUrl":"/skill-covers/16000000000082.webp"}]
 ---
 
 # 情景喜剧实验室：群像/误会/梗与家庭 friction

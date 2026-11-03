@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-seedance-prompt-engineering.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-seedance-prompt-engineering.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000093.webp","showcaseUrl":"/skill-covers/16000000000093.webp"}]
 ---
 
 # Seedance 提示词工程：避坑/八段公式/@引用/镜头词典/延长编辑

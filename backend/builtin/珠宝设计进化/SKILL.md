@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 90
   authorAvatarUrl: "https://p3-passport.byteacctimg.com/img/user-avatar/8d157a05737f5fd7a797aa5856494201~300x300.image"
   extraInfo: ""
-  showcaseMedia: [{"type":"video","showcase_uri":"v02870g10004d8slgqnog65nu9tmgvig","showcase_url":"https://v6-artist.vlabvod.com/11c564662b99747854e7f4a47060ce82/6a7824fa/video/tos/cn/tos-cn-v-148450/os5IKEgWNfYHGcBfGkLhtQyC4fIgRoIcs2Ire3/"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/14811816969740.webp","showcaseUrl":"/skill-covers/14811816969740.webp"}]
 ---
 
 ## 技能内容：

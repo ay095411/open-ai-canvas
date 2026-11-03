@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-freestyle-style-library.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-freestyle-style-library.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000089.webp","showcaseUrl":"/skill-covers/16000000000089.webp"}]
 ---
 
 # freestylefly 风格库：避坑/提示词积木/模板匹配

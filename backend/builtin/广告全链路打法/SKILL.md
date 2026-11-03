@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-supercmo-ad-chain.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-supercmo-ad-chain.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000105.webp","showcaseUrl":"/skill-covers/16000000000105.webp"}]
 ---
 
 # superCMO 广告链路：克隆结构/钩子/产品描述/口播/分镜/脚本预算

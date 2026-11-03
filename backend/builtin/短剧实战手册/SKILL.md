@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-shortform-drama-playbook.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-shortform-drama-playbook.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000081.webp","showcaseUrl":"/skill-covers/16000000000081.webp"}]
 ---
 
 # 短剧实战手册：钩子/付费墙/节奏与人物志

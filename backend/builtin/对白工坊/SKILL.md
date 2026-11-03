@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-dialogue-workshop.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-dialogue-workshop.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000075.webp","showcaseUrl":"/skill-covers/16000000000075.webp"}]
 ---
 
 # 对白工坊：对白即动作、潜台词与表达姿态

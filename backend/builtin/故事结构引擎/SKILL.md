@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-story-structure-engine.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-story-structure-engine.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000084.webp","showcaseUrl":"/skill-covers/16000000000084.webp"}]
 ---
 
 # 故事结构引擎：节拍/场景/序列/幕与类型法则

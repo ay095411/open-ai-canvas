@@ -15,7 +15,7 @@ metadata:
   initialAddedCount: 0
   authorAvatarUrl: ""
   extraInfo: ""
-  showcaseMedia: [{"type":"image","showcase_uri":"github:showcase/pack-h3-video-prompt-suite.png","showcase_url":"https://raw.githubusercontent.com/itsWyatt-K/judian-skills/main/showcase/pack-h3-video-prompt-suite.png"}]
+  showcaseMedia: [{"type":"image","showcaseUri":"skill-covers/16000000000090.webp","showcaseUrl":"/skill-covers/16000000000090.webp"}]
 ---
 
 # MiniMax H3 视频提示词套件：六段式规范/资产绑定/连续性/八种风格库
