@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -241,13 +240,17 @@ func retryableVideoPollError(ctx context.Context, err error) (retry bool, notFou
 
 // isTransientTransportError 识别读写阶段的连接中断。Go 对读写阶段的 ECONNRESET 等错误
 // 返回 Temporary()=false，只看 net.Error 会把已提交任务的一次网络抖动当成永久失败。
+// 具体错误集合按平台提供（Windows 的 Winsock 错误号与 syscall.ECONNRESET 不同）。
 func isTransientTransportError(err error) bool {
 	var urlError *url.Error
 	var opError *net.OpError
 	if !errors.As(err, &urlError) && !errors.As(err, &opError) {
 		return false
 	}
-	for _, target := range []error{io.EOF, syscall.ECONNRESET, syscall.ECONNABORTED, syscall.EPIPE} {
+	if errors.Is(err, io.EOF) {
+		return true
+	}
+	for _, target := range transportResetErrors() {
 		if errors.Is(err, target) {
 			return true
 		}
