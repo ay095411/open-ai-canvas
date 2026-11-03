@@ -160,27 +160,315 @@ type ScriptShot struct {
 	Looks LookChoices `json:"looks"`
 }
 
+// UnmarshalJSON 逐字段宽松读取。模型常把时长写成 "3" 或 "3秒"，把角色、道具
+// 写成单个字符串而不是数组；任何一处类型偏差都不该让整集镜头作废，因此读不懂的
+// 字段按零值处理，镜头是否可用交给 normalizeScriptShots 判断。
+func (shot *ScriptShot) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	*shot = ScriptShot{
+		Scene:           flexText(fields["scene"]),
+		Characters:      flexTextList(fields["characters"]),
+		Props:           flexTextList(fields["props"]),
+		Speaker:         flexText(fields["speaker"]),
+		Dialogue:        flexText(fields["dialogue"]),
+		Action:          flexText(fields["action"]),
+		ShotSize:        flexText(fields["shotSize"]),
+		Camera:          flexText(fields["camera"]),
+		DurationSeconds: flexSeconds(fields["durationSeconds"]),
+		ImagePrompt:     flexText(fields["imagePrompt"]),
+		VideoPrompt:     flexText(fields["videoPrompt"]),
+		SourceQuote:     flexText(fields["sourceQuote"]),
+		Transition:      flexText(fields["transition"]),
+	}
+	if raw := fields["looks"]; len(raw) > 0 {
+		var looks LookChoices
+		if json.Unmarshal(raw, &looks) == nil {
+			shot.Looks = looks
+		}
+	}
+	return nil
+}
+
+// flexText 读取文本字段：模型偶尔把数字或布尔写进文本字段，这里一律转成文本。
+func flexText(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var text string
+	if json.Unmarshal(raw, &text) == nil {
+		return text
+	}
+	var number float64
+	if json.Unmarshal(raw, &number) == nil {
+		return strconv.FormatFloat(number, 'f', -1, 64)
+	}
+	var flag bool
+	if json.Unmarshal(raw, &flag) == nil {
+		return strconv.FormatBool(flag)
+	}
+	return ""
+}
+
+// flexTextList 读取文本数组：单个字符串（含数字）视为只有一个成员的元素。
+func flexTextList(raw json.RawMessage) []string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var items []json.RawMessage
+	if json.Unmarshal(raw, &items) == nil {
+		result := make([]string, 0, len(items))
+		for _, item := range items {
+			if text := strings.TrimSpace(flexText(item)); text != "" {
+				result = append(result, text)
+			}
+		}
+		return result
+	}
+	if text := strings.TrimSpace(flexText(raw)); text != "" {
+		return []string{text}
+	}
+	return nil
+}
+
+// flexSeconds 读取秒数，兼容数字、"3"、"3.5s"、"3秒" 与 "约3秒"。
+func flexSeconds(raw json.RawMessage) float64 {
+	if len(raw) == 0 {
+		return 0
+	}
+	var value float64
+	if json.Unmarshal(raw, &value) == nil {
+		return value
+	}
+	var text string
+	if json.Unmarshal(raw, &text) != nil {
+		return 0
+	}
+	text = strings.TrimSpace(text)
+	if number, err := strconv.ParseFloat(text, 64); err == nil {
+		return number
+	}
+	start := strings.IndexAny(text, "0123456789")
+	if start < 0 {
+		return 0
+	}
+	if start > 0 && (text[start-1] == '-' || text[start-1] == '+') {
+		start--
+	}
+	end := start
+	if end < len(text) && (text[end] == '-' || text[end] == '+') {
+		end++
+	}
+	for end < len(text) {
+		char := text[end]
+		if (char >= '0' && char <= '9') || char == '.' || char == 'e' || char == 'E' {
+			end++
+			continue
+		}
+		break
+	}
+	number, err := strconv.ParseFloat(strings.TrimSuffix(text[start:end], "."), 64)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+
 // MaxScriptShots 是单集镜头数上限；长集（如 10 分钟）按 3 秒一镜也在范围内。
 const MaxScriptShots = 240
 
 var ErrNoJSON = errors.New("模型没有返回可解析的 JSON")
 
-// ExtractJSONObject 容忍模型在 JSON 前后附带代码块或说明文字。
+// ExtractJSONObject 容忍模型在 JSON 前后附带代码块或说明文字；
+// 模型在结构上留下瑕疵（尾逗号、缺闭合括号、混入正文碎片）时先尝试修补再校验。
 func ExtractJSONObject(raw string) (string, error) {
 	text := strings.TrimSpace(raw)
 	text = strings.TrimPrefix(text, "```json")
 	text = strings.TrimPrefix(text, "```")
 	text = strings.TrimSuffix(text, "```")
 	start := strings.Index(text, "{")
-	end := strings.LastIndex(text, "}")
-	if start < 0 || end <= start {
+	if start < 0 {
 		return "", ErrNoJSON
 	}
-	candidate := text[start : end+1]
-	if !json.Valid([]byte(candidate)) {
-		return "", ErrNoJSON
+	// 没有闭合花括号说明输出被截断，整段都交给修复流程。
+	candidate := text[start:]
+	if end := strings.LastIndex(text, "}"); end > start {
+		candidate = text[start : end+1]
 	}
-	return candidate, nil
+	if json.Valid([]byte(candidate)) {
+		return candidate, nil
+	}
+	if repaired, ok := repairJSONObject(candidate); ok {
+		return repaired, nil
+	}
+	return "", ErrNoJSON
+}
+
+// repairJSONObject 尽力修复结构瑕疵。修补结果必须重新通过 json.Valid，
+// 因此合法输入不受影响，修不好的仍然按 ErrNoJSON 返回。
+// 先整体修复；修不好再截断到最后一个完整容器之后重试，覆盖尾部混入正文的情况。
+func repairJSONObject(text string) (string, bool) {
+	if repaired, ok := balanceJSON(text); ok {
+		return repaired, true
+	}
+	if truncated := truncateAfterLastContainer(text); truncated != text {
+		return balanceJSON(truncated)
+	}
+	return "", false
+}
+
+// balanceJSON 去掉多余逗号、丢弃字符串外的碎片与不配对的闭合符、补全未闭合括号。
+// 裸词只在值位置上保留，用来区分合法字面量（true/false/null）与模型混入正文的英文词。
+func balanceJSON(text string) (string, bool) {
+	out := make([]byte, 0, len(text)+8)
+	stack := make([]byte, 0, 8)
+	inString, escaped, expectValue := false, false, true
+	for index := 0; index < len(text); index++ {
+		char := text[index]
+		if inString {
+			out = append(out, char)
+			switch {
+			case escaped:
+				escaped = false
+			case char == '\\':
+				escaped = true
+			case char == '"':
+				inString, expectValue = false, false
+			}
+			continue
+		}
+		switch {
+		case char == '"':
+			inString, expectValue = true, false
+			out = append(out, char)
+		case char == '{' || char == '[':
+			stack, expectValue = append(stack, char), true
+			out = append(out, char)
+		case char == '}' || char == ']':
+			if len(stack) == 0 || !bracketMatch(stack[len(stack)-1], char) {
+				continue
+			}
+			stack, expectValue = stack[:len(stack)-1], false
+			out = append(dropTrailingComma(out), char)
+		case char == ',' || char == ':':
+			out, expectValue = append(out, char), true
+		case isSpaceByte(char):
+			out = append(out, char)
+		case isNumberByte(char):
+			if !expectValue {
+				continue
+			}
+			end := index
+			for end < len(text) && isNumberByte(text[end]) {
+				end++
+			}
+			out, expectValue = append(out, text[index:end]...), false
+			index = end - 1
+		case isWordByte(char):
+			if !expectValue {
+				continue
+			}
+			end := index
+			for end < len(text) && isWordByte(text[end]) {
+				end++
+			}
+			if word := text[index:end]; word == "true" || word == "false" || word == "null" {
+				out, expectValue = append(out, word...), false
+			}
+			index = end - 1
+		}
+	}
+	out = dropTrailingComma(out)
+	for index := len(stack) - 1; index >= 0; index-- {
+		if stack[index] == '{' {
+			out = append(out, '}')
+			continue
+		}
+		out = append(out, ']')
+	}
+	if !json.Valid(out) {
+		return "", false
+	}
+	// 修复结果至少要保留一个字符串键：源码里满是说明文字时，补全后可能只剩 `{}`，
+	// 那是空壳而不是模型的产物，不能冒充成功。
+	hasKey := false
+	for _, char := range out {
+		if char == '"' {
+			hasKey = true
+			break
+		}
+	}
+	if !hasKey {
+		return "", false
+	}
+	return string(out), true
+}
+
+// truncateAfterLastContainer 截断到最后一个完整容器闭合处，用于尾部混入正文的情况。
+func truncateAfterLastContainer(text string) string {
+	inString, escaped := false, false
+	depth, last := 0, -1
+	for index := 0; index < len(text); index++ {
+		char := text[index]
+		if inString {
+			switch {
+			case escaped:
+				escaped = false
+			case char == '\\':
+				escaped = true
+			case char == '"':
+				inString = false
+			}
+			continue
+		}
+		switch char {
+		case '"':
+			inString = true
+		case '{', '[':
+			depth++
+		case '}', ']':
+			depth--
+			if depth > 0 {
+				last = index + 1
+			}
+		}
+	}
+	if last <= 0 || last >= len(text) {
+		return text
+	}
+	return text[:last]
+}
+
+func dropTrailingComma(out []byte) []byte {
+	for len(out) > 0 {
+		trimmed := len(out)
+		for trimmed > 0 && isSpaceByte(out[trimmed-1]) {
+			trimmed--
+		}
+		if trimmed == 0 || out[trimmed-1] != ',' {
+			return out
+		}
+		out = out[:trimmed-1]
+	}
+	return out
+}
+
+func bracketMatch(open, close byte) bool {
+	return open == '{' && close == '}' || open == '[' && close == ']'
+}
+
+func isSpaceByte(char byte) bool {
+	return char == ' ' || char == '\t' || char == '\n' || char == '\r'
+}
+
+func isNumberByte(char byte) bool {
+	return (char >= '0' && char <= '9') || char == '-' || char == '+' || char == '.' || char == 'e' || char == 'E'
+}
+
+func isWordByte(char byte) bool {
+	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')
 }
 
 func ParseBible(raw string) (Bible, error) {
