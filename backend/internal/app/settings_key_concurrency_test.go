@@ -5,12 +5,28 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 )
+
+// requireKeyFileMode 校验密钥文件的 Unix 权限位。
+// Windows 用 ACL 记录权限，os.Stat 恒返回 0666，没有可比的权限位，因此只在类 Unix 上断言。
+func requireKeyFileMode(t *testing.T, info os.FileInfo, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatalf("stat key file: %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		return
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("key permissions = %o, want 600", info.Mode().Perm())
+	}
+}
 
 func TestSettingsEncryptionKeyPublication(t *testing.T) {
 	path := filepath.Join(t.TempDir(), ".settings-key")
@@ -21,9 +37,7 @@ func TestSettingsEncryptionKeyPublication(t *testing.T) {
 			t.Fatalf("incomplete temporary key: %v", err)
 		}
 		info, err := os.Stat(temp)
-		if err != nil || info.Mode().Perm() != 0600 {
-			t.Fatalf("temporary permissions: %v", err)
-		}
+		requireKeyFileMode(t, info, err)
 		if _, err := os.Stat(target); !os.IsNotExist(err) {
 			t.Fatalf("key visible before publication: %v", err)
 		}
@@ -65,9 +79,7 @@ func TestSettingsEncryptionKeyLinkFallback(t *testing.T) {
 				t.Fatalf("key changed: %v", err)
 			}
 			info, err := os.Stat(path)
-			if err != nil || info.Mode().Perm() != 0600 {
-				t.Fatalf("permissions: %v", err)
-			}
+			requireKeyFileMode(t, info, err)
 		})
 	}
 }
@@ -105,9 +117,7 @@ func TestSettingsEncryptionKeyConcurrentFirstUse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0600 {
-		t.Fatalf("key permissions = %o", info.Mode().Perm())
-	}
+	requireKeyFileMode(t, info, nil)
 }
 
 func TestSettingsEncryptionKeyWaitsForLegacyWriter(t *testing.T) {

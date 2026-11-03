@@ -20,6 +20,10 @@ func TestGmailMailboxRegistrationConcurrent(t *testing.T) {
 	if err := db.AutoMigrate(&model.User{}, &model.EmailVerificationCode{}); err != nil {
 		t.Fatal(err)
 	}
+	// Windows 不允许删除仍被打开的 SQLite 文件，主连接必须在 TempDir 清理前关闭。
+	if mainDB, err := db.DB(); err == nil {
+		t.Cleanup(func() { _ = mainDB.Close() })
+	}
 	now := time.Now()
 	for _, id := range []string{"one", "two"} {
 		if err := db.Create(&model.EmailVerificationCode{ID: id, Email: id + "@gmail.com", ExpiresAt: now.Add(time.Hour)}).Error; err != nil {

@@ -1,1 +1,7 @@
 plugin-packages/*.sh text eol=lf
+
+# 以下路径参与「字节级」校验（golden 快照、策略体积上限、技能脚本哈希），
+# 必须保证 LF：Windows 上 core.autocrlf=true 默认会检出 CRLF，这些测试必然失败。
+backend/internal/app/testdata/** text eol=lf
+backend/internal/prompts/agent-system-policy.md text eol=lf
+backend/builtin/** text eol=lf

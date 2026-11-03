@@ -27,6 +27,8 @@ func newProjectSettingsTestService(t *testing.T) (*Service, *gorm.DB) {
 		&model.CloudAgentResourceLease{}, &model.Tool{}, &model.WorkbenchTool{},
 		&model.Announcement{}, &model.AnnouncementImageDraft{},
 		&model.DramaProduction{}, &model.DramaCast{}, &model.DramaEpisode{}, &model.DramaSegment{}, &model.DramaTake{},
+		// 资源引用快照会查询复刻/项目引用表，缺表时 snapshot 直接报错。
+		&model.RemakeResourceReference{},
 	); err != nil {
 		t.Fatal(err)
 	}
