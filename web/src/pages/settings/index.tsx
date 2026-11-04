@@ -1,4 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router";
+import { useTranslation } from "react-i18next";
+import { LanguageSelect } from "@/components/layout/language-select";
 
 import { isSettingsSection, SettingsWorkbench } from "./settings-workbench";
 

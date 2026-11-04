@@ -3,6 +3,9 @@ import { Tabs } from "antd";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
+
+import { LanguageSelect } from "@/components/layout/language-select";
 
 import { SiteComplianceFooter } from "@/components/layout/site-compliance-footer";
 import { aceternityMotion } from "@/lib/aceternity-motion";

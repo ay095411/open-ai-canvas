@@ -1,17 +1,20 @@
 import { expect, test } from "bun:test";
 
 test("password recovery keeps the approved login placement and dedicated route", async () => {
-    const [loginSource, recoverySource, routerSource, sceneSource, authAPISource, emailSettingsSource] = await Promise.all([
+    const [loginSource, recoverySource, routerSource, sceneSource, authAPISource, emailSettingsSource, zhCatalog] = await Promise.all([
         Bun.file(new URL("../src/pages/auth/login.tsx", import.meta.url)).text(),
         Bun.file(new URL("../src/pages/auth/forgot-password.tsx", import.meta.url)).text(),
         Bun.file(new URL("../src/router.tsx", import.meta.url)).text(),
         Bun.file(new URL("../src/pages/auth/auth-scene.tsx", import.meta.url)).text(),
         Bun.file(new URL("../src/services/api/auth.ts", import.meta.url)).text(),
         Bun.file(new URL("../src/pages/admin/components/email-settings-panel.tsx", import.meta.url)).text(),
+        Bun.file(new URL("../src/i18n/messages/zh-CN.ts", import.meta.url)).text(),
     ]);
 
-    expect(loginSource).toContain('label="密码"');
-    expect(loginSource).toContain("忘记密码？");
+    // 文案经 i18n 键渲染，中文源文案保存在 zh-CN 目录中。
+    expect(loginSource).toContain('label={t("auth.login.passwordLabel")}');
+    expect(loginSource).toContain('t("auth.login.forgot")');
+    expect(zhCatalog).toContain('forgot: "忘记密码？"');
     expect(loginSource).toContain("forgotPasswordURL");
     expect(routerSource).toContain('{ path: "/forgot-password"');
     // 2026-10-15：本地 UI 改版（e6ea201a）移除了 auth-scene 的 eyebrow 文案，

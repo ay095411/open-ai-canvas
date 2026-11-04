@@ -20,7 +20,9 @@ import { assetGridCardMinWidth, type AssetGridDensity, assetGridDensityOptions, 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Form, Popconfirm, Button, Dropdown, Input, Modal, Space, Tag, Typography, Progress } from "antd";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import { ArkPortraitDrawer } from "./ark-portrait-drawer";
+import { arkPortraitOverviewQueryKey, getArkPortraitOverview } from "@/services/api/ark-portraits";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ASSET_CATEGORY_OPTIONS } from "@/lib/asset-category";
@@ -69,6 +71,9 @@ type AssetFolderFilter = "all" | "uncategorized" | string;
 export default function AssetsPage() {
     const { message } = App.useApp();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [portraitOpen, setPortraitOpen] = useState(false);
+    const portraitQuery = useQuery({ queryKey: arkPortraitOverviewQueryKey, queryFn: ({ signal }) => getArkPortraitOverview(signal), staleTime: 60_000 });
     const queryClient = useQueryClient();
     const copyText = useCopyText();
     const [form] = Form.useForm<AssetFormValues>();
@@ -205,6 +210,24 @@ export default function AssetsPage() {
         { label: "未分类", value: "" },
         ...folders.map((folder) => ({ label: folder.name, value: folder.id })),
     ], [folders]);
+
+    // 真人认证页完成后回跳 /assets?arkPortrait=<结果>：打开真人素材库并提示结果，随后去掉参数避免刷新重复提示。
+    const portraitResult = searchParams.get("arkPortrait");
+    useEffect(() => {
+        if (!portraitResult) return;
+        const notices: Record<string, () => void> = {
+            verified: () => message.success("真人认证完成，可以开始上传该真人的素材"),
+            failed: () => message.error("真人认证未通过，请重新发起认证"),
+            expired: () => message.warning("认证链接已过期，请重新发起认证"),
+            pending: () => message.info("认证已完成，正在等待方舟返回结果，请在真人素材库点击“我已完成认证”"),
+        };
+        (notices[portraitResult] || (() => message.error("认证回调无效，请在真人素材库重新发起")))();
+        setPortraitOpen(true);
+        void queryClient.invalidateQueries({ queryKey: arkPortraitOverviewQueryKey });
+        const next = new URLSearchParams(searchParams);
+        next.delete("arkPortrait");
+        setSearchParams(next, { replace: true });
+    }, [portraitResult]);
 
     const invalidateAssetLibrary = async () => {
         await Promise.all([
@@ -845,6 +868,7 @@ export default function AssetsPage() {
                 </div>
             </WorkspacePage>
 
+            <ArkPortraitDrawer open={portraitOpen} onClose={() => setPortraitOpen(false)} onLibraryChanged={invalidateAssetLibrary} />
             <Modal
                 className="workspace-modal workspace-modal-wide library-modal"
                 title={editingAsset ? "编辑素材" : "新增素材"}

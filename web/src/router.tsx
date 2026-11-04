@@ -22,6 +22,9 @@ import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 
 const AdminPage = lazy(() => import("@/pages/admin"));
+const EcommercePage = lazy(() => import("@/pages/ecommerce"));
+const EcommerceManagementPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-management-page"));
+const EcommerceAgentConfigPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-agent-config-page"));
 const AnalyticsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AnalyticsPage })));
 const AnnouncementsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AnnouncementsPage })));
 const BannerAnnouncementsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.BannerAnnouncementsPage })));
@@ -145,6 +148,7 @@ export const router = createBrowserRouter([
             // 页面内的创作 / Agent / 参考内容 / 历史对话动作在组件内做登录门。
             { path: "/", element: deferred(<CreatePage />) },
             { path: "/create", element: deferred(<CreatePage />) },
+            { path: "/ecommerce", element: <RequireAuth>{deferred(<EcommercePage />)}</RequireAuth> },
             {
                 path: "/toolbox",
                 element: <Navigate to="/toolbox/image" replace />,
@@ -278,6 +282,17 @@ export const router = createBrowserRouter([
                     { path: "channels", element: <ChannelsPage /> },
                     // 关闭前台模型只影响用户端模型来源；后台仍可进入，便于开启前先配置。
                     { path: "models", element: <LogicalModelsPage /> },
+                    { path: "ecommerce", element: <Navigate to="/admin/ecommerce/agent" replace /> },
+                    { path: "ecommerce/agent", element: <EcommerceAgentConfigPage /> },
+                    { path: "ecommerce/library", element: <EcommerceManagementPage /> },
+                    { path: "ecommerce/library/skills", element: <EcommerceManagementPage /> },
+                    { path: "ecommerce/library/categories", element: <EcommerceManagementPage /> },
+                    // 旧地址：知识库、Skills、品类并入「知识与技能」，小夜设置并入「电商 Agent 配置」
+                    { path: "ecommerce/skills", element: <Navigate to="/admin/ecommerce/library/skills" replace /> },
+                    { path: "ecommerce/categories", element: <Navigate to="/admin/ecommerce/library/categories" replace /> },
+                    { path: "ecommerce-knowledge", element: <Navigate to="/admin/ecommerce/library" replace /> },
+                    { path: "ecommerce-skills", element: <Navigate to="/admin/ecommerce/library/skills" replace /> },
+                    { path: "ecommerce-categories", element: <Navigate to="/admin/ecommerce/library/categories" replace /> },
                     { path: "plugins", element: <AdminPluginsPage /> },
                     { path: "workbench-tools", element: <WorkbenchToolsPage /> },
                     { path: "skill-curation", element: <SkillCurationPage /> },
@@ -292,6 +307,7 @@ export const router = createBrowserRouter([
                     { path: "redemption-codes", element: <RedemptionCodesPage /> },
                     { path: "referral", element: <AdminReferralPage /> },
                     { path: "logs", element: <LogsPage /> },
+                    { path: "settings/yoru", element: <Navigate to="/admin/ecommerce/agent" replace /> },
                     { path: "settings", element: <Navigate to="runtime-policy" replace /> },
                     { path: "settings/appearance", element: <AppearanceSettingsPage /> },
                     { path: "settings/drawing-engine", element: <DrawingEngineSettingsPage /> },

@@ -12,7 +12,9 @@ import (
 	"gorm.io/gorm"
 )
 
-const CurrentSchemaVersion int64 = 78
+// 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
+// 因此上游 78-81 顺延为 79-82，避免与已应用版本冲突。
+const CurrentSchemaVersion int64 = 82
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -275,6 +277,59 @@ var schemaMigrations = []migration{
 	{version: 76, name: "agent_memory_document_skill_discovery", checksum: "sha256:agent-memory-document-skill-discovery-v76-20261028", apply: migrateAgentMemoryDocumentSkillDiscovery},
 	{version: 77, name: "agent_memory_document_columns", checksum: "sha256:agent-memory-document-columns-v77-20261028", apply: migrateAgentMemoryDocumentColumns},
 	{version: 78, name: "video_remake", checksum: "sha256:video-remake-v78", apply: migrateVideoRemake},
+	{version: 79, name: "drama_cast_voice_looks", checksum: "sha256:drama-cast-voice-looks-v78-20261101", apply: migrateDramaCastVoiceLooks},
+	{version: 80, name: "ecommerce_agent_and_knowledge", checksum: "sha256:ecommerce-agent-and-knowledge-v79-20261101", apply: migrateEcommerceFeature},
+	{version: 81, name: "payment_order_charge_method", checksum: "sha256:payment-order-charge-method-v80-20261104", apply: migratePaymentOrderChargeMethod},
+	{version: 82, name: "ark_portrait_assets", checksum: "sha256:ark-portrait-assets-v81-20261104", apply: func(tx *gorm.DB) error {
+		// 方舟真人认证会话、用户真人素材组与组内素材；只建新表，不改写可信素材绑定。
+		return tx.AutoMigrate(&model.ArkPortraitSession{}, &model.ArkPortraitGroup{}, &model.ArkPortraitAsset{})
+	}},
+}
+
+// migratePaymentOrderChargeMethod 为支付订单增加实收金额、实收货币、汇率快照和支付方式。
+// 旧订单都是按商品货币原价下单，实收金额回填为商品金额，回调与对账校验结果不变。
+func migratePaymentOrderChargeMethod(tx *gorm.DB) error {
+	for _, field := range []string{"ChargeAmountFen", "ChargeCurrency", "ExchangeRateMicros", "PaymentMethod"} {
+		if tx.Migrator().HasColumn(&model.PaymentOrder{}, field) {
+			continue
+		}
+		if err := tx.Migrator().AddColumn(&model.PaymentOrder{}, field); err != nil {
+			return err
+		}
+	}
+	return tx.Model(&model.PaymentOrder{}).
+		Where("charge_currency = '' OR charge_currency IS NULL").
+		Updates(map[string]any{"charge_amount_fen": gorm.Expr("amount_fen"), "charge_currency": gorm.Expr("currency")}).Error
+}
+
+// migrateDramaCastVoiceLooks 为短剧设定补角色声音（声音库条目与样本音频）和造型（所属角色、造型名、默认适用章节）。
+// 旧设定都是没有指定声音的角色本体，新增列写成零值。
+func migrateDramaCastVoiceLooks(tx *gorm.DB) error {
+	for _, field := range []string{"VoiceProfileID", "VoiceSampleResourceID", "ParentID", "LookName", "LookFromChapter", "LookToChapter"} {
+		if tx.Migrator().HasColumn(&model.DramaCast{}, field) {
+			continue
+		}
+		if err := tx.Migrator().AddColumn(&model.DramaCast{}, field); err != nil {
+			return err
+		}
+	}
+	for column, value := range map[string]any{"voice_profile_id": "", "voice_sample_resource_id": "", "parent_id": "", "look_name": "", "look_from_chapter": 0, "look_to_chapter": 0} {
+		if err := tx.Model(&model.DramaCast{}).Where(column+" IS NULL").Update(column, value).Error; err != nil {
+			return err
+		}
+	}
+	if !tx.Migrator().HasColumn(&model.DramaShot{}, "LookCastIDsJSON") {
+		if err := tx.Migrator().AddColumn(&model.DramaShot{}, "LookCastIDsJSON"); err != nil {
+			return err
+		}
+	}
+	if err := tx.Model(&model.DramaShot{}).Where("look_cast_ids_json IS NULL").Update("look_cast_ids_json", "").Error; err != nil {
+		return err
+	}
+	if tx.Migrator().HasIndex(&model.DramaCast{}, "ParentID") {
+		return nil
+	}
+	return tx.Migrator().CreateIndex(&model.DramaCast{}, "ParentID")
 }
 
 // migrateAgentMemoryDocumentColumns 补齐记忆文件的条目序号与修订的工具调用 ID。

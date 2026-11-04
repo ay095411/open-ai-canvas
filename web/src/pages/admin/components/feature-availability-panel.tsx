@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { App, Button, Skeleton } from "antd";
 import { Switch } from "@/pages/admin/ui/controls";
-import { AlertTriangle, Bot, Boxes, Clapperboard, Coins, ImageIcon, ListChecks, MonitorCog, PlugZap, Quote, RadioTower, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Bot, Boxes, Clapperboard, Coins, ImageIcon, ListChecks, MessageCircleMore, MonitorCog, PlugZap, Quote, RadioTower, RefreshCw, ShieldCheck, ShoppingBag, Video } from "lucide-react";
 
 import { Link } from "react-router";
 
@@ -23,7 +23,10 @@ type FeatureKey =
     | "imageWorkbenchEnabled"
     | "videoWorkbenchEnabled"
     | "videoRemakeEnabled"
-    | "globalAgentEnabled";
+    | "globalAgentEnabled"
+    | "ecommerceEnabled"
+    | "ecommerceVideoEnabled"
+    | "siteAssistantEnabled";
 type FeatureRow = {
     key: FeatureKey;
     title: string;
@@ -42,6 +45,9 @@ const editableFeatureKeys: FeatureKey[] = [
     "videoWorkbenchEnabled",
     "videoRemakeEnabled",
     "globalAgentEnabled",
+    "ecommerceEnabled",
+    "ecommerceVideoEnabled",
+    "siteAssistantEnabled",
     "frontendModelsEnabled",
     "pluginCenterEnabled",
     "systemPluginsVisibleToUsers",
@@ -101,6 +107,25 @@ const workspaceFeatureRows: FeatureRow[] = [
         title: "一键复刻",
         description: "开放独立参考视频复刻模块，支持拆镜、主体替换、生成与成片。关闭后不删除已有项目。",
         icon: <Clapperboard className="size-4" aria-hidden="true" />,
+    },
+    {
+        key: "ecommerceEnabled",
+        title: "电商创作",
+        description: "开放电商 Agent、商品知识库与电商创作页；关闭后不删除已有商品与作品。",
+        icon: <ShoppingBag className="size-4" aria-hidden="true" />,
+    },
+    {
+        key: "ecommerceVideoEnabled",
+        title: "电商视频",
+        description: "允许在电商创作中生成商品视频；关闭只影响新任务，不影响已完成结果。",
+        icon: <Video className="size-4" aria-hidden="true" />,
+        dependsOn: "ecommerceEnabled",
+    },
+    {
+        key: "siteAssistantEnabled",
+        title: "站内助手",
+        description: "开放站内助手对话入口。",
+        icon: <MessageCircleMore className="size-4" aria-hidden="true" />,
     },
 ];
 
@@ -418,6 +443,9 @@ function toEditablePayload(features: FeatureAvailability) {
         videoWorkbenchEnabled: features.videoWorkbenchEnabled,
         videoRemakeEnabled: features.videoRemakeEnabled,
         globalAgentEnabled: features.globalAgentEnabled,
+        ecommerceEnabled: features.ecommerceEnabled,
+        ecommerceVideoEnabled: features.ecommerceVideoEnabled,
+        siteAssistantEnabled: features.siteAssistantEnabled,
         frontendModelsEnabled: features.frontendModelsEnabled,
         pluginCenterEnabled: features.pluginCenterEnabled,
         systemPluginsVisibleToUsers: features.systemPluginsVisibleToUsers,
@@ -446,6 +474,9 @@ function parseFeatureAvailability(value: unknown): FeatureAvailability {
         videoWorkbenchEnabled: record.videoWorkbenchEnabled as boolean,
         videoRemakeEnabled: record.videoRemakeEnabled as boolean,
         globalAgentEnabled: Boolean(record.globalAgentEnabled),
+        ecommerceEnabled: record.ecommerceEnabled as boolean,
+        ecommerceVideoEnabled: record.ecommerceVideoEnabled as boolean,
+        siteAssistantEnabled: record.siteAssistantEnabled as boolean,
         frontendModelsEnabled: record.frontendModelsEnabled as boolean,
         pluginCenterEnabled: record.pluginCenterEnabled as boolean,
         systemPluginsVisibleToUsers: record.systemPluginsVisibleToUsers as boolean,

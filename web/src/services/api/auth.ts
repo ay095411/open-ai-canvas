@@ -326,6 +326,12 @@ export type AdminOSSSetting = {
 
 export type AdminArkPrivateAssetSetting = {
     enabled: boolean;
+    /** 开放用户级真人认证素材库，与可信素材自动同步相互独立。 */
+    portraitEnabled: boolean;
+    /** 方舟站点：火山引擎或 BytePlus 海外站，决定控制面域名。 */
+    site: "volcengine" | "byteplus";
+    /** 真人认证回调使用的站点公网根地址；为空时后端使用 CANVAS_PUBLIC_BASE_URL。 */
+    callbackBaseUrl: string;
     region: string;
     projectName: string;
     accessKeyId: string;
@@ -642,8 +648,7 @@ export function updateAdminDrawingEngineSetting(input: Pick<CanvasDrawingEngineS
     return http.patch<{ setting: CanvasDrawingEngineSetting }>("/admin/settings/drawing-engine", input);
 }
 
-export type AdminApiLogParams = AdminListParams &
-    Pick<AnalyticsFilters, "from" | "to" | "userId" | "model" | "channelId"> & { recordType?: "request" | "download" | "all"; capability?: "text" | "image" | "video" | "audio" };
+export type AdminApiLogParams = AdminListParams & Pick<AnalyticsFilters, "from" | "to" | "userId" | "model" | "channelId"> & { recordType?: "request" | "download" | "all"; capability?: "text" | "image" | "video" | "audio" };
 
 export function listAdminApiLogs(params: AdminApiLogParams = {}) {
     return http.get<{ logs: ApiCallLog[]; total: number; page: number; pageSize: number }>("/admin/api-logs", { params });

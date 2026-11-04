@@ -24,9 +24,12 @@ const (
 	FeatureSystemPlugins         = "systemPluginsVisibleToUsers"
 	FeatureInspirationSources    = "inspirationSourcesVisible"
 	FeatureTimelineTranscription = "timelineTranscription"
-	FeatureVideoRemake           = "videoRemake"
 	FeatureImageWorkbench        = "imageWorkbench"
 	FeatureVideoWorkbench        = "videoWorkbench"
+	FeatureEcommerce             = "ecommerce"
+	FeatureEcommerceVideo        = "ecommerceVideo"
+	FeatureSiteAssistant         = "siteAssistant"
+	FeatureVideoRemake           = "videoRemake"
 	FeatureGlobalAgent           = "globalAgent"
 )
 
@@ -43,6 +46,9 @@ type FeatureAvailability struct {
 	TimelineTranscriptionEnabled bool `json:"timelineTranscriptionEnabled"`
 	ImageWorkbenchEnabled        bool `json:"imageWorkbenchEnabled"`
 	VideoWorkbenchEnabled        bool `json:"videoWorkbenchEnabled"`
+	EcommerceEnabled             bool `json:"ecommerceEnabled"`
+	EcommerceVideoEnabled        bool `json:"ecommerceVideoEnabled"`
+	SiteAssistantEnabled         bool `json:"siteAssistantEnabled"`
 	VideoRemakeEnabled           bool `json:"videoRemakeEnabled"`
 	GlobalAgentEnabled           bool `json:"globalAgentEnabled"`
 }
@@ -70,6 +76,10 @@ func DefaultFeatureAvailability() FeatureAvailability {
 		TimelineTranscriptionEnabled: true,
 		ImageWorkbenchEnabled:        false,
 		VideoWorkbenchEnabled:        false,
+		EcommerceEnabled:             false,
+		EcommerceVideoEnabled:        false,
+		SiteAssistantEnabled:         false,
+		VideoRemakeEnabled:           false,
 		GlobalAgentEnabled:           false,
 	}
 }
@@ -142,6 +152,12 @@ func (s *Service) FeatureEnabled(feature string) (bool, error) {
 		return value.ImageWorkbenchEnabled, nil
 	case FeatureVideoWorkbench:
 		return value.VideoWorkbenchEnabled, nil
+	case FeatureEcommerce:
+		return value.EcommerceEnabled, nil
+	case FeatureEcommerceVideo:
+		return value.EcommerceVideoEnabled, nil
+	case FeatureSiteAssistant:
+		return value.SiteAssistantEnabled, nil
 	case FeatureVideoRemake:
 		return value.VideoRemakeEnabled, nil
 	case FeatureGlobalAgent:
@@ -182,6 +198,12 @@ func (s *Service) RequireFeature(feature string) error {
 		return kernel.Forbidden("生图暂未开放")
 	case FeatureVideoWorkbench:
 		return kernel.Forbidden("视频暂未开放")
+	case FeatureEcommerce:
+		return kernel.Forbidden("电商创作暂未开放")
+	case FeatureEcommerceVideo:
+		return kernel.Forbidden("电商视频暂未开放")
+	case FeatureSiteAssistant:
+		return kernel.Forbidden("站内助手暂未开放")
 	case FeatureVideoRemake:
 		return kernel.Forbidden("一键复刻暂未开放")
 	case FeatureGlobalAgent:
