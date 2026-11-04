@@ -27,7 +27,13 @@ test("validateRemakeShots 接受完整覆盖且逐镜连续的分镜", () => {
 
 test("validateRemakeShots 拒绝空列表与超上限", () => {
     expect(validateRemakeShots([], 0, 1000)).toContain("1–20");
-    expect(validateRemakeShots(Array.from({ length: 21 }, (_, i) => shot({ id: `s${i}`, sourceInMs: i * 1000, sourceOutMs: (i + 1) * 1000 })), 0, 21000)).toContain("1–20");
+    expect(
+        validateRemakeShots(
+            Array.from({ length: 21 }, (_, i) => shot({ id: `s${i}`, sourceInMs: i * 1000, sourceOutMs: (i + 1) * 1000 })),
+            0,
+            21000,
+        ),
+    ).toContain("1–20");
 });
 
 test("validateRemakeShots 拒绝空隙与重叠", () => {

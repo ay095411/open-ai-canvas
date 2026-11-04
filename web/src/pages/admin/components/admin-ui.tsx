@@ -318,7 +318,15 @@ export type AdminRowAction = {
     };
 };
 
-export function AdminRowActions({ primary, actions, visibleActionCount }: { primary?: { label: ReactNode; icon?: ReactNode; onClick: () => void | Promise<void>; disabled?: boolean; loading?: boolean }; actions: AdminRowAction[]; visibleActionCount?: number }) {
+export function AdminRowActions({
+    primary,
+    actions,
+    visibleActionCount,
+}: {
+    primary?: { label: ReactNode; icon?: ReactNode; onClick: () => void | Promise<void>; disabled?: boolean; loading?: boolean };
+    actions: AdminRowAction[];
+    visibleActionCount?: number;
+}) {
     const { modal } = App.useApp();
     // 行内操作默认全部外露；只有超过 3 个次要操作时才把其余收进“更多”，避免只藏一两个按钮。
     const resolvedVisibleActionCount = visibleActionCount ?? (actions.length <= 3 ? actions.length : 2);

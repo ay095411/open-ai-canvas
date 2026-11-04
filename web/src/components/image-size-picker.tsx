@@ -163,9 +163,7 @@ export function ImageSizePicker({
                         {profile.resolution.values.map((value) => {
                             const next = value.toLowerCase() as ImageResolutionTier;
                             const hasTierPresets = visibleTiers.includes(next);
-                            const isPressed = hasTierPresets
-                                ? size !== "auto" && (value === imageResolution || (imageResolution === undefined && active?.tier === value))
-                                : value === imageResolution;
+                            const isPressed = hasTierPresets ? size !== "auto" && (value === imageResolution || (imageResolution === undefined && active?.tier === value)) : value === imageResolution;
                             return (
                                 <button
                                     type="button"

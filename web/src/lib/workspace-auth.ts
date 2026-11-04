@@ -29,10 +29,7 @@ export function openWorkspaceAuth(detail: WorkspaceAuthOpenDetail = {}) {
  * 观感就是「打开登录弹窗时页面闪一下」。所以左键点击就地派发事件打开弹窗，
  * 同时保留 `href` —— 中键 / ⌘+点击 / 新标签页仍然走深链，那是它该有的用途。
  */
-export function interceptAuthLink(
-    event: { defaultPrevented: boolean; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; preventDefault: () => void },
-    detail: WorkspaceAuthOpenDetail = {},
-) {
+export function interceptAuthLink(event: { defaultPrevented: boolean; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; preventDefault: () => void }, detail: WorkspaceAuthOpenDetail = {}) {
     if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     openWorkspaceAuth(detail);

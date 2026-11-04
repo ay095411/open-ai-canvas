@@ -250,10 +250,7 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
     const missingInput = missingWorkbenchInput(tool, references);
     const activeTasks = useMemo(() => tasks.filter((task) => task.status === "queued" || task.status === "running"), [tasks]);
     const historyTasks = useMemo(() => tasks.filter((task) => task.status !== "queued" && task.status !== "running"), [tasks]);
-    const filteredHistoryTasks = useMemo(
-        () => historyTasks.filter((task) => !query.trim() || task.prompt.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 30),
-        [historyTasks, query],
-    );
+    const filteredHistoryTasks = useMemo(() => historyTasks.filter((task) => !query.trim() || task.prompt.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 30), [historyTasks, query]);
     const selectedCount = Number(count) || 1;
     const maxReferenceCount = useMemo(
         () => (kind === "image" ? imageProfile?.references.maxImages || 0 : (videoProfile?.references.maxImages || 0) + (videoProfile?.references.maxVideos || 0) + (videoProfile?.references.maxAudios || 0)),
@@ -373,7 +370,9 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
                 audioCount: references.filter((reference) => reference.kind === "audio").length,
                 characterCount: 0,
             },
-            ...(kind === "image" ? { imageSize: ratio, options: { size: ratio, quality, ...(imageProfile?.resolution.supported ? { imageResolution } : {}), count: selectedCount } } : { videoSeconds: seconds, options: { size: ratio, videoSeconds: Number(seconds), vquality: videoQuality } }),
+            ...(kind === "image"
+                ? { imageSize: ratio, options: { size: ratio, quality, ...(imageProfile?.resolution.supported ? { imageResolution } : {}), count: selectedCount } }
+                : { videoSeconds: seconds, options: { size: ratio, videoSeconds: Number(seconds), vquality: videoQuality } }),
         }),
         [capability, imageProfile, imageResolution, kind, prompt, quality, ratio, references, seconds, selectedCount, videoQuality],
     );
@@ -1219,14 +1218,7 @@ export function WorkbenchPage({ kind: initialKind = "image" }: { kind?: Workbenc
                                 </Tooltip>
                             </div>
 
-                            <Modal
-                                title="选择创作工具"
-                                open={toolLibraryOpen}
-                                onCancel={() => setToolLibraryOpen(false)}
-                                footer={null}
-                                width="min(1120px, calc(100vw - 32px))"
-                                className="workbench-picker-modal"
-                            >
+                            <Modal title="选择创作工具" open={toolLibraryOpen} onCancel={() => setToolLibraryOpen(false)} footer={null} width="min(1120px, calc(100vw - 32px))" className="workbench-picker-modal">
                                 {toolLibrary}
                             </Modal>
 

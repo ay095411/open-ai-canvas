@@ -129,7 +129,11 @@ export function CreationHistoryDrawer({
                     <Search aria-hidden="true" />
                     <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索对话标题或内容" aria-label="搜索历史对话" />
                     <span className="creation-history-search-clear-slot">
-                        {keyword ? <button type="button" aria-label="清除对话搜索" onClick={() => setKeyword("")}><X aria-hidden="true" /></button> : null}
+                        {keyword ? (
+                            <button type="button" aria-label="清除对话搜索" onClick={() => setKeyword("")}>
+                                <X aria-hidden="true" />
+                            </button>
+                        ) : null}
                     </span>
                 </label>
 
@@ -143,120 +147,120 @@ export function CreationHistoryDrawer({
                     </span>
                 </button>
                 <div className="creation-history-scroll creation-scrollbar">
-                {visibleConversations.length ? (
-                    <ul className="creation-history-list" aria-label="历史对话，按更新时间倒序排列">
-                        {visibleConversations.flatMap((conversation, index) => {
-                            const showGroupHead = !keyword.trim() && (index === 0 || creationConversationBucket(conversation.updatedAt) !== creationConversationBucket(visibleConversations[index - 1].updatedAt));
-                            const latest = conversationPreviewMessage(conversation);
-                            const active = conversation.id === activeId;
-                            const HistoryTypeIcon = latest?.mode === "video" ? Clapperboard : latest?.mode === "image" ? ImageIcon : MessageSquareText;
-                            return [
-                                showGroupHead ? (
-                                    <li key={`${conversation.id}-group`} className="creation-history-group-head">
-                                        <h4>{creationBucketLabels[creationConversationBucket(conversation.updatedAt)]}</h4>
-                                    </li>
-                                ) : null,
-                                <li key={conversation.id} className={active ? "is-active" : undefined}>
-                                    {renamingId === conversation.id ? (
-                                        <div className="creation-history-rename">
-                                            <input
-                                                ref={renameInputRef}
-                                                className="creation-history-rename-input"
-                                                defaultValue={conversation.title.trim() || "新创作"}
-                                                aria-label="重命名对话标题"
-                                                autoFocus
-                                                onFocus={(event) => event.currentTarget.select()}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === "Enter") {
-                                                        event.preventDefault();
-                                                        event.currentTarget.blur();
-                                                    } else if (event.key === "Escape") {
-                                                        cancelRename();
-                                                    }
-                                                }}
-                                                onBlur={() => commitRename(conversation)}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className={menuOpenId === conversation.id ? "creation-history-row is-menu-open" : "creation-history-row"}>
-                                            <button
-                                                type="button"
-                                                className="creation-history-item-main"
-                                                aria-current={active ? "page" : undefined}
-                                                onClick={() => {
-                                                    setMenuOpenId(null);
-                                                    onSelect(conversation);
-                                                }}
-                                            >
-                                                <span className="creation-history-item-icon" aria-hidden="true">
-                                                    <HistoryTypeIcon />
-                                                </span>
-                                                <span className="creation-history-item-text">
-                                                    <strong className="creation-history-item-heading">{conversation.title.trim() || "新创作"}</strong>
-                                                    <span className="creation-history-snippet">
-                                                        {latest ? (
-                                                            <>
-                                                                <em>{latest.mode ? modeLabels[latest.mode] : "创作"}</em>
-                                                                <span>{displayCreationPrompt(latest.content, latest.references || []).trim() || "还没有开始创作"}</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <em>创作</em>
-                                                                <span>还没有开始创作</span>
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                </span>
-                                            </button>
-                                            <span className="creation-history-time-slot">
-                                                <time dateTime={conversation.updatedAt}>{formatHistoryRelativeTime(conversation.updatedAt)}</time>
-                                            </span>
-                                            <Dropdown
-                                                trigger={["click"]}
-                                                placement="bottomRight"
-                                                open={menuOpenId === conversation.id}
-                                                onOpenChange={(open) => setMenuOpenId(open ? conversation.id : null)}
-                                                overlayClassName="creation-history-menu-overlay"
-                                                menu={{
-                                                    items: [
-                                                        { key: "rename", label: "重命名", icon: <Pencil /> },
-                                                        { key: "export", label: "导出对话", icon: <Download /> },
-                                                        { key: "delete", label: "删除对话", danger: true, icon: <Trash2 /> },
-                                                    ],
-                                                    onClick: ({ key }) => {
-                                                        setMenuOpenId(null);
-                                                        if (key === "rename") {
-                                                            beginRename(conversation);
-                                                        } else if (key === "export") {
-                                                            downloadCreationConversation(conversation, assistantName, exportUser?.displayName || "你");
-                                                            drawerToast.success("对话已导出为 Markdown");
-                                                        } else {
-                                                            onDelete(conversation);
+                    {visibleConversations.length ? (
+                        <ul className="creation-history-list" aria-label="历史对话，按更新时间倒序排列">
+                            {visibleConversations.flatMap((conversation, index) => {
+                                const showGroupHead = !keyword.trim() && (index === 0 || creationConversationBucket(conversation.updatedAt) !== creationConversationBucket(visibleConversations[index - 1].updatedAt));
+                                const latest = conversationPreviewMessage(conversation);
+                                const active = conversation.id === activeId;
+                                const HistoryTypeIcon = latest?.mode === "video" ? Clapperboard : latest?.mode === "image" ? ImageIcon : MessageSquareText;
+                                return [
+                                    showGroupHead ? (
+                                        <li key={`${conversation.id}-group`} className="creation-history-group-head">
+                                            <h4>{creationBucketLabels[creationConversationBucket(conversation.updatedAt)]}</h4>
+                                        </li>
+                                    ) : null,
+                                    <li key={conversation.id} className={active ? "is-active" : undefined}>
+                                        {renamingId === conversation.id ? (
+                                            <div className="creation-history-rename">
+                                                <input
+                                                    ref={renameInputRef}
+                                                    className="creation-history-rename-input"
+                                                    defaultValue={conversation.title.trim() || "新创作"}
+                                                    aria-label="重命名对话标题"
+                                                    autoFocus
+                                                    onFocus={(event) => event.currentTarget.select()}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter") {
+                                                            event.preventDefault();
+                                                            event.currentTarget.blur();
+                                                        } else if (event.key === "Escape") {
+                                                            cancelRename();
                                                         }
-                                                    },
-                                                }}
-                                            >
+                                                    }}
+                                                    onBlur={() => commitRename(conversation)}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className={menuOpenId === conversation.id ? "creation-history-row is-menu-open" : "creation-history-row"}>
                                                 <button
                                                     type="button"
-                                                    className={menuOpenId === conversation.id ? "creation-history-more is-open" : "creation-history-more"}
-                                                    aria-label={`更多操作：${conversation.title.trim() || "新创作"}`}
-                                                    onClick={(event) => event.preventDefault()}
+                                                    className="creation-history-item-main"
+                                                    aria-current={active ? "page" : undefined}
+                                                    onClick={() => {
+                                                        setMenuOpenId(null);
+                                                        onSelect(conversation);
+                                                    }}
                                                 >
-                                                    <MoreHorizontal />
+                                                    <span className="creation-history-item-icon" aria-hidden="true">
+                                                        <HistoryTypeIcon />
+                                                    </span>
+                                                    <span className="creation-history-item-text">
+                                                        <strong className="creation-history-item-heading">{conversation.title.trim() || "新创作"}</strong>
+                                                        <span className="creation-history-snippet">
+                                                            {latest ? (
+                                                                <>
+                                                                    <em>{latest.mode ? modeLabels[latest.mode] : "创作"}</em>
+                                                                    <span>{displayCreationPrompt(latest.content, latest.references || []).trim() || "还没有开始创作"}</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <em>创作</em>
+                                                                    <span>还没有开始创作</span>
+                                                                </>
+                                                            )}
+                                                        </span>
+                                                    </span>
                                                 </button>
-                                            </Dropdown>
-                                        </div>
-                                    )}
-                                </li>,
-                            ];
-                        })}
-                    </ul>
-                ) : (
-                    <div className="creation-history-empty" role="status">
-                        <strong>{keyword.trim() ? "没有找到匹配的对话" : "暂无历史对话"}</strong>
-                        <p>{keyword.trim() ? "试试其他关键词，或清除搜索查看全部。" : "新建一个创作对话，之后可在这里继续。"}</p>
-                    </div>
-                )}
+                                                <span className="creation-history-time-slot">
+                                                    <time dateTime={conversation.updatedAt}>{formatHistoryRelativeTime(conversation.updatedAt)}</time>
+                                                </span>
+                                                <Dropdown
+                                                    trigger={["click"]}
+                                                    placement="bottomRight"
+                                                    open={menuOpenId === conversation.id}
+                                                    onOpenChange={(open) => setMenuOpenId(open ? conversation.id : null)}
+                                                    overlayClassName="creation-history-menu-overlay"
+                                                    menu={{
+                                                        items: [
+                                                            { key: "rename", label: "重命名", icon: <Pencil /> },
+                                                            { key: "export", label: "导出对话", icon: <Download /> },
+                                                            { key: "delete", label: "删除对话", danger: true, icon: <Trash2 /> },
+                                                        ],
+                                                        onClick: ({ key }) => {
+                                                            setMenuOpenId(null);
+                                                            if (key === "rename") {
+                                                                beginRename(conversation);
+                                                            } else if (key === "export") {
+                                                                downloadCreationConversation(conversation, assistantName, exportUser?.displayName || "你");
+                                                                drawerToast.success("对话已导出为 Markdown");
+                                                            } else {
+                                                                onDelete(conversation);
+                                                            }
+                                                        },
+                                                    }}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className={menuOpenId === conversation.id ? "creation-history-more is-open" : "creation-history-more"}
+                                                        aria-label={`更多操作：${conversation.title.trim() || "新创作"}`}
+                                                        onClick={(event) => event.preventDefault()}
+                                                    >
+                                                        <MoreHorizontal />
+                                                    </button>
+                                                </Dropdown>
+                                            </div>
+                                        )}
+                                    </li>,
+                                ];
+                            })}
+                        </ul>
+                    ) : (
+                        <div className="creation-history-empty" role="status">
+                            <strong>{keyword.trim() ? "没有找到匹配的对话" : "暂无历史对话"}</strong>
+                            <p>{keyword.trim() ? "试试其他关键词，或清除搜索查看全部。" : "新建一个创作对话，之后可在这里继续。"}</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </AppDrawer>

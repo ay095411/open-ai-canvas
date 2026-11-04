@@ -31,13 +31,16 @@ export function WorkspaceTopBarQQGroup() {
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (!qqGroupNumber) return;
-        navigator.clipboard.writeText(qqGroupNumber).then(() => {
-            setCopied(true);
-            message.success("QQ群号已复制到剪贴板");
-            setTimeout(() => setCopied(false), 2000);
-        }).catch(() => {
-            message.error("复制失败，请手动长按复制");
-        });
+        navigator.clipboard
+            .writeText(qqGroupNumber)
+            .then(() => {
+                setCopied(true);
+                message.success("QQ群号已复制到剪贴板");
+                setTimeout(() => setCopied(false), 2000);
+            })
+            .catch(() => {
+                message.error("复制失败，请手动长按复制");
+            });
     };
 
     const popoverContent = (
@@ -49,7 +52,9 @@ export function WorkspaceTopBarQQGroup() {
                 </span>
                 {qqGroupNumber ? (
                     <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                        <span>群号: <strong className="text-foreground tracking-wide select-all font-mono">{qqGroupNumber}</strong></span>
+                        <span>
+                            群号: <strong className="text-foreground tracking-wide select-all font-mono">{qqGroupNumber}</strong>
+                        </span>
                         <button
                             type="button"
                             onClick={handleCopy}
@@ -65,11 +70,7 @@ export function WorkspaceTopBarQQGroup() {
 
             {qqGroupQrcodeUrl ? (
                 <div className="size-44 rounded-xl overflow-hidden bg-white p-2 border border-border shadow-sm flex items-center justify-center">
-                    <img
-                        src={qqGroupQrcodeUrl}
-                        alt="QQ交流群二维码"
-                        className="size-full object-contain select-none"
-                    />
+                    <img src={qqGroupQrcodeUrl} alt="QQ交流群二维码" className="size-full object-contain select-none" />
                 </div>
             ) : null}
 
@@ -86,11 +87,7 @@ export function WorkspaceTopBarQQGroup() {
                     </a>
                 ) : null}
                 {qqGroupNumber && !qqGroupLink ? (
-                    <button
-                        type="button"
-                        onClick={handleCopy}
-                        className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/80 transition-colors cursor-pointer"
-                    >
+                    <button type="button" onClick={handleCopy} className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/80 transition-colors cursor-pointer">
                         <Copy className="size-3" aria-hidden="true" />
                         <span>复制群号</span>
                     </button>
@@ -120,14 +117,7 @@ export function WorkspaceTopBarQQGroup() {
 
     if (qqGroupQrcodeUrl || qqGroupNumber) {
         return (
-            <Popover
-                content={popoverContent}
-                trigger={["hover", "click"]}
-                open={open}
-                onOpenChange={setOpen}
-                placement="bottomRight"
-                overlayClassName="workspace-qq-group-popover"
-            >
+            <Popover content={popoverContent} trigger={["hover", "click"]} open={open} onOpenChange={setOpen} placement="bottomRight" overlayClassName="workspace-qq-group-popover">
                 {triggerButton}
             </Popover>
         );

@@ -30,7 +30,11 @@
     font-size: 13px;
     font-weight: 560;
     white-space: nowrap;
-    transition: background var(--user-motion), border-color var(--user-motion), color var(--user-motion), transform var(--user-motion);
+    transition:
+        background var(--user-motion),
+        border-color var(--user-motion),
+        color var(--user-motion),
+        transform var(--user-motion);
 }
 
 .creation-module-chip:hover,
@@ -46,7 +50,7 @@
 }
 
 .creation-module-chip:active {
-    transform: scale(.98);
+    transform: scale(0.98);
 }
 
 .creation-module-chip-icon {

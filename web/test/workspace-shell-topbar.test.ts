@@ -57,8 +57,8 @@ describe("responsive workspace shell", () => {
 
         expect(sidebar).toContain('to="/login" onClick={(event) => interceptAuthLink(event)}');
         expect(sidebar).toContain('aria-label="登录" title="登录"');
-        expect(sidebar).toContain('className="app-workspace-sidebar-profile-avatar"><CoalAvatar');
-        expect(sidebar).toContain('!collapsed ? <span className="app-workspace-sidebar-profile-copy"');
+        expect(sidebar).toMatch(/className="app-workspace-sidebar-profile-avatar">\s*<CoalAvatar/);
+        expect(sidebar).toMatch(/!collapsed\s*\?\s*\(?\s*<span className="app-workspace-sidebar-profile-copy"/);
         expect(css).toContain(".app-workspace-sidebar-profile");
     });
 });

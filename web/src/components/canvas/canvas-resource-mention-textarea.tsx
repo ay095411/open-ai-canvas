@@ -93,7 +93,29 @@ function shouldSubmitOnEnter(event: { key: string; ctrlKey: boolean; metaKey: bo
 }
 
 export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function CanvasResourceMentionTextarea(
-    { value, references, onSelectReference, onChange, onSubmit, onKeyDown, className, containerClassName, style, highlightLabels = true, mentionMenuWidth = 320, sendOnEnter = true, onContentSizeChange, includeAssetLibrary = false, activeDropReferenceId, onReferenceFilesDrop, autoLinkEnabled = false, animatedPlaceholder = false, mentionMenuLabels, actionsRef, ...props },
+    {
+        value,
+        references,
+        onSelectReference,
+        onChange,
+        onSubmit,
+        onKeyDown,
+        className,
+        containerClassName,
+        style,
+        highlightLabels = true,
+        mentionMenuWidth = 320,
+        sendOnEnter = true,
+        onContentSizeChange,
+        includeAssetLibrary = false,
+        activeDropReferenceId,
+        onReferenceFilesDrop,
+        autoLinkEnabled = false,
+        animatedPlaceholder = false,
+        mentionMenuLabels,
+        actionsRef,
+        ...props
+    },
     forwardedRef,
 ) {
     const rawTheme = useActiveTheme();
@@ -452,15 +474,16 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     // 打字机模式下颜色与透明度交给 CSS 类，避免调用方传入的正文色把占位语义顶掉。
     const placeholderText = props.placeholder;
     const effectiveValue = compositionValue ?? value;
-    const placeholderOverlay = !effectiveValue && placeholderText ? (
-        <div
-            aria-hidden
-            className={`${className || ""}${animatedPlaceholder ? " creation-typing-placeholder" : ""} pointer-events-none absolute inset-0 z-0`}
-            style={animatedPlaceholder ? { ...style, color: undefined, opacity: undefined } : { ...style, color: style?.color || theme.node.text, opacity: 0.4 }}
-        >
-            {animatedPlaceholder ? <TypewriterPlaceholder text={placeholderText} paused={placeholderFocused} /> : placeholderText}
-        </div>
-    ) : null;
+    const placeholderOverlay =
+        !effectiveValue && placeholderText ? (
+            <div
+                aria-hidden
+                className={`${className || ""}${animatedPlaceholder ? " creation-typing-placeholder" : ""} pointer-events-none absolute inset-0 z-0`}
+                style={animatedPlaceholder ? { ...style, color: undefined, opacity: undefined } : { ...style, color: style?.color || theme.node.text, opacity: 0.4 }}
+            >
+                {animatedPlaceholder ? <TypewriterPlaceholder text={placeholderText} paused={placeholderFocused} /> : placeholderText}
+            </div>
+        ) : null;
     const menuAnchor = useRichEditor ? editorRef.current : textareaRef.current;
     const menu =
         !readOnly && mention && availableReferences.length && menuAnchor ? (
@@ -878,6 +901,10 @@ function TypewriterPlaceholder({ text, paused }: { text: string; paused: boolean
     }, [characters, still]);
 
     if (still) return <>{text}</>;
-    return <>{characters.slice(0, revealed).join("")}<span className="creation-typing-caret" /></>;
+    return (
+        <>
+            {characters.slice(0, revealed).join("")}
+            <span className="creation-typing-caret" />
+        </>
+    );
 }
-

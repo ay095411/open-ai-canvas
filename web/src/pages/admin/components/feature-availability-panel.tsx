@@ -12,7 +12,18 @@ import { AdminStatusBadge } from "./admin-ui";
 import "./feature-availability-panel.css";
 
 type FeatureKey =
-    "shortDramaEnabled" | "taskCenterEnabled" | "creditsEnabled" | "customChannelsEnabled" | "inspirationSourcesVisible" | "frontendModelsEnabled" | "pluginCenterEnabled" | "systemPluginsVisibleToUsers" | "imageWorkbenchEnabled" | "videoWorkbenchEnabled" | "videoRemakeEnabled" | "globalAgentEnabled";
+    | "shortDramaEnabled"
+    | "taskCenterEnabled"
+    | "creditsEnabled"
+    | "customChannelsEnabled"
+    | "inspirationSourcesVisible"
+    | "frontendModelsEnabled"
+    | "pluginCenterEnabled"
+    | "systemPluginsVisibleToUsers"
+    | "imageWorkbenchEnabled"
+    | "videoWorkbenchEnabled"
+    | "videoRemakeEnabled"
+    | "globalAgentEnabled";
 type FeatureRow = {
     key: FeatureKey;
     title: string;

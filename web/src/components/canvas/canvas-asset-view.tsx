@@ -178,15 +178,11 @@ function KindGrid({
         <>
             <header className="flex h-12 shrink-0 items-center border-b border-border px-5">
                 <div className="flex items-center gap-2 leading-none">
-                    <span className="flex size-5 shrink-0 items-center justify-center text-foreground/80">
-                        {canvasAssetKindIcon(group.kind, "size-4")}
-                    </span>
+                    <span className="flex size-5 shrink-0 items-center justify-center text-foreground/80">{canvasAssetKindIcon(group.kind, "size-4")}</span>
                     <span role="heading" aria-level={2} className="m-0 flex items-center text-sm font-semibold leading-none text-foreground">
                         {group.label}
                     </span>
-                    <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
-                        {group.entries.length}
-                    </span>
+                    <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-1.5 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">{group.entries.length}</span>
                 </div>
             </header>
             <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-5">

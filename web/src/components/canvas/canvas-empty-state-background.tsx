@@ -7,22 +7,9 @@ import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 const LazyParticlesShader = lazy(async () => {
     const { Shader, FloatingParticles } = await import("shaders/react");
     return {
-        default: function ParticlesShaderRenderer({
-            isDark,
-            reducedMotion,
-            onUnavailable,
-        }: {
-            isDark: boolean;
-            reducedMotion: boolean;
-            onUnavailable: () => void;
-        }) {
+        default: function ParticlesShaderRenderer({ isDark, reducedMotion, onUnavailable }: { isDark: boolean; reducedMotion: boolean; onUnavailable: () => void }) {
             return (
-                <Shader
-                    disableTelemetry
-                    className="size-full"
-                    style={{ width: "100%", height: "100%", pointerEvents: "none" }}
-                    onUnavailable={onUnavailable}
-                >
+                <Shader disableTelemetry className="size-full" style={{ width: "100%", height: "100%", pointerEvents: "none" }} onUnavailable={onUnavailable}>
                     <FloatingParticles
                         particleColor={isDark ? "rgba(240, 240, 255, 0.65)" : "rgba(35, 42, 60, 0.35)"}
                         count={75}
@@ -87,9 +74,7 @@ function Canvas2DFallbackParticles({ isDark, reducedMotion }: { isDark: boolean;
                     if (p.y < 0) p.y = height;
                 }
                 const currentAlpha = p.alpha * (0.6 + 0.4 * Math.sin(time + p.phase));
-                ctx.fillStyle = isDark
-                    ? `rgba(235, 238, 255, ${currentAlpha})`
-                    : `rgba(32, 40, 58, ${currentAlpha * 0.6})`;
+                ctx.fillStyle = isDark ? `rgba(235, 238, 255, ${currentAlpha})` : `rgba(32, 40, 58, ${currentAlpha * 0.6})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -108,13 +93,7 @@ function Canvas2DFallbackParticles({ isDark, reducedMotion }: { isDark: boolean;
         };
     }, [isDark, reducedMotion]);
 
-    return (
-        <canvas
-            ref={canvasRef}
-            className="canvas-empty-fallback-dust"
-            style={{ width: "100%", height: "100%", display: "block", pointerEvents: "none" }}
-        />
-    );
+    return <canvas ref={canvasRef} className="canvas-empty-fallback-dust" style={{ width: "100%", height: "100%", display: "block", pointerEvents: "none" }} />;
 }
 
 /**
@@ -132,30 +111,16 @@ export function CanvasEmptyStateBackground({ theme }: { theme?: "light" | "dark"
     const [unavailable, setUnavailable] = useState(false);
 
     return (
-        <div
-            className={`canvas-empty-dynamic-backdrop ${isDark ? "is-dark" : "is-light"}`}
-            data-canvas-theme={activeTheme}
-            style={{ backgroundColor: isDark ? "#09090b" : "#f0f0f2", transition: "background-color 400ms ease" }}
-            aria-hidden="true"
-        >
+        <div className={`canvas-empty-dynamic-backdrop ${isDark ? "is-dark" : "is-light"}`} data-canvas-theme={activeTheme} style={{ backgroundColor: isDark ? "#09090b" : "#f0f0f2", transition: "background-color 400ms ease" }} aria-hidden="true">
             {/* 中心柔和聚光场 */}
             <div className="canvas-empty-center-glow" />
 
             {/* 动态星尘粒子层（WebGPU 优先，自动降级 Canvas2D） */}
             <div className="canvas-empty-particles-layer">
-                <WebGPUShaderStage
-                    fallback={<Canvas2DFallbackParticles isDark={isDark} reducedMotion={reducedMotion} />}
-                    className="size-full"
-                    style={{ width: "100%", height: "100%" }}
-                >
+                <WebGPUShaderStage fallback={<Canvas2DFallbackParticles isDark={isDark} reducedMotion={reducedMotion} />} className="size-full" style={{ width: "100%", height: "100%" }}>
                     {!unavailable ? (
                         <Suspense fallback={<Canvas2DFallbackParticles isDark={isDark} reducedMotion={reducedMotion} />}>
-                            <LazyParticlesShader
-                                key={isDark ? "dark-particles" : "light-particles"}
-                                isDark={isDark}
-                                reducedMotion={reducedMotion}
-                                onUnavailable={() => setUnavailable(true)}
-                            />
+                            <LazyParticlesShader key={isDark ? "dark-particles" : "light-particles"} isDark={isDark} reducedMotion={reducedMotion} onUnavailable={() => setUnavailable(true)} />
                         </Suspense>
                     ) : (
                         <Canvas2DFallbackParticles isDark={isDark} reducedMotion={reducedMotion} />

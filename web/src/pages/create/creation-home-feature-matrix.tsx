@@ -18,7 +18,9 @@ export function CreationHomeAgentEntry({ onOpenAgentNewCanvas, openingAgentCanva
                 {openingAgentCanvas ? "正在新建画布…" : "新建画布，与 Agent 创作"}
                 <ArrowUpRight aria-hidden="true" />
             </button>
-            <Link to="/canvas?agent=1" onClick={(event) => guardHomeLink(event, "/canvas?agent=1")}>使用已有画布</Link>
+            <Link to="/canvas?agent=1" onClick={(event) => guardHomeLink(event, "/canvas?agent=1")}>
+                使用已有画布
+            </Link>
         </section>
     );
 }

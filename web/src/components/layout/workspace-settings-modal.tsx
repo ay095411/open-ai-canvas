@@ -73,32 +73,11 @@ export function WorkspaceSettingsHost() {
     const requestedSection = state.section ?? null;
 
     return (
-        <WorkspaceSettingsModal
-            open={state.open}
-            section={isSettingsSection(requestedSection) ? requestedSection : undefined}
-            taskId={state.taskId}
-            projectId={state.projectId}
-            continueCreation={state.continueCreation}
-            onClose={() => setState(CLOSED)}
-        />
+        <WorkspaceSettingsModal open={state.open} section={isSettingsSection(requestedSection) ? requestedSection : undefined} taskId={state.taskId} projectId={state.projectId} continueCreation={state.continueCreation} onClose={() => setState(CLOSED)} />
     );
 }
 
-export function WorkspaceSettingsModal({
-    open,
-    section,
-    taskId,
-    projectId,
-    continueCreation = false,
-    onClose,
-}: {
-    open: boolean;
-    section?: SettingsSectionKey;
-    taskId?: string;
-    projectId?: string;
-    continueCreation?: boolean;
-    onClose: () => void;
-}) {
+export function WorkspaceSettingsModal({ open, section, taskId, projectId, continueCreation = false, onClose }: { open: boolean; section?: SettingsSectionKey; taskId?: string; projectId?: string; continueCreation?: boolean; onClose: () => void }) {
     return (
         <AppModal
             flush
@@ -123,14 +102,7 @@ export function WorkspaceSettingsModal({
                         <X className="size-4" strokeWidth={2} aria-hidden />
                     </button>
                 </header>
-                <SettingsWorkbench
-                    variant="modal"
-                    initialSection={section}
-                    taskId={taskId}
-                    projectId={projectId}
-                    continueCreation={continueCreation}
-                    onClose={onClose}
-                />
+                <SettingsWorkbench variant="modal" initialSection={section} taskId={taskId} projectId={projectId} continueCreation={continueCreation} onClose={onClose} />
             </div>
         </AppModal>
     );

@@ -100,8 +100,14 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
                     但左键点击会被拦截成就地开弹窗 —— 真跳 `/login` 会让整页卸载重建、闪一下。
                     折叠态只留头像：文字和箭头会挤爆 42px 的方框。 */}
                 <Link to="/login" onClick={(event) => interceptAuthLink(event)} className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录" title="登录">
-                    <span className="app-workspace-sidebar-profile-avatar"><CoalAvatar /></span>
-                    {!collapsed ? <span className="app-workspace-sidebar-profile-copy"><strong>登录</strong></span> : null}
+                    <span className="app-workspace-sidebar-profile-avatar">
+                        <CoalAvatar />
+                    </span>
+                    {!collapsed ? (
+                        <span className="app-workspace-sidebar-profile-copy">
+                            <strong>登录</strong>
+                        </span>
+                    ) : null}
                     {!collapsed ? <ArrowUpRight className="app-workspace-sidebar-profile-arrow" /> : null}
                 </Link>
                 {!collapsed ? <SystemAnnouncementCenter className="app-workspace-sidebar-notification" /> : null}
@@ -109,7 +115,15 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
         );
     }
 
-    const content = <WorkspaceAccountCard onNavigate={() => setMenuOpen(false)} onWallet={() => { setMenuOpen(false); openWorkspaceWallet(); }} />;
+    const content = (
+        <WorkspaceAccountCard
+            onNavigate={() => setMenuOpen(false)}
+            onWallet={() => {
+                setMenuOpen(false);
+                openWorkspaceWallet();
+            }}
+        />
+    );
 
     return (
         <div className={cn("app-workspace-sidebar-account", collapsed && "is-collapsed")}>
@@ -117,12 +131,18 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
             <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
                 <Popover open={menuOpen} onOpenChange={setMenuOpen} trigger="click" placement="topLeft" arrow={false} rootClassName="workspace-account-popover" content={content}>
                     <button type="button" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="打开账户菜单" title={profileName}>
-                        <UserGroupAvatarRing><UserAvatar user={user} className="app-workspace-sidebar-profile-avatar" /></UserGroupAvatarRing>
+                        <UserGroupAvatarRing>
+                            <UserAvatar user={user} className="app-workspace-sidebar-profile-avatar" />
+                        </UserGroupAvatarRing>
                         {/* 侧栏常驻行只显示名字，不放副标题（邮箱 / 账号标识）——
                             账号信息在点开的账户弹窗里给，常驻行保持单行且不在侧栏泄露账号标识。
                             外层 profile-copy 不能因为只剩一个子节点就拍平：它承载 min-w-0，
                             拍平后长名字的省略号会失效。 */}
-                        {!collapsed ? <span className="app-workspace-sidebar-profile-copy"><strong>{profileName}</strong></span> : null}
+                        {!collapsed ? (
+                            <span className="app-workspace-sidebar-profile-copy">
+                                <strong>{profileName}</strong>
+                            </span>
+                        ) : null}
                     </button>
                 </Popover>
                 {/* autoOpen 从顶栏通知按钮继承过来：公告的「未读自动浮出」是投递行为，
@@ -142,7 +162,12 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
         return (
             <div className="app-workspace-sidebar-rail-header shrink-0">
                 <button type="button" className="app-workspace-sidebar-rail-button" aria-label="展开侧栏菜单" title="展开侧栏菜单" onClick={onExpand}>
-                    <BrandLogoFrame className="app-workspace-brand-mark app-workspace-sidebar-rail-mark grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm" logoClassName="size-6 object-contain" alt="" fallback={<InfinityIcon className="size-5" strokeWidth={2.2} />} />
+                    <BrandLogoFrame
+                        className="app-workspace-brand-mark app-workspace-sidebar-rail-mark grid size-9 shrink-0 place-items-center rounded-[var(--r-sm)] shadow-sm"
+                        logoClassName="size-6 object-contain"
+                        alt=""
+                        fallback={<InfinityIcon className="size-5" strokeWidth={2.2} />}
+                    />
                     <PanelLeftOpen className="app-workspace-sidebar-rail-reveal size-4" strokeWidth={1.7} aria-hidden />
                 </button>
             </div>
@@ -245,9 +270,7 @@ function NavItem({
                 </span>
             </span>
             <span className="app-workspace-nav-meta flex shrink-0 items-center gap-2">
-                {item.shortcut ? (
-                    <Kbd className="hidden group-hover:inline-flex">{item.shortcut}</Kbd>
-                ) : null}
+                {item.shortcut ? <Kbd className="hidden group-hover:inline-flex">{item.shortcut}</Kbd> : null}
                 {hasChildren ? <ChevronRight className={cn("size-3.5 shrink-0 text-foreground/40 transition-transform duration-200", isOpen && "rotate-90")} strokeWidth={2} /> : null}
             </span>
         </>
@@ -307,7 +330,16 @@ function NavItem({
                     {rowContent}
                 </Link>
             ) : (
-                <button type="button" className={rowClassName} data-nav-id={item.id} style={rowStyle} aria-label={collapsed ? collapsedHint : undefined} title={collapsed ? collapsedHint : undefined} onClick={handleClick} aria-expanded={hasChildren ? isOpen : undefined}>
+                <button
+                    type="button"
+                    className={rowClassName}
+                    data-nav-id={item.id}
+                    style={rowStyle}
+                    aria-label={collapsed ? collapsedHint : undefined}
+                    title={collapsed ? collapsedHint : undefined}
+                    onClick={handleClick}
+                    aria-expanded={hasChildren ? isOpen : undefined}
+                >
                     {activePill}
                     {rowContent}
                 </button>
@@ -338,7 +370,11 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
 
     // 无标题分组（核心导航入口）或折叠侧栏常驻展示，不做折叠。
     if (!group.heading || collapsed) {
-        return <div className="app-workspace-nav-group flex shrink-0 flex-col" data-nav-group-heading={group.heading || ""}>{content}</div>;
+        return (
+            <div className="app-workspace-nav-group flex shrink-0 flex-col" data-nav-group-heading={group.heading || ""}>
+                {content}
+            </div>
+        );
     }
 
     // 分组标题（如“资源与工具”）作为静态分类标签常驻展示，不可点击隐藏子菜单，不渲染折叠箭头。
@@ -392,24 +428,31 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
             <WorkspaceSwitcher collapsed={collapsed} onNavigate={onNavigate} onExpand={onExpand} onCollapse={onCollapse} />
 
             <LayoutGroup id="workspace-sidebar-nav">
-            <div
-                ref={scrollRef}
-                onScroll={handleScroll}
-                className={cn("app-workspace-sidebar-scroll-area flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3 pt-7", collapsed && "is-collapsed", scrollState.hasTopFade && "has-top-fade", scrollState.hasBottomFade && "has-bottom-fade")}
-            >
-                {groups.map((group, index) => (
-                    <NavGroup key={index} group={group} activeId={activeId} onNavigate={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
-                ))}
-            </div>
+                <div
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className={cn(
+                        "app-workspace-sidebar-scroll-area flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3 pt-7",
+                        collapsed && "is-collapsed",
+                        scrollState.hasTopFade && "has-top-fade",
+                        scrollState.hasBottomFade && "has-bottom-fade",
+                    )}
+                >
+                    {groups.map((group, index) => (
+                        <NavGroup key={index} group={group} activeId={activeId} onNavigate={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
+                    ))}
+                </div>
             </LayoutGroup>
 
             <div className="app-workspace-sidebar-footer shrink-0 px-3 py-3">
                 <WorkspaceSidebarProfile collapsed={collapsed} user={user} />
-                {footer.length ? <div className="mt-2 flex flex-col gap-0.5">
-                    {footer.map((item) => (
-                        <NavItem key={item.id} item={item} activeId={activeId} onSelect={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
-                    ))}
-                </div> : null}
+                {footer.length ? (
+                    <div className="mt-2 flex flex-col gap-0.5">
+                        {footer.map((item) => (
+                            <NavItem key={item.id} item={item} activeId={activeId} onSelect={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
+                        ))}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

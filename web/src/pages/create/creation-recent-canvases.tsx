@@ -72,9 +72,17 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
             <header className="creation-recent-projects-heading">
                 <h2 id={`${id}-title`}>继续创作</h2>
                 <div className="creation-recent-projects-actions">
-                    <button type="button" onClick={onOpenHistory}><History aria-hidden="true" />历史对话</button>
+                    <button type="button" onClick={onOpenHistory}>
+                        <History aria-hidden="true" />
+                        历史对话
+                    </button>
                     {/* 游客不给「查看全部」：列表页要登录，点过去只会被弹回来，下面那块里已经有登录入口。 */}
-                    {guest ? null : <Link to={tab === "canvas" ? "/canvas" : "/projects"}>查看全部<ArrowUpRight aria-hidden="true" /></Link>}
+                    {guest ? null : (
+                        <Link to={tab === "canvas" ? "/canvas" : "/projects"}>
+                            查看全部
+                            <ArrowUpRight aria-hidden="true" />
+                        </Link>
+                    )}
                 </div>
             </header>
             {shortDramaEnabled && !guest ? (
@@ -90,16 +98,25 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
                 {guest ? (
                     <div className="creation-recent-projects-state is-guest">
                         <span>登录后这里会显示你最近更新的画布与短剧。</span>
-                        <button type="button" onClick={() => openWorkspaceAuth()}>登录 / 注册</button>
+                        <button type="button" onClick={() => openWorkspaceAuth()}>
+                            登录 / 注册
+                        </button>
                     </div>
                 ) : query.isPending ? (
                     <div className={`creation-recent-projects-grid${tab === "drama" ? " is-drama" : ""}`} role="status" aria-label={`正在读取最近更新的${label}`}>
-                        {Array.from({ length: RECENT_COUNT }, (_, index) => <div className="creation-recent-projects-skeleton" key={index} aria-hidden="true"><span /><span /></div>)}
+                        {Array.from({ length: RECENT_COUNT }, (_, index) => (
+                            <div className="creation-recent-projects-skeleton" key={index} aria-hidden="true">
+                                <span />
+                                <span />
+                            </div>
+                        ))}
                     </div>
                 ) : query.isError ? (
                     <div className="creation-recent-projects-state">
                         <span role="alert">最近更新的{label}暂时无法读取</span>
-                        <button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? "重试中…" : "重试"}</button>
+                        <button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>
+                            {query.isFetching ? "重试中…" : "重试"}
+                        </button>
                     </div>
                 ) : count ? (
                     <ul className={`creation-recent-projects-grid${tab === "drama" ? " is-drama" : ""}`} aria-label={`最近更新的${label}`}>
@@ -118,21 +135,37 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
 
 function UpdatedTime({ value }: { value: string }) {
     const timestamp = Date.parse(value);
-    return Number.isFinite(timestamp) ? <span>更新于 <time dateTime={value}>{updatedFormatter.format(new Date(timestamp))}</time></span> : <span>更新时间未知</span>;
+    return Number.isFinite(timestamp) ? (
+        <span>
+            更新于 <time dateTime={value}>{updatedFormatter.format(new Date(timestamp))}</time>
+        </span>
+    ) : (
+        <span>更新时间未知</span>
+    );
 }
 
 function RecentCanvasCard({ project }: { project: CanvasLibrarySummary }) {
-    const preload = () => { void loadCanvasProjectPage(); };
+    const preload = () => {
+        void loadCanvasProjectPage();
+    };
     return (
         <li>
             <Link to={`/canvas/${project.id}`} className="creation-recent-project-card" onPointerEnter={preload} onFocus={preload}>
                 <div className="creation-recent-project-cover canvas-collection-preview">
-                    <div className="canvas-collection-preview-media" aria-hidden="true"><ProjectPreview project={{ id: project.id, nodes: project.previewNodes }} preferLatestImage quiet mosaic /></div>
-                    <span className="canvas-collection-badge" title={`${project.nodeCount} 个节点`}><Layers3 aria-hidden="true" /><span>{project.nodeCount}</span><span className="sr-only">个节点</span></span>
+                    <div className="canvas-collection-preview-media" aria-hidden="true">
+                        <ProjectPreview project={{ id: project.id, nodes: project.previewNodes }} preferLatestImage quiet mosaic />
+                    </div>
+                    <span className="canvas-collection-badge" title={`${project.nodeCount} 个节点`}>
+                        <Layers3 aria-hidden="true" />
+                        <span>{project.nodeCount}</span>
+                        <span className="sr-only">个节点</span>
+                    </span>
                 </div>
                 <span className="creation-recent-project-copy">
                     <strong title={project.title || "未命名画布"}>{project.title || "未命名画布"}</strong>
-                    <span className="creation-recent-project-time"><UpdatedTime value={project.updatedAt} /></span>
+                    <span className="creation-recent-project-time">
+                        <UpdatedTime value={project.updatedAt} />
+                    </span>
                 </span>
             </Link>
         </li>
@@ -148,24 +181,25 @@ function RecentDramaCard({ item }: { item: DramaListItem }) {
     const fallback = <Clapperboard className="creation-recent-drama-empty-icon" aria-hidden="true" />;
     return (
         <li>
-            <Link
-                to={`/projects/${item.project.id}`}
-                className={`creation-recent-drama-card is-${item.status}`}
-                aria-label={`打开《${item.project.name}》，${DRAMA_STATUS_LABEL[item.status]}，${stage}`}
-            >
+            <Link to={`/projects/${item.project.id}`} className={`creation-recent-drama-card is-${item.status}`} aria-label={`打开《${item.project.name}》，${DRAMA_STATUS_LABEL[item.status]}，${stage}`}>
                 <span className={`creation-recent-drama-cover${covers.length ? ` is-${covers.length}` : " is-empty"}`} aria-hidden="true">
-                    {covers.length
-                        ? covers.map((resourceId) => (
+                    {covers.length ? (
+                        covers.map((resourceId) => (
                             <span key={resourceId}>
                                 <CachedResourceImage storageKey={`resource:${resourceId}`} alt="" variant="thumbnail" fallback={fallback} loadingFallback={fallback} draggable={false} />
                             </span>
                         ))
-                        : <>
+                    ) : (
+                        <>
                             <span className="creation-recent-drama-glyph">{item.project.name.slice(0, 1)}</span>
                             {fallback}
-                        </>}
+                        </>
+                    )}
                 </span>
-                <span className="creation-recent-drama-badge"><span className="creation-recent-drama-dot" aria-hidden="true" />{DRAMA_STATUS_LABEL[item.status]}</span>
+                <span className="creation-recent-drama-badge">
+                    <span className="creation-recent-drama-dot" aria-hidden="true" />
+                    {DRAMA_STATUS_LABEL[item.status]}
+                </span>
                 <span className="creation-recent-drama-body">
                     <strong title={item.project.name}>{item.project.name}</strong>
                     <span className="creation-recent-drama-meta">
@@ -174,7 +208,9 @@ function RecentDramaCard({ item }: { item: DramaListItem }) {
                         <RelativeTime value={item.updatedAt || item.project.updatedAt} />
                     </span>
                     <span className="creation-recent-drama-progress">
-                        <span className="creation-recent-drama-track"><span style={progressFillStyle(Math.max(progress, 2))} /></span>
+                        <span className="creation-recent-drama-track">
+                            <span style={progressFillStyle(Math.max(progress, 2))} />
+                        </span>
                         <b>{stage}</b>
                     </span>
                 </span>

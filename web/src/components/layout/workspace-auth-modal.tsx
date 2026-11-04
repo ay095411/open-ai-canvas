@@ -310,11 +310,7 @@ function AuthCarousel({ slides }: { slides: CarouselSlide[] }) {
                             onClick={() => setActive(index)}
                         >
                             {/* 进度填充：当前条从 0 填到 100%，走满触发切换（见 AuthCarousel 注释）。 */}
-                            <span
-                                className="workspace-auth-media-bar-fill"
-                                aria-hidden="true"
-                                onAnimationEnd={index === active ? () => setActive((current) => (current + 1) % count) : undefined}
-                            />
+                            <span className="workspace-auth-media-bar-fill" aria-hidden="true" onAnimationEnd={index === active ? () => setActive((current) => (current + 1) % count) : undefined} />
                         </button>
                     ))}
                 </div>

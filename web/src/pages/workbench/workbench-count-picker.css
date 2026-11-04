@@ -25,7 +25,10 @@
     font-size: 12px;
     font-weight: 550;
     cursor: pointer;
-    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+    transition:
+        background-color 140ms ease,
+        color 140ms ease,
+        border-color 140ms ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -52,7 +55,10 @@
     background: var(--wb-muted);
     color: var(--wb-text);
     overflow: hidden;
-    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+    transition:
+        background-color 140ms ease,
+        color 140ms ease,
+        border-color 140ms ease;
     cursor: pointer;
 }
 .workbench-count-stepper:hover {

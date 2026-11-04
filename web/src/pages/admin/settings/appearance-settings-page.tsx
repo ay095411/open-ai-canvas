@@ -79,39 +79,39 @@ export default function AppearanceSettingsPage() {
             normalizeSingleLine(seoKeywords) !== setting?.seoKeywords ||
             normalizeSingleLine(footerCopyright) !== setting?.footerCopyright ||
             icpFilingEnabled !== setting?.icpFilingEnabled ||
-	            normalizeSingleLine(icpFilingNumber) !== setting?.icpFilingNumber ||
-	            normalizeSingleLine(redeemPurchaseUrl) !== setting?.redeemPurchaseUrl ||
-	            normalizeSingleLine(qqGroupNumber) !== (setting?.qqGroupNumber || "") ||
-	            normalizeSingleLine(qqGroupLink) !== (setting?.qqGroupLink || "") ||
-	            Object.values(files).some(Boolean) ||
-	            Object.values(resets).some(Boolean));
-	    const blocker = useBlocker(dirty && !saving && !restoring);
+            normalizeSingleLine(icpFilingNumber) !== setting?.icpFilingNumber ||
+            normalizeSingleLine(redeemPurchaseUrl) !== setting?.redeemPurchaseUrl ||
+            normalizeSingleLine(qqGroupNumber) !== (setting?.qqGroupNumber || "") ||
+            normalizeSingleLine(qqGroupLink) !== (setting?.qqGroupLink || "") ||
+            Object.values(files).some(Boolean) ||
+            Object.values(resets).some(Boolean));
+    const blocker = useBlocker(dirty && !saving && !restoring);
 
-	    const applySetting = useCallback((value: AdminAppearance) => {
-	        // 列表字段一律先确认是数组：后端曾把空列表序列化成 null（Go 的 nil slice），
-	        // 直接 .length / .map 会把整页打成「无法读取外观配置」。
-	        const incomingThemes = Array.isArray(value.skinThemes) ? value.skinThemes : [];
-	        const themes = incomingThemes.length ? incomingThemes.map((theme) => normalizeSkinDefinition(theme)) : [cloneSkinDefinition(DEFAULT_CLASSIC_SKIN)];
-	        const selectedID = themes.some((theme) => theme.id === value.skinId) ? value.skinId : "classic";
-	        setSetting({ ...value, skinThemes: themes, skinId: selectedID });
-	        setBrandName(value.brandName);
-	        setCanvas(value.canvas || DEFAULT_CANVAS_APPEARANCE);
-	        setUpdates(normalizeUpdateAnnouncement(value.updates));
+    const applySetting = useCallback((value: AdminAppearance) => {
+        // 列表字段一律先确认是数组：后端曾把空列表序列化成 null（Go 的 nil slice），
+        // 直接 .length / .map 会把整页打成「无法读取外观配置」。
+        const incomingThemes = Array.isArray(value.skinThemes) ? value.skinThemes : [];
+        const themes = incomingThemes.length ? incomingThemes.map((theme) => normalizeSkinDefinition(theme)) : [cloneSkinDefinition(DEFAULT_CLASSIC_SKIN)];
+        const selectedID = themes.some((theme) => theme.id === value.skinId) ? value.skinId : "classic";
+        setSetting({ ...value, skinThemes: themes, skinId: selectedID });
+        setBrandName(value.brandName);
+        setCanvas(value.canvas || DEFAULT_CANVAS_APPEARANCE);
+        setUpdates(normalizeUpdateAnnouncement(value.updates));
         setBrandSlug(value.brandSlug);
         setAuthCarousel((Array.isArray(value.authCarousel) ? value.authCarousel : []).map((item) => ({ ...item })));
-	        setLogoFrameEnabled(value.logoFrameEnabled);
-	        setSkinThemes(themes);
-	        setSkinId(selectedID);
-	        setSeoTitle(value.seoTitle);
-	        setSeoDescription(value.seoDescription);
-	        setSeoKeywords(value.seoKeywords);
-	        setFooterCopyright(value.footerCopyright);
-	        setIcpFilingEnabled(value.icpFilingEnabled);
-	        setIcpFilingNumber(value.icpFilingNumber);
-	        setRedeemPurchaseUrl(value.redeemPurchaseUrl);
-	        setQqGroupNumber(value.qqGroupNumber || "");
-	        setQqGroupLink(value.qqGroupLink || "");
-	        setFiles(EMPTY_FILES);
+        setLogoFrameEnabled(value.logoFrameEnabled);
+        setSkinThemes(themes);
+        setSkinId(selectedID);
+        setSeoTitle(value.seoTitle);
+        setSeoDescription(value.seoDescription);
+        setSeoKeywords(value.seoKeywords);
+        setFooterCopyright(value.footerCopyright);
+        setIcpFilingEnabled(value.icpFilingEnabled);
+        setIcpFilingNumber(value.icpFilingNumber);
+        setRedeemPurchaseUrl(value.redeemPurchaseUrl);
+        setQqGroupNumber(value.qqGroupNumber || "");
+        setQqGroupLink(value.qqGroupLink || "");
+        setFiles(EMPTY_FILES);
         setResets(EMPTY_RESETS);
         setLoadError("");
     }, []);
@@ -219,11 +219,11 @@ export default function AppearanceSettingsPage() {
         setSeoKeywords(setting.seoKeywords);
         setFooterCopyright(setting.footerCopyright);
         setIcpFilingEnabled(setting.icpFilingEnabled);
-	        setIcpFilingNumber(setting.icpFilingNumber);
-	        setRedeemPurchaseUrl(setting.redeemPurchaseUrl);
-	        setQqGroupNumber(setting.qqGroupNumber || "");
-	        setQqGroupLink(setting.qqGroupLink || "");
-	        setFiles(EMPTY_FILES);
+        setIcpFilingNumber(setting.icpFilingNumber);
+        setRedeemPurchaseUrl(setting.redeemPurchaseUrl);
+        setQqGroupNumber(setting.qqGroupNumber || "");
+        setQqGroupLink(setting.qqGroupLink || "");
+        setFiles(EMPTY_FILES);
         setResets(EMPTY_RESETS);
         Object.values(inputRefs).forEach((ref) => {
             if (ref.current) ref.current.value = "";
@@ -250,7 +250,7 @@ export default function AppearanceSettingsPage() {
     const restoreBuiltInAppearance = () => {
         if (!setting?.configured || saving || refreshing || restoring || canvasUploading) return;
         modal.confirm({
-title: "恢复 Navo AI 默认品牌标识？",
+            title: "恢复 Navo AI 默认品牌标识？",
             content: "品牌名称、英文标识、Logo、画布 Agent 名称/文案/形象、更新公告、登录页文案、视频、封面、SEO、备案和皮肤主题会立即恢复为项目内置值；自定义公告会清空并关闭，展示原有更新日志。已上传文件仍保留在存储资源中，不会被删除。",
             okText: "恢复默认",
             cancelText: "取消",
@@ -361,7 +361,7 @@ title: "恢复 Navo AI 默认品牌标识？",
                 "logo-dark": resets["logo-dark"] ? "" : setting.darkLogoResourceId,
                 video: resets.video ? "" : setting.authVideoResourceId,
                 poster: resets.poster ? "" : setting.authVideoPosterResourceId,
-                "qq-group-qrcode": resets["qq-group-qrcode"] ? "" : (setting.qqGroupQrcodeResourceId || ""),
+                "qq-group-qrcode": resets["qq-group-qrcode"] ? "" : setting.qqGroupQrcodeResourceId || "",
             };
             for (const slot of ["logo", "logo-dark", "video", "poster", "qq-group-qrcode"] as AppearanceAssetSlot[]) {
                 const file = files[slot];
@@ -602,12 +602,7 @@ title: "恢复 Navo AI 默认品牌标识？",
                                         icon={<MonitorPlay className="size-4" aria-hidden="true" />}
                                         title="登录页内容与媒体"
                                         description="登录、注册与找回密码共享左侧品牌文案和影片；更换视频会同时取消旧封面，避免品牌串帧。"
-                                        status={
-                                            <AdminStatusBadge
-                                                label={authCustomized ? "已配置" : "使用默认轮播"}
-                                                tone={authCustomized ? "success" : "neutral"}
-                                            />
-                                        }
+                                        status={<AdminStatusBadge label={authCustomized ? "已配置" : "使用默认轮播"} tone={authCustomized ? "success" : "neutral"} />}
                                     >
                                         <div className="admin-appearance-auth-layout">
                                             <div className="admin-appearance-auth-controls">
@@ -745,68 +740,68 @@ title: "恢复 Navo AI 默认品牌标识？",
                                     </SettingsSectionCard>
                                 ),
                             },
-	                            {
-	                                key: "skins",
-	                                label: "皮肤主题",
-	                                children: (
-	                                    <SettingsSectionCard
-	                                        className="admin-appearance-section"
-	                                        icon={<Type className="size-4" aria-hidden="true" />}
-	                                        title="皮肤主题"
-	                                        description="经典黑白采用黑白底色与紫蓝渐变主按钮；复制后可调整浅色、深色、按钮填充及控件参数，所有修改统一保存。"
-	                                        status={<AdminStatusBadge label={selectedSkin.name} tone="info" />}
-	                                    >
-	                                        <SkinThemeEditor
-	                                            themes={skinThemes}
-	                                            selectedID={skinId}
-	                                            disabled={saving || refreshing || restoring}
-	                                            onSelect={setSkinId}
-	                                            onCreate={() => duplicateSkin("classic")}
-	                                            onDuplicate={duplicateSkin}
-	                                            onDelete={deleteSkin}
-	                                            onChange={changeSkin}
-	                                        />
-	                                    </SettingsSectionCard>
-	                                ),
-	                            },
-	                            {
-	                                key: "community",
-	                                label: "QQ交流群",
-	                                children: (
-	                                    <SettingsSectionCard
-	                                        className="admin-appearance-section"
-	                                        icon={<Users className="size-4" aria-hidden="true" />}
-	                                        title="QQ交流群展示与配置"
-	                                        description="配置展示在首页顶栏右上角的 QQ 交流群。用户可在顶栏查看群号、点击一键跳转加群，或悬浮扫码群二维码进群。"
-	                                        status={<AdminStatusBadge label={qqGroupNumber || setting.qqGroupQrcodeResourceId ? "已配置" : "未配置"} tone={qqGroupNumber || setting.qqGroupQrcodeResourceId ? "success" : "neutral"} />}
-	                                    >
-	                                        <div className="admin-appearance-brand-layout">
-	                                            <Form className="admin-appearance-form" layout="vertical" requiredMark={false} disabled={saving || refreshing || restoring}>
-	                                                <Form.Item label="QQ 交流群号" extra="填写真实 QQ 交流群号，例如：778770568。填入后首页顶栏右上角将展示该群号。">
-	                                                    <Input value={qqGroupNumber} maxLength={32} showCount placeholder="例如：778770568" onChange={(event) => setQqGroupNumber(event.target.value)} />
-	                                                </Form.Item>
-	                                                <Form.Item label="QQ 加群链接（可选）" extra="填写 QQ 一键加群链接（例如 https://qm.qq.com/q/...），配置后用户点击可直达加群页面；留空时仅通过二维码或群号进群。">
-	                                                    <Input value={qqGroupLink} maxLength={500} showCount placeholder="例如：https://qm.qq.com/q/RgFZsLAmQ0" onChange={(event) => setQqGroupLink(event.target.value)} />
-	                                                </Form.Item>
-	                                            </Form>
-	                                            <div className="admin-appearance-brand-logo admin-appearance-logo-stack">
-	                                                <AssetPicker
-	                                                    slot="qq-group-qrcode"
-	                                                    title="QQ 群二维码图片"
-	                                                    description="上传 QQ 交流群二维码，用户在顶栏悬停或点击时可直接扫码；支持 PNG、JPEG 或 WebP。"
-	                                                    configured={Boolean(setting.qqGroupQrcodeResourceId) && !resets["qq-group-qrcode"]}
-	                                                    file={files["qq-group-qrcode"]}
-	                                                    inputRef={inputRefs["qq-group-qrcode"]}
-	                                                    onSelect={selectFile}
-	                                                    onReset={resetAsset}
-	                                                    disabled={saving || refreshing || restoring}
-	                                                    emptyLabel="未配置群二维码"
-	                                                />
-	                                            </div>
-	                                        </div>
-	                                    </SettingsSectionCard>
-	                                ),
-	                            },
+                            {
+                                key: "skins",
+                                label: "皮肤主题",
+                                children: (
+                                    <SettingsSectionCard
+                                        className="admin-appearance-section"
+                                        icon={<Type className="size-4" aria-hidden="true" />}
+                                        title="皮肤主题"
+                                        description="经典黑白采用黑白底色与紫蓝渐变主按钮；复制后可调整浅色、深色、按钮填充及控件参数，所有修改统一保存。"
+                                        status={<AdminStatusBadge label={selectedSkin.name} tone="info" />}
+                                    >
+                                        <SkinThemeEditor
+                                            themes={skinThemes}
+                                            selectedID={skinId}
+                                            disabled={saving || refreshing || restoring}
+                                            onSelect={setSkinId}
+                                            onCreate={() => duplicateSkin("classic")}
+                                            onDuplicate={duplicateSkin}
+                                            onDelete={deleteSkin}
+                                            onChange={changeSkin}
+                                        />
+                                    </SettingsSectionCard>
+                                ),
+                            },
+                            {
+                                key: "community",
+                                label: "QQ交流群",
+                                children: (
+                                    <SettingsSectionCard
+                                        className="admin-appearance-section"
+                                        icon={<Users className="size-4" aria-hidden="true" />}
+                                        title="QQ交流群展示与配置"
+                                        description="配置展示在首页顶栏右上角的 QQ 交流群。用户可在顶栏查看群号、点击一键跳转加群，或悬浮扫码群二维码进群。"
+                                        status={<AdminStatusBadge label={qqGroupNumber || setting.qqGroupQrcodeResourceId ? "已配置" : "未配置"} tone={qqGroupNumber || setting.qqGroupQrcodeResourceId ? "success" : "neutral"} />}
+                                    >
+                                        <div className="admin-appearance-brand-layout">
+                                            <Form className="admin-appearance-form" layout="vertical" requiredMark={false} disabled={saving || refreshing || restoring}>
+                                                <Form.Item label="QQ 交流群号" extra="填写真实 QQ 交流群号，例如：778770568。填入后首页顶栏右上角将展示该群号。">
+                                                    <Input value={qqGroupNumber} maxLength={32} showCount placeholder="例如：778770568" onChange={(event) => setQqGroupNumber(event.target.value)} />
+                                                </Form.Item>
+                                                <Form.Item label="QQ 加群链接（可选）" extra="填写 QQ 一键加群链接（例如 https://qm.qq.com/q/...），配置后用户点击可直达加群页面；留空时仅通过二维码或群号进群。">
+                                                    <Input value={qqGroupLink} maxLength={500} showCount placeholder="例如：https://qm.qq.com/q/RgFZsLAmQ0" onChange={(event) => setQqGroupLink(event.target.value)} />
+                                                </Form.Item>
+                                            </Form>
+                                            <div className="admin-appearance-brand-logo admin-appearance-logo-stack">
+                                                <AssetPicker
+                                                    slot="qq-group-qrcode"
+                                                    title="QQ 群二维码图片"
+                                                    description="上传 QQ 交流群二维码，用户在顶栏悬停或点击时可直接扫码；支持 PNG、JPEG 或 WebP。"
+                                                    configured={Boolean(setting.qqGroupQrcodeResourceId) && !resets["qq-group-qrcode"]}
+                                                    file={files["qq-group-qrcode"]}
+                                                    inputRef={inputRefs["qq-group-qrcode"]}
+                                                    onSelect={selectFile}
+                                                    onReset={resetAsset}
+                                                    disabled={saving || refreshing || restoring}
+                                                    emptyLabel="未配置群二维码"
+                                                />
+                                            </div>
+                                        </div>
+                                    </SettingsSectionCard>
+                                ),
+                            },
                             { key: "canvas", label: "画布配置", children: <CanvasAppearanceEditor value={canvas} onChange={setCanvas} disabled={saving || refreshing || restoring || canvasUploading} onUploading={setCanvasUploading} /> },
                             { key: "updates", label: "更新公告", children: <UpdateAnnouncementEditor value={updates} onChange={setUpdates} disabled={saving || refreshing || restoring || canvasUploading} onUploading={setCanvasUploading} /> },
                         ]}

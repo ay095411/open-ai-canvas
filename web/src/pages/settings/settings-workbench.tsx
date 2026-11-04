@@ -31,7 +31,7 @@ const settingsSectionGroups = [
     { key: "support", label: "支持" },
 ] as const;
 
-type SettingsSectionGroup = typeof settingsSectionGroups[number]["key"];
+type SettingsSectionGroup = (typeof settingsSectionGroups)[number]["key"];
 
 export const settingsSections: Array<{ key: SettingsSectionKey; group: SettingsSectionGroup; label: string; description: string; icon: ReactNode }> = [
     { key: "profile", group: "account", label: "个人信息", description: "头像、密码与邮箱", icon: <UserRound className="size-4" /> },
@@ -76,10 +76,12 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
     const userId = useUserStore((state) => state.user?.id);
     const userChannels = config.channels.filter((channel) => channel.scope !== "system");
 
-    const visibleSections = useMemo(() => (customChannelsEnabled ? settingsSections : settingsSections.filter((section) => section.key !== "channels"))
-        .filter((section) => section.key !== "runninghub" || runningHubPluginEnabled), [customChannelsEnabled, runningHubPluginEnabled]);
+    const visibleSections = useMemo(
+        () => (customChannelsEnabled ? settingsSections : settingsSections.filter((section) => section.key !== "channels")).filter((section) => section.key !== "runninghub" || runningHubPluginEnabled),
+        [customChannelsEnabled, runningHubPluginEnabled],
+    );
 
-    const defaultSection = (): SettingsSectionKey => customChannelsEnabled ? "channels" : "models";
+    const defaultSection = (): SettingsSectionKey => (customChannelsEnabled ? "channels" : "models");
     const resolveInitial = (): SettingsSectionKey => {
         if (initialSection && visibleSections.some((section) => section.key === initialSection)) return initialSection;
         return defaultSection();
@@ -88,7 +90,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
 
     // 分区可能因功能开关而消失（个人渠道关闭、RunningHub 插件停用）：当前分区不可见时回落到默认分区。
     useEffect(() => {
-        setActiveTab((current) => visibleSections.some((section) => section.key === current) ? current : defaultSection());
+        setActiveTab((current) => (visibleSections.some((section) => section.key === current) ? current : defaultSection()));
     }, [visibleSections]);
 
     useEffect(() => {
@@ -126,8 +128,16 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
     };
 
     const panes: Record<SettingsSectionKey, ReactNode> = {
-        profile: <SettingsPane><ProfilePane key={userId} /></SettingsPane>,
-        channels: <SettingsPane><ChannelSettingsPane onOpenModels={() => selectSection("models")} onOpenRunningHub={runningHubPluginEnabled ? () => selectSection("runninghub") : undefined} /></SettingsPane>,
+        profile: (
+            <SettingsPane>
+                <ProfilePane key={userId} />
+            </SettingsPane>
+        ),
+        channels: (
+            <SettingsPane>
+                <ChannelSettingsPane onOpenModels={() => selectSection("models")} onOpenRunningHub={runningHubPluginEnabled ? () => selectSection("runninghub") : undefined} />
+            </SettingsPane>
+        ),
         models: (
             <SettingsPane>
                 <SettingsPaneHeader title="模型选择" description="按领域选择默认模型；模型能力与请求协议在渠道“模型与能力”中配置。" />
@@ -136,7 +146,11 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                 </div>
             </SettingsPane>
         ),
-        runninghub: <SettingsPane><RunningHubSettingsPane /></SettingsPane>,
+        runninghub: (
+            <SettingsPane>
+                <RunningHubSettingsPane />
+            </SettingsPane>
+        ),
         preferences: (
             <SettingsPane>
                 <SettingsPaneHeader title="生成偏好" description="设置新建生成任务时使用的初始值，节点内仍可单独覆盖。" />
@@ -164,7 +178,11 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                 </div>
             </SettingsPane>
         ),
-        prompts: <SettingsPane fill><PromptPreferencesPane /></SettingsPane>,
+        prompts: (
+            <SettingsPane fill>
+                <PromptPreferencesPane />
+            </SettingsPane>
+        ),
         "agent-memory": (
             <SettingsPane>
                 <SettingsPaneHeader title="Agent 记忆" description="管理仅属于你的长期记忆文档，设置更新方式，编辑内容并查看或撤销修改历史。" />
@@ -173,8 +191,16 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                 </div>
             </SettingsPane>
         ),
-        diagnostics: <SettingsPane><DiagnosticsPanel taskId={taskId} projectId={projectId} /></SettingsPane>,
-        feedbacks: <SettingsPane><FeedbackInboxPane /></SettingsPane>,
+        diagnostics: (
+            <SettingsPane>
+                <DiagnosticsPanel taskId={taskId} projectId={projectId} />
+            </SettingsPane>
+        ),
+        feedbacks: (
+            <SettingsPane>
+                <FeedbackInboxPane />
+            </SettingsPane>
+        ),
         storage: (
             <SettingsPane>
                 <SettingsPaneHeader title="我的对象存储" description="启用后，新上传和新生成的媒体优先写入你的存储桶；停用时回退到平台存储。" />
@@ -185,9 +211,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
         ),
     };
 
-    const shellClass = variant === "modal"
-        ? "settings-page settings-modal-shell"
-        : "settings-page app-workspace-page app-user-workspace";
+    const shellClass = variant === "modal" ? "settings-page settings-modal-shell" : "settings-page app-workspace-page app-user-workspace";
     // 独立页面保留 main 地标；弹窗里只是内容根，不抢占地标语义。
     const Shell = variant === "page" ? "main" : "div";
 
@@ -197,8 +221,12 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
             {continueCreation ? (
                 <div className="settings-topbar shrink-0">
                     <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-                        <Button icon={<ArrowLeft className="size-4" />} onClick={() => onClose?.()}>返回创作</Button>
-                        <Button type="primary" onClick={finishConfig}>保存并返回</Button>
+                        <Button icon={<ArrowLeft className="size-4" />} onClick={() => onClose?.()}>
+                            返回创作
+                        </Button>
+                        <Button type="primary" onClick={finishConfig}>
+                            保存并返回
+                        </Button>
                     </div>
                 </div>
             ) : null}
@@ -210,7 +238,9 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                             if (!items.length) return null;
                             return (
                                 <div key={group.key} className="settings-nav-group">
-                                    <span className="settings-nav-group-label" aria-hidden>{group.label}</span>
+                                    <span className="settings-nav-group-label" aria-hidden>
+                                        {group.label}
+                                    </span>
                                     {items.map((item) => {
                                         const selected = item.key === activeTab;
                                         return (
@@ -223,7 +253,9 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                                                 aria-pressed={selected}
                                                 title={item.description}
                                             >
-                                                <span className="settings-nav-icon" aria-hidden>{item.icon}</span>
+                                                <span className="settings-nav-icon" aria-hidden>
+                                                    {item.icon}
+                                                </span>
                                                 <span className="settings-nav-label">{item.label}</span>
                                             </button>
                                         );
@@ -235,9 +267,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                 </aside>
                 <section className="settings-content flex min-h-0 min-w-0 flex-1 flex-col">
                     <div className="settings-content-scroll app-workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                        <div className={`settings-pane-root ${activeTab === "prompts" ? "h-full w-full" : "mx-auto w-full max-w-none"}`}>
-                            {panes[activeTab]}
-                        </div>
+                        <div className={`settings-pane-root ${activeTab === "prompts" ? "h-full w-full" : "mx-auto w-full max-w-none"}`}>{panes[activeTab]}</div>
                     </div>
                 </section>
             </div>

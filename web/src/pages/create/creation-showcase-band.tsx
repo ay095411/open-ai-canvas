@@ -231,7 +231,9 @@ export function CreationShowcaseBand({ onStartPrompt }: { onStartPrompt: (mode: 
 function ShowcaseSet({ onStartPrompt, clone = false }: { onStartPrompt: (mode: CreationMode, prompt: string) => void; clone?: boolean }) {
     return (
         <ul className="creation-showcase-set" aria-hidden={clone || undefined}>
-            {SHOWCASE.map((entry) => <ShowcaseCard key={entry.id} entry={entry} clone={clone} onStart={() => onStartPrompt(entry.mode, entry.prompt)} />)}
+            {SHOWCASE.map((entry) => (
+                <ShowcaseCard key={entry.id} entry={entry} clone={clone} onStart={() => onStartPrompt(entry.mode, entry.prompt)} />
+            ))}
         </ul>
     );
 }
@@ -244,7 +246,9 @@ function ShowcaseCard({ entry, onStart, clone }: { entry: ShowcaseEntry; onStart
         const video = videoRef.current;
         if (!video) return;
         video.currentTime = 0;
-        void video.play().catch(() => { /* 自动播放被拦时保持封面，不打扰用户 */ });
+        void video.play().catch(() => {
+            /* 自动播放被拦时保持封面，不打扰用户 */
+        });
     };
     const stop = () => {
         const video = videoRef.current;
@@ -255,17 +259,7 @@ function ShowcaseCard({ entry, onStart, clone }: { entry: ShowcaseEntry; onStart
 
     return (
         <li className="creation-showcase-item">
-            <button
-                type="button"
-                className="creation-showcase-card"
-                tabIndex={clone ? -1 : undefined}
-                aria-label={`用「${entry.title}」的提示词开始创作`}
-                onClick={onStart}
-                onPointerEnter={start}
-                onPointerLeave={stop}
-                onFocus={start}
-                onBlur={stop}
-            >
+            <button type="button" className="creation-showcase-card" tabIndex={clone ? -1 : undefined} aria-label={`用「${entry.title}」的提示词开始创作`} onClick={onStart} onPointerEnter={start} onPointerLeave={stop} onFocus={start} onBlur={stop}>
                 <span className="creation-showcase-cover">
                     {entry.video ? (
                         <video ref={videoRef} src={entry.video} poster={entry.poster} muted loop playsInline preload="none" aria-hidden="true" tabIndex={-1} />

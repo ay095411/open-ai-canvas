@@ -4,7 +4,9 @@ import { creationConversationBucket, conversationPreviewMessage, buildConversati
 import type { CreationConversation } from "../src/pages/create/creation-types";
 
 const conversation: CreationConversation = {
-    id: "history-a", title: "雨夜镜头", updatedAt: new Date().toISOString(),
+    id: "history-a",
+    title: "雨夜镜头",
+    updatedAt: new Date().toISOString(),
     messages: [
         { id: "user-a", role: "user", content: "雨夜街道的镜头", mode: "image", createdAt: new Date().toISOString() },
         { id: "reply-a", role: "assistant", content: "已整理画面说明", createdAt: new Date().toISOString() },
@@ -31,7 +33,8 @@ test("history colors use workspace theme and selected control roles", () => {
     expect(css).not.toContain("--creation-history-accent: #1688a3");
     const more = css.split(".creation-history-more {")[1]?.split("}")[0];
     expect(more).not.toContain("position: absolute");
-    expect(css).toContain(".creation-history-scroll { min-height: 0; flex: 1; overflow: auto;");
+    const scroll = css.match(/\.creation-history-scroll\s*\{([^}]+)\}/)?.[1] ?? "";
+    for (const declaration of ["min-height: 0", "flex: 1", "overflow: auto"]) expect(scroll).toContain(declaration);
 });
 
 test("history offers accessible search clearing and keeps original actions", () => {

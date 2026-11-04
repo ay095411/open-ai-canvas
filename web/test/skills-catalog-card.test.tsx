@@ -6,14 +6,36 @@ import { fallbackSkillCategories } from "@/pages/skills/skill-catalog";
 import type { Skill } from "@/services/api/skills";
 
 const skill = {
-    skillId: "skill-card-test", skillName: "测试分镜技能", description: "测试用的真实组件输入",
-    tag: "drama", effectiveUser: { name: "测试作者", avatarUrl: "", uid: "author" },
-    showcaseMedia: [], addedCount: 42, isAdded: false, isOwner: false, isPrivate: false, isLike: false,
+    skillId: "skill-card-test",
+    skillName: "测试分镜技能",
+    description: "测试用的真实组件输入",
+    tag: "drama",
+    effectiveUser: { name: "测试作者", avatarUrl: "", uid: "author" },
+    showcaseMedia: [],
+    addedCount: 42,
+    isAdded: false,
+    isOwner: false,
+    isPrivate: false,
+    isLike: false,
 } as Skill;
 
 function render(overrides: Partial<Skill> = {}, loading = false) {
     const noop = () => {};
-    return renderToStaticMarkup(<SkillCard skill={{ ...skill, ...overrides }} categories={fallbackSkillCategories} libraryCategories={[]} canCategorize={false} loading={loading} onOpen={noop} onAdd={noop} onLike={noop} onEdit={noop} onDelete={noop} onSetLibraryCategory={noop} />);
+    return renderToStaticMarkup(
+        <SkillCard
+            skill={{ ...skill, ...overrides }}
+            categories={fallbackSkillCategories}
+            libraryCategories={[]}
+            canCategorize={false}
+            loading={loading}
+            onOpen={noop}
+            onAdd={noop}
+            onLike={noop}
+            onEdit={noop}
+            onDelete={noop}
+            onSetLibraryCategory={noop}
+        />,
+    );
 }
 
 describe("skills catalog card", () => {
@@ -27,10 +49,12 @@ describe("skills catalog card", () => {
     });
 
     test("uses the skill's image media, skipping video-only media", () => {
-        const html = render({ showcaseMedia: [
-            { type: "video", showcaseUri: "", showcaseUrl: "/uploads/test-video.mp4" },
-            { type: "image", showcaseUri: "", showcaseUrl: "/uploads/test-cover.webp" },
-        ] });
+        const html = render({
+            showcaseMedia: [
+                { type: "video", showcaseUri: "", showcaseUrl: "/uploads/test-video.mp4" },
+                { type: "image", showcaseUri: "", showcaseUrl: "/uploads/test-cover.webp" },
+            ],
+        });
         expect(html).toContain('src="/uploads/test-cover.webp"');
         expect(html).not.toContain("test-video.mp4");
         expect(html).toContain('loading="lazy"');

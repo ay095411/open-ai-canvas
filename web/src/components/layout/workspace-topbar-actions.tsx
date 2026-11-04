@@ -28,13 +28,7 @@ export function WorkspaceTopBarActions() {
     const nextTheme = theme === "dark" ? "light" : "dark";
 
     const themeToggler = (
-        <AnimatedThemeToggler
-            className="app-workspace-topbar-icon-button app-workspace-topbar-theme"
-            theme={theme}
-            targetTheme={nextTheme}
-            onThemeChange={setTheme}
-            aria-label={nextTheme === "dark" ? "切换到深色模式" : "切换到浅色模式"}
-        />
+        <AnimatedThemeToggler className="app-workspace-topbar-icon-button app-workspace-topbar-theme" theme={theme} targetTheme={nextTheme} onThemeChange={setTheme} aria-label={nextTheme === "dark" ? "切换到深色模式" : "切换到浅色模式"} />
     );
 
     if (!user) {
@@ -52,17 +46,15 @@ export function WorkspaceTopBarActions() {
         <div className="app-workspace-topbar-actions">
             <WorkspaceTopBarQQGroup />
             {creditsEnabled ? (
-                <button
-                    type="button"
-                    className="app-workspace-topbar-credit"
-                    title="可用积分 · 打开积分中心"
-                    aria-label={`可用积分 ${balanceLabel}，打开积分中心`}
-                    onClick={() => openWorkspaceWallet()}
-                >
+                <button type="button" className="app-workspace-topbar-credit" title="可用积分 · 打开积分中心" aria-label={`可用积分 ${balanceLabel}，打开积分中心`} onClick={() => openWorkspaceWallet()}>
                     {refreshing && availableMicrocredits === null ? <LoaderCircle className="app-workspace-topbar-credit-spinner" aria-hidden="true" /> : <WorkspaceCreditMark className="is-compact" />}
-                    <span className="app-workspace-topbar-credit-value" aria-hidden="true">{availableMicrocredits === null ? "--" : formatCredits(availableMicrocredits, 2)}</span>
+                    <span className="app-workspace-topbar-credit-value" aria-hidden="true">
+                        {availableMicrocredits === null ? "--" : formatCredits(availableMicrocredits, 2)}
+                    </span>
                     {/* 金币图标不足以说明数字含义，补一个「积分」单位；读屏仍读整句 aria-label。 */}
-                    <span className="app-workspace-topbar-credit-unit" aria-hidden="true">积分</span>
+                    <span className="app-workspace-topbar-credit-unit" aria-hidden="true">
+                        积分
+                    </span>
                 </button>
             ) : null}
             {themeToggler}

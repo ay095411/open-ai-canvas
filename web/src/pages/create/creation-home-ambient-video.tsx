@@ -25,21 +25,23 @@ export function CreationHomeAmbientVideo() {
     const reducedMotion = useReducedMotion();
     const videoRef = useAmbientVideoPlayback(Boolean(reducedMotion));
 
-    return <div className="creation-home-ambient" aria-hidden="true">
-        <video
-            ref={videoRef}
-            className="creation-home-ambient-video"
-            src={AMBIENT_VIDEO_SRC}
-            poster={AMBIENT_POSTER_SRC}
-            muted
-            loop
-            playsInline
-            preload="auto"
-            controls={false}
-            disablePictureInPicture
-            tabIndex={-1}
-            onContextMenu={(event) => event.preventDefault()}
-        />
-        <span className="creation-home-ambient-veil" />
-    </div>;
+    return (
+        <div className="creation-home-ambient" aria-hidden="true">
+            <video
+                ref={videoRef}
+                className="creation-home-ambient-video"
+                src={AMBIENT_VIDEO_SRC}
+                poster={AMBIENT_POSTER_SRC}
+                muted
+                loop
+                playsInline
+                preload="auto"
+                controls={false}
+                disablePictureInPicture
+                tabIndex={-1}
+                onContextMenu={(event) => event.preventDefault()}
+            />
+            <span className="creation-home-ambient-veil" />
+        </div>
+    );
 }
