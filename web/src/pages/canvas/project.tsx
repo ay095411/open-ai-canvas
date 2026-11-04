@@ -2690,7 +2690,6 @@ function CanvasViewportPage() {
             <CanvasShortDramaEmptyState
                 onCreatePipeline={createShortDramaPipeline}
                 onOpenAgent={() => openAgent()}
-                onStartFreeform={() => updateProject(projectId, { starterMode: "freeform" })}
                 onUpload={() => handleUploadRequest()}
                 onAddText={() => createNode(CanvasNodeType.Text)}
                 onAddScript={() => createNode(CanvasNodeType.Script)}
