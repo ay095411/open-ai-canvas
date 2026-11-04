@@ -1347,3 +1347,23 @@
   - 新增 `lazyAdminPage` / `preloadAdminPages`：后台 32 个页面改用可预取的懒加载，进入后台后逐个在空闲时预取；已加载的页面直接同步渲染，不再经过 Suspense。没有修改全站的 `useTransitions` 设置，用户端不受影响。
 - 修改前副本：本批开始前的状态是批次 142 的未提交工作区，修改前没有另存副本。回滚只能按批次 142 的描述重新写回导航数据和页签代码；`admin-page-loader.ts` 可以直接删除，并把 `router.tsx` 中的 `lazyAdminPage(` 改回 `lazy(`。
 - 验证：`bun run typecheck`、`bun run lint`、`bun test`（2881 项）、`bun run build` 通过，改动文件通过 Prettier。未做浏览器验收。
+
+## 批次 144：模型排序展示详细身份并跟随选中项
+
+- 问题：排序接口及弹窗原先只有名称和停用状态，配置了同名展示名或上游别名时难以确认当前调整的模型；上下移动和拖动也没有明确的选中反馈。
+- 调整：模型排序读取接口在同一列表快照中补充调用标识、上游标识、二级渠道展示名、能力和协议；弹窗及搜索结果展示这些字段，并显示所属系统渠道。选中摘要、行内「当前选中」标识、当前位置和滚动定位保持同步，排序继续使用完整 ID 列表与原始快照保存，不修改模型配置。
+- 结构：展示与交互保留在 `channel-order-dialog.tsx`，新增同目录私有 CSS，颜色、圆角与间距使用后台 token；渠道名和已加载的协议目录由 `ChannelModelManager` 传入，不重复请求协议或从页面筛选结果拼接模型身份。
+- 修改前基线：`10b058c0173fc9e634a06ce634804c7df7983176`。原始副本保存于 Git 忽略的 `.local/cache/admin-model-order-baseline/`，SHA-256 如下；新增 CSS 与交互测试此前不存在。
+
+| 文件 | 修改前 SHA-256 |
+| --- | --- |
+| `web/src/pages/admin/components/channel-order-dialog.tsx` | `dde7971994e0da2aff49d5cd79824f67dc6946a57a56bcd48d99fe274de539f9` |
+| `web/src/pages/admin/components/channel-model-manager.tsx` | `cda3d17432cbaea40e1906fd2c01e8dbef82e91807be27539628da8ba25c1710` |
+| `web/src/services/api/channel-order.ts` | `7e7c59b0e48addf02edc18977e59f644cab9a4ced24de9645b6cfb23e1b19f76` |
+| `web/test/admin-ui-regressions.test.ts` | `9ef603cec0bc9dbfac2d692bc7140fb3cd5fb7ec88ffd32055047e29da705b77` |
+| `backend/internal/app/channel_order.go` | `abd38667e97d64b47a12a8c5289247323ac6daa6365eea3f64f45d80aa91f27a` |
+| `backend/internal/app/channel_order_test.go` | `fbb725aca562cc2c269565dc8e64801cd2083e0a1907eb088a265bce3690ea02` |
+| `docs/content/docs/backend/http-api.mdx` | `8d793848ed1e0d92f86363e74dbf0d9d58ee0be51a70a191d276862497c755d9` |
+
+- 验证：前端生产构建、8 项真实排序组件交互、8 项渠道展示及模型工作区相邻回归通过；后端 `go test ./internal/app -run '^TestVisualChannelOrder' -count=1` 通过，覆盖读取权限、同名模型字段、渠道隔离及原子排序保存。登录态浏览器验收见 `pending-test.mdx`。
+- 推送门禁中的模型导入断言改为容忍格式化换行，继续验证默认勾选已有模型的原始调用，不改变导入交互。

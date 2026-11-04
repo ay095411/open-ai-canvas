@@ -1,0 +1,194 @@
+.admin-order-dialog .admin-order-context,
+.admin-order-selection-heading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--admin-space);
+    color: var(--admin-text);
+}
+
+.admin-order-context > span,
+.admin-order-selection-heading > span,
+.admin-order-hint,
+.admin-order-selection-hint {
+    color: var(--admin-text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.admin-order-hint {
+    margin: var(--admin-space) 0 calc(var(--admin-space) * 2);
+}
+
+.admin-order-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--admin-space);
+    margin-bottom: calc(var(--admin-space) * 2);
+}
+
+.admin-order-picker {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.admin-order-selection {
+    margin-bottom: calc(var(--admin-space) * 2);
+    padding: calc(var(--admin-space) * 1.5);
+    border: 1px solid var(--admin-border-strong);
+    border-radius: var(--admin-radius-lg);
+    background: var(--admin-surface-2);
+}
+
+.admin-order-selection-heading {
+    margin-bottom: var(--admin-space);
+    font-size: 12px;
+}
+
+.admin-order-selection-hint {
+    margin-bottom: var(--admin-space);
+}
+
+.admin-order-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--admin-space);
+    max-height: min(50vh, 520px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.admin-order-row {
+    display: flex;
+    align-items: center;
+    gap: var(--admin-space);
+    padding: calc(var(--admin-space) * 1.5);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-lg);
+    background: var(--admin-surface);
+    transition:
+        border-color var(--admin-motion),
+        background-color var(--admin-motion);
+}
+
+.admin-order-row.is-selected {
+    border-color: var(--admin-border-strong);
+    background: var(--admin-nav-active);
+}
+
+.admin-order-grip,
+.admin-order-position {
+    flex-shrink: 0;
+    color: var(--admin-text-muted);
+}
+
+.admin-order-grip {
+    cursor: grab;
+}
+
+.admin-order-position {
+    min-width: 2ch;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.admin-order-select-item {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    border-radius: var(--admin-radius-sm);
+    background: transparent;
+    color: var(--admin-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-order-select-item:focus-visible {
+    outline: 2px solid var(--admin-focus);
+    outline-offset: 2px;
+}
+
+.admin-order-select-item:disabled {
+    cursor: default;
+}
+
+.admin-order-item-info {
+    display: block;
+    min-width: 0;
+    color: var(--admin-text);
+}
+
+.admin-order-item-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--admin-space);
+}
+
+.admin-order-item-heading strong {
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.admin-order-capability,
+.admin-order-disabled,
+.admin-order-selected-label {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.admin-order-selected-label {
+    display: block;
+    margin-top: calc(var(--admin-space) / 2);
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.admin-order-item-details {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: calc(var(--admin-space) * 2);
+    row-gap: calc(var(--admin-space) / 2);
+    margin-top: calc(var(--admin-space) / 2);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.admin-order-item-details > span:first-child {
+    flex-basis: 100%;
+}
+
+.admin-order-item-details code {
+    font-family: var(--admin-font-mono);
+}
+
+.admin-order-field-label {
+    color: var(--admin-text-muted);
+}
+
+.admin-order-options .admin-order-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--admin-space);
+    padding-block: calc(var(--admin-space) / 2);
+    white-space: normal;
+}
+
+@media (max-width: 600px) {
+    .admin-order-picker {
+        flex-basis: 100%;
+    }
+    .admin-order-row {
+        gap: calc(var(--admin-space) / 2);
+        padding: var(--admin-space);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-order-row {
+        transition: none;
+    }
+}
