@@ -12,6 +12,7 @@ import { AssetLibraryCard } from "@/components/assets/asset-library-card";
 import { CachedResourceImage } from "@/components/cached-resource-image";
 import { PaginationBar } from "@/components/layout/workspace-page";
 import { cn } from "@/lib/utils";
+import { getActiveUserScope } from "@/lib/user-scope";
 import type { ExternalAssetPickerReference } from "@/lib/plugins/plugin-types";
 import { flushAssetStorePersistence, useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { deleteAssetsWithRemoteSync, loadAssetLibraryPage, localSavedRemotePendingMessage, saveRemoteUserDataNow } from "@/services/user-data-sync";
@@ -79,7 +80,8 @@ type Props = {
     upload?: {
         accept: string;
         description: string;
-        onUpload: (files: FileList) => Promise<string[]>;
+        /** 上传资源并写入本地 asset store，返回成功项 ID；保存与刷新由选择器完成。写入前检查 signal，防止账号切换后串数据。 */
+        onUpload: (files: FileList, signal: AbortSignal) => Promise<string[]>;
         external?: {
             accept: string;
             description: string;
@@ -150,11 +152,11 @@ export function AssetLibraryPickerModal({
     // remoteKind 是调用方写死的能力约束；媒体类型筛选只在没有该约束时参与服务端查询。
     const remoteQueryKind = remoteKind || (isRecycleBin || mediaKind === "all" ? undefined : mediaKind);
     const remoteStatus = isRecycleBin ? "archived" : "active";
-    const remoteQuery = useQuery({
-        queryKey: ["asset-picker", userId, remoteStatus, remotePage, remotePageSize, category, remoteKeyword, remoteQueryKind],
-        queryFn: ({ signal }) =>
+    const remotePageQuery = (page: number) => ({
+        queryKey: ["asset-picker", userId, remoteStatus, page, remotePageSize, category, remoteKeyword, remoteQueryKind],
+        queryFn: ({ signal }: { signal: AbortSignal }) =>
             loadAssetLibraryPage({
-                page: remotePage,
+                page,
                 pageSize: remotePageSize,
                 kind: remoteQueryKind,
                 category: isRecycleBin || category === "all" || category === remoteQueryKind ? undefined : category,
@@ -162,6 +164,9 @@ export function AssetLibraryPickerModal({
                 query: remoteKeyword,
                 signal,
             }),
+    });
+    const remoteQuery = useQuery({
+        ...remotePageQuery(remotePage),
         enabled: remoteEnabled && open && sessionHydrated,
         // 仅在同一账号、同一浏览范围内保留分页，避免正常素材和回收站串页。
         placeholderData: (previous, query) => (query?.queryKey[1] === userId && query?.queryKey[2] === remoteStatus ? previous : undefined),
@@ -194,6 +199,8 @@ export function AssetLibraryPickerModal({
         [acceptRemoteItems, allowCharacters, remoteItemDisabledReason, remoteQuery.data, items],
     );
     const uploadInputRef = useRef<HTMLInputElement>(null);
+    const uploadAbortRef = useRef<AbortController | null>(null);
+    useEffect(() => () => uploadAbortRef.current?.abort(), []);
     const pickedRemoteRef = useRef(new Map<string, AssetLibraryPickerItem>());
     const initialSelectedIdsRef = useRef(initialSelectedIds);
     const itemsRef = useRef(items);
@@ -306,7 +313,7 @@ export function AssetLibraryPickerModal({
         setWorking(false);
         setUploadingCount(0);
         setError("");
-    }, [initialCategory, initialFolderId, open]);
+    }, [initialCategory, initialFolderId, open, userId]);
 
     useEffect(() => {
         if (category === "all" || normalCategories.includes(category)) return;
@@ -479,26 +486,78 @@ export function AssetLibraryPickerModal({
 
     const handleUpload = async (files: FileList | null) => {
         if (!files?.length || working || (source === "local" && !upload) || (source === "plugin" && !upload?.external)) return;
+        const controller = new AbortController();
+        uploadAbortRef.current?.abort();
+        uploadAbortRef.current = controller;
+        const uploadUserId = userId;
+        const uploadScope = getActiveUserScope();
+        const unsubscribe = useUserStore.subscribe((state, previous) => {
+            if (state.user?.id !== previous.user?.id) controller.abort();
+        });
+        const requireCurrentUpload = () => {
+            if (uploadScope !== getActiveUserScope() || uploadUserId !== useUserStore.getState().user?.id) controller.abort();
+            controller.signal.throwIfAborted();
+        };
+        let saveStage: "upload" | "local" | "remote" = "upload";
         setWorking(true);
         setError("");
         setUploadingCount(files.length);
         try {
+            requireCurrentUpload();
             if (source === "plugin") {
                 const uploaded = await upload!.external!.onUpload(files, folderId === "all" ? undefined : folderId);
+                requireCurrentUpload();
                 setUploadedItems((current) => [...current, ...uploaded]);
                 const ids = uploaded.map((item) => item.id);
                 if (ids.length) setSelected((current) => new Set(multiple ? [...current, ...ids] : ids.slice(-1)));
             } else {
-                const ids = await upload!.onUpload(files);
-                if (ids.length) setSelected((current) => new Set(multiple ? [...current, ...ids] : ids.slice(-1)));
+                const ids = await upload!.onUpload(files, controller.signal);
+                requireCurrentUpload();
+                if (!ids.length) return;
+                saveStage = "local";
+                await flushAssetStorePersistence();
+                requireCurrentUpload();
+                if (remoteLibrary) {
+                    saveStage = "remote";
+                    await saveRemoteUserDataNow([]);
+                    requireCurrentUpload();
+                }
+                setSelected((current) => new Set(multiple ? [...current, ...ids] : ids.slice(-1)));
+                if (remoteLibrary) {
+                    setRemotePage(1);
+                    try {
+                        // 首屏请求可能早于素材保存开始，先取消它，避免刷新复用旧快照。
+                        await Promise.all([queryClient.cancelQueries({ queryKey: ["asset-picker", uploadUserId] }), queryClient.cancelQueries({ queryKey: ["asset-library", uploadUserId] })]);
+                        requireCurrentUpload();
+                        await Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ["asset-picker", uploadUserId] }, { throwOnError: true }),
+                            queryClient.invalidateQueries({ queryKey: ["asset-library", uploadUserId] }, { throwOnError: true }),
+                            queryClient.fetchQuery({ ...remotePageQuery(1), staleTime: 0 }),
+                        ]);
+                        requireCurrentUpload();
+                    } catch (reason) {
+                        requireCurrentUpload();
+                        const detail = reason instanceof Error ? `：${reason.message}` : "";
+                        const warning = `素材已保存，但列表刷新失败${detail}，请重新打开素材库重试`;
+                        setError(warning);
+                        message.warning(warning);
+                        return;
+                    }
+                }
+                message.success(`${ids.length} 个素材已${remoteLibrary ? "保存到素材库" : "保存在本机"}并自动选中${category !== "all" || mediaKind !== "all" || keyword.trim() ? "，当前筛选可能隐藏新素材" : ""}`);
             }
         } catch (reason) {
-            setError(reason instanceof Error ? reason.message : "素材上传失败，请重试");
+            if (controller.signal.aborted) return;
+            const detail = reason instanceof Error ? reason.message : "请重试";
+            setError(saveStage === "remote" ? `素材已保存在本机，但云端保存失败：${detail}` : saveStage === "local" ? `素材本地保存失败：${detail}` : `素材上传失败：${detail}`);
         } finally {
-            if (uploadInputRef.current) uploadInputRef.current.value = "";
-            setWorking(false);
-            setUploadingCount(0);
-            refreshRemoteLibrary();
+            unsubscribe();
+            if (uploadAbortRef.current === controller) {
+                uploadAbortRef.current = null;
+                if (uploadInputRef.current) uploadInputRef.current.value = "";
+                setWorking(false);
+                setUploadingCount(0);
+            }
         }
     };
 
@@ -810,6 +869,7 @@ export function pickerItemMediaKind(item: AssetLibraryPickerItem): AssetPickerMe
 
 function PickerCard({ item, selected, onToggle }: { item: AssetLibraryPickerItem; selected: boolean; onToggle: () => void }) {
     const disabled = Boolean(item.disabledReason);
+    const previewClassName = item.imageFit === "cover" ? undefined : "is-contain";
     return (
         <AssetLibraryCard selected={selected} className={cn("asset-picker-card relative", disabled && "is-disabled")}>
             <button type="button" className="asset-picker-card-action" onClick={onToggle} disabled={disabled} aria-pressed={selected} title={item.disabledReason || item.title}>
@@ -825,11 +885,11 @@ function PickerCard({ item, selected, onToggle }: { item: AssetLibraryPickerItem
                             alt={item.title}
                             loading="lazy"
                             decoding="async"
-                            className={item.imageFit === "contain" ? "is-contain" : undefined}
+                            className={previewClassName}
                             fallback={<div className="assets-cover-fallback">{kindIcon(item.kindLabel)}</div>}
                         />
                     ) : (
-                        <AssetMediaPreview asset={item.asset} alt={item.title} fallback={<div className="assets-cover-fallback">{kindIcon(item.kindLabel)}</div>} />
+                        <AssetMediaPreview asset={item.asset} alt={item.title} className={previewClassName} fallback={<div className="assets-cover-fallback">{kindIcon(item.kindLabel)}</div>} />
                     )}
                     <span className="assets-cover-vignette" aria-hidden="true" />
                     <span className="assets-cover-badges" aria-hidden="true">

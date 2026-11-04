@@ -167,6 +167,25 @@ export function editableMentionTokenEndingAt(root: HTMLElement, offset: number) 
     return editableLeaves(root).find((leaf) => leaf.token !== undefined && leaf.offset + leaf.token.length === offset)?.token ?? null;
 }
 
+/** 清理删空后浏览器保留的单个 BR / 空块；用户输入的空格、文本换行和多行 DOM 保持原样。 */
+export function normalizeEmptyEditableContent(root: HTMLElement) {
+    if (!root.hasChildNodes()) return;
+    let node = root;
+    while (true) {
+        const children = Array.from(node.childNodes).filter((child) => child.nodeType !== Node.TEXT_NODE || child.textContent !== "");
+        if (!children.length) break;
+        if (children.length !== 1) return;
+        const child = children[0];
+        if (!(child instanceof HTMLElement) || child.dataset.mentionToken) return;
+        if (child.tagName === "BR") break;
+        if (child.tagName !== "DIV" && child.tagName !== "P") return;
+        node = child;
+    }
+    const selection = getEditableSelection(root);
+    root.replaceChildren();
+    if (selection) setEditableSelection(root, 0);
+}
+
 export function serializeEditableValue(root: HTMLElement) {
     return serializeNodeList(root.childNodes).replace(/\u00a0/g, " ");
 }

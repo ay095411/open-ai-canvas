@@ -17875,6 +17875,9 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
 .creation-home .creation-reference-track.is-expanded {
     gap: var(--space-2);
 }
+.creation-home .creation-reference-track.is-empty {
+    align-items: center;
+}
 .creation-home .creation-reference-track.is-dragging {
     cursor: grabbing;
     scroll-behavior: auto;
@@ -18091,6 +18094,7 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     gap: var(--space-1);
     padding: 0 12px;
     border-radius: var(--r-full);
+    white-space: nowrap;
 }
 .creation-home .creation-reference-track.is-empty .creation-reference-add-button svg {
     width: var(--space-4);
@@ -18099,7 +18103,7 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
 .creation-home .creation-reference-track.is-empty .creation-reference-add-button span {
     font-size: 11px;
 }
-.creation-home .creation-reference-track.is-expanded .creation-reference-add-button {
+.creation-home .creation-reference-track.is-expanded:not(.is-empty) .creation-reference-add-button {
     width: 52px;
     height: 69px;
     flex-basis: 52px;
@@ -18116,6 +18120,7 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
 .creation-home .creation-reference-add-button svg {
     width: var(--space-5);
     height: var(--space-5);
+    flex-shrink: 0;
 }
 .creation-home .creation-reference-add-button span {
     font-size: 9px;
@@ -18228,7 +18233,7 @@ html:not(.dark) .creation-home .creation-reference-add-button:hover:not(:disable
         height: 61px;
         flex-basis: 46px;
     }
-    .creation-home .creation-reference-track.is-expanded .creation-reference-add-button {
+    .creation-home .creation-reference-track.is-expanded:not(.is-empty) .creation-reference-add-button {
         width: 42px;
         height: 56px;
         flex-basis: 42px;
@@ -20690,6 +20695,7 @@ html:not(.dark) .creation-custom-value {
     object-fit: cover;
 }
 .asset-picker-card-media > img.is-contain,
+.asset-picker-card-media > video.is-contain,
 .asset-picker-card-media > .cached-resource-image-shell > img.is-contain {
     object-fit: contain;
     padding: 4px;

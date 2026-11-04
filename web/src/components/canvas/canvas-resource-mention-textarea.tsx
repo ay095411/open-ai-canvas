@@ -16,6 +16,7 @@ import {
     editableMentionTokenEndingAt,
     getEditableSelection,
     hasMentionTokenBoundary,
+    normalizeEmptyEditableContent,
     redrawEditableParts,
     renderEditableContent,
     repairEditableMentionBoundaries,
@@ -160,7 +161,8 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         return [...activeCanvasReferences, ...assetReferences.filter((item) => value.includes(canvasResourceMentionToken(item)))];
     }, [activeCanvasReferences, assetReferences, highlightLabels, value]);
     const useRichEditor = Boolean(activeReferences.length);
-    const showRichPlaceholder = useRichEditor && compositionValue === null && splitMentionText(value, activeReferences).every((part) => part.type === "mention" || !part.text.trim());
+    const richParts = useMemo(() => (useRichEditor ? splitMentionText(value, activeReferences) : []), [activeReferences, useRichEditor, value]);
+    const showRichPlaceholder = compositionValue === null && richParts.some((part) => part.type === "mention") && richParts.every((part) => part.type === "mention" || !part.text.trim());
     useLayoutEffect(() => {
         const container = containerRef.current;
         if (container) return observeCanvasEditorWheelZoom(container);
@@ -425,6 +427,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         if (readOnly || composingRef.current) return;
         const editor = editorRef.current;
         if (!editor) return;
+        normalizeEmptyEditableContent(editor);
         repairEditableMentionBoundaries(editor);
         const next = serializeEditableValue(editor);
         const cursor = getEditableSelection(editor)?.start ?? next.length;
@@ -473,9 +476,8 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     // 空值时占位文案统一叠在编辑器下层：原生 placeholder 无法逐字刷新，且各浏览器垂直对齐规则不一致。
     // 打字机模式下颜色与透明度交给 CSS 类，避免调用方传入的正文色把占位语义顶掉。
     const placeholderText = props.placeholder;
-    const effectiveValue = compositionValue ?? value;
     const placeholderOverlay =
-        !effectiveValue && placeholderText ? (
+        compositionValue === null && !value && placeholderText ? (
             <div
                 aria-hidden
                 className={`${className || ""}${animatedPlaceholder ? " creation-typing-placeholder" : ""} pointer-events-none absolute inset-0 z-0`}
@@ -538,6 +540,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                         props.onCompositionStart?.(event as unknown as React.CompositionEvent<HTMLTextAreaElement>);
                     }}
                     onCompositionEnd={(event) => {
+                        normalizeEmptyEditableContent(event.currentTarget);
                         repairEditableMentionBoundaries(event.currentTarget);
                         const local = serializeEditableValue(event.currentTarget);
                         const cursor = getEditableSelection(event.currentTarget)?.start ?? local.length;
