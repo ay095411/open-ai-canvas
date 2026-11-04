@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
-import { Clapperboard, CloudDownload, CopyPlus, Focus, FolderKanban, FolderTree, Home, LayoutGrid, Workflow, LoaderCircle, Menu, PanelsLeftBottom, Pencil, Plus, Redo2, Save, Search, Share2, Trash2, Undo2, Upload } from "lucide-react";
+import { Clapperboard, CloudDownload, CopyPlus, Focus, FolderKanban, Images, Home, LayoutGrid, Workflow, LoaderCircle, Menu, PanelsLeftBottom, Pencil, Plus, Redo2, Save, Search, Share2, Trash2, Undo2, Upload } from "lucide-react";
 import { Button, Dropdown } from "antd";
 import { AntTooltip as Tooltip } from "@/components/ui/base/tooltip/ant-tooltip";
 
@@ -114,7 +114,7 @@ export function CanvasTopBar({
                                 items: [
                                     {
                                         key: "assets",
-                                        icon: <FolderTree className="size-4" />,
+                                        icon: <Images className="size-4" />,
                                         label: "查看画布资产",
                                         onClick: onOpenAssets || (() => onViewChange?.("assets")),
                                     },
@@ -214,7 +214,7 @@ export function CanvasTopBar({
                             type="text"
                             className="canvas-topbar-action !h-10 !rounded-xl !px-2.5 !font-medium"
                             style={{ color: theme.node.text }}
-                            icon={<FolderTree className="size-4" />}
+                            icon={<Images className="size-4" />}
                             onClick={onOpenAssets || (() => onViewChange?.("assets"))}
                             aria-label="查看画布资产"
                         >

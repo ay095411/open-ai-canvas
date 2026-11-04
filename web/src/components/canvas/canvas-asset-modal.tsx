@@ -1,5 +1,5 @@
 import { AppModal } from "@/components/ui/product/app-modal";
-import { FolderTree, X } from "lucide-react";
+import { Images, X } from "lucide-react";
 import type { CanvasNodeData } from "@/types/canvas";
 import type { CanvasAssetVersion } from "@/lib/canvas/canvas-asset-catalog";
 import { CanvasAssetView } from "./canvas-asset-view";
@@ -21,16 +21,7 @@ export type CanvasAssetModalProps = {
  * 点击「查看资产」时以大弹窗形式展示资产列表与版本；
  * 点击「在画布中定位」自动关闭弹窗并聚焦目标节点。
  */
-export function CanvasAssetModal({
-    open,
-    onClose,
-    nodes,
-    onLocate,
-    onRename,
-    onPromoteVersion,
-    onDownloadMedia,
-    onUpload,
-}: CanvasAssetModalProps) {
+export function CanvasAssetModal({ open, onClose, nodes, onLocate, onRename, onPromoteVersion, onDownloadMedia, onUpload }: CanvasAssetModalProps) {
     return (
         <AppModal
             open={open}
@@ -55,12 +46,10 @@ export function CanvasAssetModal({
                 <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-foreground/[.02] px-4">
                     <div className="flex items-center gap-2 leading-none">
                         <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
-                            <FolderTree className="size-4" />
+                            <Images className="size-4" />
                         </span>
                         <span className="text-sm font-semibold text-foreground leading-none">画布资产</span>
-                        <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-2 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
-                            共 {nodes.length} 个节点
-                        </span>
+                        <span className="inline-flex items-center justify-center rounded-full bg-foreground/[.08] px-2 py-0.5 text-[11px] font-medium leading-none text-muted-foreground tabular-nums">共 {nodes.length} 个节点</span>
                     </div>
                     <button
                         type="button"
