@@ -237,6 +237,9 @@ func (s *Service) processCanvasGenerationTask(ctx context.Context, userID string
 			return nil, err
 		}
 	}
+	if err := s.validateArkPortraitReferences(userID, &input); err != nil {
+		return nil, err
+	}
 	if resumedProviderRequestID(ctx) == "" {
 		mediaPolicy := providerMediaHydrationPolicyFor(ctx, input)
 		if err := s.hydrateGenerationMedia(userID, &input, mediaPolicy); err != nil {
@@ -262,7 +265,16 @@ func (s *Service) processCanvasGenerationTask(ctx context.Context, userID string
 			}
 			return runAgentToolTask(ctx, input)
 		}
-		result, taskErr := runTextTask(ctx, input)
+		var result map[string]interface{}
+		var taskErr error
+		if draft, ok := ecommercePlanningBatchable(input); ok {
+			result, taskErr = runEcommercePlanningBatches(ctx, input, draft)
+		} else {
+			result, taskErr = runTextTask(ctx, input)
+		}
+		if taskErr == nil {
+			taskErr = s.validateEcommerceWorkbenchResult(userID, input, result)
+		}
 		if taskErr == nil && promptTemplateOperation != "" {
 			taskErr = validatePromptTemplateResult(promptTemplateOperation, result)
 		}
