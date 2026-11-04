@@ -158,11 +158,12 @@ describe("creation library button", () => {
 });
 
 describe("creation homepage default mode", () => {
-    test("opens the empty homepage on image generation instead of video", () => {
+    test("opens the empty homepage in text mode and resets mode when scope changes", () => {
         const source = readCreateSource();
         expect(source).toContain("import { defaultCreationMode, modeLabels,");
-        expect(source).toContain("initialComposerPreferences.mode || defaultCreationMode");
-        expect(source).toContain("saved.mode || defaultCreationMode");
+        expect(source).toContain("useState<CreationMode>(() => defaultCreationMode)");
+        expect(source).toContain("setMode(defaultCreationMode)");
+        expect(readFileSync(resolve(import.meta.dir, "../src/pages/create/creation-types.ts"), "utf8")).toContain('defaultCreationMode: CreationMode = "text"');
         expect(source).not.toContain('mode || "video"');
     });
 });

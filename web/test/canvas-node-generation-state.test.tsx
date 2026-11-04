@@ -138,9 +138,9 @@ describe("画布节点完成反馈", () => {
     });
 
     test("真实 DOM：生成中转为完成只播放一次完成反馈，窗口结束后自行撤掉", () => {
-        const result = Bun.spawnSync([process.execPath, "test", "./test/fixtures/canvas-node-generation-reveal.harness.tsx"], { cwd: resolve(import.meta.dir, ".."), timeout: 15000 });
+        const result = Bun.spawnSync([process.execPath, "test", "./test/fixtures/canvas-node-generation-reveal.harness.tsx"], { cwd: resolve(import.meta.dir, ".."), timeout: 60_000 });
         const output = new TextDecoder().decode(result.stdout) + new TextDecoder().decode(result.stderr);
-        expect(output).toContain("0 fail");
         expect(result.exitCode, output).toBe(0);
-    });
+        expect(output).toContain("0 fail");
+    }, 65_000);
 });

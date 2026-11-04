@@ -138,21 +138,37 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
                 <Input size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} />
             </AuthField>
 
-            {settings?.firstUser ? <AuthField label="邮箱（可选）">
-                <Input
-                    size="large"
-                    prefix={<Mail className="auth-scene-icon size-4" />}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="用于登录与安全验证"
-                    autoComplete="email"
-                    required={!settings?.firstUser}
-                    disabled={disabled}
-                />
-            </AuthField> : <>
-                {methods.length > 1 && <Segmented block aria-label="注册验证方式" options={methods.map((value) => ({ value, label: methodLabels[value] }))} value={method} disabled={submitting} onChange={(value) => { setMethod(value as VerificationMethod); setVerification({ ...emptyVerification }); }} />}
-                {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
-            </>}
+            {settings?.firstUser ? (
+                <AuthField label="邮箱（可选）">
+                    <Input
+                        size="large"
+                        prefix={<Mail className="auth-scene-icon size-4" />}
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder="用于登录与安全验证"
+                        autoComplete="email"
+                        required={!settings?.firstUser}
+                        disabled={disabled}
+                    />
+                </AuthField>
+            ) : (
+                <>
+                    {methods.length > 1 && (
+                        <Segmented
+                            block
+                            aria-label="注册验证方式"
+                            options={methods.map((value) => ({ value, label: methodLabels[value] }))}
+                            value={method}
+                            disabled={submitting}
+                            onChange={(value) => {
+                                setMethod(value as VerificationMethod);
+                                setVerification({ ...emptyVerification });
+                            }}
+                        />
+                    )}
+                    {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
+                </>
+            )}
 
             {/* 输入框一律独占一行：两列并排在窄弹窗里每格只剩一半宽度，
                 密码那一行要同时塞下锁图标 + 占位符 + 眼睛图标，视觉上是最挤的一行。 */}
@@ -203,25 +219,17 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
                 </div>
             ) : null}
 
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={disabled || registerCountdown > 0 || !agreementAccepted} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0">
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={disabled || registerCountdown > 0 || !agreementAccepted} className="h-12 rounded-2xl font-medium text-[15px] border-0">
                 {registerCountdown > 0 ? `${registerCountdown} 秒后可重试` : "创建账号并体验"}
             </Button>
             {/* 第三方入口不再配「或」分隔线，与登录表单保持一致：满宽按钮自带分组，
                 一条分割线只是多一道视觉噪音。 */}
             {settings?.linuxdoEnabled && !settings.smsAndEmailRegistration ? (
-                <Button size="large" block disabled={!agreementAccepted} icon={<LinuxDOIcon />} href={agreementAccepted ? linuxDOLoginURL(next, true) : undefined} className="h-12 rounded-2xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20 hover:text-white">
+                <Button size="large" block disabled={!agreementAccepted} icon={<LinuxDOIcon />} href={agreementAccepted ? linuxDOLoginURL(next, true) : undefined} className="h-12 rounded-2xl">
                     使用 Linux.do 注册 / 登录
                 </Button>
             ) : null}
-            <Modal
-                className="workspace-modal auth-agreement-modal"
-                title={agreementTitle}
-                open={agreementOpen}
-                onCancel={() => setAgreementOpen(false)}
-                footer={null}
-                centered
-                destroyOnHidden
-            >
+            <Modal className="workspace-modal auth-agreement-modal" title={agreementTitle} open={agreementOpen} onCancel={() => setAgreementOpen(false)} footer={null} centered destroyOnHidden>
                 {agreementParagraphs.length === 0 ? (
                     <div className="auth-agreement-empty">
                         <FileText className="size-3.5 shrink-0" aria-hidden />

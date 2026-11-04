@@ -103,7 +103,7 @@ describe("Agent submission sync preflight contract", () => {
         expect(source).toContain("await prepareCanvasForCloudAction(run.canvasId);");
         expect(source).not.toContain("cloudNodeIds");
         // 发送新一轮时画布占用会禁用按钮；排队只写本机，不受占用影响。
-        expect(source).toContain('composerSubmitMode === "send"\n            ? (otherAgentRunning && !pendingNow?.request)');
+        expect(source).toMatch(/composerSubmitMode === "send"\s*\?\s*\(otherAgentRunning && !pendingNow\?\.request\)/);
         expect(source).toContain("submitDisabled={composerSubmitDisabled}");
         expect(source).toContain("重新读取记录");
         expect(source).toMatch(/requestSent = true;\r?\n\s+const result = submission\.parentRunId \? await sendAgentMessage/);

@@ -5,7 +5,11 @@ import { MemoryRouter } from "react-router";
 import { CreationHomeAgentEntry } from "../src/pages/create/creation-home-feature-matrix";
 
 function renderEntry(openingAgentCanvas = false) {
-    return renderToStaticMarkup(<MemoryRouter><CreationHomeAgentEntry onOpenAgentNewCanvas={() => {}} openingAgentCanvas={openingAgentCanvas} /></MemoryRouter>);
+    return renderToStaticMarkup(
+        <MemoryRouter>
+            <CreationHomeAgentEntry onOpenAgentNewCanvas={() => {}} openingAgentCanvas={openingAgentCanvas} />
+        </MemoryRouter>,
+    );
 }
 
 test("home retains Agent collaboration without creation chooser or resource tools", () => {
@@ -39,13 +43,15 @@ test("home content band stays independent of composer width", () => {
     expect(css).not.toContain(".creation-home-tools");
 });
 
-test("home uses the requested radial background only in light mode", () => {
+test("home uses a static dot grid in light mode while retaining the dark background", () => {
     const css = readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8");
     const light = css.split("html:not(.dark) .app-user-workspace .creation-home {")[1]?.split("}")[0];
-    expect(light).toContain("background: radial-gradient(#ffffff, transparent) !important;");
+    expect(light).toContain('background: #f8f8fa url("data:image/svg+xml,');
+    expect(light).toContain("%3Crect");
+    expect(css).toMatch(/html:not\(\.dark\) \.home-background\s*\{\s*display:\s*none;/);
     const shared = css.match(/\.app-user-workspace \.creation-home \{\s*--creation-stage-max-width:[^}]+\}/)?.[0];
     expect(shared).toContain("background-color: transparent !important;");
-    expect(shared).not.toContain("radial-gradient(#ffffff");
+    expect(shared).toContain("background-image: none !important;");
 });
 
 test("explicit Agent canvas creation exposes pending state", () => {

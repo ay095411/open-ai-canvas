@@ -2,10 +2,9 @@ import { expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
-// 设计原则「组件左侧不能有竖杠」：卡片、行、引用块和激活项不使用左侧强调条。
-// 允许 1px 的栏间/单元格分隔线；短剧页面同样适用。
+// workspace-shell-design.mdx：卡片、行、激活项不用装饰性强调条；
+// Markdown 引用线表达内容层级，允许保留，也允许 1px 的栏间分隔线。
 const root = resolve(import.meta.dir, "../src");
-const skipped = [/^styles\/(globals|admin-ui)-\d+\.css$/];
 
 function sourceFiles(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
@@ -20,15 +19,29 @@ const stripePatterns: Array<[string, RegExp]> = [
     ["inset left shadow", /inset\s+[1-9]\d*(?:\.\d+)?px\s+0(?:px)?\s+0/],
     ["tailwind border-l-N", /(?:^|[\s"'`:])border-[ls]-(?:[2-9]|\[)/],
     ["tailwind inset left shadow", /shadow-\[inset_[1-9]/],
-    ["blockquote left border", /blockquote[^{]*\{[^}]*border-left\s*:\s*(?!0|none)/],
 ];
+
+function decorativeSource(source: string, css: boolean) {
+    const uncommented = source.replace(/\/\*[\s\S]*?\*\//g, "");
+    if (!css) return uncommented.replace(/\[&_blockquote\]:border-l-\d+/g, "");
+    return uncommented.replace(/([^{}]+)\{([^{}]*)\}/g, (rule, selector: string) => (selector.split(",").every((part) => /(?:^|[\s>+~])(?:blockquote|\.ai-message-markdown-blockquote)\s*$/.test(part)) ? "" : rule));
+}
+
+test("引用线豁免不隐藏装饰卡片或引用内的其它控件", () => {
+    const border = " { border-left: 3px solid red; }";
+    for (const selector of [".blockquote-card", ".not-blockquote", "blockquote .badge", "blockquote, .card"]) {
+        expect(decorativeSource(selector + border, true)).toMatch(stripePatterns[0][1]);
+    }
+    for (const selector of [".markdown blockquote", ".ai-message-markdown-blockquote"]) {
+        expect(decorativeSource(selector + border, true)).not.toMatch(stripePatterns[0][1]);
+    }
+});
 
 test("组件左侧不使用竖向强调条", () => {
     const offenders: string[] = [];
     for (const file of sourceFiles(root)) {
         const rel = relative(root, file).replaceAll("\\", "/");
-        if (skipped.some((pattern) => pattern.test(rel))) continue;
-        const source = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+        const source = decorativeSource(readFileSync(file, "utf8"), file.endsWith(".css"));
         for (const [label, pattern] of stripePatterns) if (pattern.test(source)) offenders.push(`${rel}: ${label}`);
     }
     expect(offenders).toEqual([]);

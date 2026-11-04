@@ -17,8 +17,6 @@ test("a custom login video never falls back to the built-in poster", () => {
     const appearance = normalizePublicAppearance({
         brandName: "HIMA Studio",
         brandSlug: "hima-studio",
-        authHeroTitle: "把灵感，\n变成可见的故事。",
-        authHeroDescription: "从同一个创作空间持续推进。",
         authVideoConfigured: true,
         authVideoUrl: "/api/public/appearance/assets/video?v=next",
         authVideoPosterConfigured: false,
@@ -27,15 +25,29 @@ test("a custom login video never falls back to the built-in poster", () => {
 
     expect(appearance.brandName).toBe("HIMA Studio");
     expect(appearance.brandSlug).toBe("hima-studio");
-    expect(appearance.authHeroTitle).toBe("把灵感，\n变成可见的故事。");
-    expect(appearance.authHeroDescription).toBe("从同一个创作空间持续推进。");
     expect(appearance.authVideoPosterUrl).toBe("");
-    expect(appearance.authVideoAutoplay).toBe(true);
+    expect(appearance.authVideoUrl).toBe("/api/public/appearance/assets/video?v=next");
 });
 
-test("login video autoplay defaults on and can be disabled explicitly", () => {
-    expect(normalizePublicAppearance({}).authVideoAutoplay).toBe(true);
-    expect(normalizePublicAppearance({ authVideoAutoplay: false }).authVideoAutoplay).toBe(false);
+test("login media defaults to the built-in video and poster until configured", () => {
+    const appearance = normalizePublicAppearance({});
+    expect(appearance.authVideoUrl).toBe("/auth/login-hero.mp4");
+    expect(appearance.authVideoPosterUrl).toBe("/auth/login-hero-poster.jpg");
+    expect(appearance.authCarousel).toEqual([]);
+});
+
+test("login carousel normalizes copy and discards unsafe media URLs", () => {
+    const appearance = normalizePublicAppearance({
+        authCarousel: [
+            { id: " video ", kind: "video", url: "https://example.com/intro.mp4", posterUrl: "javascript:alert(1)", title: " 标题 ", subtitle: " 说明 " },
+            { id: "bad", kind: "image", url: "http://example.com/image.png", title: "", subtitle: "" },
+            { id: "image", kind: "image", url: "/auth/cover.jpg", title: "", subtitle: "" },
+        ],
+    });
+    expect(appearance.authCarousel).toEqual([
+        { id: "video", kind: "video", url: "https://example.com/intro.mp4", posterUrl: "", title: "标题", subtitle: "说明" },
+        { id: "image", kind: "image", url: "/auth/cover.jpg", posterUrl: "", title: "", subtitle: "" },
+    ]);
 });
 
 test("appearance URLs reject executable and insecure remote schemes", () => {
@@ -72,13 +84,9 @@ test("auth scene consumes resolved appearance instead of hardcoded media constan
     const source = await Bun.file(new URL("../src/pages/auth/auth-scene.tsx", import.meta.url)).text();
 
     expect(source).toContain("appearance.authVideoUrl");
-    expect(source).toContain("appearance.authVideoAutoplay");
+    expect(source).toContain("appearance.authVideoUrl && !reducedMotion");
     expect(source).toContain("appearance.authVideoPosterUrl || undefined");
-    expect(source).toContain("appearance.brandName");
-    // 本地 UI 改造把 hero 区的标题/说明整块去掉了（改用品牌 logo + 标语），也把
-    // `useThemeStore` 的显式传参改成 CSS `html.dark` 驱动，所以这里不再断言
-    // `authHeroTitle` / `authHeroDescription` / `theme={theme}`。
-    // 断言的意图仍然成立且更强：登录页不得出现任何硬编码的品牌文案。
+    expect(source).toContain("autoPlay muted loop playsInline");
     expect(source).not.toContain("让一个故事，");
     expect(source).not.toContain("AUTH_VIDEO_URL");
     expect(source).not.toContain("AUTH_VIDEO_POSTER");
@@ -101,8 +109,9 @@ test("appearance management exposes light and dark logo uploads plus the frame s
     expect(pageSource).toContain("setLogoFrameEnabled(!checked)");
     expect(pageSource).not.toContain("<Checkbox");
     expect(pageSource).toContain("深浅模式 Logo 预览");
-    expect(pageSource).toContain("登录页视频自动播放");
-    expect(pageSource).toContain("authVideoAutoplay");
+    expect(pageSource).toContain("<AuthCarouselEditor items={authCarousel} onChange={setAuthCarousel}");
+    expect(pageSource).toContain("JSON.stringify(authCarousel) !== JSON.stringify(setting?.authCarousel || [])");
+    expect(pageSource).toMatch(/updateAdminAppearance\([\s\S]*?authCarousel,/);
     expect(brandSource).toContain("useActiveTheme");
     expect(brandSource).toContain("data-logo-frame-enabled");
     expect(brandSource).toContain("failedSource === source");
