@@ -37,11 +37,24 @@
     cursor: pointer;
     text-decoration: none;
 }
-.creation-home-agent-entry svg { width: var(--space-3); height: var(--space-3); }
-.creation-home-agent-entry button:disabled { cursor: wait; opacity: .5; }
-.creation-home-agent-entry :is(button, a):hover { text-decoration: underline; }
-.creation-home-dashboard :is(a, button):focus-visible { outline: 2px solid var(--control-focus-ring); outline-offset: 3px; }
+.creation-home-agent-entry svg {
+    width: var(--space-3);
+    height: var(--space-3);
+}
+.creation-home-agent-entry button:disabled {
+    cursor: wait;
+    opacity: 0.5;
+}
+.creation-home-agent-entry :is(button, a):hover {
+    text-decoration: underline;
+}
+.creation-home-dashboard :is(a, button):focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 3px;
+}
 
 @media (max-width: 560px) {
-    .creation-home-agent-entry > span { flex-basis: 100%; }
+    .creation-home-agent-entry > span {
+        flex-basis: 100%;
+    }
 }

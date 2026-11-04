@@ -37,18 +37,18 @@ describe("workspace sidebar checkin card", () => {
         expect(rule).toContain("padding: 0;");
         expect(rule).toContain("box-shadow: none;");
     });
-    test("sits above account storage and uses the claim card colors without a light-blue stage", () => {
+    test("sits above the signed-in account menu and uses the claim card colors", () => {
         const sidebar = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-nav.tsx"), "utf8");
         const card = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-checkin.tsx"), "utf8");
         const css = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
         const checkinIndex = sidebar.indexOf("<WorkspaceSidebarCheckin collapsed={collapsed} />");
-        const storageIndex = sidebar.indexOf("<WorkspaceSidebarStorageMeter collapsed={collapsed} />");
+        const profileIndex = sidebar.indexOf('aria-label="打开账户菜单"');
         const start = css.indexOf(".app-user-workspace .app-workspace-sidebar-checkin {");
         const end = css.indexOf(".app-user-workspace .app-workspace-sidebar-storage {", start);
         const block = css.slice(start, end);
 
         expect(checkinIndex).toBeGreaterThan(-1);
-        expect(storageIndex).toBeGreaterThan(checkinIndex);
+        expect(profileIndex).toBeGreaterThan(checkinIndex);
         expect(card).toContain("立即领取");
         expect(card).toContain("今日<em>{amount}</em>积分");
         expect(card).toContain("checkinCredits()");

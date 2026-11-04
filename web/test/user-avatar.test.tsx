@@ -41,9 +41,12 @@ describe("shared user avatar image sources", () => {
         }
     });
 
-    test("preserves sidebar icon styling when using the system default", () => {
+    test("uses the brand avatar in the requested container when no preset is configured", () => {
         const markup = renderToStaticMarkup(<UserAvatar user={user} className="size-7" iconClassName="app-workspace-account-icon" />);
-        expect(markup).toContain("app-workspace-account-icon");
+        expect(markup).toContain("size-7");
+        expect(markup).toContain("coal-avatar-body-");
+        expect(markup).toContain('viewBox="0 0 48 48"');
+        expect(markup).toContain("width:100%;height:100%");
         expect(markup).not.toContain("<img");
     });
 });

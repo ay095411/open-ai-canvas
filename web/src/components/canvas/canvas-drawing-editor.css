@@ -4,15 +4,6 @@
 }
 
 /* 这些控件在依赖中直接指定 Assistant，未使用 --ui-font。 */
-:root .excalidraw :is(
-    .ExcTextField__label,
-    .ExcTextField__input input,
-    .RadioGroup__choice,
-    .ImageExportModal h3,
-    .ImageExportModal__settings__setting__label,
-    .ExcButton,
-    .OverwriteConfirm__Description,
-    .excalidraw__embeddable-hint
-) {
+:root .excalidraw :is(.ExcTextField__label, .ExcTextField__input input, .RadioGroup__choice, .ImageExportModal h3, .ImageExportModal__settings__setting__label, .ExcButton, .OverwriteConfirm__Description, .excalidraw__embeddable-hint) {
     font-family: var(--font-ui);
 }

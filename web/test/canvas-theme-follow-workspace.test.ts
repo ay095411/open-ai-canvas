@@ -102,7 +102,7 @@ describe("跟随规则的源码契约", () => {
     test("画布外观面板提供「跟随」档，且跟随态下不再高亮浅色 / 黑色", async () => {
         const source = await Bun.file(new URL("../src/components/canvas/canvas-appearance-controls.tsx", import.meta.url)).text();
         expect(source).toContain('label="跟随"');
-        expect(source).toContain('active={appearanceFollowsWorkspace}');
+        expect(source).toContain("active={appearanceFollowsWorkspace}");
         expect(source).toContain('active={!appearanceFollowsWorkspace && draft.mode === "light"}');
         expect(source).toContain('active={!appearanceFollowsWorkspace && draft.mode === "dark"}');
     });

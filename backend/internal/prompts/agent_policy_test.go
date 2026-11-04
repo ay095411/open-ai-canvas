@@ -13,7 +13,7 @@ func TestLoadAgentPoliciesUsesSingleVersionedContract(t *testing.T) {
 	if system.ID != "cloud-agent-system" || system.Version != 20 || media.ID != "cloud-agent-media" || media.Version != system.Version {
 		t.Fatalf("unexpected policy metadata: system=%+v media=%+v", system, media)
 	}
-if strings.Contains(system.Text, "id: cloud-agent-system") || !strings.HasPrefix(system.Text, "# Cloud Agent") {
+	if strings.Contains(system.Text, "id: cloud-agent-system") || !strings.HasPrefix(system.Text, "# Cloud Agent") {
 		t.Fatalf("metadata leaked into compiled policy body: %q", system.Text)
 	}
 	if len(system.Text) > 12000 {

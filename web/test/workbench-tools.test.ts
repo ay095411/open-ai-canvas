@@ -79,5 +79,3 @@ describe("taskMediaUrls for multi-image workbench results", () => {
         expect(taskMediaUrls({ id: "summary-only", previewUrl: "/api/resources/summary/file" } as GenerationTask)).toEqual(["/api/resources/summary/file"]);
     });
 });
-
-

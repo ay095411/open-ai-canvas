@@ -47,23 +47,32 @@ describe("account storage meter", () => {
     });
 });
 
-describe("workspace sidebar storage meter", () => {
-    test("sits above the signed-in profile and shows used, remaining and total", () => {
-        const sidebar = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-nav.tsx"), "utf8");
-        const meter = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-storage-meter.tsx"), "utf8");
-        const css = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
+describe("workspace account storage surfaces", () => {
+    test("asset library displays actual usage and keeps errors distinct from empty capacity", () => {
+        const page = readFileSync(resolve(import.meta.dir, "../src/pages/assets/index.tsx"), "utf8");
+        const meter = readFileSync(resolve(import.meta.dir, "../src/pages/assets/asset-storage-usage.tsx"), "utf8");
+        expect(page).toContain("<AssetStorageUsage />");
+        expect(meter).toContain("useAccountFileStorageUsage()");
+        expect(meter).toContain('aria-label="账号文件容量"');
+        expect(meter).toContain('role="progressbar"');
+        expect(meter).toContain("aria-valuenow={Math.min(usage.usedBytes, usage.totalBytes)}");
+        expect(meter).toContain("formatStorageBytes(usage.usedBytes)");
+        expect(meter).toContain("formatStorageBytes(usage.totalBytes)");
+        expect(meter).toContain("容量统计暂时不可用");
+        expect(meter).toContain("query.refetch()");
+    });
 
-        expect(sidebar).toContain("<WorkspaceSidebarStorageMeter collapsed={collapsed} />");
-        expect(sidebar.indexOf("WorkspaceSidebarStorageMeter")).toBeLessThan(sidebar.indexOf("app-workspace-sidebar-profile-row"));
-        expect(meter).toContain("HardDrive");
-        expect(meter).toContain("app-workspace-sidebar-storage-icon");
-        expect(meter).toContain("已用 ${meter.usedLabel}");
-        expect(meter).toContain("剩余 ${meter.remainingLabel}");
-        expect(meter).toContain("共 ${meter.totalLabel}");
-        expect(meter).toContain('to="/assets"');
-        expect(css).toContain(".app-workspace-sidebar-storage-icon");
-        expect(css).toMatch(/\.app-workspace-sidebar-storage-used\s*\{[^}]*font-variant-numeric:\s*tabular-nums/s);
-        expect(css).toContain(".app-workspace-sidebar-storage.is-warn");
-        expect(css).toContain(".app-workspace-sidebar-storage.is-critical");
+    test("wallet shows remaining capacity and storage rejection keeps cleanup and purchase reachable", () => {
+        const wallet = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-wallet-modal.tsx"), "utf8");
+        const shell = readFileSync(resolve(import.meta.dir, "../src/components/layout/app-top-nav.tsx"), "utf8");
+        const notice = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-storage-limit-notice.tsx"), "utf8");
+        expect(wallet).toContain("${storageMeter.usedLabel} / ${storageMeter.totalLabel}");
+        expect(wallet).toContain("剩余 ${storageMeter.remainingLabel}");
+        expect(wallet).toContain('onClick={() => focusProducts("storage")}');
+        expect(shell).toContain("<WorkspaceStorageLimitNotice />");
+        expect(notice).toContain("STORAGE_LIMIT_REASONS.has(reason)");
+        expect(notice).toContain('navigate("/assets")');
+        expect(notice).toContain("openStoragePurchase()");
+        expect(notice).toContain("return Promise.reject(error)");
     });
 });

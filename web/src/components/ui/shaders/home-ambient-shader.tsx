@@ -86,31 +86,10 @@ function resolvePalette(mode: CreationMode, isDark: boolean): PaletteConfig {
 const LazyShaderRenderer = lazy(async () => {
     const { Shader, MeshGradient } = await import("shaders/react");
     return {
-        default: function AmbientRenderer({
-            palette,
-            reducedMotion,
-            onUnavailable,
-        }: {
-            palette: PaletteConfig;
-            reducedMotion: boolean;
-            onUnavailable: () => void;
-        }) {
+        default: function AmbientRenderer({ palette, reducedMotion, onUnavailable }: { palette: PaletteConfig; reducedMotion: boolean; onUnavailable: () => void }) {
             return (
-                <Shader
-                    disableTelemetry
-                    className="size-full"
-                    style={{ width: "100%", height: "100%", pointerEvents: "none" }}
-                    onUnavailable={onUnavailable}
-                >
-                    <MeshGradient
-                        colorA={palette.colorA}
-                        colorB={palette.colorB}
-                        stops={palette.stops}
-                        speed={reducedMotion ? 0 : 0.35}
-                        smoothness={0.85}
-                        swirl={0.25}
-                        drift={0.15}
-                    />
+                <Shader disableTelemetry className="size-full" style={{ width: "100%", height: "100%", pointerEvents: "none" }} onUnavailable={onUnavailable}>
+                    <MeshGradient colorA={palette.colorA} colorB={palette.colorB} stops={palette.stops} speed={reducedMotion ? 0 : 0.35} smoothness={0.85} swirl={0.25} drift={0.15} />
                 </Shader>
             );
         },
@@ -158,7 +137,7 @@ export function HomeAmbientShader({ mode = "image" }: HomeAmbientShaderProps) {
                     setInView(entry.isIntersecting);
                 }
             },
-            { threshold: 0 }
+            { threshold: 0 },
         );
 
         observer.observe(el);
@@ -172,23 +151,11 @@ export function HomeAmbientShader({ mode = "image" }: HomeAmbientShaderProps) {
     const palette = resolvePalette(mode, isDark);
 
     return (
-        <div
-            ref={containerRef}
-            className="home-ambient-shader-host"
-            aria-hidden="true"
-        >
-            <WebGPUShaderStage
-                fallback={null}
-                className="size-full"
-                style={{ width: "100%", height: "100%" }}
-            >
+        <div ref={containerRef} className="home-ambient-shader-host" aria-hidden="true">
+            <WebGPUShaderStage fallback={null} className="size-full" style={{ width: "100%", height: "100%" }}>
                 {inView ? (
                     <Suspense fallback={null}>
-                        <LazyShaderRenderer
-                            palette={palette}
-                            reducedMotion={reducedMotion}
-                            onUnavailable={() => setUnavailable(true)}
-                        />
+                        <LazyShaderRenderer palette={palette} reducedMotion={reducedMotion} onUnavailable={() => setUnavailable(true)} />
                     </Suspense>
                 ) : null}
             </WebGPUShaderStage>

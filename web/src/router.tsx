@@ -4,7 +4,19 @@ import { lazyAdminPage } from "@/pages/admin/admin-page-loader";
 
 import { RequireAuth } from "@/components/auth/require-auth";
 import { FullScreenLoader, WorkspaceRouteLoader } from "@/components/ui/aceternity/full-screen-loader";
-import { loadAssetsPage, loadCanvasPage, loadCanvasProjectPage, loadCreatePage, loadProjectCreatePage, loadProjectDetailPage, loadProjectsPage, loadRemakeCreatePage, loadRemakeWorkbenchPage, loadRemakesPage, loadSkillWorkbenchPage } from "@/lib/workspace-route-modules";
+import {
+    loadAssetsPage,
+    loadCanvasPage,
+    loadCanvasProjectPage,
+    loadCreatePage,
+    loadProjectCreatePage,
+    loadProjectDetailPage,
+    loadProjectsPage,
+    loadRemakeCreatePage,
+    loadRemakeWorkbenchPage,
+    loadRemakesPage,
+    loadSkillWorkbenchPage,
+} from "@/lib/workspace-route-modules";
 import { CanvasRefreshShell } from "@/pages/canvas/canvas-refresh-shell";
 import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
@@ -164,15 +176,27 @@ export const router = createBrowserRouter([
             { path: "/assets", element: <RequireAuth>{deferred(<AssetsPage />)}</RequireAuth> },
             {
                 path: "/remakes",
-                element: <RequireAuth><RequireFeature feature="videoRemakeEnabled">{deferred(<RemakesPage />)}</RequireFeature></RequireAuth>,
+                element: (
+                    <RequireAuth>
+                        <RequireFeature feature="videoRemakeEnabled">{deferred(<RemakesPage />)}</RequireFeature>
+                    </RequireAuth>
+                ),
             },
             {
                 path: "/remakes/new",
-                element: <RequireAuth><RequireFeature feature="videoRemakeEnabled">{deferred(<RemakeCreatePage />)}</RequireFeature></RequireAuth>,
+                element: (
+                    <RequireAuth>
+                        <RequireFeature feature="videoRemakeEnabled">{deferred(<RemakeCreatePage />)}</RequireFeature>
+                    </RequireAuth>
+                ),
             },
             {
                 path: "/remakes/:remakeId",
-                element: <RequireAuth><RequireFeature feature="videoRemakeEnabled">{deferred(<RemakeWorkbenchPage />)}</RequireFeature></RequireAuth>,
+                element: (
+                    <RequireAuth>
+                        <RequireFeature feature="videoRemakeEnabled">{deferred(<RemakeWorkbenchPage />)}</RequireFeature>
+                    </RequireAuth>
+                ),
             },
             { path: "/remakes/*", element: <Navigate to="/remakes" replace /> },
             { path: "/skills", element: <RequireAuth>{deferred(<SkillsPage />)}</RequireAuth> },

@@ -6320,12 +6320,16 @@
     background: color-mix(in srgb, var(--foreground) 3%, var(--admin-layer-1));
 }
 
-:is(.admin-storage-mode-section, .admin-email-delivery-section, .admin-access-registration-section, .admin-access-linuxdo-section, .admin-access-agreement-section, .admin-intercept-policy-section, .admin-third-party-credential-section) > .admin-settings-section-summary h2 {
+:is(.admin-storage-mode-section, .admin-email-delivery-section, .admin-access-registration-section, .admin-access-linuxdo-section, .admin-access-agreement-section, .admin-intercept-policy-section, .admin-third-party-credential-section)
+    > .admin-settings-section-summary
+    h2 {
     font-size: 16px;
     letter-spacing: -0.01em;
 }
 
-:is(.admin-storage-mode-section, .admin-email-delivery-section, .admin-access-registration-section, .admin-access-linuxdo-section, .admin-access-agreement-section, .admin-intercept-policy-section, .admin-third-party-credential-section) > .admin-settings-section-summary p {
+:is(.admin-storage-mode-section, .admin-email-delivery-section, .admin-access-registration-section, .admin-access-linuxdo-section, .admin-access-agreement-section, .admin-intercept-policy-section, .admin-third-party-credential-section)
+    > .admin-settings-section-summary
+    p {
     max-width: 760px;
     margin-top: 5px;
     font-size: 12px;
@@ -8123,7 +8127,6 @@
     --announcement-accent: var(--admin-status-info);
     margin-top: 16px;
     border: 1px solid color-mix(in srgb, var(--announcement-accent) 28%, var(--admin-card-border));
-    border-left: 3px solid var(--announcement-accent);
     border-radius: 10px;
     background: color-mix(in srgb, var(--announcement-accent) 5%, var(--admin-layer-1));
     padding: 15px 16px 16px;
@@ -11279,22 +11282,30 @@ html[data-magicui-theme-vt="active"] .admin-shell * {
 }
 
 .admin-banner-type-card[data-banner-type="notice"] .admin-banner-type-card-preview {
-    background: radial-gradient(ellipse 380px 110px at 12% 48%, rgba(254, 240, 138, 0.48) 0%, rgba(253, 224, 71, 0.3) 34%, transparent 68%), radial-gradient(circle at 92% 35%, rgba(192, 132, 252, 0.38) 0%, transparent 52%), linear-gradient(108deg, #0284c7 0%, #1d4ed8 34%, #4338ca 72%, #6366f1 100%);
+    background:
+        radial-gradient(ellipse 380px 110px at 12% 48%, rgba(254, 240, 138, 0.48) 0%, rgba(253, 224, 71, 0.3) 34%, transparent 68%), radial-gradient(circle at 92% 35%, rgba(192, 132, 252, 0.38) 0%, transparent 52%),
+        linear-gradient(108deg, #0284c7 0%, #1d4ed8 34%, #4338ca 72%, #6366f1 100%);
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .admin-banner-type-card[data-banner-type="activity"] .admin-banner-type-card-preview {
-    background: radial-gradient(ellipse 380px 110px at 14% 48%, rgba(254, 240, 138, 0.55) 0%, rgba(251, 191, 36, 0.35) 35%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(251, 113, 133, 0.42) 0%, transparent 52%), linear-gradient(108deg, #ea580c 0%, #f97316 28%, #e11d48 70%, #be123c 100%);
+    background:
+        radial-gradient(ellipse 380px 110px at 14% 48%, rgba(254, 240, 138, 0.55) 0%, rgba(251, 191, 36, 0.35) 35%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(251, 113, 133, 0.42) 0%, transparent 52%),
+        linear-gradient(108deg, #ea580c 0%, #f97316 28%, #e11d48 70%, #be123c 100%);
     box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
 }
 
 .admin-banner-type-card[data-banner-type="update"] .admin-banner-type-card-preview {
-    background: radial-gradient(ellipse 380px 110px at 12% 48%, rgba(167, 243, 208, 0.52) 0%, rgba(52, 211, 153, 0.32) 34%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(96, 165, 250, 0.4) 0%, transparent 52%), linear-gradient(108deg, #0f766e 0%, #059669 32%, #0284c7 72%, #2563eb 100%);
+    background:
+        radial-gradient(ellipse 380px 110px at 12% 48%, rgba(167, 243, 208, 0.52) 0%, rgba(52, 211, 153, 0.32) 34%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(96, 165, 250, 0.4) 0%, transparent 52%),
+        linear-gradient(108deg, #0f766e 0%, #059669 32%, #0284c7 72%, #2563eb 100%);
     box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
 
 .admin-banner-type-card[data-banner-type="warning"] .admin-banner-type-card-preview {
-    background: radial-gradient(ellipse 380px 110px at 12% 48%, rgba(254, 215, 170, 0.5) 0%, rgba(252, 211, 77, 0.32) 34%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(248, 113, 113, 0.42) 0%, transparent 52%), linear-gradient(108deg, #991b1b 0%, #dc2626 35%, #c2410c 75%, #ea580c 100%);
+    background:
+        radial-gradient(ellipse 380px 110px at 12% 48%, rgba(254, 215, 170, 0.5) 0%, rgba(252, 211, 77, 0.32) 34%, transparent 68%), radial-gradient(circle at 90% 35%, rgba(248, 113, 113, 0.42) 0%, transparent 52%),
+        linear-gradient(108deg, #991b1b 0%, #dc2626 35%, #c2410c 75%, #ea580c 100%);
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 

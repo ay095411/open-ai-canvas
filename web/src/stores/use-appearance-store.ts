@@ -8,7 +8,7 @@ import { applySkinTheme, DEFAULT_CLASSIC_SKIN, normalizeSkinDefinition } from "@
 export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
     updates: DEFAULT_UPDATE_ANNOUNCEMENT,
     canvas: DEFAULT_CANVAS_APPEARANCE,
-schemaVersion: 10,
+    schemaVersion: 10,
     brandName: "Navo AI",
     brandSlug: "open-ai-canvas",
     logoUrl: "/logo.svg",

@@ -43,17 +43,7 @@ export function CreationLoginDialogPixTV({ open, onClose }: { open: boolean; onC
     };
 
     return (
-        <AppModal
-            open={open}
-            onCancel={onClose}
-            title={null}
-            footer={null}
-            centered
-            width="min(960px, calc(100vw - 48px))"
-            className="pixtv-login-dialog"
-            styles={{ body: { padding: 0 }, header: { display: "none" } }}
-            closeIcon={null}
-        >
+        <AppModal open={open} onCancel={onClose} title={null} footer={null} centered width="min(960px, calc(100vw - 48px))" className="pixtv-login-dialog" styles={{ body: { padding: 0 }, header: { display: "none" } }} closeIcon={null}>
             <div className="pixtv-login-container">
                 {/* 左侧：影视画廊与激励文案 */}
                 <div className="pixtv-login-promo">
@@ -71,9 +61,7 @@ export function CreationLoginDialogPixTV({ open, onClose }: { open: boolean; onC
                             </div>
                         </div>
                         <h2 className="pixtv-promo-title">让灵感，在这里成为作品</h2>
-                        <p className="pixtv-promo-subtitle">
-                            AI 一键分镜 · 超长视频生成 · 专业影视创作
-                        </p>
+                        <p className="pixtv-promo-subtitle">AI 一键分镜 · 超长视频生成 · 专业影视创作</p>
                         <ul className="pixtv-promo-features">
                             <li>新用户创作积分已到账</li>
                             <li>无限画布，随心编排</li>
@@ -84,12 +72,7 @@ export function CreationLoginDialogPixTV({ open, onClose }: { open: boolean; onC
 
                 {/* 右侧：胶囊化登录表单 */}
                 <div className="pixtv-login-form-wrapper">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="pixtv-login-close"
-                        aria-label="关闭"
-                    >
+                    <button type="button" onClick={onClose} className="pixtv-login-close" aria-label="关闭">
                         ×
                     </button>
                     <div className="pixtv-login-form-content">
@@ -133,16 +116,7 @@ export function CreationLoginDialogPixTV({ open, onClose }: { open: boolean; onC
                                 </div>
                             </div>
 
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                size="large"
-                                block
-                                loading={submitting}
-                                icon={<ArrowRight className="size-4" />}
-                                iconPlacement="end"
-                                className="pixtv-submit-btn"
-                            >
+                            <Button type="primary" htmlType="submit" size="large" block loading={submitting} icon={<ArrowRight className="size-4" />} iconPlacement="end" className="pixtv-submit-btn">
                                 登录并继续创作
                             </Button>
                         </form>

@@ -54,30 +54,41 @@ describe("canvas library card", () => {
         expect(card).toContain("quiet mosaic");
         expect(css).toMatch(/\.canvas-collection-grid \{[^}]*calc\(\(100% - 4 \* var\(--canvas-card-gap-x\)\) \/ 5\)/);
         expect(css).toMatch(/\.canvas-collection-preview \{[^}]*aspect-ratio: 4 \/ 3;/);
-        expect(css).toMatch(/\.canvas-project-mosaic\[data-count="3"\] > :first-child \{ grid-row: span 2; \}/);
+        expect(css).toMatch(/\.canvas-project-mosaic\[data-count="3"\]\s*>\s*:first-child\s*\{\s*grid-row:\s*span 2;\s*\}/);
     });
     test("secondary actions are revealed on hover/focus and always visible without hover", () => {
         expect(card).toContain("canvas-collection-rename");
-        expect(css).toMatch(/\.canvas-collection-card:is\(:hover, :focus-within\) :is\(\.canvas-collection-select, \.canvas-collection-rename, \.canvas-collection-actions\)/);
-        expect(css).toMatch(/@media \(hover: none\) \{ :is\(\.canvas-collection-select, \.canvas-collection-rename, \.canvas-collection-actions\) \{ opacity: 1; \} \}/);
+        expect(css).toMatch(/\.canvas-collection-card:is\(:hover,\s*:focus-within\)\s*:is\(\s*\.canvas-collection-select,\s*\.canvas-collection-rename,\s*\.canvas-collection-actions\s*\)/);
+        expect(css).toMatch(/@media\s*\(hover:\s*none\)\s*\{\s*:is\(\s*\.canvas-collection-select,\s*\.canvas-collection-rename,\s*\.canvas-collection-actions\s*\)\s*\{\s*opacity:\s*1;\s*\}\s*\}/);
     });
 });
 
 describe("skills library", () => {
     const page = read("../src/pages/skills/index.tsx");
-    test("uses a single left rail instead of top tabs and a platform select", () => {
-        expect(page).toContain('className="skills-rail"');
-        expect(page).not.toContain("SegmentedControl");
-        expect(page).not.toContain("SkillCurationBrowser");
-        expect(page).not.toContain("skills-tabs");
+    const card = read("../src/pages/skills/skill-card.tsx");
+    const skillStyles = read("../src/pages/skills/skills-page.css");
+    test("separates exploration categories from personal library scopes with discoverable navigation", () => {
+        expect(page).toContain('aria-label="探索技能分类"');
+        expect(page).toContain('aria-label="我的技能范围"');
+        expect(page).toContain('aria-label="我的技能分类"');
+        expect(page).toContain("aria-pressed={scope === option.value}");
+        expect(page).toContain('selectScope("mine")');
+        expect(page).toContain('selectScope("public")');
+        expect(page).toContain("<SkillCurationBrowser");
+        expect(page).toContain('import "./skills-page.css"');
     });
-    test("cards label their stats and keep add as a compact toggle", () => {
-        expect(page).toContain("人加入");
-        expect(page).toContain("aria-pressed={skill.isAdded}");
-        expect(page).toContain("aria-pressed={skill.isLike}");
+    test("shared cards label their stats, expose add state and keep secondary actions accessible", () => {
+        expect(page).toContain("<SkillCard");
+        expect(card).toContain("title={`${skill.addedCount} 人已加入`}");
+        expect(card).toContain("aria-pressed={skill.isAdded}");
+        expect(card).toContain('skill.isLike ? "取消收藏" : "收藏技能"');
+        expect(card).toContain('if (key === "like") onLike()');
+        expect(card).toContain("aria-label={`${skill.skillName}的更多操作`}");
         expect(page).toContain("/skills/${encodeURIComponent(skill.skillId)}/edit");
-        expect(css).toMatch(/\.skill-tile:is\(:hover, :focus-within\) \.skill-tile-actions/);
-        expect(css).toMatch(/\.skill-tile-name-text \{[^}]*-webkit-line-clamp: 2;/);
-        expect(css).toMatch(/\.skill-tile-description \{[^}]*-webkit-line-clamp: 2;/);
+        expect(page).toContain("onOpenWorkbench={openWorkbench}");
+        expect(skillStyles).toMatch(/\.skills-market-page :is\(button, a\):focus-visible\s*\{[^}]*outline:/);
+        expect(card).toContain("title={skill.skillName}");
+        expect(skillStyles).toMatch(/\.skills-catalog-card-title h3\s*\{[^}]*text-overflow: ellipsis;[^}]*white-space: nowrap;/);
+        expect(skillStyles).toMatch(/\.skills-catalog-card-description p\s*\{[^}]*-webkit-line-clamp: 2;/);
     });
 });

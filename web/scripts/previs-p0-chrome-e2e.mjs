@@ -14,6 +14,7 @@ import { createServer } from "node:net";
 
 const CHROME_CANDIDATES = [
     process.env.CHROME_BIN,
+    ...[process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].filter(Boolean).map((root) => join(root, "Google", "Chrome", "Application", "chrome.exe")),
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
     "/opt/google/chrome/chrome",
@@ -74,15 +75,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** 启动 Vite DEV，等待 ready 行或 TCP 可连接；超时即抛。 */
 async function launchVite(port) {
-    // package.json 仍可由 Bun 直接执行；没有 Bun 时用 Node 调本地 Vite 入口。
-    // 不能把 `vite` 同时当作 bunx 子命令和 Vite 根目录传入，否则会启动到
-    // <web>/vite，SPA 根路径与 /dev/previs-repro 都会返回 404。
+    // 直接运行本地入口，避免 bunx 中间进程在 Windows 退出后留下占用端口和管道的 Vite 子进程。
     const viteEntry = join(process.cwd(), "node_modules", "vite", "bin", "vite.js");
-    const command = process.versions.bun ? "bunx" : process.execPath;
-    const args = process.versions.bun ? ["vite"] : [viteEntry];
-    const child = spawn(command, [...args, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
+    const child = spawn(process.execPath, [viteEntry, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
         cwd: process.cwd(),
         stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
     });
     let log = "";
     child.stdout.on("data", (d) => {
@@ -122,7 +120,7 @@ async function launchChrome(chromePath, cdpPort, profileDir) {
     if (process.platform === "linux" || process.env.CI) args.push("--no-sandbox", "--disable-dev-shm-usage");
     args.push("about:blank");
 
-    const child = spawn(chromePath, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(chromePath, args, { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
     let log = "";
     child.stdout.on("data", (d) => {
         log += d.toString();

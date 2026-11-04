@@ -23,10 +23,7 @@ export function WorkspaceSignalIcon({ variant, size = "md", className }: { varia
     const Icon = signalIcons[variant];
 
     return (
-        <span
-            className={cn("workspace-signal-icon grid shrink-0 place-items-center text-muted-foreground", size === "sm" ? "size-4" : size === "lg" ? "size-6" : "size-5", className)}
-            aria-hidden="true"
-        >
+        <span className={cn("workspace-signal-icon grid shrink-0 place-items-center text-muted-foreground", size === "sm" ? "size-4" : size === "lg" ? "size-6" : "size-5", className)} aria-hidden="true">
             <Icon className={cn("size-full", variant === "loading" && "motion-safe:animate-spin")} strokeWidth={1.75} />
         </span>
     );

@@ -30,13 +30,7 @@ import { cn } from "@/lib/utils";
 export function CoalAvatar({ className }: { className?: string }) {
     const gradientId = `coal-avatar-body-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
     return (
-        <svg
-            className={cn(className)}
-            viewBox="0 0 48 48"
-            aria-hidden="true"
-            focusable="false"
-            style={{ display: "block", width: "100%", height: "100%" }}
-        >
+        <svg className={cn(className)} viewBox="0 0 48 48" aria-hidden="true" focusable="false" style={{ display: "block", width: "100%", height: "100%" }}>
             <defs>
                 <radialGradient id={gradientId} cx="34%" cy="25%" r="76%">
                     <stop offset="0%" stopColor="#505159" />

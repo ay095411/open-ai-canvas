@@ -40,11 +40,12 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     }, [adminWorkspace, spatialWorkbench, productWorkspace]);
 
     // 画布编辑器（/canvas/:id）内 Agent 始终保持开启；其他页面由后台功能开放开关 globalAgentEnabled 控制。
-    const globalAgent = userId && (canvasEditor || globalAgentEnabled) ? (
-        <Suspense fallback={null}>
-            <GlobalAgentPanel key={userId} />
-        </Suspense>
-    ) : null;
+    const globalAgent =
+        userId && (canvasEditor || globalAgentEnabled) ? (
+            <Suspense fallback={null}>
+                <GlobalAgentPanel key={userId} />
+            </Suspense>
+        ) : null;
 
     if (adminWorkspace)
         return (

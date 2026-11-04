@@ -13,7 +13,7 @@ describe("workspace route loading", () => {
 
         expect(deferred).toContain("<WorkspaceRouteLoader />");
         expect(deferred).not.toContain("FullScreenLoader");
-        expect(router).toContain("fullScreenDeferred(<LoginPage />)");
+        expect(router).toContain('{ path: "/login", element: <AuthRouteShell /> }');
         expect(router).toContain("fullScreenDeferred(<SharedCanvasPage />)");
     });
 
@@ -90,16 +90,19 @@ describe("workspace route loading", () => {
         expect(announcements).toContain('lazy(() => import("@/components/ui/aceternity/announcement-timeline-modal")');
     });
 
-    test("uses a quiet workspace skeleton for initial hydration", () => {
+    test("uses an accessible loading track and delays brief route-loading flashes", () => {
         const loader = source("../src/components/ui/aceternity/full-screen-loader.tsx");
         const css = source("../src/styles/globals.css");
 
-        expect(loader).toContain("full-screen-loader-scene");
-        expect(loader).toContain("full-screen-loader-guide");
-        expect(loader).toContain("LoadingSignal");
+        expect(loader).toContain("full-screen-loader-track");
+        expect(loader).toContain("full-screen-loader-sweep");
+        expect(loader).toContain('role="status"');
+        expect(loader).toContain('aria-live="polite"');
+        expect(loader).toContain("window.setTimeout(() => setVisible(true), 140)");
+        expect(loader).toContain("window.clearTimeout(timer)");
         expect(loader).not.toContain("YINGCE STUDIO");
         expect(loader).not.toContain("loading-cue");
-        expect(css).toContain("@keyframes loading-signal-spin");
+        expect(css).toContain(".full-screen-loader-sweep");
         expect(css).toContain("@media (prefers-reduced-motion: reduce)");
         expect(css).not.toContain("@keyframes loading-cue-pulse");
     });
@@ -112,7 +115,7 @@ describe("workspace wallet entry", () => {
         const host = source("../src/components/layout/workspace-wallet-modal.tsx");
         const palette = source("../src/components/layout/workspace-command-palette.tsx");
         const canvasTopBar = source("../src/pages/canvas/canvas-project-top-bar.tsx");
-        const topBar = source("../src/components/layout/workspace-top-bar.tsx");
+        const topBar = source("../src/components/layout/workspace-topbar-actions.tsx");
         const css = source("../src/styles/globals.css");
 
         expect(router).toContain('path: "/wallet"');

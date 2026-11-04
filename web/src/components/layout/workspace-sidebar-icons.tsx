@@ -1,15 +1,4 @@
-import {
-    Bot,
-    Camera,
-    Clock,
-    Compass,
-    Film,
-    FolderHeart,
-    Palette,
-    Puzzle,
-    Shapes,
-    ToyBrick,
-} from "lucide-react";
+import { Bot, Camera, Clock, Compass, Film, FolderHeart, Palette, Puzzle, Shapes, ToyBrick } from "lucide-react";
 
 export type SidebarIconProps = { className?: string; strokeWidth?: number };
 

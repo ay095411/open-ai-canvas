@@ -47,14 +47,7 @@ export function ShapeGrid() {
             edge = computed.getPropertyValue("--home-grid-edge").trim() || (isDark ? "#111415" : "#f8f8fa");
 
             if (width > 0 && height > 0) {
-                vignetteGradient = ctx.createRadialGradient(
-                    width / 2,
-                    height / 2,
-                    0,
-                    width / 2,
-                    height / 2,
-                    Math.hypot(width, height) / 2,
-                );
+                vignetteGradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, Math.hypot(width, height) / 2);
                 vignetteGradient.addColorStop(0, "transparent");
                 vignetteGradient.addColorStop(1, edge);
             }

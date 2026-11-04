@@ -451,13 +451,7 @@ export default function DramaCreatePage() {
                                             )}
                                         </span>
                                     </div>
-                                    <Input.TextArea
-                                        autoFocus
-                                        value={pasteText}
-                                        onChange={(event) => setPasteText(event.target.value)}
-                                        placeholder={SOURCE_FORMAT_LABEL[sourceFormat].placeholder}
-                                        className="drama-paste-textarea"
-                                    />
+                                    <Input.TextArea autoFocus value={pasteText} onChange={(event) => setPasteText(event.target.value)} placeholder={SOURCE_FORMAT_LABEL[sourceFormat].placeholder} className="drama-paste-textarea" />
                                 </div>
 
                                 <aside className="drama-paste-aside">
@@ -471,7 +465,9 @@ export default function DramaCreatePage() {
                                             写作规范
                                         </span>
                                         <ul className="drama-paste-guide">
-                                            {SOURCE_FORMAT_LABEL[sourceFormat].guide.map((line) => <li key={line}>{line}</li>)}
+                                            {SOURCE_FORMAT_LABEL[sourceFormat].guide.map((line) => (
+                                                <li key={line}>{line}</li>
+                                            ))}
                                         </ul>
                                     </div>
                                 </aside>
@@ -481,12 +477,7 @@ export default function DramaCreatePage() {
                                 <span className="drama-paste-foot-hint">解析后会回到立项页，先确认风格、集数与预算再开跑。</span>
                                 <div className="drama-paste-actions">
                                     <Button onClick={() => setPasteMode(false)}>取消</Button>
-                                    <Button
-                                        type="primary"
-                                        className="drama-paste-submit"
-                                        disabled={!pasteText.trim()}
-                                        onClick={() => loadText(pasteText)}
-                                    >
+                                    <Button type="primary" className="drama-paste-submit" disabled={!pasteText.trim()} onClick={() => loadText(pasteText)}>
                                         解析正文并立项
                                     </Button>
                                 </div>
@@ -523,27 +514,19 @@ export default function DramaCreatePage() {
                                                 className="drama-hub-quick-input"
                                                 value={quickIdea}
                                                 onChange={(e) => setQuickIdea(e.target.value)}
-                                                onKeyDown={(e) => { if (e.key === "Enter") handleQuickStart(); }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") handleQuickStart();
+                                                }}
                                                 placeholder="输入核心剧作主线，例如：退隐保镖重出江湖，解开昔日悬案迷局..."
                                                 aria-label="短剧灵感主线"
                                             />
-                                            <Button
-                                                type="primary"
-                                                className="drama-hub-quick-btn"
-                                                disabled={!quickIdea.trim()}
-                                                onClick={handleQuickStart}
-                                            >
+                                            <Button type="primary" className="drama-hub-quick-btn" disabled={!quickIdea.trim()} onClick={handleQuickStart}>
                                                 立即立项
                                             </Button>
                                         </div>
                                         <div className="drama-hub-quick-tags" role="group" aria-label="快捷题材灵感">
                                             {QUICK_GENRES.map((genre) => (
-                                                <button
-                                                    key={genre.label}
-                                                    type="button"
-                                                    className="drama-hub-quick-tag"
-                                                    onClick={() => setQuickIdea(genre.text)}
-                                                >
+                                                <button key={genre.label} type="button" className="drama-hub-quick-tag" onClick={() => setQuickIdea(genre.text)}>
                                                     {genre.label}
                                                 </button>
                                             ))}
@@ -574,27 +557,22 @@ export default function DramaCreatePage() {
                                     <div className="drama-hub-projects-head">
                                         <div className="drama-hub-projects-title">
                                             <span>我的短剧作品</span>
-                                            {managing
-                                                ? <span className="drama-hub-projects-selected">已选 {selectedDramas.length}</span>
-                                                : <span className="drama-hub-projects-count">{existingDramas.length} 部</span>}
+                                            {managing ? <span className="drama-hub-projects-selected">已选 {selectedDramas.length}</span> : <span className="drama-hub-projects-count">{existingDramas.length} 部</span>}
                                         </div>
                                         <button
                                             type="button"
                                             className="drama-hub-manage-btn"
-                                            onClick={() => { setManaging(!managing); setSelectedDramas([]); }}
+                                            onClick={() => {
+                                                setManaging(!managing);
+                                                setSelectedDramas([]);
+                                            }}
                                         >
                                             {managing ? "完成" : "管理"}
                                         </button>
                                     </div>
                                     <div className="drama-library-grid">
                                         {existingDramas.map((item) => (
-                                            <DramaHubCard
-                                                key={item.project.id}
-                                                item={item}
-                                                managing={managing}
-                                                selected={selectedDramas.includes(item.project.id)}
-                                                onToggle={() => toggleDramaSelected(item.project.id)}
-                                            />
+                                            <DramaHubCard key={item.project.id} item={item} managing={managing} selected={selectedDramas.includes(item.project.id)} onToggle={() => toggleDramaSelected(item.project.id)} />
                                         ))}
                                     </div>
                                     {managing ? (
@@ -609,12 +587,7 @@ export default function DramaCreatePage() {
                                                 >
                                                     全选
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    className="drama-hub-delete-btn is-danger"
-                                                    disabled={!selectedDramas.length || deleteDramasMutation.isPending}
-                                                    onClick={confirmDeleteSelected}
-                                                >
+                                                <button type="button" className="drama-hub-delete-btn is-danger" disabled={!selectedDramas.length || deleteDramasMutation.isPending} onClick={confirmDeleteSelected}>
                                                     {deleteDramasMutation.isPending ? "删除中…" : "删除"}
                                                 </button>
                                             </div>
@@ -704,7 +677,11 @@ export default function DramaCreatePage() {
                                 <span className="is-count !text-[12px]">{formatCount(chapter.words)}</span>
                             </button>
                         ))}
-                        {analysis.chapters.length > 600 ? <div className="px-4 py-3 text-center text-xs text-foreground/40">另有 {analysis.chapters.length - 600} {unitLabel}</div> : null}
+                        {analysis.chapters.length > 600 ? (
+                            <div className="px-4 py-3 text-center text-xs text-foreground/40">
+                                另有 {analysis.chapters.length - 600} {unitLabel}
+                            </div>
+                        ) : null}
                     </div>
                 </aside>
 
@@ -807,13 +784,7 @@ export default function DramaCreatePage() {
                 {/* 右：作品设置与启动 */}
                 <aside className="drama-compose-side">
                     <div className="drama-compose-side-scroll thin-scrollbar">
-                        <DramaLivePreviewCard
-                            name={name}
-                            aspectRatio={aspectRatio}
-                            episodeSeconds={episodeSeconds}
-                            style={style}
-                            estimateEpisodes={estimate?.episodes}
-                        />
+                        <DramaLivePreviewCard name={name} aspectRatio={aspectRatio} episodeSeconds={episodeSeconds} style={style} estimateEpisodes={estimate?.episodes} />
                         <label className="block">
                             <div className="drama-option-label">作品名称</div>
                             <Input size="large" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="作品名称" />
@@ -961,19 +932,7 @@ export default function DramaCreatePage() {
     );
 }
 
-function DramaLivePreviewCard({
-    name,
-    aspectRatio,
-    episodeSeconds,
-    style,
-    estimateEpisodes,
-}: {
-    name: string;
-    aspectRatio: string;
-    episodeSeconds: number;
-    style: DramaStyle | undefined;
-    estimateEpisodes?: number;
-}) {
+function DramaLivePreviewCard({ name, aspectRatio, episodeSeconds, style, estimateEpisodes }: { name: string; aspectRatio: string; episodeSeconds: number; style: DramaStyle | undefined; estimateEpisodes?: number }) {
     const isPortrait = aspectRatio === "9:16";
     const isSquare = aspectRatio === "1:1";
     const coverUrl = style?.cover;
@@ -985,21 +944,14 @@ function DramaLivePreviewCard({
                 <span className="text-[var(--fs-nano)] text-muted-foreground tabular-nums">{aspectRatio}</span>
             </div>
             <div className="flex justify-center p-3">
-                <div
-                    className={cn(
-                        "relative overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-lg transition-all duration-300",
-                        isPortrait ? "w-[140px] aspect-[9/16]" : isSquare ? "w-[160px] aspect-square" : "w-[210px] aspect-[16/9]"
-                    )}
-                >
+                <div className={cn("relative overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-lg transition-all duration-300", isPortrait ? "w-[140px] aspect-[9/16]" : isSquare ? "w-[160px] aspect-square" : "w-[210px] aspect-[16/9]")}>
                     {coverUrl ? (
                         <img src={coverUrl} alt="" className="size-full object-cover opacity-85" />
                     ) : (
                         <div
                             className="size-full opacity-60"
                             style={{
-                                background: style?.palette
-                                    ? `linear-gradient(135deg, ${style.palette[0]} 0%, ${style.palette[1]} 50%, ${style.palette[2]} 100%)`
-                                    : "linear-gradient(135deg, #1f1f2e, #111118)",
+                                background: style?.palette ? `linear-gradient(135deg, ${style.palette[0]} 0%, ${style.palette[1]} 50%, ${style.palette[2]} 100%)` : "linear-gradient(135deg, #1f1f2e, #111118)",
                             }}
                         />
                     )}
@@ -1009,9 +961,7 @@ function DramaLivePreviewCard({
                             <Clapperboard className="size-2.5" />
                             {style?.name || "默认风格"}
                         </span>
-                        <strong className="truncate text-xs font-semibold leading-tight text-white drop-shadow-sm">
-                            {name || "短剧新篇"}
-                        </strong>
+                        <strong className="truncate text-xs font-semibold leading-tight text-white drop-shadow-sm">{name || "短剧新篇"}</strong>
                         <div className="flex items-center gap-1.5 text-[9px] text-white/70">
                             <span>{episodeSeconds}秒/集</span>
                             <span>·</span>
@@ -1036,7 +986,11 @@ function DramaCover({ item }: { item: DramaListItem }) {
     }
     return (
         <div className={`drama-library-cover is-${covers.length}`}>
-            {covers.map((id) => <span key={id}><MediaThumb resourceId={id} alt="" /></span>)}
+            {covers.map((id) => (
+                <span key={id}>
+                    <MediaThumb resourceId={id} alt="" />
+                </span>
+            ))}
         </div>
     );
 }
@@ -1047,7 +1001,10 @@ function DramaHubCard({ item, managing = false, selected = false, onToggle }: { 
     const content = (
         <>
             <DramaCover item={item} />
-            <span className={`drama-chip drama-library-badge is-${item.status}`}><span className="drama-dot" />{STATUS_LABEL[item.status]}</span>
+            <span className={`drama-chip drama-library-badge is-${item.status}`}>
+                <span className="drama-dot" />
+                {STATUS_LABEL[item.status]}
+            </span>
             <div className="drama-library-body">
                 <h3 title={item.project.name}>{item.project.name}</h3>
                 <div className="drama-library-meta">
@@ -1056,8 +1013,12 @@ function DramaHubCard({ item, managing = false, selected = false, onToggle }: { 
                     <RelativeTime value={item.updatedAt || item.project.updatedAt} />
                 </div>
                 <div className="drama-library-progress">
-                    <span className="drama-library-progress-bar"><span style={progressFillStyle(Math.max(progress, 2))} /></span>
-                    <span className="drama-library-progress-text"><b>{stage}</b></span>
+                    <span className="drama-library-progress-bar">
+                        <span style={progressFillStyle(Math.max(progress, 2))} />
+                    </span>
+                    <span className="drama-library-progress-text">
+                        <b>{stage}</b>
+                    </span>
                 </div>
             </div>
         </>
@@ -1073,11 +1034,18 @@ function DramaHubCard({ item, managing = false, selected = false, onToggle }: { 
                     aria-label={`选择《${item.project.name}》`}
                     tabIndex={0}
                     onClick={onToggle}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle?.(); } }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onToggle?.();
+                        }
+                    }}
                 >
                     {content}
                 </div>
-                <span className="drama-library-check" aria-hidden="true"><Check /></span>
+                <span className="drama-library-check" aria-hidden="true">
+                    <Check />
+                </span>
             </article>
         );
     }

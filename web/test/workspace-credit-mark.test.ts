@@ -14,9 +14,9 @@ describe("workspace credit mark", () => {
 
         // 顶栏外壳只挂操作区，积分金币由操作区与画布顶栏共用同一枚标记。
         expect(topBar).toContain("<WorkspaceTopBarActions />");
-        expect(actions).toContain("<WorkspaceCreditMark className=\"is-compact\" />");
+        expect(actions).toContain('<WorkspaceCreditMark className="is-compact" />');
         expect(actions).not.toContain("Coins");
-        expect(canvas).toContain("<WorkspaceCreditMark className=\"is-compact\" />");
+        expect(canvas).toContain('<WorkspaceCreditMark className="is-compact" />');
         expect(canvas).not.toContain("Coins");
         // 金币本色：亮面到侧面的暖金渐变，不再沿用旧的礼盒橙 / 缎带青。
         expect(mark).toContain("#FFD772");

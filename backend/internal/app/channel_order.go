@@ -8,9 +8,14 @@ import (
 )
 
 type ChannelOrderItem struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
+	ID               string                     `json:"id"`
+	Name             string                     `json:"name"`
+	Enabled          bool                       `json:"enabled"`
+	ModelKey         string                     `json:"modelKey,omitempty"`
+	ProviderModelKey string                     `json:"providerModelKey,omitempty"`
+	Capability       string                     `json:"capability,omitempty"`
+	Protocol         model.ChannelInterfaceType `json:"protocol,omitempty"`
+	ChannelLabel     string                     `json:"channelLabel,omitempty"`
 }
 type ChannelOrderRequest struct {
 	IDs         []string `json:"ids"`
@@ -28,7 +33,7 @@ func (s *Service) AdminChannelOrder(actor *model.User, channelID string) ([]Chan
 			return nil, err
 		}
 		for _, row := range rows {
-			result = append(result, ChannelOrderItem{row.ID, row.Name, row.Enabled})
+			result = append(result, ChannelOrderItem{ID: row.ID, Name: row.Name, Enabled: row.Enabled})
 		}
 	} else {
 		if _, err := s.repo.AdminSystemChannel(channelID); err != nil {
@@ -39,7 +44,16 @@ func (s *Service) AdminChannelOrder(actor *model.User, channelID string) ([]Chan
 			return nil, err
 		}
 		for _, row := range rows {
-			result = append(result, ChannelOrderItem{row.ID, firstNonEmpty(row.DisplayName, row.ModelKey), row.Enabled})
+			result = append(result, ChannelOrderItem{
+				ID:               row.ID,
+				Name:             firstNonEmpty(row.DisplayName, row.ModelKey),
+				Enabled:          row.Enabled,
+				ModelKey:         row.ModelKey,
+				ProviderModelKey: row.ProviderModelKey,
+				Capability:       row.Capability,
+				Protocol:         row.Protocol,
+				ChannelLabel:     row.ChannelLabel,
+			})
 		}
 	}
 	return result, nil

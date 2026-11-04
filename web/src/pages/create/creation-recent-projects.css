@@ -81,7 +81,9 @@
     font: inherit;
     font-size: var(--recent-project-info-size);
     cursor: pointer;
-    transition: color var(--motion-state) ease, border-color var(--motion-state) ease;
+    transition:
+        color var(--motion-state) ease,
+        border-color var(--motion-state) ease;
 }
 
 .creation-recent-projects-tabs button[aria-selected="true"] {
@@ -114,7 +116,9 @@
     background: var(--recent-project-surface);
     color: var(--recent-project-ink);
     text-decoration: none;
-    transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease;
+    transition:
+        border-color var(--motion-state) ease,
+        background-color var(--motion-state) ease;
 }
 
 .creation-recent-project-card:hover {
@@ -280,20 +284,30 @@
 }
 
 @media (max-width: 1360px) {
-    .creation-recent-projects-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .creation-recent-projects-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 1100px) {
-    .creation-recent-projects-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .creation-recent-projects-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 760px) {
-    .creation-recent-projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .creation-recent-projects-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 480px) {
-    .creation-recent-projects-grid { grid-template-columns: minmax(0, 1fr); }
-    .creation-recent-projects-actions { gap: var(--space-3); }
+    .creation-recent-projects-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .creation-recent-projects-actions {
+        gap: var(--space-3);
+    }
 }
 
 /* ===== 短剧卡片 =====
@@ -363,11 +377,19 @@
     transform: scale(1.02);
 }
 
-.creation-recent-drama-cover img { transition: transform 250ms var(--motion-ease-out); }
+.creation-recent-drama-cover img {
+    transition: transform 250ms var(--motion-ease-out);
+}
 
-.creation-recent-drama-cover.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.creation-recent-drama-cover.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.creation-recent-drama-cover.is-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.creation-recent-drama-cover.is-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.creation-recent-drama-cover.is-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.creation-recent-drama-cover.is-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 
 /* 底部压一层暗渐变，浅色封面上也能看清与下方标题的层次。 */
 .creation-recent-drama-cover::after {
@@ -380,12 +402,12 @@
 
 .creation-recent-drama-cover.is-empty {
     place-items: center;
-    background:
-        radial-gradient(120% 80% at 20% 0%, color-mix(in srgb, var(--user-accent, var(--workspace-accent)) 22%, transparent), transparent 60%),
-        linear-gradient(160deg, var(--recent-project-surface-muted), var(--recent-project-surface));
+    background: radial-gradient(120% 80% at 20% 0%, color-mix(in srgb, var(--user-accent, var(--workspace-accent)) 22%, transparent), transparent 60%), linear-gradient(160deg, var(--recent-project-surface-muted), var(--recent-project-surface));
 }
 
-.creation-recent-drama-cover.is-empty::after { display: none; }
+.creation-recent-drama-cover.is-empty::after {
+    display: none;
+}
 
 .creation-recent-drama-glyph {
     color: color-mix(in srgb, var(--recent-project-ink) 14%, transparent);
@@ -454,8 +476,13 @@
 }
 
 @keyframes creation-recent-drama-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
 }
 
 .creation-recent-drama-body {
@@ -515,8 +542,12 @@
     transition: transform 250ms var(--motion-ease-out);
 }
 
-.creation-recent-drama-card.is-completed .creation-recent-drama-track > span { background: var(--status-success); }
-.creation-recent-drama-card.is-paused .creation-recent-drama-track > span { background: var(--status-warning); }
+.creation-recent-drama-card.is-completed .creation-recent-drama-track > span {
+    background: var(--status-success);
+}
+.creation-recent-drama-card.is-paused .creation-recent-drama-track > span {
+    background: var(--status-warning);
+}
 
 .creation-recent-drama-progress > b {
     color: var(--recent-project-ink);
@@ -528,5 +559,8 @@
 @media (prefers-reduced-motion: reduce) {
     .creation-recent-projects *,
     .creation-recent-projects *::before,
-    .creation-recent-projects *::after { transition: none; animation: none; }
+    .creation-recent-projects *::after {
+        transition: none;
+        animation: none;
+    }
 }

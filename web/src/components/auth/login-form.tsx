@@ -75,28 +75,64 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
      */
     return (
         <form onSubmit={submit} className="flex flex-col gap-2.5">
-            {methods.length > 0 && <Segmented block aria-label="登录方式" value={method} disabled={submitting} options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]} onChange={(value) => { setMethod(value as typeof method); setVerification({ ...emptyVerification }); }} />}
-            {method !== "password" ? <VerificationFields key={method} purpose="login" method={method} value={verification} onChange={setVerification} disabled={submitting} /> : <>
-                {/* 输入框的底色 / 描边 / 文字色 / 占位符全部由 globals.css 的 `.auth-scene-card` 段按主题给出，
+            {methods.length > 0 && (
+                <Segmented
+                    block
+                    aria-label="登录方式"
+                    value={method}
+                    disabled={submitting}
+                    options={[{ value: "password", label: "密码登录" }, ...methods.map((value) => ({ value, label: methodLabels[value] }))]}
+                    onChange={(value) => {
+                        setMethod(value as typeof method);
+                        setVerification({ ...emptyVerification });
+                    }}
+                />
+            )}
+            {method !== "password" ? (
+                <VerificationFields key={method} purpose="login" method={method} value={verification} onChange={setVerification} disabled={submitting} />
+            ) : (
+                <>
+                    {/* 输入框的底色 / 描边 / 文字色 / 占位符全部由 globals.css 的 `.auth-scene-card` 段按主题给出，
                     这里不要再挂 `text-white`、`bg-white/5` 这类工具类：它们是旧独立登录页（深色）的遗留，
                     而那段选择器用了 `:where()`（特异性 0），浅色主题下会被工具类反过来盖成白底白字。 */}
-                <Input id="login-account" aria-label="用户名或邮箱" size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名或邮箱" autoComplete="username" required />
-                <Input.Password id="login-password" aria-label="密码" size="large" prefix={<LockKeyhole className="auth-scene-icon size-4" />} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" autoComplete="current-password" required />
-            </>}
+                    <Input
+                        id="login-account"
+                        aria-label="用户名或邮箱"
+                        size="large"
+                        prefix={<UserRound className="auth-scene-icon size-4" />}
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        placeholder="用户名或邮箱"
+                        autoComplete="username"
+                        required
+                    />
+                    <Input.Password
+                        id="login-password"
+                        aria-label="密码"
+                        size="large"
+                        prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="密码"
+                        autoComplete="current-password"
+                        required
+                    />
+                </>
+            )}
             <div className="-my-1 flex justify-end">
                 {/* 就地切到找回密码表单：`/forgot-password` 是空壳路由，真跳过去会卸载
                     整棵页面树再被宿主换回来（空白几帧）。href 保留给中键 / 新标签页。 */}
-                <Link to={forgotPasswordURL} onClick={(event) => interceptAuthLink(event, { mode: "recovery", next })} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors text-white/50 hover:text-white/90">
+                <Link to={forgotPasswordURL} onClick={(event) => interceptAuthLink(event, { mode: "recovery", next })} className="auth-scene-link inline-flex min-h-6 items-center rounded-sm text-xs font-medium transition-colors">
                     忘记密码？
                 </Link>
             </div>
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium text-[15px] border-0 mt-1">
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1">
                 登录并进入创作
             </Button>
             {/* 第三方登录不再配「或」分隔线：只有两个区块时，一条分割线带来的
                 视觉噪音大于它的分组作用，改用按钮间距区分。 */}
             {linuxdoEnabled ? (
-                <Button size="large" block icon={<LinuxDOIcon />} href={linuxDOLoginURL(next)} className="h-12 rounded-2xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20 hover:text-white">
+                <Button size="large" block icon={<LinuxDOIcon />} href={linuxDOLoginURL(next)} className="h-12 rounded-2xl">
                     使用 Linux.do 登录
                 </Button>
             ) : null}

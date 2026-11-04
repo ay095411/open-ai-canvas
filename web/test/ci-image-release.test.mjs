@@ -9,6 +9,10 @@ const scripts = fileURLToPath(new URL("../../.github/scripts/", import.meta.url)
 const temporaryDirectories = [];
 const sha = "a".repeat(40);
 const digest = "b".repeat(64);
+const git = Bun.which("git");
+const bash = Bun.which("bash") || (process.platform === "win32" && git ? [path.resolve(git, "../../bin/bash.exe"), path.resolve(git, "../../usr/bin/bash.exe")].find(existsSync) : undefined);
+if (!bash) throw new Error("镜像发布脚本测试需要 Bash；Windows 可安装 Git for Windows。");
+const shellPath = (value) => value.replaceAll(path.sep, "/");
 afterEach(() => {
     for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
@@ -29,24 +33,32 @@ function fixture(overrides = {}) {
     writeFileSync(output, "");
     const env = {
         ...process.env,
-        PATH: `${bin}:${process.env.PATH}`,
-        GITHUB_OUTPUT: output,
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+        GITHUB_OUTPUT: shellPath(output),
         GITHUB_SHA: sha,
         GITHUB_REF: "refs/heads/main",
         GITHUB_REPOSITORY: "fixture/repo",
         IMAGE: "ghcr.io/fixture/image",
         VERSION_TAG: "1.5.5",
         EXPECTED_DIGESTS: "1",
-        DIGEST_DIR: digests,
+        DIGEST_DIR: shellPath(digests),
         MOCK_DIGEST: `sha256:${digest}`,
         MOCK_ERROR: "",
         MOCK_GH_ERROR: "",
         MOCK_MAIN: sha,
-        MOCK_CALL: path.join(root, "docker-call"),
+        MOCK_CALL: shellPath(path.join(root, "docker-call")),
         ...overrides,
     };
     return {
-        run: (script, ...args) => spawnSync("bash", [path.join(scripts, script), ...args], { env, encoding: "utf8" }),
+        run: (script, ...args) => {
+            const executable = path.join(root, script);
+            // Windows checkout 可能采用 CRLF；执行相同脚本的 LF 副本，不把换行差异当作业务失败。
+            writeFileSync(executable, readFileSync(path.join(scripts, script), "utf8").replace(/\r\n/g, "\n"));
+            const result = spawnSync(bash, [shellPath(executable), ...args], { env, encoding: "utf8", timeout: 10_000 });
+            if (result.error) throw result.error;
+            if (result.status === null || result.status === undefined) throw new Error(`Bash 未正常退出：${result.signal || result.stderr}`);
+            return result;
+        },
         output: () => readFileSync(output, "utf8"),
         call: () => (existsSync(env.MOCK_CALL) ? readFileSync(env.MOCK_CALL, "utf8") : ""),
     };

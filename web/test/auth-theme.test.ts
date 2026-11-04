@@ -33,19 +33,24 @@ describe("authentication follows the application theme", () => {
         expect(scene).not.toContain("auth-card-dark");
         expect(scene.match(/<main className="([^"]+)"/)?.[1]).not.toContain("text-white");
         expect(scene).toContain("auth-scene-hero");
-        expect(scene).toContain("<BrandLogo theme={theme}");
+        expect(scene).toContain('className="auth-scene-brand-logo"');
+        expect(scene).toContain('className="auth-scene-muted');
         expect(source("components/layout/app-providers.tsx")).toContain("getAntThemeConfig(dark, appearance.activeSkin)");
     });
 
     test("form labels, links and notices do not assume white text", () => {
-        for (const page of ["login", "register", "forgot-password"]) {
-            const form = source(`pages/auth/${page}.tsx`);
-            expect(form).not.toMatch(/(?:text|border|bg)-white/);
-            expect(form).not.toMatch(/text-(?:blue|amber)-[123]00/);
-            expect(form).toContain("auth-scene-label");
+        for (const path of ["components/auth/login-form.tsx", "components/auth/register-form.tsx", "pages/auth/forgot-password.tsx"]) {
+            const form = source(path);
+            const classes = Array.from(form.matchAll(/className="([^"]*)"/g), (match) => match[1]).join(" ");
+            expect(classes).not.toMatch(/(?:text|border|bg)-white/);
+            expect(classes).not.toMatch(/text-(?:blue|amber)-[123]00/);
             expect(form).toContain("auth-scene-icon");
         }
-        expect(source("pages/auth/register.tsx")).toContain("auth-scene-notice");
+        expect(source("components/auth/login-form.tsx")).toContain('aria-label="用户名或邮箱"');
+        expect(source("components/auth/login-form.tsx")).toContain('aria-label="密码"');
+        expect(source("components/auth/register-form.tsx")).toContain("auth-scene-label");
+        expect(source("components/auth/register-form.tsx")).toContain("auth-scene-notice");
+        expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-label");
         expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-notice");
     });
 
@@ -56,7 +61,7 @@ describe("authentication follows the application theme", () => {
         expect(css).toContain("-webkit-text-fill-color: var(--foreground) !important");
         expect(css).toContain("box-shadow: 0 0 0 1000px var(--auth-card-bg) inset !important");
         expect(css).toContain(".auth-scene-link:focus-visible");
-        expect(css).toContain("box-shadow: 0 0 0 var(--focus-ring-width) color-mix(in srgb, var(--ring) 18%, transparent)");
+        expect(css).toContain("box-shadow: 0 0 0 var(--focus-ring-width) color-mix(in srgb, var(--ring) 16%, transparent)");
     });
 
     test("custom auth palettes are preserved per mode", () => {

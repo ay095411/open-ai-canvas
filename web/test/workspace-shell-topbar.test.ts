@@ -1,58 +1,64 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const layout = (name: string) => resolve(import.meta.dir, `../src/components/layout/${name}`);
 const read = (name: string) => readFileSync(layout(name), "utf8");
 
-describe("workspace shell has no persistent sidebar", () => {
-    test("drops the sidebar source files entirely", () => {
-        for (const name of ["workspace-sidebar-nav.tsx", "workspace-sidebar-checkin.tsx", "workspace-sidebar-footer.tsx"]) {
-            expect(existsSync(layout(name))).toBe(false);
-        }
+describe("responsive workspace shell", () => {
+    test("persists desktop collapse independently of the mobile drawer", () => {
+        const shell = read("app-top-nav.tsx");
+        expect(shell).toContain("useState(readWorkspaceSidebarCollapsed)");
+        expect(shell).toContain("writeWorkspaceSidebarCollapsed(next)");
+        expect(shell).toContain("setMobileSidebarExpanded((current) => !current)");
+        expect(shell).toContain("if (isMobileViewport()) setMobileSidebarExpanded(false)");
+        expect(shell).toContain('aria-label="收起侧栏" onClick={() => setMobileSidebarExpanded(false)}');
     });
 
-    test("shell renders only the topbar, banner, palette and the two global hosts", () => {
+    test("shell keeps navigation and overlay hosts mounted with the page stage", () => {
         const shell = read("app-top-nav.tsx");
 
-        expect(shell).toContain("<WorkspaceTopBar />");
-        expect(shell).not.toContain("WorkspaceSidebarNav");
-        expect(shell).not.toContain("app-workspace-sidebar-scrim");
-        expect(shell).not.toContain("sidebarOpen");
+        expect(shell).toContain("<WorkspaceTopBar sidebarOpen=");
+        expect(shell).toContain("<WorkspaceSidebarNav");
+        expect(shell).toContain("onNavigate={handleNavClick}");
+        expect(shell).toContain("<WorkspaceTopBarExtensionProvider>");
+        expect(shell).toContain("<WorkspaceAuthHost />");
         expect(shell).toContain("<WorkspaceWalletHost />");
         expect(shell).toContain("<WorkspaceSettingsHost />");
+        expect(shell).toContain("<WorkspaceStorageLimitNotice />");
+        expect(shell.indexOf("<WorkspaceAuthHost />")).toBeGreaterThan(shell.indexOf("</WorkspaceTopBarExtensionProvider>"));
     });
 
-    test("topbar needs no sidebar props and hosts brand + extension + actions", () => {
+    test("topbar exposes the mobile sidebar control, extension and actions", () => {
         const topbar = read("workspace-top-bar.tsx");
 
-        expect(topbar).toContain("export function WorkspaceTopBar()");
-        expect(topbar).not.toContain("sidebarOpen");
-        expect(topbar).not.toContain("onToggleSidebar");
-        expect(topbar).not.toContain("PanelLeft");
-        // 品牌是侧栏下线后「回首页枢纽」的唯一常驻入口。
-        expect(topbar).toContain('className="app-workspace-topbar-brand"');
+        expect(topbar).toContain('aria-label={sidebarOpen ? "收起侧栏" : "展开侧栏"}');
+        expect(topbar).toContain("onClick={onToggleSidebar}");
         expect(topbar).toContain("<WorkspaceTopBarExtensionSlot />");
         expect(topbar).toContain("<WorkspaceTopBarActions />");
+        expect(read("workspace-sidebar-nav.tsx")).toContain('className="app-workspace-sidebar-brand-button group"');
     });
 
-    test("topbar actions carry the two sidebar-only features", () => {
+    test("sidebar account area keeps checkin and both public and signed-in announcements reachable", () => {
+        const sidebar = read("workspace-sidebar-nav.tsx");
         const actions = read("workspace-topbar-actions.tsx");
 
-        expect(actions).toContain("<WorkspaceTopBarCheckin />");
-        expect(actions).toContain("SystemAnnouncementCenter");
-        // 游客也要能读公告：不带 userId（只读、不标记已读、不自动浮出）。
-        expect(actions).toContain('<SystemAnnouncementCenter className="app-workspace-topbar-icon-button" />');
-        // 登录态保留「未读自动浮出」的投递行为，它不该因为换位置而消失。
-        expect(actions).toContain("autoOpen");
+        expect(sidebar).toContain("<WorkspaceSidebarCheckin collapsed={collapsed} />");
+        expect(sidebar).toContain('<SystemAnnouncementCenter className="app-workspace-sidebar-notification" />');
+        expect(sidebar).toContain('<SystemAnnouncementCenter userId={user.id} className="app-workspace-sidebar-notification" autoOpen />');
+        expect(actions).toContain("creditsEnabled && Boolean(user)");
+        expect(actions).toContain("onClick={() => openWorkspaceWallet()}");
+        expect(actions).toContain("<AnimatedThemeToggler");
     });
 
-    test("signin entry is no longer a white-on-white invisible pill", () => {
-        const actions = read("workspace-topbar-actions.tsx");
+    test("guest sidebar login retains an accessible entry in both widths", () => {
+        const sidebar = read("workspace-sidebar-nav.tsx");
         const css = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
 
-        expect(actions).toContain('className="app-workspace-topbar-signin"');
-        expect(actions).not.toContain("bg-white/10 hover:bg-white/20 text-white rounded-full text-sm font-medium");
-        expect(css).toContain(".app-user-workspace .app-workspace-topbar-signin {");
+        expect(sidebar).toContain('to="/login" onClick={(event) => interceptAuthLink(event)}');
+        expect(sidebar).toContain('aria-label="登录" title="登录"');
+        expect(sidebar).toMatch(/className="app-workspace-sidebar-profile-avatar">\s*<CoalAvatar/);
+        expect(sidebar).toMatch(/!collapsed\s*\?\s*\(?\s*<span className="app-workspace-sidebar-profile-copy"/);
+        expect(css).toContain(".app-workspace-sidebar-profile");
     });
 });

@@ -41,12 +41,14 @@ describe("登录 / 注册 / 找回密码弹窗", () => {
         const host = source("components/layout/workspace-auth-modal.tsx");
         expect(host).toContain("WORKSPACE_AUTH_OPEN_EVENT");
         expect(host).toContain('const AUTH_ROUTES = new Set(["/login", "/register", "/forgot-password"]);');
-        expect(host).toContain("navigate(returnToRef.current, { replace: true })");
+        expect(host).toContain('navigate("/", { replace: true })');
+        expect(host).toContain("const next = state.next ?? returnToRef.current");
+        expect(host).toContain("navigate(next, { replace: true })");
         // 已登录时不该再看登录表单（Linux.do 回调返回、另一个标签页登录完成）。
         expect(host).toContain("if (!state.open || !hydrated || !user) return;");
         // 关闭按钮必须是 frame 的第一个子节点：AntD 打开弹窗时把焦点给第一个可聚焦元素，
         // 若让轮播指示条先拿到焦点，onFocusCapture 会把自动播放永久按停。
-        expect(host.indexOf("workspace-auth-close")).toBeLessThan(host.indexOf("workspace-auth-media"));
+        expect(host.indexOf('className="workspace-auth-close"')).toBeLessThan(host.indexOf("<AuthCarousel slides="));
     });
 
     test("路由不再渲染登录页，三条深链都是空壳且游客可达", () => {
@@ -63,14 +65,15 @@ describe("登录 / 注册 / 找回密码弹窗", () => {
         }
     });
 
-    test("登录入口走 /login 深链，由宿主接住变成弹窗", () => {
-        // 侧栏与创作页都跳 /login?next=…；分享画布在路由器顶层，同样跳 /login，
-        // 落进 WorkspaceLayout 分支后被宿主接住。任何一处改成直接渲染登录页都会让弹窗失效。
-        expect(source("components/layout/workspace-sidebar-footer.tsx")).toContain('"/login"');
-        expect(source("pages/create/index.tsx")).toContain("navigate(`/login?next=");
+    test("工作台就地打开登录弹窗，外部分享保留登录深链", () => {
+        const sidebar = source("components/layout/workspace-sidebar-nav.tsx");
+        expect(sidebar).toContain('to="/login" onClick={(event) => interceptAuthLink(event)}');
+        expect(source("pages/create/index.tsx")).toContain("openWorkspaceAuth({ next: `${location.pathname}${location.search}` })");
         const logout = source("hooks/use-workspace-logout.ts");
-        expect(logout).toContain('navigate("/login", { replace: true })');
-        expect(logout).not.toContain('navigate("/", { replace: true })');
+        expect(logout).toContain("await logout()");
+        expect(logout).toContain("await applyUserSession({ user: null })");
+        expect(logout).toContain("openWorkspaceAuth()");
+        expect(logout).toContain("message.error(");
         expect(source("pages/canvas/shared.tsx")).toContain('to="/login"');
     });
 
@@ -79,7 +82,7 @@ describe("登录 / 注册 / 找回密码弹窗", () => {
         // 高度写死在 frame 上，而不是 min-height：跟内容走会让弹窗一跳一跳。
         const frameStart = css.indexOf(".workspace-auth-frame {");
         const frameBlock = css.slice(frameStart, css.indexOf("}", frameStart));
-        expect(frameBlock).toContain("height: min(620px, calc(100dvh - 48px))");
+        expect(frameBlock).toContain("height: min(700px, calc(100dvh - 40px))");
         expect(frameBlock).not.toContain("min-height");
         // 样式跟着组件模块走（弹窗是跨路由浮层，不进 globals.css）。
         const modal = source("components/layout/workspace-auth-modal.tsx");
@@ -89,17 +92,20 @@ describe("登录 / 注册 / 找回密码弹窗", () => {
         expect(modal).toContain("closable={false}");
         expect(modal).toContain("<LoginForm");
         expect(modal).toContain("<RegisterForm");
-        // 找回密码整页组件直接嵌进弹窗；它成功后自己跳 /login，宿主接住就回到登录表单。
-        expect(modal).toContain("<ForgotPasswordPage />");
+        expect(modal).toContain('<ForgotPasswordPage next={next} onCompleted={() => onModeChange("login")} />');
         expect(source("pages/auth/forgot-password.tsx")).not.toContain("BackToLogin");
     });
 
     test("左侧轮播读后台配置，视频只在当前一张挂载", () => {
         const modal = source("components/layout/workspace-auth-modal.tsx");
         expect(modal).toContain("appearance.authCarousel");
-        // 没配置时回退到内置登录影片，弹窗左侧不能空着。
-        expect(modal).toContain("authVideoUrl");
+        expect(modal).toContain("if (carousel && carousel.length) return carousel;");
+        expect(modal).toContain("return BUILTIN_SLIDES;");
         expect(modal).toContain('slide.kind === "video"');
-        expect(modal).toContain("SLIDE_INTERVAL_MS");
+        expect(modal).toMatch(/isActive\s*\?\s*\(\s*<video/);
+        expect(modal).toContain("autoPlay={!reducedMotion} muted loop playsInline");
+        expect(modal).toContain("onAnimationEnd={index === active ? () => setActive((current) => (current + 1) % count) : undefined}");
+        expect(modal).toContain("onPointerEnter={() => setPaused(true)}");
+        expect(modal).toContain("onFocusCapture={() => setPaused(true)}");
     });
 });

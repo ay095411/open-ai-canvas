@@ -78,7 +78,11 @@ export function FeedbackInboxPane() {
                     compact
                     title="暂无提交记录"
                     description="遇到问题或有新想法，可以随时提交反馈。"
-                    action={<Button type="primary" onClick={() => setSubmitModalOpen(true)}>提交第一条反馈</Button>}
+                    action={
+                        <Button type="primary" onClick={() => setSubmitModalOpen(true)}>
+                            提交第一条反馈
+                        </Button>
+                    }
                 />
             ) : displayedFeedbacks.length === 0 ? (
                 <WorkspaceState

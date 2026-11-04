@@ -21,7 +21,7 @@ describe("agent avatar mark", () => {
         const mark = read("../src/components/canvas/agent-avatar-mark.tsx");
 
         expect(mark).toContain('viewBox="0 0 64 64"');
-        expect(mark).toContain("strokeLinecap=\"round\"");
+        expect(mark).toContain('strokeLinecap="round"');
         expect((mark.match(/<circle/g) ?? []).length).toBe(2);
         expect(mark).toContain("#2D7BF4");
         expect(mark).toContain("#8A5CF6");

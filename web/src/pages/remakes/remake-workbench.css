@@ -350,7 +350,6 @@
     justify-content: space-between;
     gap: 10px 18px;
     padding: 10px 12px 10px 14px;
-    border-left: 3px solid var(--rk-warning);
     border-radius: 6px;
     background: color-mix(in srgb, var(--rk-warning) 7%, transparent);
     font-size: var(--fs-caption);

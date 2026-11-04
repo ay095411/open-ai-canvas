@@ -7,7 +7,6 @@ import { buildWorkspaceModules } from "../src/lib/workspace-modules";
 const source = (rel: string) => readFileSync(resolve(import.meta.dir, `../src/${rel}`), "utf8");
 
 describe("workspace module entries", () => {
-    // 侧栏下线后，首页模块入口条是页面之间唯一的常驻导航 —— 它的每一条都必须真能到达。
     test("lists only reachable routes and never links back to the creation page itself", () => {
         const modules = buildWorkspaceModules({ pluginCenterEnabled: true, taskCenterEnabled: true });
         const paths = modules.map((module) => module.to);
@@ -25,17 +24,17 @@ describe("workspace module entries", () => {
         expect(off.map((module) => module.to)).toEqual(["/inspirations", "/projects", "/canvas", "/assets", "/skills"]);
     });
 
-    test("is mounted on the creation home and preloads its targets", () => {
+    test("workspace sidebar owns navigation and preloads its targets", () => {
         const home = source("pages/create/index.tsx");
-        const nav = source("pages/create/creation-module-nav.tsx");
-        const css = source("pages/create/creation-module-nav.css");
+        const shell = source("components/layout/app-top-nav.tsx");
+        const nav = source("components/layout/workspace-sidebar-nav.tsx");
 
-        expect(home).toContain("<CreationModuleNav />");
-        expect(nav).toContain("preloadWorkspaceRoute(module.to)");
-        // 入口条必须带可访问名，且样式跟着组件模块走（懒加载路由不会漏样式）。
-        expect(nav).toContain('aria-label="工作台模块"');
-        expect(nav).toContain('import "./creation-module-nav.css"');
-        expect(css).toContain(".creation-module-chip:focus-visible");
-        expect(css).toContain(".creation-module-chip:active");
+        expect(home).not.toContain("<CreationModuleNav");
+        expect(shell).toContain("<WorkspaceSidebarNav");
+        for (const event of ["onPointerEnter", "onPointerDown", "onFocus"]) expect(nav).toContain(`${event}={() => preloadWorkspaceRoute(linkTo)}`);
+        expect(nav).toContain('aria-current={isActive ? "page" : undefined}');
+        expect(nav).toContain("aria-label={collapsed ? collapsedHint : undefined}");
+        expect(nav).toContain("features.taskCenterEnabled");
+        expect(nav).toContain("features.pluginCenterEnabled");
     });
 });

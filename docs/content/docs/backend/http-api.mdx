@@ -291,6 +291,22 @@ CANVAS_BACKEND_DATA_DIR=/明确的数据目录 ./migrate-schema repair-canvas-re
 
 `GET /public/appearance` 返回当前 `activeSkin`；管理员通过 `GET/PUT /admin/settings/appearance` 读取、保存完整主题库。外观合同版本 8 新增 `tokens.buttons.light/dark`，字段为 `mode`（`solid|gradient`）、整数 `angle`（0–360）、HEX 色值 `start/end`、`hoverStart/hoverEnd`、`activeStart/activeEnd`、`foreground`。纯色模式使用既有主操作颜色，渐变仅用于主按钮。非法模式、角度、色值或修改锁定经典主题均拒绝保存；整块缺失的旧配置按主题身份补齐。此变更不增加数据表迁移。
 
+## 渠道与模型展示顺序
+
+管理员通过 `GET /admin/channels/order` 读取全部系统渠道，或通过 `GET /admin/channels/:id/models/order` 读取指定系统渠道的全部模型（含停用项），返回 `data.items`，数组顺序即当前展示顺序。每项保留 `id`、`name`、`enabled`；模型排序额外返回以下只读字段，空值省略：
+
+| 字段 | 含义 |
+| --- | --- |
+| `modelKey` | 调用标识，区分展示名相同的模型 |
+| `providerModelKey` | 配置的上游模型标识 |
+| `capability` | 已配置的模型能力，如 `text`、`image`、`video`、`audio` |
+| `protocol` | 已配置的模型调用协议 |
+| `channelLabel` | 模型的二级渠道展示名，不是所属系统渠道名称 |
+
+`name` 使用模型展示名，未设置时使用 `modelKey`。这些信息来自同一份排序列表读取结果，不根据前台名称重新归组，也不受页面搜索、筛选或分页影响。渠道排序响应不携带模型字段；两个读取接口均要求管理员权限。
+
+向对应路径发送 `PUT` 保存 `{ ids, expectedIds }`：`ids` 为调整后的完整 ID 顺序，`expectedIds` 为打开排序界面时读取的完整原始顺序。服务端继续校验条目完整性、归属与原始顺序，并在事务中保存；原始快照过期返回 409，不覆盖他人的排序。显示名称和新增元数据不参与保存，不改变模型配置、价格、能力或启停状态，无数据表迁移。
+
 ## 模型规格报价
 
 ### 管理员批量调价

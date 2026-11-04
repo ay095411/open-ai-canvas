@@ -16,15 +16,7 @@ export function AgentAvatarMark({ size = 56, className }: { size?: number; class
     const stroke = `${uid}-stroke`;
 
     return (
-        <svg
-            className={cn("agent-avatar-mark block shrink-0", className)}
-            width={size}
-            height={size}
-            viewBox="0 0 64 64"
-            fill="none"
-            aria-hidden="true"
-            focusable="false"
-        >
+        <svg className={cn("agent-avatar-mark block shrink-0", className)} width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
             <defs>
                 <linearGradient id={stroke} x1="12" y1="44" x2="54" y2="15" gradientUnits="userSpaceOnUse">
                     <stop stopColor="#2D7BF4" />
@@ -35,13 +27,7 @@ export function AgentAvatarMark({ size = 56, className }: { size?: number; class
             {/* 圆头粗描边的 N 形波纹：起笔左下、顶峰偏左、谷底偏右，收笔右上。
                 两个点分别落在起笔的左下与收笔的右上，与描边留出 2 个以上单位的空隙，
                 避免小尺寸下和笔画黏成一团。 */}
-            <path
-                d="M14 36C14 26 19.5 18 27.5 17.5C35 17 38.5 23.5 40.5 29.5C42.5 35.5 47 35.5 52 28.5"
-                stroke={`url(#${stroke})`}
-                strokeWidth="10.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
+            <path d="M14 36C14 26 19.5 18 27.5 17.5C35 17 38.5 23.5 40.5 29.5C42.5 35.5 47 35.5 52 28.5" stroke={`url(#${stroke})`} strokeWidth="10.5" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx="10" cy="48.5" r="4.6" fill="#2D7BF4" />
             <circle cx="53.5" cy="14.5" r="5" fill="#8A5CF6" />
         </svg>

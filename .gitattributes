@@ -1,5 +1,11 @@
 plugin-packages/*.sh text eol=lf
 
+# gofmt 的输出固定为 LF；Windows 检出也保持相同字节，避免整库格式误报。
+*.go text eol=lf
+
+# 与 web/.prettierrc 的 endOfLine: lf 一致；二进制素材保持原始字节。
+web/** text=auto eol=lf
+
 # 以下路径参与「字节级」校验（golden 快照、策略体积上限、技能脚本哈希），
 # 必须保证 LF：Windows 上 core.autocrlf=true 默认会检出 CRLF，这些测试必然失败。
 backend/internal/app/testdata/** text eol=lf

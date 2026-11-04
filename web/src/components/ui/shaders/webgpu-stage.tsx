@@ -9,7 +9,7 @@ interface WebGPUShaderStageProps {
 
 /**
  * 安全的 WebGPU 画布容器。
- * 
+ *
  * 职责：
  * 1. 异步探测当前环境是否具备可用的 WebGPU Adapter；
  * 2. 如果不支持 WebGPU 或 GPU 崩溃，无感渲染 fallback；
