@@ -10,6 +10,8 @@ import { AppDrawer } from "@/components/ui/product/app-drawer";
 import { Clapperboard, Download, Image as ImageIcon, MessageSquareText, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { conversationTimestamp } from "./creation-conversations";
 import { formatMessageTime } from "./creation-workspace-messages";
+import { useTranslation } from "react-i18next";
+import { translate } from "@/i18n";
 
 export function creationConversationBucket(updatedAt: string): "today" | "yesterday" | "week" | "earlier" {
     const at = new Date(updatedAt).getTime();
@@ -25,7 +27,20 @@ export function creationConversationBucket(updatedAt: string): "today" | "yester
     return "earlier";
 }
 
-export const creationBucketLabels: Record<"today" | "yesterday" | "week" | "earlier", string> = { today: "今天", yesterday: "昨天", week: "近 7 天", earlier: "更早" };
+export const creationBucketLabels: Record<"today" | "yesterday" | "week" | "earlier", string> = {
+    get today() {
+        return translate("create.history.today");
+    },
+    get yesterday() {
+        return translate("create.history.yesterday");
+    },
+    get week() {
+        return translate("create.history.week");
+    },
+    get earlier() {
+        return translate("create.history.earlier");
+    },
+};
 
 export function CreationHistoryDrawer({
     open,
@@ -46,6 +61,7 @@ export function CreationHistoryDrawer({
     onDelete: (conversation: CreationConversation) => void;
     onRename: (conversation: CreationConversation, title: string) => void;
 }) {
+    const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -70,7 +86,7 @@ export function CreationHistoryDrawer({
         const value = renameInputRef.current?.value.trim() || "";
         setRenamingId(null);
         if (shouldSkip || !value) return;
-        const original = conversation.title.trim() || "新创作";
+        const original = conversation.title.trim() || t("create.conversation.untitled");
         if (value === original) return;
         onRename(conversation, value);
     };
@@ -94,7 +110,7 @@ export function CreationHistoryDrawer({
             const searchable = [
                 conversation.title,
                 ...conversation.messages.flatMap((message) => [message.content, displayCreationPrompt(message.content, message.references || [])]),
-                latest?.mode ? modeLabels[latest.mode] : "创作",
+                latest?.mode ? modeLabels[latest.mode] : t("create.history.creation"),
                 formatConversationTime(conversation.updatedAt),
             ]
                 .filter(Boolean)
@@ -102,7 +118,7 @@ export function CreationHistoryDrawer({
                 .toLowerCase();
             return searchable.includes(query);
         });
-    }, [conversations, keyword]);
+    }, [conversations, keyword, t]);
 
     const titleId = useId();
 
@@ -142,8 +158,8 @@ export function CreationHistoryDrawer({
                         <Plus />
                     </span>
                     <span className="creation-history-new-copy">
-                        <strong>新建创作</strong>
-                        <small>开启一个新的创作对话</small>
+                        <strong>{t("create.history.new")}</strong>
+                        <small>{t("create.history.newHint")}</small>
                     </span>
                 </button>
                 <div className="creation-history-scroll creation-scrollbar">
@@ -268,11 +284,11 @@ export function CreationHistoryDrawer({
 }
 
 export function buildConversationExportMarkdown(conversation: CreationConversation, assistantName: string, userName: string) {
-    const lines: string[] = [`# ${conversation.title.trim() || "新创作"}`, ""];
+    const lines: string[] = [`# ${conversation.title.trim() || translate("create.conversation.untitled")}`, ""];
     for (const message of conversation.messages) {
         const stamp = formatMessageTime(message.createdAt);
-        const modeTag = message.mode && message.mode !== "text" ? (message.mode === "image" ? "[图像生成] " : "[视频生成] ") : "";
-        const speaker = message.role === "user" ? userName || "我" : assistantName;
+        const modeTag = message.mode && message.mode !== "text" ? (message.mode === "image" ? `[${translate("create.message.imageGeneration")}] ` : `[${translate("create.message.videoGeneration")}] `) : "";
+        const speaker = message.role === "user" ? userName || translate("create.history.exportMe") : assistantName;
         if (message.role === "user") {
             const prompt = displayCreationPrompt(message.content, message.references || []).trim();
             if (!prompt) continue;
@@ -280,16 +296,17 @@ export function buildConversationExportMarkdown(conversation: CreationConversati
         } else {
             const body = (message.content || "").trim();
             if (body) lines.push(`## ${speaker} · ${stamp}`, "", `${modeTag}${body}`, "");
-            else if (message.resultUrls?.length) lines.push(`## ${speaker} · ${stamp}`, "", `${modeTag}已生成，素材保留在项目中。`, "");
+            else if (message.resultUrls?.length) lines.push(`## ${speaker} · ${stamp}`, "", `${modeTag}${translate("create.history.exportGenerated")}`, "");
             else continue;
-            if (message.reasoning?.trim()) lines.push("> 思考过程：", message.reasoning.trim(), "");
+            if (message.reasoning?.trim()) lines.push(`> ${translate("create.history.exportReasoning")}`, message.reasoning.trim(), "");
         }
     }
     return lines.join("\n").trim() + "\n";
 }
 
 export function downloadCreationConversation(conversation: CreationConversation, assistantName: string, userName: string) {
-    const safeTitle = (conversation.title.trim() || "新创作").replace(/[\\/:*?"<>|]/g, "_").slice(0, 60) || "新创作";
+    const untitled = translate("create.conversation.untitled");
+    const safeTitle = (conversation.title.trim() || untitled).replace(/[\\/:*?"<>|]/g, "_").slice(0, 60) || untitled;
     const blob = new Blob([buildConversationExportMarkdown(conversation, assistantName, userName)], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -316,18 +333,18 @@ export function formatHistoryRelativeTime(value: string) {
     const timestamp = conversationTimestamp(value);
     if (!timestamp) return "";
     const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
-    if (seconds < 60) return "刚刚";
+    if (seconds < 60) return translate("time.justNow");
     const minutes = Math.round(seconds / 60);
-    if (minutes < 60) return `${minutes} 分钟前`;
+    if (minutes < 60) return translate("time.minutesAgo", { count: minutes });
     const hours = Math.round(minutes / 60);
-    if (hours < 24) return `${hours} 小时前`;
+    if (hours < 24) return translate("time.hoursAgo", { count: hours });
     const days = Math.round(hours / 24);
-    if (days < 7) return `${days} 天前`;
+    if (days < 7) return translate("time.daysAgo", { count: days });
     return historyDayFormatter.format(timestamp);
 }
 
 export function formatConversationTime(value: string) {
     const timestamp = conversationTimestamp(value);
-    if (!timestamp) return "时间未知";
+    if (!timestamp) return translate("time.unknown");
     return conversationTimeFormatter.format(timestamp);
 }

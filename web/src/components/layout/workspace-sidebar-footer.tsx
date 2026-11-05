@@ -4,11 +4,13 @@ import { ChevronRight, LogIn, LogOut, Moon, ShieldCheck, Sun } from "lucide-reac
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
+import { AuthLoginLink } from "@/components/auth/auth-login-link";
 import { AppChangelogButton } from "@/components/layout/app-changelog-modal";
 import { IdentityProviderBadge } from "@/components/layout/identity-provider-badge";
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { UserGroupBadge } from "@/components/layout/user-group-badge";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
+import { useAuthEntry } from "@/hooks/use-auth-entry";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { applyUserSession } from "@/lib/user-session";
 import { cn } from "@/lib/utils";
@@ -50,7 +52,7 @@ export function WorkspaceSidebarFooter({ expandedClassName, collapsedClassName, 
             // 后者会让整页卸载重建（空白几帧），观感是闪一下。
             openWorkspaceAuth();
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "退出失败");
+            message.error(error instanceof Error ? error.message : t("account.layout.footerMenu.logoutFailed"));
         }
     };
 

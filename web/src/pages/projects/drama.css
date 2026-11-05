@@ -4281,6 +4281,9 @@ html.dark .drama-hub-console::before {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.drama-job-error.is-wait {
+    color: color-mix(in oklab, var(--drama-warn) 80%, var(--foreground));
+}
 .drama-job-time {
     color: var(--drama-faint);
     text-align: right;

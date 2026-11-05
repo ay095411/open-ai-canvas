@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { zhCN as accountZh } from "../src/i18n/messages/areas/account/zh-CN";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 

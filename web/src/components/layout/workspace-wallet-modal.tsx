@@ -3,11 +3,13 @@ import { App, Button, Input, Skeleton } from "antd";
 import { ChevronLeft, ChevronRight, CircleAlert, Coins, CreditCard, History, RefreshCw, TicketCheck, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import { WalletTopupPanel, type TopupCategory } from "@/components/layout/workspace-wallet-topup";
 import { usePaymentOrderFlow } from "@/components/payment/use-payment-order-flow";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { formatCredits } from "@/constant/credits";
+import { currentLocale } from "@/i18n";
 import { useAccountFileStorageUsage } from "@/hooks/use-account-file-storage-usage";
 import { accountFileStorageUsageQueryKey, accountStorageMeter } from "@/lib/account-storage-usage";
 import { generationErrorMessage } from "@/lib/generation-error";
@@ -86,6 +88,7 @@ export function WorkspaceWalletModal({
     pendingPaymentOrderId?: string;
     paymentInvalid?: boolean;
 }) {
+    const { t } = useTranslation();
     const { message } = App.useApp();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -121,7 +124,7 @@ export function WorkspaceWalletModal({
             const result = await getWallet(targetPage, 20, "all");
             if (sequence === requestSequence.current) setWallet(result);
         } catch (error) {
-            if (sequence === requestSequence.current) setWalletError(error instanceof Error ? error.message : "读取积分账户失败");
+            if (sequence === requestSequence.current) setWalletError(error instanceof Error ? error.message : t("account.wallet.loadFailed"));
         } finally {
             if (sequence === requestSequence.current) setWalletLoading(false);
         }
@@ -147,13 +150,13 @@ export function WorkspaceWalletModal({
                 );
                 setSelectedProviderId((current) => current || usableProviders[0]?.id || "");
             })
-            .catch((error) => message.error(error instanceof Error ? error.message : "读取充值配置失败"))
+            .catch((error) => message.error(error instanceof Error ? error.message : t("account.wallet.configLoadFailed")))
             .finally(() => setPaymentsLoading(false));
     }, [open]);
 
     useEffect(() => {
         if (!open || !paymentInvalid) return;
-        message.error("支付结果无效，未产生充值");
+        message.error(t("account.wallet.paymentInvalid"));
     }, [open, paymentInvalid]);
 
     const announceWalletUpdated = async () => {
@@ -184,7 +187,7 @@ export function WorkspaceWalletModal({
     const redeem = async () => {
         const normalized = code.trim().toLowerCase();
         if (normalized.length !== 32) {
-            message.error("请输入完整的 32 位兑换码");
+            message.error(t("account.wallet.redeemCodeInvalid"));
             return;
         }
         setRedeeming(true);
@@ -192,9 +195,9 @@ export function WorkspaceWalletModal({
             await redeemCredits(normalized);
             setCode("");
             await announceWalletUpdated();
-            message.success("兑换成功，积分已到账");
+            message.success(t("account.wallet.redeemSuccess"));
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "兑换失败");
+            message.error(error instanceof Error ? error.message : t("account.wallet.redeemFailed"));
         } finally {
             setRedeeming(false);
         }
@@ -206,7 +209,7 @@ export function WorkspaceWalletModal({
             return;
         }
         if (!selectedProduct.canPurchase) {
-            message.error("该套餐当前不可购买，请刷新后重试");
+            message.error(t("account.wallet.productUnavailable"));
             return;
         }
         await payment.start(selectedProduct.id, selectedProvider.id);
@@ -233,17 +236,17 @@ export function WorkspaceWalletModal({
                         <div>
                             <span className="workspace-wallet-kicker">
                                 <Coins />
-                                {creditsEnabled ? "积分中心" : "充值中心"}
+                                {creditsEnabled ? t("nav.tools.wallet") : t("account.wallet.topupCenter")}
                             </span>
-                            <h2>{creditsEnabled ? "充值、兑换与消费记录" : "购买存储空间"}</h2>
-                            <p>{creditsEnabled ? "补充积分或扩充存储空间，随时查看每一笔收支。" : "扩充素材文件与 Agent 会话附件的总容量。"}</p>
+                            <h2>{creditsEnabled ? t("account.wallet.title") : t("account.wallet.titleStorage")}</h2>
+                            <p>{creditsEnabled ? t("account.wallet.description") : t("account.wallet.descriptionStorage")}</p>
                         </div>
                         <div className="workspace-wallet-stats">
                             {creditsEnabled ? (
                                 <div className="workspace-wallet-balance">
                                     <span className="wallet-stat-label">可用积分</span>
                                     <strong>{wallet ? formatCredits(available, 6) : "--"}</strong>
-                                    <small>冻结 {wallet ? formatCredits(wallet.account.reservedMicrocredits, 6) : "--"}</small>
+                                    <small>{t("account.wallet.reserved", { amount: wallet ? formatCredits(wallet.account.reservedMicrocredits, 6) : "--" })}</small>
                                 </div>
                             ) : null}
                             <button type="button" className="workspace-wallet-balance is-storage" aria-label="查看存储空间套餐" onClick={() => focusProducts("storage")}>
@@ -254,30 +257,30 @@ export function WorkspaceWalletModal({
                                 </span>
                                 <small>
                                     {storageMeter.state === "read_only"
-                                        ? "已超额 · 只读"
+                                        ? t("account.wallet.storageReadOnly")
                                         : storageMeter.state === "grace"
-                                          ? "已超额 · 暂停上传"
+                                          ? t("account.wallet.storageGrace")
                                           : storageMeter.purchasedLabel
-                                            ? `含已购 ${storageMeter.purchasedLabel}`
-                                            : `剩余 ${storageMeter.remainingLabel}`}
+                                            ? t("account.wallet.storagePurchased", { size: storageMeter.purchasedLabel })
+                                            : t("account.layout.storage.remaining", { size: storageMeter.remainingLabel })}
                                 </small>
                             </button>
                         </div>
                     </header>
 
                     {creditsEnabled ? (
-                        <div className="workspace-wallet-tabs" role="tablist" aria-label="积分中心">
+                        <div className="workspace-wallet-tabs" role="tablist" aria-label={t("nav.tools.wallet")}>
                             <button type="button" role="tab" aria-selected={activeTab === "topup"} onClick={() => setTab("topup")}>
                                 <WalletCards />
-                                充值
+                                {t("account.wallet.tabTopup")}
                             </button>
                             <button type="button" role="tab" aria-selected={activeTab === "redeem"} onClick={() => setTab("redeem")}>
                                 <TicketCheck />
-                                兑换
+                                {t("account.wallet.tabRedeem")}
                             </button>
                             <button type="button" role="tab" aria-selected={activeTab === "history"} onClick={() => setTab("history")}>
                                 <History />
-                                积分消耗历史
+                                {t("account.wallet.tabHistory")}
                             </button>
                         </div>
                     ) : null}
@@ -326,11 +329,11 @@ export function WorkspaceWalletModal({
                         <div className="workspace-wallet-content is-history">
                             <div className="workspace-wallet-history-toolbar">
                                 <div>
-                                    <h3>积分消耗历史</h3>
-                                    <p>包含充值、兑换、生成消费、冻结与退款。</p>
+                                    <h3>{t("account.wallet.tabHistory")}</h3>
+                                    <p>{t("account.wallet.historyDescription")}</p>
                                 </div>
                                 <Button type="text" icon={<RefreshCw />} loading={walletLoading} onClick={() => void reloadWallet(page)}>
-                                    刷新
+                                    {t("common.refresh")}
                                 </Button>
                             </div>
                             <div className="workspace-wallet-history-scroll thin-scrollbar">
@@ -338,10 +341,10 @@ export function WorkspaceWalletModal({
                                     <div className="workspace-wallet-inline-state is-error">
                                         <CircleAlert />
                                         <div>
-                                            <strong>记录加载失败</strong>
+                                            <strong>{t("account.wallet.historyLoadFailed")}</strong>
                                             <span>{walletError}</span>
                                         </div>
-                                        <Button onClick={() => void reloadWallet(page)}>重试</Button>
+                                        <Button onClick={() => void reloadWallet(page)}>{t("common.retry")}</Button>
                                     </div>
                                 ) : walletLoading && !wallet ? (
                                     <Skeleton active paragraph={{ rows: 6 }} />
@@ -354,19 +357,17 @@ export function WorkspaceWalletModal({
                                 ) : (
                                     <div className="workspace-wallet-empty">
                                         <History />
-                                        <strong>还没有积分记录</strong>
-                                        <span>完成充值、兑换或生成任务后，记录会显示在这里。</span>
+                                        <strong>{t("account.wallet.historyEmpty")}</strong>
+                                        <span>{t("account.wallet.historyEmptyHint")}</span>
                                     </div>
                                 )}
                             </div>
                             <div className="workspace-wallet-pagination">
-                                <span>
-                                    第 {page} / {totalPages} 页
-                                </span>
+                                <span>{t("account.wallet.pageOf", { page, total: totalPages })}</span>
                                 <button
                                     type="button"
                                     disabled={page <= 1 || walletLoading}
-                                    aria-label="上一页"
+                                    aria-label={t("account.layout.pagination.prev")}
                                     onClick={() => {
                                         const next = page - 1;
                                         setPage(next);
@@ -378,7 +379,7 @@ export function WorkspaceWalletModal({
                                 <button
                                     type="button"
                                     disabled={page >= totalPages || walletLoading}
-                                    aria-label="下一页"
+                                    aria-label={t("account.layout.pagination.next")}
                                     onClick={() => {
                                         const next = page + 1;
                                         setPage(next);
@@ -399,17 +400,29 @@ export function WorkspaceWalletModal({
 }
 
 function WalletLedgerRow({ entry }: { entry: CreditLedgerEntry }) {
+    const { t } = useTranslation();
     const positive = entry.amountMicrocredits > 0;
     const note = entry.note ? generationErrorMessage(entry.note) : "";
-    const title = entry.type === "consume" ? "模型调用" : entry.type === "refund" ? "消费退款" : entry.type === "payment_topup" ? "在线充值" : entry.type === "redeem" ? "兑换码充值" : entry.type === "referral_commission" ? "推广返佣" : note || "积分调整";
+    const title =
+        entry.type === "consume"
+            ? t("account.wallet.ledger.consume")
+            : entry.type === "refund"
+              ? t("account.wallet.ledger.refund")
+              : entry.type === "payment_topup"
+                ? t("account.wallet.ledger.paymentTopup")
+                : entry.type === "redeem"
+                  ? t("account.wallet.ledger.redeem")
+                  : entry.type === "referral_commission"
+                    ? t("account.wallet.ledger.referral")
+                    : note || t("account.wallet.ledger.adjust");
     return (
         <article className="workspace-wallet-ledger-row">
             <span className={cn("workspace-wallet-ledger-icon", positive ? "is-income" : "is-consume")}>{positive ? <Coins /> : <CreditCard />}</span>
             <div>
                 <strong>{title}</strong>
-                <span>{[entry.scene, entry.model, note].filter(Boolean).join(" · ") || "积分账户变动"}</span>
+                <span>{[entry.scene, entry.model, note].filter(Boolean).join(" · ") || t("account.wallet.ledger.change")}</span>
             </div>
-            <time>{new Date(entry.createdAt).toLocaleString("zh-CN", { hour12: false })}</time>
+            <time>{new Date(entry.createdAt).toLocaleString(currentLocale(), { hour12: false })}</time>
             <b className={positive ? "is-income" : "is-consume"}>
                 {positive ? "+" : ""}
                 {formatCredits(entry.amountMicrocredits, 6)}

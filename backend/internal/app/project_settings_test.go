@@ -29,6 +29,8 @@ func newProjectSettingsTestService(t *testing.T) (*Service, *gorm.DB) {
 		&model.DramaProduction{}, &model.DramaCast{}, &model.DramaEpisode{}, &model.DramaSegment{}, &model.DramaTake{},
 		// 资源引用快照会查询复刻/项目引用表，缺表时 snapshot 直接报错。
 		&model.RemakeResourceReference{},
+		// 反馈附件同样纳入资源引用，缺少 feedback 表时快照查询失败。
+		&model.UserFeedback{},
 	); err != nil {
 		t.Fatal(err)
 	}

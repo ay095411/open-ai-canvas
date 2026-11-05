@@ -1,6 +1,7 @@
 import { App } from "antd";
 import { useState } from "react";
 
+import { useAuthEntry } from "@/hooks/use-auth-entry";
 import { applyUserSession } from "@/lib/user-session";
 import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { logout } from "@/services/api/auth";

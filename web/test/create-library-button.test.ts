@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { zhCN as createZh } from "../src/i18n/messages/areas/create/zh-CN";
+import { zhCN as libraryZh } from "../src/i18n/messages/areas/library/zh-CN";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 

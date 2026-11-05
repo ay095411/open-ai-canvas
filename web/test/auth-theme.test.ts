@@ -56,6 +56,7 @@ describe("authentication follows the application theme", () => {
 
     test("focus and autofill keep theme-aware foregrounds and visible focus", () => {
         const css = source("styles/globals.css");
+        const panel = source("components/auth/auth-panel.css");
         expect(css).not.toContain(".auth-card-dark");
         expect(css).toContain(".auth-scene-card input:-webkit-autofill");
         expect(css).toContain("-webkit-text-fill-color: var(--foreground) !important");

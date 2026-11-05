@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import { getActiveBanners, type BannerAnnouncement } from "@/services/api/announcements";
 import {
@@ -16,6 +17,7 @@ const BANNER_AUTO_SLIDE_MS = 4000;
 const BANNER_DISMISS_STORAGE_PREFIX = "yingce.banner-announcements.dismissed";
 
 export function BannerAnnouncementsSlider() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const reducedMotion = useReducedMotion();
     const userId = useUserStore((state) => state.user?.id);

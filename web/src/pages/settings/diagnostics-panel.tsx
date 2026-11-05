@@ -1,7 +1,8 @@
 import { App, Button, Input } from "antd";
 import { Select } from "@/components/ui/base/select";
 import { Activity, CheckCircle2, Clock3, Download, FileText, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { exportDiagnosticBundle, downloadDiagnosticBundle, previewDiagnosticBundle, type DiagnosticExportInput, type DiagnosticPreview } from "@/services/diagnostics/diagnostics-api";
 import { getClientDiagnosticEvents, getDiagnosticRuntime } from "@/services/diagnostics/client-diagnostics";
@@ -14,15 +15,12 @@ type DiagnosticsPanelProps = {
 
 type DiagnosticRange = "15m" | "30m" | "1h" | "24h";
 
-const rangeOptions: { value: DiagnosticRange; label: string }[] = [
-    { value: "15m", label: "最近 15 分钟" },
-    { value: "30m", label: "最近 30 分钟" },
-    { value: "1h", label: "最近 1 小时" },
-    { value: "24h", label: "最近 24 小时" },
-];
+const RANGES: DiagnosticRange[] = ["15m", "30m", "1h", "24h"];
 
 export default function DiagnosticsPanel({ taskId, projectId }: DiagnosticsPanelProps) {
+    const { t } = useTranslation();
     const { message } = App.useApp();
+    const rangeOptions = useMemo(() => RANGES.map((value) => ({ value, label: t(`account.settings.diagnostics.ranges.${value}`) })), [t]);
     const [range, setRange] = useState<DiagnosticRange>("30m");
     const [description, setDescription] = useState("");
     const [preview, setPreview] = useState<DiagnosticPreview | null>(null);
@@ -54,9 +52,9 @@ export default function DiagnosticsPanel({ taskId, projectId }: DiagnosticsPanel
             const download = await exportDiagnosticBundle(buildInput(range, description, taskId, projectId));
             downloadDiagnosticBundle(download);
             setBundleId(download.bundleId);
-            message.success("诊断包已下载，请连同诊断编号提交给支持人员");
+            message.success(t("account.settings.diagnostics.downloaded"));
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "导出诊断包失败");
+            message.error(error instanceof Error ? error.message : t("account.settings.diagnostics.exportFailed"));
         } finally {
             setExporting(false);
         }

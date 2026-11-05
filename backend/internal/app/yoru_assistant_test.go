@@ -8,6 +8,17 @@ import (
 	"yingce/backend/internal/model"
 )
 
+// enableYoruFeatures 打开站内助手开关；上游移除该开关后测试服务不再默认开启，
+// 小夜用例需要显式打开，同时保留电商与工作台开关以避免覆盖其它前置条件。
+func enableYoruFeatures(t *testing.T, s *Service) {
+	t.Helper()
+	features := defaultFeatureAvailability()
+	features.SiteAssistantEnabled = true
+	features.EcommerceEnabled, features.EcommerceVideoEnabled = true, true
+	features.ImageWorkbenchEnabled, features.VideoWorkbenchEnabled = true, true
+	saveAdmissionFeatures(t, s, features)
+}
+
 func TestYoruDefaultsFailClosedAndPublicProjection(t *testing.T) {
 	svc, _, _, _ := newAppearanceTestService(t)
 	setting, err := svc.YoruSettings()
@@ -42,6 +53,7 @@ func TestYoruAudienceGateDefaultsToAdmin(t *testing.T) {
 
 func TestYoruCreatesRepeatedBillableRoutedTextTasks(t *testing.T) {
 	svc, db, _, _ := ecommerceCreationTestService(t)
+	enableYoruFeatures(t, svc)
 	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
 	actor := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
 	spec, err := CapabilitySpecFromModelCapabilityConfig(DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "text-test"), "text")
@@ -96,6 +108,7 @@ func TestYoruCreatesRepeatedBillableRoutedTextTasks(t *testing.T) {
 
 func TestYoruReusesPublishedDirectTextModelAndExistingBilling(t *testing.T) {
 	svc, db, _, _ := ecommerceCreationTestService(t)
+	enableYoruFeatures(t, svc)
 	admin := &model.User{ID: "admin", Username: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
 	if err := db.Create(admin).Error; err != nil {
 		t.Fatal(err)

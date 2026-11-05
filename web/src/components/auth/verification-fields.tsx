@@ -52,7 +52,8 @@ export function VerificationFields({ purpose, method, value, onChange, disabled 
     const [sending, setSending] = useState(false);
     const [remaining, setRemaining] = useState(0);
     const inFlight = useRef(false);
-    const sms = method !== "email", email = method !== "sms";
+    const sms = method !== "email",
+        email = method !== "sms";
     useEffect(() => {
         if (!remaining) return;
         const timer = window.setTimeout(() => setRemaining((n) => Math.max(0, n - 1)), 1000);
@@ -64,7 +65,8 @@ export function VerificationFields({ purpose, method, value, onChange, disabled 
         if ((sms && !value.phone.trim()) || (email && !value.email.trim()) || (purpose === "bind" && !password)) {
             message.warning("请先填写联系方式及必要的当前密码"); return;
         }
-        inFlight.current = true; setSending(true);
+        inFlight.current = true;
+        setSending(true);
         // Start cooldown even on ambiguous failures; never encourage instant resends.
         setRemaining(60);
         onChange({ ...value, ticket: "", emailCode: "", smsCode: "" });

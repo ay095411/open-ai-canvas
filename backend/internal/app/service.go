@@ -113,6 +113,9 @@ type Service struct {
 	dramaTailFrameHook func(userID, resourceID string) (string, error)
 	dramaTaskHook      func(userID string, req CreateTaskRequest, timeline *renderProject) (*model.Task, error)
 	remakeTaskHook     func(userID string, req CreateTaskRequest, timeline *renderProject) (*model.Task, error)
+	// dramaTails 跟踪调度循环之外的尾帧抽取；dramaBackgroundRunner 为空时用后台 worker，测试替换为同步执行。
+	dramaTails            dramaTailWorker
+	dramaBackgroundRunner func(fn func()) bool
 }
 
 const taskWorkerConcurrency = 3
