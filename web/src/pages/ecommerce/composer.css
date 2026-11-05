@@ -18,14 +18,29 @@
     --ecs-motion: var(--motion-dur-base) var(--motion-ease-out);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(380px, 420px);
-    gap: var(--space-4);
+    gap: 12px;
     width: 100%;
     height: 100%;
     min-width: 0;
     min-height: 0;
-    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    padding: 12px;
     background: var(--user-page-bg);
     color: var(--user-ink);
+}
+/* 「创作影棚」外壳统一成旧生图工作台那套卡片语言：
+   页面 12px 内边距 + 每栏一块 18px 圆角、1px 描边、单层表面的卡片，栏间 12px 缝。
+   之前「方案与作品」直接浮在页面底色上，只有右栏是卡片，两栏高度也对不齐，
+   读起来像两套页面拼在一起。 */
+.ecs-shell > .commerce-output-gallery {
+    padding: 14px;
+    border: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
+    border-radius: 18px;
+    background: var(--user-surface);
+    overflow: hidden;
+}
+.ecs-shell > .ecs-composer {
+    border: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
+    border-radius: 18px;
 }
 .ecs-mobile-tabs {
     display: none;
@@ -51,7 +66,9 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-3) 0 var(--space-4);
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    /* 旧生图工作台的工具条以一条细线收口，栏头与其下的表单因此分成两层。 */
+    border-bottom: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
 }
 .ecs-kind-switch {
     display: inline-flex;

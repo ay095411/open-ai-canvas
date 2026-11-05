@@ -8,9 +8,9 @@ import { YORU_CHEER_EVENT } from "@/lib/yoru-events";
 import "./yoru-widget.css";
 
 // Only routes present in web/src/router.tsx may be used as assistant actions.
+// 旧 /toolbox/image|video 已下线（只剩重定向），生成类入口统一指到「创作影棚」。
 const links = [
-    ["图片生成", "/toolbox/image"],
-    ["视频生成", "/toolbox/video"],
+    ["创作影棚", "/ecommerce"],
     ["灵感大厅", "/create"],
     ["自由画布", "/canvas"],
     ["Agent", "/canvas"],

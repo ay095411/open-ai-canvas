@@ -33,13 +33,13 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
             const tool = navigationTools.find((item) => item.slug === slug);
             return { id: slug, title: tool?.label ?? slug, icon: tool?.icon ?? Home, to };
         };
-        const toolboxTo = features.imageWorkbenchEnabled ? "/toolbox/image" : features.videoWorkbenchEnabled ? "/toolbox/video" : "";
         return [
             { id: "home", title: "首页", icon: Home, to: "/" },
             ...(features.shortDramaEnabled ? [toolEntry("projects", "/projects")] : []),
-            ...(features.ecommerceEnabled ? [toolEntry("ecommerce", "/ecommerce")] : []),
+            // 「创作影棚」= /ecommerce（旧 /toolbox/image|video 工作台已下线）。
+            // 图标用侧栏同款大眼萌相机，两个入口对同一个页面必须长得一样。
+            ...(features.ecommerceEnabled ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: "/ecommerce" }] : []),
             toolEntry("canvas", "/canvas"),
-            ...(toolboxTo ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: toolboxTo }] : []),
             ...(features.taskCenterEnabled ? [toolEntry("tasks", "/tasks")] : []),
             toolEntry("assets", "/assets"),
             toolEntry("skills", "/skills"),

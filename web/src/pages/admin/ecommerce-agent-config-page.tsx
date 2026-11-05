@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import { ArrowUpRight, Clapperboard, Image as ImageIcon, Layers3, ListChecks, RefreshCw, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, Image as ImageIcon, Layers3, ListChecks, RefreshCw, ShoppingBag } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { getAdminFeatureAvailability } from "@/services/api/auth";
@@ -74,15 +74,6 @@ export default function EcommerceAgentConfigPage() {
                   ready: visionReady && planningReady,
                   required: true,
                   action: { label: "去配置", run: openStageModels },
-              },
-              {
-                  key: "video",
-                  title: "商品视频（可选）",
-                  description: "开启后作品可以一键带入视频生成做成商品视频；需要同时开放视频生成。",
-                  icon: <Clapperboard className="size-4" aria-hidden="true" />,
-                  ready: features.ecommerceVideoEnabled && features.videoWorkbenchEnabled,
-                  required: false,
-                  action: { label: "去功能开放", run: openFeatures },
               },
           ]
         : [];

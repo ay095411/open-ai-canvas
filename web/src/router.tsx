@@ -9,6 +9,7 @@ import {
     loadCanvasPage,
     loadCanvasProjectPage,
     loadCreatePage,
+    loadEcommercePage,
     loadProjectCreatePage,
     loadProjectDetailPage,
     loadProjectsPage,
@@ -19,7 +20,7 @@ import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 
 const AdminPage = lazy(() => import("@/pages/admin"));
-const EcommercePage = lazy(() => import("@/pages/ecommerce"));
+const EcommercePage = lazy(loadEcommercePage);
 const EcommerceManagementPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-management-page"));
 const EcommerceAgentConfigPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-agent-config-page"));
 const AnalyticsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AnalyticsPage })));
@@ -58,8 +59,6 @@ const CanvasPage = lazy(loadCanvasPage);
 const CanvasProjectPage = lazy(loadCanvasProjectPage);
 const SharedCanvasPage = lazy(() => import("@/pages/canvas/shared"));
 const CreatePage = lazy(loadCreatePage);
-const ImageWorkbenchPage = lazy(() => import("@/pages/workbench/image-workbench-route"));
-const VideoWorkbenchPage = lazy(() => import("@/pages/workbench/video-workbench-page"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const SkillsPage = lazy(() => import("@/pages/skills"));
 const SkillWorkbenchPage = lazy(loadSkillWorkbenchPage);
@@ -143,26 +142,11 @@ export const router = createBrowserRouter([
             { path: "/", element: deferred(<CreatePage />) },
             { path: "/create", element: deferred(<CreatePage />) },
             { path: "/ecommerce", element: <RequireAuth>{deferred(<EcommercePage />)}</RequireAuth> },
-            {
-                path: "/toolbox",
-                element: <Navigate to="/toolbox/image" replace />,
-            },
-            {
-                path: "/toolbox/image",
-                element: (
-                    <RequireAuth>
-                        <RequireFeature feature="imageWorkbenchEnabled">{deferred(<ImageWorkbenchPage />)}</RequireFeature>
-                    </RequireAuth>
-                ),
-            },
-            {
-                path: "/toolbox/video",
-                element: (
-                    <RequireAuth>
-                        <RequireFeature feature="videoWorkbenchEnabled">{deferred(<VideoWorkbenchPage />)}</RequireFeature>
-                    </RequireAuth>
-                ),
-            },
+            // 旧「创作影棚」（/toolbox/image、/toolbox/video 的生图 / 视频工作台）已下线，
+            // 能力并入 /ecommerce 这一套「创作影棚」。这里保留重定向，旧收藏和分享链接不落空。
+            { path: "/toolbox", element: <Navigate to="/ecommerce" replace /> },
+            { path: "/toolbox/image", element: <Navigate to="/ecommerce" replace /> },
+            { path: "/toolbox/video", element: <Navigate to="/ecommerce" replace /> },
             {
                 path: "/tasks",
                 element: (

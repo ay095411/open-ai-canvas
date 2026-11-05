@@ -1,81 +1,35 @@
 import { describe, expect, test } from "bun:test";
 
-import { filterWorkbenchTools, taskMediaUrls, workbenchTaskSnapshot } from "../src/pages/workbench/image-workbench-page";
-import type { GenerationTask } from "@/services/api/task-center";
-import type { WorkbenchTool } from "@/services/api/workbench";
-
 (globalThis as Record<string, unknown>).__APP_VERSION__ ??= "0.0.0";
 
-const tools: WorkbenchTool[] = [
-    { id: "face", kind: "image", categoryId: "people", name: "脸部三视图", subtitle: "生成正脸、侧脸", description: "角色参考", sortOrder: 0, enabled: true, supportedModes: ["image"], presets: [] },
-    { id: "product", kind: "image", categoryId: "product", name: "商品白底图", subtitle: "生成商品图", description: "电商产品", sortOrder: 1, enabled: true, supportedModes: ["image"], presets: [] },
-];
+/**
+ * 「创作影棚」入口契约。
+ *
+ * 旧 /toolbox/image、/toolbox/video 的生图 / 视频工作台已下线，能力并入 /ecommerce。
+ * 侧栏 nav id 仍保留 toolbox（角标、折叠态两字标题、命令面板都按它登记），
+ * 因此 /ecommerce 与三个 /toolbox 路径都必须高亮同一项 —— 否则用户从
+ * 旧收藏或重定向链进来时，侧栏会没有任何选中项。
+ *
+ * 侧栏模块会连带拉起 app-changelog 等依赖 __APP_VERSION__ 的模块，
+ * 所以用动态 import：上面的 globalThis 赋值必须先于模块求值。
+ */
+const loadNavActiveId = async () => (await import("../src/components/layout/workspace-sidebar-nav")).workspaceNavActiveId;
 
-describe("workbenchTaskSnapshot", () => {
-    test("restores video settings and reference identity from safe task details", () => {
-        const task = {
-            inputJson: JSON.stringify({
-                metadata: {
-                    source: "workbench",
-                    workbenchKind: "video",
-                    workbenchToolId: "tool-video",
-                    workbenchPresetId: "preset-video",
-                    workbench: {
-                        kind: "video",
-                        parameters: { seconds: 8, ratio: "16:9", resolution: "1080p", generateAudio: true, watermark: false },
-                        references: [{ resourceId: "resource-1", kind: "image", role: "first_frame", slotKey: "subject" }],
-                    },
-                },
-            }),
-        } as GenerationTask;
-
-        expect(workbenchTaskSnapshot(task)).toEqual({
-            kind: "video",
-            toolId: "tool-video",
-            presetId: "preset-video",
-            parameters: { seconds: 8, ratio: "16:9", resolution: "1080p", generateAudio: true, watermark: false },
-            references: [{ resourceId: "resource-1", kind: "image", role: "first_frame", slotKey: "subject" }],
-        });
-    });
-
-    test("does not treat a task-list summary as loaded restore data", () => {
-        expect(workbenchTaskSnapshot({ id: "summary" } as GenerationTask)).toBeNull();
-    });
-});
-
-describe("filterWorkbenchTools", () => {
-    test("combines category and case-insensitive text search", () => {
-        expect(filterWorkbenchTools(tools, "people", "侧脸").map((tool) => tool.id)).toEqual(["face"]);
-        expect(filterWorkbenchTools(tools, "people", "商品")).toEqual([]);
-    });
-
-    test("searches tool description and returns all tools for blank query", () => {
-        expect(filterWorkbenchTools(tools, "all", "电商").map((tool) => tool.id)).toEqual(["product"]);
-        expect(filterWorkbenchTools(tools, "all", "  ")).toHaveLength(2);
-    });
-});
-
-describe("workspaceNavActiveId for unified toolbox entry", () => {
-    test("highlights the unified toolbox entry for image and video workbench routes", async () => {
-        const { workspaceNavActiveId } = await import("../src/components/layout/workspace-sidebar-nav");
+describe("workspaceNavActiveId for the 创作影棚 entry", () => {
+    test("highlights the single 创作影棚 entry for /ecommerce and every retired /toolbox route", async () => {
+        const workspaceNavActiveId = await loadNavActiveId();
+        expect(workspaceNavActiveId("/ecommerce")).toBe("toolbox");
         expect(workspaceNavActiveId("/toolbox")).toBe("toolbox");
         expect(workspaceNavActiveId("/toolbox/image")).toBe("toolbox");
         expect(workspaceNavActiveId("/toolbox/video")).toBe("toolbox");
     });
-});
 
-describe("taskMediaUrls for multi-image workbench results", () => {
-    test("returns all generated image URLs from resultJson and falls back to previewUrl", () => {
-        const multiImageTask = {
-            id: "task-multi",
-            previewUrl: "/api/resources/1/file",
-            resultJson: JSON.stringify({
-                mode: "image",
-                images: [{ url: "/api/resources/1/file" }, { dataUrl: "/api/resources/2/file" }, { url: "/api/resources/3/file" }],
-            }),
-        } as GenerationTask;
-
-        expect(taskMediaUrls(multiImageTask)).toEqual(["/api/resources/1/file", "/api/resources/2/file", "/api/resources/3/file"]);
-        expect(taskMediaUrls({ id: "summary-only", previewUrl: "/api/resources/summary/file" } as GenerationTask)).toEqual(["/api/resources/summary/file"]);
+    test("keeps other entries on their own ids", async () => {
+        const workspaceNavActiveId = await loadNavActiveId();
+        expect(workspaceNavActiveId("/")).toBe("home");
+        expect(workspaceNavActiveId("/create")).toBe("home");
+        expect(workspaceNavActiveId("/canvas")).toBe("canvas");
+        expect(workspaceNavActiveId("/assets")).toBe("assets");
+        expect(workspaceNavActiveId("/settings", "appearance")).toBe("settings:appearance");
     });
 });

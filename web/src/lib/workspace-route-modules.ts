@@ -2,18 +2,18 @@ const workspaceRouteLoaders = {
     assets: () => import("@/pages/assets"),
     canvas: () => import("@/pages/canvas"),
     create: () => import("@/pages/create"),
+    ecommerce: () => import("@/pages/ecommerce"),
     projects: () => import("@/pages/projects/create"),
     projectDetail: () => import("@/pages/projects/detail"),
     projectCreate: () => import("@/pages/projects/create"),
     skillWorkbench: () => import("@/pages/skills/workbench"),
-    toolboxImage: () => import("@/pages/workbench/image-workbench-route"),
-    toolboxVideo: () => import("@/pages/workbench/video-workbench-page"),
 };
 
 export const loadAssetsPage = workspaceRouteLoaders.assets;
 export const loadCanvasPage = workspaceRouteLoaders.canvas;
 export const loadCanvasProjectPage = () => import("@/pages/canvas/project");
 export const loadCreatePage = workspaceRouteLoaders.create;
+export const loadEcommercePage = workspaceRouteLoaders.ecommerce;
 export const loadProjectDetailPage = workspaceRouteLoaders.projectDetail;
 export const loadProjectsPage = workspaceRouteLoaders.projects;
 export const loadProjectCreatePage = workspaceRouteLoaders.projectCreate;
@@ -33,9 +33,10 @@ export function preloadWorkspaceRoute(pathnameOrSlug: string) {
         void workspaceRouteLoaders.skillWorkbench();
         return;
     }
-    // 创作影棚是图片 / 视频工作台的统一入口：按目标工作台预加载对应模块。
-    if (slug === "toolbox" && segments.length > 1) {
-        void (segments[1] === "video" ? workspaceRouteLoaders.toolboxVideo() : workspaceRouteLoaders.toolboxImage());
+    // 「创作影棚」的落地路由是 /ecommerce；旧 /toolbox* 只做重定向，
+    // 目标就是同一个模块，所以两者都预加载 ecommerce，避免重定向后还要等一次加载。
+    if (slug === "toolbox") {
+        void workspaceRouteLoaders.ecommerce();
         return;
     }
     const load = workspaceRouteLoaders[slug as keyof typeof workspaceRouteLoaders];

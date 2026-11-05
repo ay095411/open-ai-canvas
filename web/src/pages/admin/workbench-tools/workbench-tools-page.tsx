@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminPageFrame } from "@/pages/admin/components/admin-shell";
 import { AdminDataTable, AdminStatusBadge } from "@/pages/admin/components/admin-ui";
-import { workbenchCategories, workbenchCategoryLabel, workbenchModeOptions } from "@/pages/workbench/workbench-catalog";
+import { workbenchCategories, workbenchCategoryLabel, workbenchModeOptions } from "@/constant/workbench-catalog";
 import { uploadResourceFile } from "@/services/api/resources";
 import {
     capabilitySupportedModes,

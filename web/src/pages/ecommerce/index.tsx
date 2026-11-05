@@ -1,6 +1,6 @@
 import { createClientUUID } from "@/lib/client-id";
 import { App, Button, Input, Select } from "antd";
-import { AlertCircle, ArrowDownToLine, ArrowUp, ChevronDown, Clapperboard, Image as ImageIcon, LoaderCircle, Minus, Plus, RotateCcw, Save, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, ArrowUp, ChevronDown, Image as ImageIcon, LoaderCircle, Minus, Plus, RotateCcw, Save, Sparkles } from "lucide-react";
 import { HistoryIcon, LightbulbIcon } from "@/components/ui/ecommerce-icons";
 import { WorkspacePage } from "@/components/layout/workspace-page";
 import { SegmentedControl } from "@/components/ui/base/segmented-control/segmented-control";
@@ -155,8 +155,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
     const { message } = App.useApp();
     const config = useEffectiveConfig();
     const ecommerceEnabled = useUserStore((state) => state.features.ecommerceEnabled);
-    const ecommerceVideoEnabled = useUserStore((state) => state.features.ecommerceVideoEnabled);
-    const videoWorkbenchEnabled = useUserStore((state) => state.features.videoWorkbenchEnabled);
     const nickname = useUserStore((state) => state.user?.displayName?.trim() || state.user?.username?.trim() || "创作者");
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -1965,10 +1963,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
           ? `先在右侧添加${scene?.materials.required || "商品图"}，作品会显示在这里。`
           : commerceFlowNextStep(flowSteps);
     const roundDelivered = Boolean(plan && submitted > 0 && completed === total);
-    // 商品视频交给视频生成页：带上一张已完成的作品做首帧。两个开关都开着才出现入口。
-    const productVideoAvailable = ecommerceVideoEnabled && videoWorkbenchEnabled;
-    const makeProductVideo = (resourceId?: string) => navigate(resourceId ? `/toolbox/video?ref=${encodeURIComponent(resourceId)}` : "/toolbox/video");
-    const firstDeliveredResource = exportItems.find((item) => item.resourceId)?.resourceId;
     const stageActive = Boolean(
         restoring ||
         cacheError ||
@@ -2040,11 +2034,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
                         {exportItems.length > 1 ? (
                             <Button disabled={busy} onClick={() => runExport("long")}>
                                 拼成长图
-                            </Button>
-                        ) : null}
-                        {productVideoAvailable ? (
-                            <Button icon={<Clapperboard size={14} />} onClick={() => makeProductVideo(firstDeliveredResource)}>
-                                做成商品视频
                             </Button>
                         ) : null}
                         <Button icon={<Sparkles size={14} />} disabled={busy || planningPending} onClick={() => void requestCreativeDirections(true)}>
@@ -2253,24 +2242,16 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
                     onExport={() => runExport("zip")}
                     preparedDownload={preparedDownload}
                     progress={ecommerceEnabled ? <CommerceFlowSteps steps={flowSteps} /> : null}
-                    onMakeVideo={productVideoAvailable ? makeProductVideo : undefined}
                 />
-                <aside className="ecs-composer" aria-label="电商创作面板">
+                <aside className="ecs-composer" aria-label="创作面板">
                     <header className="ecs-composer-head">
                         <nav className="ecs-kind-switch" aria-label="创作类型">
+                            {/* 旧的「商品视频」分支指向已下线的 /toolbox/video 工作台，随工作台一起收掉了。
+                                视频生成仍在「画布」和「创作」页，这里只留商品图片一种创作类型。 */}
                             <button type="button" className="is-active" aria-pressed="true">
                                 <ImageIcon size={15} />
                                 商品图片
                             </button>
-                            {/* 没开放商品视频时不放一个永远点不了的按钮；开放后带着已完成的作品去视频生成。 */}
-                            {productVideoAvailable ? (
-                                <AntTooltip title={firstDeliveredResource ? "用本轮第一张作品做首帧，去视频生成制作商品视频" : "去视频生成制作商品视频；出图后可在作品上点「做成视频」"}>
-                                    <button type="button" aria-pressed="false" onClick={() => makeProductVideo(firstDeliveredResource)}>
-                                        <Clapperboard size={15} />
-                                        商品视频
-                                    </button>
-                                </AntTooltip>
-                            ) : null}
                         </nav>
                         <div className="ecs-head-actions">
                             <AntTooltip title="保存草稿">

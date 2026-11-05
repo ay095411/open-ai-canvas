@@ -14,7 +14,8 @@
     justify-content: space-between;
     gap: var(--space-3);
     min-height: 44px;
-    padding: var(--space-1) var(--space-1) var(--space-3);
+    /* 栏头现在长在卡片里（外层 14px 内边距），左右不再需要自己的留白。 */
+    padding: 0 0 var(--space-3);
 }
 .commerce-output-title {
     display: flex;
@@ -94,7 +95,8 @@
     min-height: 320px;
     padding: var(--space-6);
     border-radius: var(--r-2xl);
-    background: var(--user-surface);
+    /* 作品区整块已经是 --user-surface 卡片，空态再用同色会没有边界，改用浅一档的底。 */
+    background: var(--user-surface-muted);
     text-align: center;
 }
 .commerce-output-empty-mark {

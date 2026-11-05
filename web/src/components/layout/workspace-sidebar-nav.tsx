@@ -43,6 +43,8 @@ const sidebarIcons: Partial<Record<NavigationToolSlug, WorkspaceNavItem["icon"]>
     create: CreateNavIcon,
     projects: ProjectNavIcon,
     canvas: CanvasNavIcon,
+    // 大眼萌相机沿用旧「创作影棚」的图标：入口换成了新页面，视觉标识不换。
+    ecommerce: ToolboxNavIcon,
     assets: AssetsNavIcon,
     skills: SkillsNavIcon,
     plugins: PluginsNavIcon,
@@ -55,15 +57,15 @@ function toolItem(slug: NavigationToolSlug, to: string): WorkspaceNavItem {
 }
 
 function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[]; footer: WorkspaceNavItem[] } {
-    const toolboxTo = features.imageWorkbenchEnabled ? "/toolbox/image" : features.videoWorkbenchEnabled ? "/toolbox/video" : "";
     const groups: WorkspaceNavGroup[] = [
         {
             items: [
                 { ...toolItem("create", "/"), id: "home", title: "创作" },
-                ...(toolboxTo ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: toolboxTo }] : []),
+                // 「创作影棚」只有一个入口：原来 /toolbox/image|video 的生图 / 视频工作台已下线，
+                // 能力并入 /ecommerce 这一套流程，入口名与图标沿用「创作影棚」。
+                ...(features.ecommerceEnabled ? [{ ...toolItem("ecommerce", "/ecommerce"), id: "toolbox" }] : []),
                 { ...toolItem("canvas", "/canvas"), title: "自由画布" },
                 { ...toolItem("projects", "/projects"), title: "短剧 Agent" },
-                ...(features.ecommerceEnabled ? [toolItem("ecommerce", "/ecommerce")] : []),
             ],
         },
         {
@@ -386,10 +388,11 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
     );
 }
 
-// /toolbox、/toolbox/image 和 /toolbox/video 统一命中侧栏「创作影棚」单入口。
+// 「创作影棚」保留 toolbox 这个 nav id（角标、折叠态两字标题、命令面板都按它登记），
+// 实际落地的路由是 /ecommerce；/toolbox* 只剩重定向，不再高亮成另一项。
 export function workspaceNavActiveId(pathname: string, section?: string | null) {
     const segments = pathname.split("/").filter(Boolean);
-    if (segments[0] === "toolbox") return "toolbox";
+    if (segments[0] === "ecommerce" || segments[0] === "toolbox") return "toolbox";
     const slug = segments[0] || "home";
     if (slug === "create") return "home";
     return slug === "settings" && section ? `settings:${section}` : slug;
