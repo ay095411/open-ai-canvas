@@ -63,7 +63,7 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
                 ...(toolboxTo ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: toolboxTo }] : []),
                 { ...toolItem("canvas", "/canvas"), title: "自由画布" },
                 { ...toolItem("projects", "/projects"), title: "短剧 Agent" },
-                ...(features.videoRemakeEnabled ? [toolItem("remakes", "/remakes")] : []),
+                ...(features.ecommerceEnabled ? [toolItem("ecommerce", "/ecommerce")] : []),
             ],
         },
         {
@@ -195,15 +195,13 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
 /**
  * 折叠态窄轨里的两字标题。
  *
- * ⚠️ 「一键复刻」不能交给最后的 `title.slice(0, 2)` 兜底：截出来是「一键」，
- * 而窄轨里这一格代表的是「复刻」这条流水线，不是「一键」这种副词前缀。
  * 带独立语义的菜单统一在这里登记，没登记的才退回前两字。
+ * 「电商生图」默认会截成「电商」，语义已足够，因此不单独登记。
  */
 const COLLAPSED_NAV_TITLES: Record<string, string> = {
     home: "创作",
     projects: "短剧",
     canvas: "画布",
-    remakes: "复刻",
     toolbox: "影棚",
     assets: "资产",
     skills: "Skills",

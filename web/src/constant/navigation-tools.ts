@@ -1,5 +1,5 @@
 // label 是中文源文案（用于搜索与兜底），界面显示用 labelKey 经 i18n 翻译。
-import { Blocks, CircleDollarSign, Clapperboard, Images, LibraryBig, ListTodo, PanelsTopLeft, Settings, PenTool } from "lucide-react";
+import { Blocks, CircleDollarSign, Clapperboard, Images, LibraryBig, ListTodo, PanelsTopLeft, Settings, PenTool, ShoppingBag } from "lucide-react";
 
 export const navigationTools = [
     {
@@ -24,9 +24,9 @@ export const navigationTools = [
         section: "创作空间",
     },
     {
-        slug: "remakes",
-        label: "一键复刻",
-        icon: Clapperboard,
+        slug: "ecommerce",
+        label: "电商生图",
+        icon: ShoppingBag,
         section: "创作空间",
     },
     {

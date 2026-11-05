@@ -37,7 +37,7 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
         return [
             { id: "home", title: "首页", icon: Home, to: "/" },
             ...(features.shortDramaEnabled ? [toolEntry("projects", "/projects")] : []),
-            ...(features.videoRemakeEnabled ? [toolEntry("remakes", "/remakes")] : []),
+            ...(features.ecommerceEnabled ? [toolEntry("ecommerce", "/ecommerce")] : []),
             toolEntry("canvas", "/canvas"),
             ...(toolboxTo ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: toolboxTo }] : []),
             ...(features.taskCenterEnabled ? [toolEntry("tasks", "/tasks")] : []),

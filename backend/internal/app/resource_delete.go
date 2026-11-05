@@ -117,11 +117,6 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 				dramaReferences, snapshotErr = s.repo.DramaResourceReferences(userID, ownedIDs)
 				snapshot.Direct = append(snapshot.Direct, dramaReferences...)
 			}
-			if snapshotErr == nil {
-				var remakeReferences []repository.ResourceDirectReference
-				remakeReferences, snapshotErr = s.repo.RemakeResourceReferences(userID, ownedIDs)
-				snapshot.Direct = append(snapshot.Direct, remakeReferences...)
-			}
 		} else {
 			snapshot, snapshotErr = s.repo.ResourceReferenceSnapshotExcludingAssets(userID, assetIDs, ownedIDs)
 		}
@@ -131,7 +126,7 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 		sharedAssetResourceIDs := map[string]struct{}{}
 		for _, reference := range snapshot.Direct {
 			if _, exists := ownedIDSet[reference.ResourceID]; exists {
-				if reference.Kind == "素材" || reference.Kind == repository.DramaResourceReferenceKind || reference.Kind == repository.RemakeResourceReferenceKind {
+				if reference.Kind == "素材" || reference.Kind == repository.DramaResourceReferenceKind {
 					sharedAssetResourceIDs[reference.ResourceID] = struct{}{}
 					continue
 				}

@@ -43,7 +43,6 @@ export type FeatureAvailability = {
     inspirationSourcesVisible: boolean;
     imageWorkbenchEnabled: boolean;
     videoWorkbenchEnabled: boolean;
-    videoRemakeEnabled: boolean;
     globalAgentEnabled: boolean;
     ecommerceEnabled: boolean;
     ecommerceVideoEnabled: boolean;
@@ -65,7 +64,6 @@ export const defaultFeatureAvailability: FeatureAvailability = {
     inspirationSourcesVisible: false,
     imageWorkbenchEnabled: false,
     videoWorkbenchEnabled: false,
-    videoRemakeEnabled: false,
     globalAgentEnabled: false,
     ecommerceEnabled: false,
     ecommerceVideoEnabled: false,
