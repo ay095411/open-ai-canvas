@@ -39,6 +39,9 @@ export default defineConfig({
         alias: {
             "@": resolve(webDir, "src"),
         },
+        // node_modules 曾混用扁平与 .store 隔离布局，导致 react 存在两份物理副本；
+        // 不 dedupe 时预构建会把其中一份内联进 react-i18next，运行时 hooks 分发器错乱。
+        dedupe: ["react", "react-dom"],
     },
     build: {
         rolldownOptions: {
