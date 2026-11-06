@@ -4,7 +4,7 @@ import { readFileAsDataUrl, readImageMeta, formatBytes } from "@/lib/image-utils
 import { uploadMediaFile } from "@/services/file-storage";
 import { exportAssets, readAssetPackage } from "./asset-transfer";
 import { WorkspacePage, PageHeader, CollectionGrid, PaginationBar } from "@/components/layout/workspace-page";
-import { Trash2, RotateCcw, Plus, Images, FolderOpen, FileUp, Upload, Download, MoreHorizontal, Search, LayoutGrid, FolderPlus, PencilLine, AlertTriangle, HardDrive } from "lucide-react";
+import { Trash2, RotateCcw, Plus, Images, FolderOpen, FileUp, Upload, Download, MoreHorizontal, Search, LayoutGrid, FolderPlus, PencilLine, AlertTriangle, HardDrive, ShieldCheck } from "lucide-react";
 import { openStoragePurchase } from "@/lib/workspace-storage";
 import { CollectionToolbar } from "@/components/layout/collection-toolbar";
 import { Select } from "@/components/ui/base/select";
@@ -13,27 +13,28 @@ import { DeleteButton } from "@/components/ui/base/buttons/delete-button";
 import { cn } from "@/lib/utils";
 import { WorkspaceNoResultsState, WorkspaceState } from "@/components/layout/workspace-state";
 import { AssetCard } from "./asset-library-cards";
-import { Switch } from "@/components/ui/base/switch";
 import { resourceStorageTitle, resourceStorageLabel } from "@/lib/canvas/resource-storage-status";
 import { AssetBatchUploadModal } from "./asset-batch-upload-modal";
 import { assetGridCardMinWidth, type AssetGridDensity, assetGridDensityOptions, parseAssetGridDensity } from "./asset-grid-density";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Form, Popconfirm, Button, Dropdown, Input, Modal, Space, Tag, Typography, Progress } from "antd";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { translate } from "@/i18n";
-import { ArkPortraitDrawer } from "./ark-portrait-drawer";
+import { ArkCertifyModal } from "./ark-certify-modal";
 import { arkPortraitOverviewQueryKey, getArkPortraitOverview } from "@/services/api/ark-portraits";
+import { useArkLibraryReconcile } from "@/hooks/use-ark-library-reconcile";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { ASSET_CATEGORY_OPTIONS } from "@/lib/asset-category";
+import { arkLibraryProgressMap } from "@/lib/ark-assets";
+import { ARK_ASSET_CATEGORY, ASSET_ASSIGNABLE_CATEGORY_OPTIONS, ASSET_CATEGORY_LABELS, ASSET_CATEGORY_OPTIONS, defaultAssetCategoryForKind, normalizeAssetCategory } from "@/lib/asset-category";
 import { downloadBrowserMedia } from "@/services/browser-download";
 import { flushAssetStorePersistence, useAssetStore, type AssetCategory, type AssetKind, type ImageAsset } from "@/stores/use-asset-store";
 import { loadAssetLibraryPage, loadAssetsForUse, saveRemoteUserDataNow, localSavedRemotePendingMessage, deleteAssetsWithRemoteSync, deleteAssetWithRemoteSync } from "@/services/user-data-sync";
 import { useUserStore } from "@/stores/use-user-store";
 import { createAssetFolder, deleteAssetFolder, listAssetFolders, listRemoteAssetsPage, updateAssetFolder, type AssetFolder, moveRemoteAssetsToFolder } from "@/services/api/user-data";
-import { assetCountMap, assetSearchText, readAssetGridDensity, assetKindIcons } from "./asset-library-format";
+import { assetCountMap, assetSearchText, readAssetGridDensity, assetKindIcons, assetCategoryIcons } from "./asset-library-format";
 import { ASSET_GRID_DENSITY_KEY, type LibraryAsset } from "./asset-library-format";
 import { selectAssetIds } from "./asset-library-selection";
 
@@ -50,22 +51,66 @@ type AssetFormValues = {
     note?: string;
     content?: string;
     arkAssetId?: string;
-    portraitCertified?: boolean;
 };
 
 type ImageDraft = ImageAsset["data"] | null;
 
 const kindOptions = [
-    { get label() { return translate("library.assets.kind.all"); }, value: "all" },
-    { get label() { return translate("library.assets.kind.text"); }, value: "text" },
-    { get label() { return translate("library.assets.kind.image"); }, value: "image" },
-    { get label() { return translate("library.assets.kind.video"); }, value: "video" },
-    { get label() { return translate("library.assets.kind.audio"); }, value: "audio" },
-    { get label() { return translate("library.assets.kind.model"); }, value: "model" },
-    { get label() { return translate("library.assets.kind.entity"); }, value: "entity" },
+    {
+        get label() {
+            return translate("library.assets.kind.all");
+        },
+        value: "all",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.text");
+        },
+        value: "text",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.image");
+        },
+        value: "image",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.video");
+        },
+        value: "video",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.audio");
+        },
+        value: "audio",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.model");
+        },
+        value: "model",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.entity");
+        },
+        value: "entity",
+    },
 ];
 
-const categoryOptions = [{ get label() { return translate("library.assets.allCategories"); }, value: "all" }, ...ASSET_CATEGORY_OPTIONS];
+const categoryOptions = [
+    {
+        get label() {
+            return translate("library.assets.allCategories");
+        },
+        value: "all",
+    },
+    ...ASSET_CATEGORY_OPTIONS,
+];
+// 方舟认证分类只能由认证结果写入：未认证素材从可选分类里排除，已认证素材只展示锁定的方舟认证分类。
+const arkLockedCategoryOptions = [{ label: ASSET_CATEGORY_LABELS[ARK_ASSET_CATEGORY], value: ARK_ASSET_CATEGORY }];
 const ASSET_LIBRARY_QUERY_KEY = ["asset-library"] as const;
 const ASSET_FOLDER_QUERY_KEY = ["asset-folders"] as const;
 type AssetFolderFilter = "all" | "uncategorized" | string;
@@ -74,9 +119,7 @@ export default function AssetsPage() {
     const { message } = App.useApp();
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
-    const [portraitOpen, setPortraitOpen] = useState(false);
-    const portraitQuery = useQuery({ queryKey: arkPortraitOverviewQueryKey, queryFn: ({ signal }) => getArkPortraitOverview(signal), staleTime: 60_000 });
+    const [certifyingAsset, setCertifyingAsset] = useState<ImageAsset | null>(null);
     const queryClient = useQueryClient();
     const copyText = useCopyText();
     const [form] = Form.useForm<AssetFormValues>();
@@ -90,6 +133,17 @@ export default function AssetsPage() {
     const updateAsset = useAssetStore((state) => state.updateAsset);
     const userId = useUserStore((state) => state.user?.id || "");
     const retentionDays = useUserStore((state) => state.runtimeLimits.recycleBinRetentionDays ?? 30);
+    // 方舟审核由服务端定时刷新；有审核中的素材时降频轮询概览，让认证角标跟上结果。
+    const arkQuery = useQuery({
+        queryKey: arkPortraitOverviewQueryKey,
+        queryFn: ({ signal }) => getArkPortraitOverview(signal),
+        enabled: Boolean(userId),
+        staleTime: 60_000,
+        refetchInterval: (query) => (query.state.data?.groups.some((group) => group.owned && group.assets.some((asset) => asset.status === "processing")) ? 30_000 : false),
+    });
+    const arkEnabled = Boolean(arkQuery.data?.enabled);
+    const arkProgress = useMemo(() => arkLibraryProgressMap(arkQuery.data), [arkQuery.data]);
+    useArkLibraryReconcile(arkQuery.data);
     const [viewMode, setViewMode] = useState<"library" | "trash">("library");
     const [keyword, setKeyword] = useState("");
     const [kindFilter, setKindFilter] = useState<AssetKind | "all">("all");
@@ -150,17 +204,18 @@ export default function AssetsPage() {
 
     const assetPageQuery = useQuery({
         queryKey: [...ASSET_LIBRARY_QUERY_KEY, userId, page, pageSize, viewMode, kindFilter, categoryFilter, folderFilter, debouncedKeyword],
-        queryFn: ({ signal }) => loadAssetLibraryPage({
-            page,
-            pageSize,
-            status: viewMode === "trash" ? "archived" : "active",
-            kind: kindFilter === "all" ? undefined : kindFilter,
-            category: categoryFilter === "all" ? undefined : categoryFilter,
-            folderId: folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : undefined,
-            uncategorized: folderFilter === "uncategorized",
-            query: debouncedKeyword || undefined,
-            signal,
-        }),
+        queryFn: ({ signal }) =>
+            loadAssetLibraryPage({
+                page,
+                pageSize,
+                status: viewMode === "trash" ? "archived" : "active",
+                kind: kindFilter === "all" ? undefined : kindFilter,
+                category: categoryFilter === "all" ? undefined : categoryFilter,
+                folderId: folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : undefined,
+                uncategorized: folderFilter === "uncategorized",
+                query: debouncedKeyword || undefined,
+                signal,
+            }),
         enabled: Boolean(userId),
         placeholderData: keepPreviousData,
     });
@@ -177,13 +232,19 @@ export default function AssetsPage() {
     const preferLocalUnsynced = remoteReady && remoteTotal === 0 && localVisibleAssets.length > 0;
     const remoteEntityOnlyPage = remoteReady && remotePageAssets.length === 0 && remoteTotal > 0;
     const useRemotePage = remoteReady && !preferLocalUnsynced && !remoteEntityOnlyPage && (remotePageAssets.length > 0 || remoteTotal === 0);
-    const visibleAssets = useMemo(() => useRemotePage ? remotePageAssets : localVisibleAssets, [useRemotePage, remotePageAssets, localVisibleAssets]);
+    const visibleAssets = useMemo(() => (useRemotePage ? remotePageAssets : localVisibleAssets), [useRemotePage, remotePageAssets, localVisibleAssets]);
     const visibleAssetIds = useMemo(() => visibleAssets.map((asset) => asset.id), [visibleAssets]);
     const allFilteredSelected = visibleAssetIds.length > 0 && visibleAssetIds.every((id) => selectedIds.includes(id));
     const selectionMode = selecting || selectedIds.length > 0;
     const totalAssets = useRemotePage ? remoteTotal : filteredAssets.length;
-    const kindCounts = useMemo(() => assetCountMap(kindOptions, useRemotePage ? assetPageQuery.data?.kindCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.kind), [activeAssets, assetPageQuery.data?.kindCounts, trashAssets, useRemotePage, viewMode]);
-    const categoryCounts = useMemo(() => assetCountMap(categoryOptions, useRemotePage ? assetPageQuery.data?.categoryCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.category || "other"), [activeAssets, assetPageQuery.data?.categoryCounts, trashAssets, useRemotePage, viewMode]);
+    const kindCounts = useMemo(
+        () => assetCountMap(kindOptions, useRemotePage ? assetPageQuery.data?.kindCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.kind),
+        [activeAssets, assetPageQuery.data?.kindCounts, trashAssets, useRemotePage, viewMode],
+    );
+    const categoryCounts = useMemo(
+        () => assetCountMap(categoryOptions, useRemotePage ? assetPageQuery.data?.categoryCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.category || "other"),
+        [activeAssets, assetPageQuery.data?.categoryCounts, trashAssets, useRemotePage, viewMode],
+    );
     const folderCounts = assetPageQuery.data?.folderCounts || {};
 
     useEffect(() => {
@@ -209,34 +270,10 @@ export default function AssetsPage() {
         selectionAnchor.current = id;
     };
 
-    const folderSelectOptions = useMemo(() => [
-        { label: t("library.assets.uncategorized"), value: "" },
-        ...folders.map((folder) => ({ label: folder.name, value: folder.id })),
-    ], [folders, t]);
-
-    // 真人认证页完成后回跳 /assets?arkPortrait=<结果>：打开真人素材库并提示结果，随后去掉参数避免刷新重复提示。
-    const portraitResult = searchParams.get("arkPortrait");
-    useEffect(() => {
-        if (!portraitResult) return;
-        const notices: Record<string, () => void> = {
-            verified: () => message.success(t("library.assets.portraitNotice.verified")),
-            failed: () => message.error(t("library.assets.portraitNotice.failed")),
-            expired: () => message.warning(t("library.assets.portraitNotice.expired")),
-            pending: () => message.info(t("library.assets.portraitNotice.pending")),
-        };
-        (notices[portraitResult] || (() => message.error(t("library.assets.portraitNotice.invalid"))))();
-        setPortraitOpen(true);
-        void queryClient.invalidateQueries({ queryKey: arkPortraitOverviewQueryKey });
-        const next = new URLSearchParams(searchParams);
-        next.delete("arkPortrait");
-        setSearchParams(next, { replace: true });
-    }, [portraitResult]);
+    const folderSelectOptions = useMemo(() => [{ label: t("library.assets.uncategorized"), value: "" }, ...folders.map((folder) => ({ label: folder.name, value: folder.id }))], [folders, t]);
 
     const invalidateAssetLibrary = async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ASSET_LIBRARY_QUERY_KEY }),
-            queryClient.invalidateQueries({ queryKey: ASSET_FOLDER_QUERY_KEY }),
-        ]);
+        await Promise.all([queryClient.invalidateQueries({ queryKey: ASSET_LIBRARY_QUERY_KEY }), queryClient.invalidateQueries({ queryKey: ASSET_FOLDER_QUERY_KEY })]);
     };
 
     const saveFolder = async () => {
@@ -295,16 +332,18 @@ export default function AssetsPage() {
         setImageUploading(false);
         setImageUploadProgress(null);
         setFormKind("text");
-        form.setFieldsValue({ kind: "text", category: "other", folderId: folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : "", title: "", coverUrl: "", tags: [], source: "手动添加", note: "", content: "", arkAssetId: "", portraitCertified: false });
+        form.setFieldsValue({ kind: "text", category: "other", folderId: folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : "", title: "", coverUrl: "", tags: [], source: "手动添加", note: "", content: "", arkAssetId: "" });
         setIsAssetOpen(true);
     };
 
     const openEdit = async (asset: LibraryAsset) => {
         let editableAsset = useAssetStore.getState().assets.find((item) => item.id === asset.id);
-        if (!editableAsset) {
+        // 服务端会直接改写素材（方舟认证通过后移入「方舟认证」分类）；列表里的版本更新时先刷新本机副本，避免拿旧版本编辑。
+        const remoteNewer = Boolean(editableAsset && Date.parse(asset.updatedAt) > Date.parse(editableAsset.updatedAt));
+        if (!editableAsset || remoteNewer) {
             try {
                 // 分页卡片是轻量 DTO，编辑前补齐完整记录，避免保存时覆盖远端 metadata。
-                await loadAssetsForUse([asset.id]);
+                await loadAssetsForUse([asset.id], remoteNewer ? { refresh: true } : undefined);
                 editableAsset = useAssetStore.getState().assets.find((item) => item.id === asset.id);
             } catch (error) {
                 message.error(error instanceof Error ? error.message : t("library.assets.detailFailed"));
@@ -332,7 +371,6 @@ export default function AssetsPage() {
             note: editableAsset.note,
             content: editableAsset.kind === "text" ? editableAsset.data.content : "",
             arkAssetId: editableAsset.arkAssetId || "",
-            portraitCertified: editableAsset.portraitCertified === true,
         });
         setIsAssetOpen(true);
     };
@@ -364,9 +402,15 @@ export default function AssetsPage() {
             }
         }
 
+        // 方舟认证绑定认证时的图片文件：换图后认证失效，恢复认证前的分类，之后可以重新提交认证。
+        const certification = editingAsset?.arkCertification;
+        const previousStorageKey = editingAsset?.kind === "image" ? editingAsset.data.storageKey : undefined;
+        const certificationLost = Boolean(certification && values.kind === "image" && imageData && imageData.storageKey !== previousStorageKey);
+        const keptCertification = certification && !certificationLost ? certification : undefined;
+        const restoredCategory = normalizeAssetCategory(certification?.previousCategory, defaultAssetCategoryForKind(values.kind));
         const base = {
             title: values.title.trim(),
-            category: values.category,
+            category: certificationLost ? (restoredCategory === ARK_ASSET_CATEGORY ? defaultAssetCategoryForKind(values.kind) : restoredCategory) : keptCertification ? ARK_ASSET_CATEGORY : values.category,
             folderId: values.folderId || undefined,
             status: editingAsset?.status || ("confirmed" as const),
             primaryVersionId: editingAsset?.primaryVersionId,
@@ -374,8 +418,8 @@ export default function AssetsPage() {
             tags: values.tags || [],
             source: values.source?.trim(),
             note: values.note?.trim(),
-            arkAssetId: values.arkAssetId?.trim() || undefined,
-            portraitCertified: values.portraitCertified || undefined,
+            arkAssetId: keptCertification ? editingAsset?.arkAssetId : certificationLost ? undefined : values.arkAssetId?.trim() || undefined,
+            arkCertification: keptCertification,
             metadata: editingAsset?.metadata || { source: "manual" },
         };
 
@@ -504,6 +548,13 @@ export default function AssetsPage() {
                 delete payload.id;
                 delete payload.createdAt;
                 delete payload.updatedAt;
+                // 方舟认证属于原素材与原账号，导入的副本不带认证：去掉认证记录与平台写入的方舟素材 ID，并恢复认证前的分类。
+                if (asset.arkCertification || asset.category === ARK_ASSET_CATEGORY) {
+                    const restored = normalizeAssetCategory(asset.arkCertification?.previousCategory, defaultAssetCategoryForKind(asset.kind));
+                    payload.category = restored === ARK_ASSET_CATEGORY ? defaultAssetCategoryForKind(asset.kind) : restored;
+                    if (asset.arkCertification) delete payload.arkAssetId;
+                    delete payload.arkCertification;
+                }
                 addAsset(payload as Parameters<typeof addAsset>[0]);
             });
             message.success(t("library.assets.imported", { count: importedAssets.length }));
@@ -650,15 +701,31 @@ export default function AssetsPage() {
                                         </>
                                     ) : (
                                         <>
-                                            <Button type="primary" icon={<Plus />} onClick={openCreate}>新增素材</Button>
-                                            <Button icon={<Images />} onClick={() => setBatchUploadOpen(true)}>上传图片</Button>
-                                            <Button icon={<HardDrive />} onClick={() => openStoragePurchase()}>空间扩容</Button>
-                                            <Dropdown trigger={["click"]} menu={{ items: [
-                                                { key: "eagle", icon: <FolderOpen />, label: t("library.assets.page.eagle"), onClick: () => navigate("/plugins/eagle") },
-                                                { key: "package", icon: <FileUp />, label: t("library.assets.page.importPackage"), onClick: () => assetInputRef.current?.click() },
-                                                { key: "model", icon: <Upload />, label: t("library.assets.page.uploadModel"), onClick: () => modelInputRef.current?.click() },
-                                                { key: "export", icon: <Download />, label: t("library.assets.page.exportAll"), onClick: () => void exportAllAssets() },
-                                            ] }}>
+                                            <Button type="primary" icon={<Plus />} onClick={openCreate}>
+                                                新增素材
+                                            </Button>
+                                            <Button icon={<Images />} onClick={() => setBatchUploadOpen(true)}>
+                                                上传图片
+                                            </Button>
+                                            <Button icon={<HardDrive />} onClick={() => openStoragePurchase()}>
+                                                空间扩容
+                                            </Button>
+                                            {arkEnabled ? (
+                                                <Button icon={<ShieldCheck />} onClick={() => navigate("/settings?section=ark-assets")}>
+                                                    {t("library.assets.page.ark")}
+                                                </Button>
+                                            ) : null}
+                                            <Dropdown
+                                                trigger={["click"]}
+                                                menu={{
+                                                    items: [
+                                                        { key: "eagle", icon: <FolderOpen />, label: t("library.assets.page.eagle"), onClick: () => navigate("/plugins/eagle") },
+                                                        { key: "package", icon: <FileUp />, label: t("library.assets.page.importPackage"), onClick: () => assetInputRef.current?.click() },
+                                                        { key: "model", icon: <Upload />, label: t("library.assets.page.uploadModel"), onClick: () => modelInputRef.current?.click() },
+                                                        { key: "export", icon: <Download />, label: t("library.assets.page.exportAll"), onClick: () => void exportAllAssets() },
+                                                    ],
+                                                }}
+                                            >
                                                 <Button type="text" aria-label={t("library.assets.page.moreActions")} icon={<MoreHorizontal />} />
                                             </Dropdown>
                                         </>
@@ -687,74 +754,127 @@ export default function AssetsPage() {
                                 setPage(1);
                                 setKeyword(event.target.value);
                             }}
-                            />
-                            <Select
-                                aria-label={t("library.assets.page.density")}
-                                value={gridDensity}
-                                className="w-full sm:w-32"
-                                prefix={<LayoutGrid aria-hidden className="size-3.5" />}
-                                options={assetGridDensityOptions}
-                                onChange={(value) => setGridDensity(parseAssetGridDensity(value))}
-                            />
-                            <Button aria-pressed={selectionMode} onClick={() => {
+                        />
+                        <Select
+                            aria-label={t("library.assets.page.density")}
+                            value={gridDensity}
+                            className="w-full sm:w-32"
+                            prefix={<LayoutGrid aria-hidden className="size-3.5" />}
+                            options={assetGridDensityOptions}
+                            onChange={(value) => setGridDensity(parseAssetGridDensity(value))}
+                        />
+                        <Button
+                            aria-pressed={selectionMode}
+                            onClick={() => {
                                 setSelecting(!selectionMode);
                                 setSelectedIds([]);
                                 selectionAnchor.current = undefined;
-                            }} disabled={batchWorking}>
-                                {selectionMode ? t("library.assets.page.exitSelection") : t("library.assets.page.batchSelect")}
-                            </Button>
-                        </CollectionToolbar>
+                            }}
+                            disabled={batchWorking}
+                        >
+                            {selectionMode ? t("library.assets.page.exitSelection") : t("library.assets.page.batchSelect")}
+                        </Button>
+                    </CollectionToolbar>
                 </div>
 
                 <div className="collection-content assets-collection-content">
                     <div className="assets-collection-layout">
                         <aside className="assets-collection-filters" aria-label={t("library.assets.page.filters")}>
                             <div className="assets-collection-filter-scroll">
-                            <AssetFilterGroup
-                                title={t("library.assets.page.kindFilter")}
-                                options={kindOptions}
-                                value={viewMode === "library" ? kindFilter : ""}
-                                counts={kindCounts}
-                                onChange={(value) => {
-                                    setViewMode("library");
-                                    setKindFilter(value as AssetKind | "all");
-                                    setPage(1);
-                                }}
-                            />
-                            <AssetFilterGroup
-                                title={t("library.assets.batch.category")}
-                                options={categoryOptions}
-                                value={viewMode === "library" ? categoryFilter : ""}
-                                counts={categoryCounts}
-                                onChange={(value) => {
-                                    setViewMode("library");
-                                    setCategoryFilter(value as AssetCategory | "all");
-                                    setPage(1);
-                                }}
-                            />
-                            <section className="collection-filter-group assets-folder-filter">
-                                <div className="collection-folder-heading">
-                                    <span className="collection-filter-label">{t("library.assets.page.myFolders")}</span>
-                                    <button type="button" className="assets-folder-add" title={t("library.assets.folder.create")} aria-label={t("library.assets.folder.create")} onClick={() => { setFolderName(""); setFolderEditor("new"); }}><FolderPlus className="size-3.5" /></button>
-                                </div>
-                                <div className="collection-folder-list">
-                                    <button type="button" aria-pressed={folderFilter === "all"} className={`assets-filter-item ${folderFilter === "all" ? "is-active" : ""}`} onClick={() => { setFolderFilter("all"); setPage(1); }}>
-                                        <span className="assets-filter-item-label">{t("library.assets.kind.all")}</span><span className="assets-filter-count">{activeAssets.length}</span>
-                                    </button>
-                                    <button type="button" aria-pressed={folderFilter === "uncategorized"} className={`assets-filter-item ${folderFilter === "uncategorized" ? "is-active" : ""}`} onClick={() => { setFolderFilter("uncategorized"); setPage(1); }}>
-                                        <span className="assets-filter-item-label">{t("library.assets.uncategorized")}</span><span className="assets-filter-count">{folderCounts[""] ?? activeAssets.filter((asset) => !asset.folderId).length}</span>
-                                    </button>
-                                    {folders.map((folder) => (
-                                        <div key={folder.id} className="assets-folder-row">
-                                            <button type="button" aria-pressed={folderFilter === folder.id} className={`assets-filter-item min-w-0 flex-1 ${folderFilter === folder.id ? "is-active" : ""}`} onClick={() => { setFolderFilter(folder.id); setPage(1); }}>
-                                                <span className="assets-filter-item-label min-w-0 truncate">{folder.name}</span><span className="assets-filter-count">{folderCounts[folder.id] ?? activeAssets.filter((asset) => asset.folderId === folder.id).length}</span>
-                                            </button>
-                                            <button type="button" className="product-icon-button" aria-label={t("library.assets.folder.renameLabel", { name: folder.name })} onClick={() => { setFolderName(folder.name); setFolderEditor(folder); }}><PencilLine /></button>
-                                            <DeleteButton label={t("library.assets.folder.deleteLabel", { name: folder.name })} description={t("library.assets.folder.deleteDescription")} onConfirm={() => removeFolder(folder)} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
+                                <AssetFilterGroup
+                                    title={t("library.assets.page.kindFilter")}
+                                    options={kindOptions}
+                                    value={viewMode === "library" ? kindFilter : ""}
+                                    counts={kindCounts}
+                                    onChange={(value) => {
+                                        setViewMode("library");
+                                        setKindFilter(value as AssetKind | "all");
+                                        setPage(1);
+                                    }}
+                                />
+                                <AssetFilterGroup
+                                    title={t("library.assets.batch.category")}
+                                    options={categoryOptions}
+                                    icons={assetCategoryIcons}
+                                    value={viewMode === "library" ? categoryFilter : ""}
+                                    counts={categoryCounts}
+                                    onChange={(value) => {
+                                        setViewMode("library");
+                                        setCategoryFilter(value as AssetCategory | "all");
+                                        setPage(1);
+                                    }}
+                                />
+                                <section className="collection-filter-group assets-folder-filter">
+                                    <div className="collection-folder-heading">
+                                        <span className="collection-filter-label">{t("library.assets.page.myFolders")}</span>
+                                        <button
+                                            type="button"
+                                            className="assets-folder-add"
+                                            title={t("library.assets.folder.create")}
+                                            aria-label={t("library.assets.folder.create")}
+                                            onClick={() => {
+                                                setFolderName("");
+                                                setFolderEditor("new");
+                                            }}
+                                        >
+                                            <FolderPlus className="size-3.5" />
+                                        </button>
+                                    </div>
+                                    <div className="collection-folder-list">
+                                        <button
+                                            type="button"
+                                            aria-pressed={folderFilter === "all"}
+                                            className={`assets-filter-item ${folderFilter === "all" ? "is-active" : ""}`}
+                                            onClick={() => {
+                                                setFolderFilter("all");
+                                                setPage(1);
+                                            }}
+                                        >
+                                            <span className="assets-filter-item-label">{t("library.assets.kind.all")}</span>
+                                            <span className="assets-filter-count">{activeAssets.length}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            aria-pressed={folderFilter === "uncategorized"}
+                                            className={`assets-filter-item ${folderFilter === "uncategorized" ? "is-active" : ""}`}
+                                            onClick={() => {
+                                                setFolderFilter("uncategorized");
+                                                setPage(1);
+                                            }}
+                                        >
+                                            <span className="assets-filter-item-label">{t("library.assets.uncategorized")}</span>
+                                            <span className="assets-filter-count">{folderCounts[""] ?? activeAssets.filter((asset) => !asset.folderId).length}</span>
+                                        </button>
+                                        {folders.map((folder) => (
+                                            <div key={folder.id} className="assets-folder-row">
+                                                <button
+                                                    type="button"
+                                                    aria-pressed={folderFilter === folder.id}
+                                                    className={`assets-filter-item min-w-0 flex-1 ${folderFilter === folder.id ? "is-active" : ""}`}
+                                                    onClick={() => {
+                                                        setFolderFilter(folder.id);
+                                                        setPage(1);
+                                                    }}
+                                                >
+                                                    <span className="assets-filter-item-label min-w-0 truncate">{folder.name}</span>
+                                                    <span className="assets-filter-count">{folderCounts[folder.id] ?? activeAssets.filter((asset) => asset.folderId === folder.id).length}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="product-icon-button"
+                                                    aria-label={t("library.assets.folder.renameLabel", { name: folder.name })}
+                                                    onClick={() => {
+                                                        setFolderName(folder.name);
+                                                        setFolderEditor(folder);
+                                                    }}
+                                                >
+                                                    <PencilLine />
+                                                </button>
+                                                <DeleteButton label={t("library.assets.folder.deleteLabel", { name: folder.name })} description={t("library.assets.folder.deleteDescription")} onConfirm={() => removeFolder(folder)} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
                             </div>
                             <div className="collection-trash-entry">
                                 <button
@@ -801,7 +921,10 @@ export default function AssetsPage() {
                                     busy={batchWorking}
                                     pageLoading={assetPageQuery.isFetching}
                                     onSelectAll={() => setSelectedIds((current) => Array.from(new Set([...current, ...visibleAssetIds])))}
-                                    onClear={() => { setSelectedIds([]); selectionAnchor.current = undefined; }}
+                                    onClear={() => {
+                                        setSelectedIds([]);
+                                        selectionAnchor.current = undefined;
+                                    }}
                                     onExport={() => void exportSelectedAssets()}
                                     onRestore={() => void changeAssetStatus(selectedIds, "confirmed")}
                                     onArchive={() => setBatchArchiveOpen(true)}
@@ -850,6 +973,7 @@ export default function AssetsPage() {
                                                     onDelete={() => setDeletingAsset(asset)}
                                                     folderOptions={folderSelectOptions}
                                                     onMoveToFolder={(folderId) => void moveAssetsToFolder([asset.id], folderId)}
+                                                    arkProgress={arkEnabled ? arkProgress.get(asset.id) : undefined}
                                                 />
                                             ))}
                                         </CollectionGrid>
@@ -871,7 +995,7 @@ export default function AssetsPage() {
                 </div>
             </WorkspacePage>
 
-            <ArkPortraitDrawer open={portraitOpen} onClose={() => setPortraitOpen(false)} onLibraryChanged={invalidateAssetLibrary} />
+            <ArkCertifyModal asset={certifyingAsset} onClose={() => setCertifyingAsset(null)} />
             <Modal
                 className="workspace-modal workspace-modal-wide library-modal"
                 title={editingAsset ? t("library.assets.form.editTitle") : t("library.assets.page.create")}
@@ -898,8 +1022,8 @@ export default function AssetsPage() {
                                 onChange={(value) => setFormKind(value)}
                             />
                         </Form.Item>
-                        <Form.Item name="category" label={t("library.assets.batch.category")}>
-                            <Select options={categoryOptions.slice(1)} />
+                        <Form.Item name="category" label={t("library.assets.batch.category")} extra={editingAsset?.category === ARK_ASSET_CATEGORY ? t("library.assets.form.arkCategoryLocked") : undefined}>
+                            <Select disabled={editingAsset?.category === ARK_ASSET_CATEGORY} options={editingAsset?.category === ARK_ASSET_CATEGORY ? arkLockedCategoryOptions : ASSET_ASSIGNABLE_CATEGORY_OPTIONS} />
                         </Form.Item>
                         <Form.Item name="title" label={t("library.assets.form.title")} rules={[{ required: true, message: t("library.assets.form.titleRequired") }]}>
                             <Input placeholder={t("library.assets.form.titlePlaceholder")} />
@@ -915,14 +1039,14 @@ export default function AssetsPage() {
                         <Form.Item name="tags" label={t("library.assets.form.tags")}>
                             <Select mode="tags" tokenSeparators={[",", "，"]} placeholder={t("library.assets.form.tagsPlaceholder")} />
                         </Form.Item>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <Form.Item name="arkAssetId" label={t("library.assets.form.arkAssetId")} rules={[{ pattern: /^asset-[A-Za-z0-9-]+$/, message: t("library.assets.form.arkAssetIdInvalid") }]}>
-                                <Input autoComplete="off" allowClear placeholder={t("library.assets.form.arkAssetIdPlaceholder")} />
-                            </Form.Item>
-                            <Form.Item name="portraitCertified" label={t("library.assets.form.portraitCertified")} valuePropName="checked" extra={t("library.assets.form.portraitCertifiedHint")}>
-                                <Switch aria-label={t("library.assets.form.portraitCertified")} />
-                            </Form.Item>
-                        </div>
+                        <Form.Item
+                            name="arkAssetId"
+                            label={t("library.assets.form.arkAssetId")}
+                            extra={editingAsset?.arkCertification ? t("library.ark.detail.hint") : undefined}
+                            rules={[{ pattern: /^asset-[A-Za-z0-9-]+$/, message: t("library.assets.form.arkAssetIdInvalid") }]}
+                        >
+                            <Input autoComplete="off" allowClear disabled={Boolean(editingAsset?.arkCertification)} placeholder={t("library.assets.form.arkAssetIdPlaceholder")} />
+                        </Form.Item>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Form.Item name="source" label={t("library.assets.form.source")}>
                                 <Input placeholder={t("library.assets.form.sourcePlaceholder")} />
@@ -1021,16 +1145,41 @@ export default function AssetsPage() {
                 />
             </Modal>
 
-            <AssetDrawer asset={previewAsset} onClose={() => setPreviewAsset(null)} onCopy={copyAssetText} onDownload={downloadImage} />
+            <AssetDrawer
+                asset={previewAsset}
+                onClose={() => setPreviewAsset(null)}
+                onCopy={copyAssetText}
+                onDownload={downloadImage}
+                ark={
+                    arkEnabled && previewAsset
+                        ? {
+                              progress: arkProgress.get(previewAsset.id),
+                              onCertify: (asset) => setCertifyingAsset(asset),
+                              onManage: () => navigate("/settings?section=ark-assets"),
+                          }
+                        : undefined
+                }
+            />
 
-            <AssetBatchUploadModal open={batchUploadOpen} defaultFolderId={folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : ""} folders={folders} onClose={() => setBatchUploadOpen(false)} onComplete={async () => { setBatchUploadOpen(false); await invalidateAssetLibrary(); }} />
+            <AssetBatchUploadModal
+                open={batchUploadOpen}
+                defaultFolderId={folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : ""}
+                folders={folders}
+                onClose={() => setBatchUploadOpen(false)}
+                onComplete={async () => {
+                    setBatchUploadOpen(false);
+                    await invalidateAssetLibrary();
+                }}
+            />
 
             <Modal
                 className="library-modal library-confirm-modal"
                 title={folderEditor === "new" ? t("library.assets.folder.create") : t("library.assets.folder.rename")}
                 open={Boolean(folderEditor)}
                 confirmLoading={folderSaving}
-                onCancel={() => { if (!folderSaving) setFolderEditor(null); }}
+                onCancel={() => {
+                    if (!folderSaving) setFolderEditor(null);
+                }}
                 onOk={() => void saveFolder()}
                 okText={t("common.save")}
                 cancelText={t("common.cancel")}
@@ -1054,7 +1203,9 @@ export default function AssetsPage() {
                 className="library-modal library-confirm-modal"
                 title={t("library.assets.archive.title")}
                 open={Boolean(archivingAsset)}
-                onCancel={() => { if (!batchWorking) setArchivingAsset(null); }}
+                onCancel={() => {
+                    if (!batchWorking) setArchivingAsset(null);
+                }}
                 onOk={() => {
                     if (archivingAsset) {
                         void changeAssetStatus([archivingAsset.id], "archived");
@@ -1071,7 +1222,9 @@ export default function AssetsPage() {
                 className="library-modal library-confirm-modal"
                 title={t("library.assets.archive.batchTitle")}
                 open={batchArchiveOpen}
-                onCancel={() => { if (!batchWorking) setBatchArchiveOpen(false); }}
+                onCancel={() => {
+                    if (!batchWorking) setBatchArchiveOpen(false);
+                }}
                 onOk={() => void changeAssetStatus(selectedIds, "archived")}
                 confirmLoading={batchWorking}
                 cancelButtonProps={{ disabled: batchWorking }}
@@ -1096,7 +1249,9 @@ export default function AssetsPage() {
                 className="library-modal library-confirm-modal"
                 title={t("library.assets.delete.batchTitle")}
                 open={batchDeleteOpen}
-                onCancel={() => { if (!batchWorking) setBatchDeleteOpen(false); }}
+                onCancel={() => {
+                    if (!batchWorking) setBatchDeleteOpen(false);
+                }}
                 onOk={() => void confirmBatchDelete()}
                 confirmLoading={batchWorking}
                 cancelButtonProps={{ disabled: batchWorking }}

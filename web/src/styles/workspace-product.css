@@ -681,13 +681,7 @@
     font-size: 14px;
     line-height: 1.6;
 }
-.app-product-workspace .task-collection-content .task-record-list {
-    display: grid;
-    gap: var(--space-2);
-}
-.app-product-workspace .task-collection-content .task-record-row {
-    padding-inline: var(--space-4);
-}
+
 .assets-collection-layout {
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
@@ -1098,8 +1092,7 @@
 .app-product-workspace .library-grid,
 .app-product-workspace .assets-library-grid,
 .app-product-workspace .skill-library-grid,
-.app-product-workspace .plugins-grid,
-.app-product-workspace .task-grid-view {
+.app-product-workspace .plugins-grid {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--collection-grid-min-width, 224px)), 1fr));
     gap: 24px 16px;
 }
@@ -1115,7 +1108,6 @@
 
 .app-product-workspace .product-collection-card,
 .app-product-workspace .library-card,
-.app-product-workspace .task-grid-card,
 .app-product-workspace .plugin-card,
 .app-product-workspace .skill-library-card {
     animation: product-card-enter var(--product-enter) var(--product-ease) backwards;
@@ -1613,22 +1605,69 @@
     color: var(--user-ink-muted);
 }
 
-.app-product-workspace .task-record-list,
-.app-product-workspace .task-group-list {
-    gap: 8px !important;
+.app-product-workspace .task-center-statusbar .app-segmented {
+    width: fit-content;
+    max-width: 100%;
+    height: var(--user-control-height);
+    align-items: stretch;
+    border-radius: var(--user-radius-button);
+    background: var(--user-surface-muted);
+    padding: 4px;
 }
-
-.app-product-workspace .task-record-row {
-    min-height: 72px;
-    border: 0 !important;
-    border-radius: 14px !important;
-    background: var(--user-surface) !important;
-    transition: background var(--product-state) var(--product-ease);
+.app-product-workspace .task-center-statusbar .app-segmented.is-sm {
+    height: var(--user-control-height-sm);
+    padding: 2px;
+    border-radius: var(--user-radius-button-sm);
 }
-
-.app-product-workspace .task-record-row:hover,
-.app-product-workspace .task-record-row:focus-within {
-    background: var(--user-surface-hover) !important;
+.app-product-workspace .task-center-statusbar .app-segmented-thumb {
+    inset-block: 4px;
+    border-radius: 4px;
+    background: var(--user-surface);
+    box-shadow: none;
+}
+.app-product-workspace .task-center-statusbar .app-segmented.is-sm .app-segmented-thumb {
+    inset-block: 2px;
+    border-radius: 4px;
+}
+.app-product-workspace .task-center-statusbar .app-segmented-item {
+    min-height: 0;
+    gap: 8px;
+    border-radius: 8px;
+    padding-inline: 8px;
+    color: var(--user-ink-muted);
+    font-size: var(--user-button-font-size);
+    font-weight: var(--user-button-font-weight);
+    transition:
+        color var(--product-state) var(--product-ease),
+        background var(--product-state) var(--product-ease);
+}
+.app-product-workspace .task-center-statusbar .app-segmented.is-sm .app-segmented-item {
+    padding-inline: 8px;
+    border-radius: 4px;
+    font-size: var(--fs-caption);
+}
+.app-product-workspace .task-center-statusbar .app-segmented-item svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: var(--user-button-icon-stroke);
+}
+.app-product-workspace .task-center-statusbar .app-segmented-item:not(:disabled):hover {
+    background: transparent;
+    color: var(--user-ink);
+}
+.app-product-workspace .task-center-statusbar .app-segmented-item[aria-checked="true"] {
+    background: transparent;
+    color: var(--user-ink);
+    box-shadow: none;
+}
+.app-product-workspace .task-center-statusbar .app-segmented-count {
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--user-ink-soft);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
 
 .app-user-workspace .app-workspace-sidebar-nav.is-collapsed .app-workspace-nav-link {
@@ -2035,19 +2074,19 @@
 }
 
 /* 列表进入节奏：卡片和图片错开出现，慢网络时仍有内容层次。 */
-.app-product-workspace :is(.product-collection-card, .library-card, .task-grid-card, .task-record-row, .skill-library-card, .plugin-card) {
+.app-product-workspace :is(.product-collection-card, .library-card, .skill-library-card, .plugin-card) {
     animation: product-card-enter var(--product-enter) var(--product-ease) both;
 }
-.app-product-workspace :is(.product-collection-card, .library-card, .task-grid-card, .task-record-row, .skill-library-card, .plugin-card):nth-child(2) {
+.app-product-workspace :is(.product-collection-card, .library-card, .skill-library-card, .plugin-card):nth-child(2) {
     animation-delay: 45ms;
 }
-.app-product-workspace :is(.product-collection-card, .library-card, .task-grid-card, .task-record-row, .skill-library-card, .plugin-card):nth-child(3) {
+.app-product-workspace :is(.product-collection-card, .library-card, .skill-library-card, .plugin-card):nth-child(3) {
     animation-delay: 90ms;
 }
-.app-product-workspace :is(.product-collection-card, .library-card, .task-grid-card, .task-record-row, .skill-library-card, .plugin-card):nth-child(4) {
+.app-product-workspace :is(.product-collection-card, .library-card, .skill-library-card, .plugin-card):nth-child(4) {
     animation-delay: 135ms;
 }
-.app-product-workspace :is(.product-collection-card, .library-card, .task-grid-card, .task-record-row, .skill-library-card, .plugin-card):nth-child(n + 5) {
+.app-product-workspace :is(.product-collection-card, .library-card, .skill-library-card, .plugin-card):nth-child(n + 5) {
     animation-delay: 180ms;
 }
 .app-product-workspace .library-card img,
@@ -2120,8 +2159,7 @@
         justify-content: flex-start;
     }
     .app-product-workspace .canvas-collection-grid,
-    .app-product-workspace .assets-library-grid:not(.assets-library-page .assets-library-grid),
-    .app-product-workspace .task-grid-view {
+    .app-product-workspace .assets-library-grid:not(.assets-library-page .assets-library-grid) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px 10px;
     }
@@ -2311,10 +2349,8 @@
     }
     .app-product-workspace .product-collection-card:hover,
     .app-product-workspace .library-card:hover,
-    .app-product-workspace .task-grid-card:hover,
     .app-product-workspace .plugin-card:hover,
-    .app-product-workspace .skill-library-card:hover,
-    .app-product-workspace .task-record-row:hover {
+    .app-product-workspace .skill-library-card:hover {
         transform: none !important;
     }
     .app-user-workspace .app-workspace-nav-link,
@@ -2998,272 +3034,4 @@
     .app-user-workspace .plugins-page .plugins-filter.ant-select:not(.ant-select-disabled):is(:hover, .ant-select-focused, .ant-select-open) .ant-select-selector {
         background: var(--market-hover-bg) !important;
     }
-}
-
-/* -------------------------------------------------------------------------
-   素材选择弹窗现代材质与样式优化 (Asset Library Picker Modal Alignment)
-   - 对齐 Skills/Assets 设计语言：灰阶表面、12px/14px 圆角、无边框灰底搜索框、
-     主题色反白胶囊选中态、14px 灰调卡片与轻量复选框。
-   ------------------------------------------------------------------------- */
-.asset-library-picker-modal {
-    --picker-bg: var(--user-surface, #ffffff);
-    --picker-muted: var(--user-ink-muted, #707070);
-    --picker-border: var(--user-border, rgba(0, 0, 0, 0.08));
-    --picker-hover: var(--user-surface-hover, rgba(0, 0, 0, 0.04));
-    --picker-accent: var(--user-accent, #171717);
-    --picker-on-accent: var(--primary-foreground, #ffffff);
-}
-
-.dark .asset-library-picker-modal {
-    --picker-bg: #1c1c1f;
-    --picker-muted: #959599;
-    --picker-border: rgba(255, 255, 255, 0.08);
-    --picker-hover: rgba(255, 255, 255, 0.06);
-    --picker-accent: #f0f0f2;
-    --picker-on-accent: #171717;
-}
-
-/* 弹窗外壳：尺寸、圆角与柔和阴影 */
-.asset-library-picker-modal {
-    width: min(1080px, calc(100vw - 32px)) !important;
-    max-width: 1080px !important;
-}
-
-.asset-library-picker-modal .ant-modal-container,
-.asset-library-picker-modal .ant-modal-content {
-    border-radius: 20px !important;
-    overflow: hidden !important;
-    border: 1px solid var(--picker-border) !important;
-    background: var(--picker-bg) !important;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28) !important;
-}
-
-.asset-library-picker-modal .asset-picker-shell {
-    height: min(720px, calc(100vh - 48px)) !important;
-    min-height: 520px !important;
-}
-
-.asset-library-picker-modal .ant-modal-close {
-    top: 16px !important;
-    right: 18px !important;
-    color: var(--picker-muted) !important;
-    border-radius: 8px !important;
-    transition:
-        background-color 150ms ease,
-        color 150ms ease !important;
-}
-
-.asset-library-picker-modal .ant-modal-close:hover {
-    background: var(--picker-hover) !important;
-    color: var(--user-ink) !important;
-}
-
-/* 顶部工具栏 */
-.asset-library-picker-modal .asset-picker-toolbar {
-    min-height: 58px !important;
-    padding: 12px 64px 12px 20px !important;
-    border-bottom: 1px solid var(--picker-border) !important;
-}
-
-.asset-library-picker-modal .asset-picker-heading-copy > span {
-    font-size: 15px !important;
-    font-weight: 650 !important;
-    color: var(--user-ink) !important;
-}
-
-.asset-library-picker-modal .asset-picker-title-trigger {
-    height: 32px !important;
-    padding: 0 10px !important;
-    border-radius: 8px !important;
-    background: var(--picker-hover) !important;
-}
-
-.asset-library-picker-modal .asset-picker-title-trigger strong {
-    font-size: 13px !important;
-    font-weight: 560 !important;
-}
-
-/* 搜索框：无边框灰底，圆角 12px */
-.asset-library-picker-modal .asset-picker-search {
-    height: 36px !important;
-    border-radius: 12px !important;
-    background: var(--picker-hover) !important;
-    padding: 0 12px !important;
-}
-
-.asset-library-picker-modal .asset-picker-search input {
-    font-size: 13px !important;
-}
-
-/* 左侧分类导航胶囊 */
-.asset-library-picker-modal .asset-picker-categories {
-    padding: 12px 4px 12px 0 !important;
-}
-
-.asset-library-picker-modal .asset-picker-nav-label {
-    padding: 8px 10px 4px !important;
-    font-size: 11px !important;
-    font-weight: 650 !important;
-    letter-spacing: 0.04em !important;
-    color: var(--picker-muted) !important;
-}
-
-.asset-library-picker-modal .asset-picker-categories .assets-filter-item {
-    height: 34px !important;
-    min-height: 34px !important;
-    border-radius: 10px !important;
-    padding: 0 10px !important;
-    margin-bottom: 2px !important;
-    font-size: 12.5px !important;
-    color: var(--picker-muted) !important;
-    border: 0 !important;
-    background: transparent !important;
-    transition:
-        background-color 150ms ease,
-        color 150ms ease !important;
-}
-
-.asset-library-picker-modal .asset-picker-categories .assets-filter-item:hover {
-    background: var(--picker-hover) !important;
-    color: var(--user-ink) !important;
-}
-
-.asset-library-picker-modal .asset-picker-categories .assets-filter-item.is-active {
-    background: var(--picker-accent) !important;
-    color: var(--picker-on-accent) !important;
-    font-weight: 580 !important;
-}
-
-.asset-library-picker-modal .asset-picker-categories .assets-filter-item.is-active .assets-filter-count {
-    color: var(--picker-on-accent) !important;
-    opacity: 0.8 !important;
-}
-
-/* 中间素材卡片网格 */
-.asset-library-picker-modal .asset-picker-body {
-    grid-template-columns: 204px minmax(0, 1fr) !important;
-    padding: 0 20px !important;
-    gap: 20px !important;
-}
-
-.asset-library-picker-modal .asset-picker-grid {
-    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)) !important;
-    gap: 14px !important;
-    padding-bottom: 20px !important;
-}
-
-.asset-picker-clear-selection-btn {
-    display: inline-flex;
-    align-items: center;
-    height: 32px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--picker-muted);
-    font-size: 12px;
-    cursor: pointer;
-    transition:
-        color 150ms ease,
-        background-color 150ms ease;
-}
-
-.asset-picker-clear-selection-btn:hover {
-    background: var(--picker-hover);
-    color: var(--user-ink);
-}
-
-.asset-library-picker-modal .asset-picker-card {
-    border-radius: 14px !important;
-    overflow: hidden !important;
-    border: 1px solid var(--picker-border) !important;
-    background: var(--picker-hover) !important;
-    transition:
-        transform 180ms ease,
-        border-color 180ms ease,
-        box-shadow 180ms ease !important;
-}
-
-.asset-library-picker-modal .asset-picker-card:hover {
-    border-color: color-mix(in srgb, var(--picker-accent) 32%, var(--picker-border)) !important;
-    transform: translateY(-2px) !important;
-    background: var(--picker-hover) !important;
-}
-
-.asset-library-picker-modal .asset-picker-card.is-selected {
-    border-color: var(--picker-accent) !important;
-    box-shadow: 0 0 0 1.5px var(--picker-accent) !important;
-}
-
-.asset-library-picker-modal .asset-picker-card-media {
-    border-radius: 12px 12px 0 0 !important;
-    aspect-ratio: 4 / 3 !important;
-}
-
-/* 选中勾选角标 */
-.asset-library-picker-modal .asset-picker-card-check {
-    width: 22px !important;
-    height: 22px !important;
-    border-radius: 7px !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-    background: rgba(0, 0, 0, 0.45) !important;
-    backdrop-filter: blur(8px) !important;
-}
-
-.asset-library-picker-modal .asset-picker-card.is-selected .asset-picker-card-check {
-    background: var(--picker-accent) !important;
-    border-color: var(--picker-accent) !important;
-    color: var(--picker-on-accent) !important;
-}
-
-.asset-library-picker-modal .asset-picker-card-copy {
-    min-height: 54px !important;
-    padding: 8px 10px 10px !important;
-    gap: 2px !important;
-}
-
-.asset-library-picker-modal .asset-picker-card-copy strong {
-    font-size: 13px !important;
-    font-weight: 580 !important;
-    color: var(--user-ink) !important;
-}
-
-.asset-library-picker-modal .asset-picker-card-copy span {
-    font-size: 11px !important;
-    color: var(--picker-muted) !important;
-}
-
-/* 底部操作栏 */
-.asset-library-picker-modal .asset-picker-footer {
-    padding: 12px 20px !important;
-    border-top: 1px solid var(--picker-border) !important;
-    background: var(--picker-bg) !important;
-}
-
-.asset-library-picker-modal .asset-picker-upload {
-    min-height: 48px !important;
-    border-radius: 12px !important;
-    background: var(--picker-hover) !important;
-    border: 1px dashed var(--picker-border) !important;
-    transition:
-        background-color 150ms ease,
-        border-color 150ms ease !important;
-}
-
-.asset-library-picker-modal .asset-picker-upload:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--picker-hover) 80%, var(--picker-accent)) !important;
-    border-color: var(--picker-muted) !important;
-}
-
-.asset-library-picker-modal .asset-picker-actions .ant-btn {
-    height: 36px !important;
-    border-radius: 10px !important;
-    font-size: 13px !important;
-    font-weight: 560 !important;
-}
-
-.asset-library-picker-modal .asset-picker-actions .ant-btn-primary {
-    background: var(--picker-accent) !important;
-    color: var(--picker-on-accent) !important;
-    border-color: var(--picker-accent) !important;
 }

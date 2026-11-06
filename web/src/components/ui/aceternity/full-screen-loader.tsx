@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -8,16 +8,35 @@ type FullScreenLoaderProps = {
     className?: string;
 };
 
+// 会话恢复、客户端初始化和整页路由共用时间线，接力时流光延续原相位，文案不重播入场。
+// index.html 的启动流光也使用 performance.now()；两处保留同样的细线尺寸与扫描节奏。
+const LOADER_HANDOFF_MS = 400;
+let presentationStartedAt = 0;
+let lastUnmountedAt = Number.NEGATIVE_INFINITY;
+let mountedLoaders = 0;
+
+function useLoaderTimeline() {
+    const [timeline] = useState(() => {
+        const now = performance.now();
+        if (mountedLoaders === 0 && now - lastUnmountedAt > LOADER_HANDOFF_MS) presentationStartedAt = now;
+        return { "--loader-clock": `${now}ms`, "--loader-elapsed": `${now - presentationStartedAt}ms` } as CSSProperties;
+    });
+
+    useEffect(() => {
+        mountedLoaders += 1;
+        return () => {
+            mountedLoaders -= 1;
+            lastUnmountedAt = performance.now();
+        };
+    }, []);
+
+    return timeline;
+}
+
 export function FullScreenLoader({ label = "正在恢复工作区", detail = "同步账号、模型和项目数据", className }: FullScreenLoaderProps) {
+    const timeline = useLoaderTimeline();
     return (
-        <div
-            data-full-screen-loader
-            role="status"
-            aria-live="polite"
-            aria-label={`${label}，${detail}`}
-            className={cn("full-screen-loader", className)}
-        >
-            {/* 与 index.html 启动屏同一母题：中央一根细线 + 流光，下方大字距文案。 */}
+        <div data-full-screen-loader role="status" aria-live="polite" aria-label={`${label}，${detail}`} className={cn("full-screen-loader", className)} style={timeline}>
             <span className="full-screen-loader-track" aria-hidden="true">
                 <span className="full-screen-loader-sweep" />
             </span>

@@ -12,6 +12,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { catalogIdOf, inspirationSourceOf, inspirationSources, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
 import { canManageInspirations } from "@/lib/inspirations/permissions";
 import { fillablePrompt, isCustomInspiration, resolveInspirations } from "@/lib/inspirations/resolve";
+import { isFreshInspiration, localDayKey, orderInspirationsByLatest, orderInspirationsForToday } from "@/lib/inspirations/daily-order";
 import { loadInspirationCatalog, type InspirationCatalog } from "@/services/inspiration-catalog";
 import { useInspirationStore } from "@/stores/use-inspiration-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -22,7 +23,7 @@ import "./inspirations.css";
 type SourceFilter = "all" | InspirationSourceId;
 type ViewFilter = "all" | "favorites" | "hidden";
 type ModeFilter = "all" | CreationInspiration["mode"];
-type SortKey = "default" | "title";
+type SortKey = "daily" | "latest" | "title";
 /** 分类标签比编辑器里的选项多一个条目数，用于在标签上显示数量。 */
 type CategoryChoice = InspirationCategoryChoice & { count: number };
 
@@ -38,9 +39,23 @@ const VIEW_OPTIONS: { label: string; value: ViewFilter }[] = [
     { label: "已隐藏", value: "hidden" },
 ];
 const SORT_OPTIONS = [
-    { label: "默认顺序", value: "default" },
+    { label: "每日推荐", value: "daily" },
+    { label: "最新上架", value: "latest" },
     { label: "按标题", value: "title" },
 ];
+
+/** 标签页隔夜后回到前台时换成新的一天，推荐顺序随之轮换，不必刷新页面。 */
+function useLocalDayKey(): string {
+    const [dayKey, setDayKey] = useState(() => localDayKey());
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === "visible") setDayKey(localDayKey());
+        };
+        document.addEventListener("visibilitychange", refresh);
+        return () => document.removeEventListener("visibilitychange", refresh);
+    }, []);
+    return dayKey;
+}
 
 /** 导出文件名带上日期，重复导出不会互相覆盖。 */
 function exportFileName() {
@@ -88,7 +103,8 @@ export default function InspirationsPage() {
     const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
     const [category, setCategory] = useState("all");
     const [view, setView] = useState<ViewFilter>("all");
-    const [sort, setSort] = useState<SortKey>("default");
+    const [sort, setSort] = useState<SortKey>("daily");
+    const dayKey = useLocalDayKey();
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebouncedValue(search, 250);
     const [page, setPage] = useState(1);
@@ -114,10 +130,10 @@ export default function InspirationsPage() {
         };
     }, [reloadKey]);
 
-    // 筛选条件一变就回第一页，否则会停在一个已经不存在的位置上。
+    // 筛选条件或推荐日期一变就回第一页，否则会停在一个已经不存在的位置上。
     useEffect(() => {
         setPage(1);
-    }, [source, modeFilter, category, view, sort, debouncedSearch, pageSize]);
+    }, [source, modeFilter, category, view, sort, debouncedSearch, pageSize, dayKey]);
 
     /** 管理视图对普通用户不可见，也就不该停在这上面（例如管理员被降级后留在该视图）。 */
     useEffect(() => {
@@ -215,8 +231,15 @@ export default function InspirationsPage() {
             return haystack.includes(keyword);
         });
         if (sort === "title") return [...filtered].sort((left, right) => left.title.localeCompare(right.title, "zh-Hans-CN"));
-        return filtered;
-    }, [view, resolved, hiddenItems, debouncedSearch, favorites, source, modeFilter, category, sort, categoryLabel]);
+        // 自建条目固定在最前，刚建好的条目不会被打散到后面几页；内置条目按当天顺序轮换，上新排在前面。
+        const own = filtered.filter((item) => isCustomInspiration(catalogIdOf(item)));
+        const builtIn = filtered.filter((item) => !isCustomInspiration(catalogIdOf(item)));
+        return [...own, ...(sort === "latest" ? orderInspirationsByLatest(builtIn, dayKey) : orderInspirationsForToday(builtIn, dayKey, Date.now()))];
+    }, [view, resolved, hiddenItems, debouncedSearch, favorites, source, modeFilter, category, sort, categoryLabel, dayKey]);
+    const freshCount = useMemo(() => {
+        const now = Date.now();
+        return visible.filter((item) => isFreshInspiration(item, now)).length;
+    }, [visible]);
 
     const paged = useMemo(() => visible.slice((page - 1) * pageSize, page * pageSize), [visible, page, pageSize]);
 
@@ -274,6 +297,7 @@ export default function InspirationsPage() {
             setModeFilter("all");
             setCategory("all");
             setView("all");
+            setSort("daily");
             setSearch("");
             message.success("灵感已创建");
         },
@@ -338,7 +362,7 @@ export default function InspirationsPage() {
 
     return (
         <WorkspacePage>
-            <PageHeader title="灵感库" description={`${total} 条提示词，按来源、分类和创作类型挑，点开可以一键带去创作页`} actions={headerActions} />
+            <PageHeader title="灵感库" description={`${total} 条提示词，每日推荐轮换，新上架的排在前面，点开可以一键带去创作页`} actions={headerActions} />
 
             {loadError ? (
                 <WorkspaceErrorState title="灵感目录加载失败" description={loadError} onRetry={() => setReloadKey((key) => key + 1)} />
@@ -349,7 +373,7 @@ export default function InspirationsPage() {
                     {/* 图片 / 视频 / 文本是两大主类，放在最上面做一级筛选。 */}
                     <div className="flex flex-wrap items-center gap-3">
                         <SegmentedControl options={modeOptions} value={modeFilter} onChange={(value) => setModeFilter(value as ModeFilter)} ariaLabel="按创作类型筛选" />
-                        <span className="text-xs text-foreground/50">共 {visible.length} 条</span>
+                        <span className="text-xs text-foreground/50" role="status">共 {visible.length} 条{freshCount ? ` · 本周上新 ${freshCount} 条` : ""}</span>
                     </div>
 
                     {/* 分类标签是二级筛选：一眼看到库里都有什么，点一下就能缩小范围。 */}
@@ -409,6 +433,7 @@ export default function InspirationsPage() {
                                     >
                                         <div className="inspiration-card-cover">
                                             <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                                            {isFreshInspiration(item, Date.now()) ? <span className="inspiration-card-new">新</span> : null}
                                             <span className="inspiration-card-source">{inspirationSourceOf(item).label}</span>
                                             <div className="inspiration-card-actions">
                                                 {/* 收藏是个人书签，不改库内容，所有登录用户都能用。 */}

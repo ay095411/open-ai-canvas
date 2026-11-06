@@ -1,4 +1,5 @@
 import { translate } from "@/i18n";
+import { markAgentCanvasEntrance } from "@/lib/canvas/agent-canvas-entrance";
 import { agentCanvasFocusTargets, type AgentCanvasFocus } from "@/lib/canvas/agent-canvas-focus";
 import { mergeAgentCanvasEditor } from "@/lib/canvas/agent-canvas-patch";
 import { rebaseCanvasLocalEdits } from "@/lib/canvas/canvas-sync-rebase";
@@ -238,61 +239,107 @@ export function useCanvasProjectLifecycle({
         };
     }, [projectLoaded]);
 
-    useEffect(() => subscribeAgentCanvasRefresh((project, previous, source) => {
-        if (!projectLoaded || project.id !== projectId) return;
-        if (source === "sync") {
-            const fallbackTheme = useCanvasThemeStore.getState().theme;
-            const editor = { ...(previous || project), nodes: nodesRef.current, connections: connectionsRef.current, chatSessions: chatSessionsRef.current, activeChatId: activeChatIdRef.current, appearance: canvasAppearance, backgroundMode, showImageInfo };
-            const merged = previous ? rebaseCanvasLocalEdits(previous, project, editor) : project;
-            const appearance = merged.appearance ? normalizeCanvasAppearance(merged.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme);
-            const snapshot: CanvasHistorySnapshot = {
-                nodes: merged.nodes,
-                connections: merged.connections,
-                chatSessions: merged.chatSessions || [],
-                activeChatId: merged.activeChatId || null,
-                canvasAppearance: appearance,
-                // 实时刷新也要带上「用户是否显式设置过外观」，否则快照比较会误判成一次本地改动。
-                appearanceCustomized: merged.appearanceCustomized === true,
-                backgroundMode: merged.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
-                showImageInfo: merged.showImageInfo || false,
-            };
-            observedContentRef.current = { ...snapshot, nodes: project.nodes, connections: project.connections, chatSessions: project.chatSessions || [], activeChatId: project.activeChatId || null, canvasAppearance: project.appearance ? normalizeCanvasAppearance(project.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme), appearanceCustomized: project.appearanceCustomized === true, backgroundMode: project.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE, showImageInfo: project.showImageInfo || false };
-            nodesRef.current = snapshot.nodes;
-            connectionsRef.current = snapshot.connections;
-            chatSessionsRef.current = snapshot.chatSessions;
-            activeChatIdRef.current = snapshot.activeChatId;
-            setNodes(snapshot.nodes);
-            setConnections(snapshot.connections);
-            setChatSessions(snapshot.chatSessions);
-            setActiveChatId(snapshot.activeChatId);
-            setCanvasAppearance(snapshot.canvasAppearance);
-            setBackgroundMode(snapshot.backgroundMode);
-            setShowImageInfo(snapshot.showImageInfo);
-            setLoadError("");
-            return;
-        }
-        // Merge only server-changed fields so dragging/editing other nodes can
-        // continue while Agent media tasks complete. Same-field conflicts fail.
-        const merged = previous ? mergeAgentCanvasEditor(previous, project, nodesRef.current, connectionsRef.current) : project;
-        if (observedContentRef.current) {
-            const observed = observedContentRef.current;
-            // Advance only the observed server fields; edits in live refs still
-            // differ from this baseline and must be persisted by the effect below.
-            const baseline = previous ? mergeAgentCanvasEditor(previous, project, observed.nodes, observed.connections) : project;
-            observedContentRef.current = { ...observed, nodes: baseline.nodes, connections: baseline.connections };
-        }
-        nodesRef.current = merged.nodes;
-        connectionsRef.current = merged.connections;
-        setNodes(merged.nodes);
-        setConnections(merged.connections);
-        const focus = agentCanvasFocusTargets(previous, project);
-        if (focus) {
-            // 镜头跟随编辑器里的实际位置：用户可能正拖着其中某个节点。
-            const liveById = new Map(merged.nodes.map((node) => [node.id, node]));
-            const nodes = focus.nodes.map((node) => liveById.get(node.id)).filter((node): node is CanvasNodeData => Boolean(node));
-            if (nodes.length) setAgentFocus({ projectId: project.id, focus: { ...focus, nodes } });
-        }
-    }), [projectId, projectLoaded, nodesRef, connectionsRef, chatSessionsRef, activeChatIdRef, canvasAppearance, backgroundMode, showImageInfo, setNodes, setConnections, setChatSessions, setActiveChatId, setCanvasAppearance, setBackgroundMode, setShowImageInfo]);
+    useEffect(
+        () =>
+            subscribeAgentCanvasRefresh((project, previous, source) => {
+                if (!projectLoaded || project.id !== projectId) return;
+                if (source === "sync") {
+                    const fallbackTheme = useCanvasThemeStore.getState().theme;
+                    const editor = {
+                        ...(previous || project),
+                        nodes: nodesRef.current,
+                        connections: connectionsRef.current,
+                        chatSessions: chatSessionsRef.current,
+                        activeChatId: activeChatIdRef.current,
+                        appearance: canvasAppearance,
+                        backgroundMode,
+                        showImageInfo,
+                    };
+                    const merged = previous ? rebaseCanvasLocalEdits(previous, project, editor) : project;
+                    const appearance = merged.appearance ? normalizeCanvasAppearance(merged.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme);
+                    const snapshot: CanvasHistorySnapshot = {
+                        nodes: merged.nodes,
+                        connections: merged.connections,
+                        chatSessions: merged.chatSessions || [],
+                        activeChatId: merged.activeChatId || null,
+                        canvasAppearance: appearance,
+                        appearanceCustomized: merged.appearanceCustomized === true,
+                        backgroundMode: merged.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
+                        showImageInfo: merged.showImageInfo || false,
+                    };
+                    observedContentRef.current = {
+                        ...snapshot,
+                        nodes: project.nodes,
+                        connections: project.connections,
+                        chatSessions: project.chatSessions || [],
+                        activeChatId: project.activeChatId || null,
+                        canvasAppearance: project.appearance ? normalizeCanvasAppearance(project.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme),
+                        appearanceCustomized: project.appearanceCustomized === true,
+                        backgroundMode: project.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
+                        showImageInfo: project.showImageInfo || false,
+                    };
+                    nodesRef.current = snapshot.nodes;
+                    connectionsRef.current = snapshot.connections;
+                    chatSessionsRef.current = snapshot.chatSessions;
+                    activeChatIdRef.current = snapshot.activeChatId;
+                    setNodes(snapshot.nodes);
+                    setConnections(snapshot.connections);
+                    setChatSessions(snapshot.chatSessions);
+                    setActiveChatId(snapshot.activeChatId);
+                    setCanvasAppearance(snapshot.canvasAppearance);
+                    setBackgroundMode(snapshot.backgroundMode);
+                    setShowImageInfo(snapshot.showImageInfo);
+                    setLoadError("");
+                    return;
+                }
+                // Merge only server-changed fields so dragging/editing other nodes can
+                // continue while Agent media tasks complete. Same-field conflicts fail.
+                const merged = previous ? mergeAgentCanvasEditor(previous, project, nodesRef.current, connectionsRef.current) : project;
+                if (observedContentRef.current) {
+                    const observed = observedContentRef.current;
+                    // Advance only the observed server fields; edits in live refs still
+                    // differ from this baseline and must be persisted by the effect below.
+                    const baseline = previous ? mergeAgentCanvasEditor(previous, project, observed.nodes, observed.connections) : project;
+                    observedContentRef.current = { ...observed, nodes: baseline.nodes, connections: baseline.connections };
+                }
+                // 在新节点第一次渲染之前登记入场顺序，节点挂载时直接带着错开的延迟出现。
+                const knownNodeIds = new Set(nodesRef.current.map((node) => node.id));
+                const knownConnectionIds = new Set(connectionsRef.current.map((connection) => connection.id));
+                markAgentCanvasEntrance(
+                    merged.nodes.filter((node) => !knownNodeIds.has(node.id)).map((node) => node.id),
+                    merged.connections.filter((connection) => !knownConnectionIds.has(connection.id)).map((connection) => connection.id),
+                );
+                nodesRef.current = merged.nodes;
+                connectionsRef.current = merged.connections;
+                setNodes(merged.nodes);
+                setConnections(merged.connections);
+                const focus = agentCanvasFocusTargets(previous, project);
+                if (focus) {
+                    // 镜头跟随编辑器里的实际位置：用户可能正拖着其中某个节点。
+                    const liveById = new Map(merged.nodes.map((node) => [node.id, node]));
+                    const nodes = focus.nodes.map((node) => liveById.get(node.id)).filter((node): node is CanvasNodeData => Boolean(node));
+                    if (nodes.length) setAgentFocus({ projectId: project.id, focus: { ...focus, nodes } });
+                }
+            }),
+        [
+            projectId,
+            projectLoaded,
+            nodesRef,
+            connectionsRef,
+            chatSessionsRef,
+            activeChatIdRef,
+            canvasAppearance,
+            backgroundMode,
+            showImageInfo,
+            setNodes,
+            setConnections,
+            setChatSessions,
+            setActiveChatId,
+            setCanvasAppearance,
+            setBackgroundMode,
+            setShowImageInfo,
+        ],
+    );
 
     useEffect(() => {
         if (!projectLoaded || !sessionHydrated) return;

@@ -86,6 +86,21 @@
     backdrop-filter: blur(10px);
 }
 
+/* 上新 7 天内的条目：左上角小标签，与右上角的操作按钮错开。 */
+.inspiration-card-new {
+    position: absolute;
+    z-index: 1;
+    top: var(--space-2);
+    left: var(--space-2);
+    padding: 0 var(--space-2);
+    border-radius: var(--r-full);
+    background: var(--user-surface-raised);
+    color: var(--user-ink);
+    font-size: var(--fs-tiny);
+    font-weight: 600;
+    line-height: 1.8;
+}
+
 /* 悬停才浮出的快捷操作，平时不干扰画面。 */
 .inspiration-card-actions {
     position: absolute;

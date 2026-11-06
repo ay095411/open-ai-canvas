@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" class="font-sans dark" style="color-scheme: dark;">
+<html lang="zh-CN" class="font-sans dark" style="color-scheme: dark">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,7 +26,7 @@
             #root:empty {
                 min-height: 100vh;
             }
-            /* 细线轨道，两端渐隐 */
+            /* 细线轨道，两端渐隐；流光与 FullScreenLoader 共用 performance.now() 相位。 */
             #root:empty::before {
                 content: "";
                 position: fixed;
@@ -59,7 +59,7 @@
                 mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
                 animation:
                     boot-in 0.8s ease-out both,
-                    boot-sweep 2.4s ease-in-out 0.8s infinite;
+                    boot-sweep 2.4s ease-in-out calc(-1 * var(--boot-signal-clock, 0ms)) infinite;
             }
             html:not(.dark) #root:empty::after {
                 background-image: linear-gradient(90deg, transparent, rgba(20, 20, 20, 0.55), transparent);
@@ -85,12 +85,20 @@
                 color: rgba(20, 20, 20, 0.4);
             }
             @keyframes boot-in {
-                from { opacity: 0; }
-                to { opacity: 1; }
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
             }
             @keyframes boot-sweep {
-                0% { background-position: -72px 0; }
-                100% { background-position: 160px 0; }
+                0% {
+                    background-position: -72px 0;
+                }
+                100% {
+                    background-position: 160px 0;
+                }
             }
             @media (prefers-reduced-motion: reduce) {
                 #root:empty::after {
@@ -109,6 +117,10 @@
     </head>
     <body class="bg-background text-foreground antialiased">
         <div id="root"></div>
+        <script>
+            // 放在 #root 之后：外链样式加载完、首帧绘制前才执行，启动信号从这一刻对齐 performance.now()。
+            document.getElementById("root").style.setProperty("--boot-signal-clock", performance.now() + "ms");
+        </script>
         <script type="module" src="/src/main.tsx"></script>
     </body>
 </html>

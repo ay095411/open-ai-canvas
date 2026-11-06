@@ -2,12 +2,14 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-test("settings route delegates to the shared workbench and preferences retain only canvas defaults", () => {
+test("settings route delegates to the shared workbench and preferences retain generation defaults", () => {
     const page = readFileSync(resolve(import.meta.dir, "../src/pages/settings/index.tsx"), "utf8");
     expect(page).toContain("<SettingsWorkbench");
     expect(page).toContain('variant="page"');
     expect(page).toContain("initialSection={isSettingsSection(requestedSection) ? requestedSection : undefined}");
-    const source = readFileSync(resolve(import.meta.dir, "../src/pages/settings/settings-workbench.tsx"), "utf8");
+    const workbench = readFileSync(resolve(import.meta.dir, "../src/pages/settings/settings-workbench.tsx"), "utf8");
+    expect(workbench).toContain("<PreferencesPane />");
+    const source = readFileSync(resolve(import.meta.dir, "../src/pages/settings/preferences-pane.tsx"), "utf8");
     expect(source).not.toContain("创作偏好");
     expect(source).not.toContain("配置默认模型、生成参数和素材存储。");
     expect(source).not.toContain("音频默认值");

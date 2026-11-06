@@ -1,14 +1,16 @@
-import { App, Button, InputNumber } from "antd";
-import { SettingsRow } from "@/components/ui/product/settings-row";
-import { ArrowLeft, Boxes, Brain, Bug, Cloud, Inbox, MessageSquareText, RadioTower, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
+import { App, Button } from "antd";
+import { ArrowLeft, Boxes, Brain, Bug, Cloud, Inbox, MessageSquareText, RadioTower, ShieldCheck, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { UserOSSSettingsForm } from "@/components/layout/user-oss-settings-form";
+import { secretKeyProtocolIds, useUserProtocolCatalog } from "@/hooks/use-user-protocol-catalog";
 import { refreshSystemChannels } from "@/lib/user-session";
-import { defaultConfig, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
+import { useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { usePluginStore } from "@/stores/use-plugin-store";
 import { RUNNINGHUB_PLUGIN_ID } from "@/lib/plugins/builtin/workflows";
+import { arkPortraitOverviewQueryKey, getArkPortraitOverview } from "@/services/api/ark-portraits";
 import { ChannelSettingsPane, channelValidationError, focusInvalidChannelField, isChannelReady } from "./channel-settings-pane";
 import { SettingsPaneHeader } from "./settings-pane-header";
 import { ModelDefaultGrid } from "./model-default-grid";
@@ -18,8 +20,10 @@ import DiagnosticsPanel from "./diagnostics-panel";
 import AgentMemoryPane from "./agent-memory-pane";
 import { RunningHubSettingsPane } from "./runninghub-settings-pane";
 import { FeedbackInboxPane } from "./feedback-inbox-pane";
+import { ArkAssetsPane } from "./ark-assets-pane";
+import { PreferencesPane } from "./preferences-pane";
 
-export type SettingsSectionKey = "profile" | "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "diagnostics" | "feedbacks";
+export type SettingsSectionKey = "profile" | "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "ark-assets" | "diagnostics" | "feedbacks";
 
 /**
  * 分区清单是「页面版」和「弹窗版」唯一的真源：两个形态共用同一个数组和同一套文案，
@@ -38,10 +42,11 @@ export const settingsSections: Array<{ key: SettingsSectionKey; group: SettingsS
     { key: "channels", group: "creation", label: "个人渠道", description: "模型服务与工作流", icon: <RadioTower className="size-4" /> },
     { key: "runninghub", group: "creation", label: "RunningHub 工作流", description: "云端工作流配置", icon: <Workflow className="size-4" /> },
     { key: "models", group: "creation", label: "模型选择", description: "按领域选默认模型", icon: <Boxes className="size-4" /> },
-    { key: "preferences", group: "creation", label: "生成偏好", description: "画布生成默认值", icon: <SlidersHorizontal className="size-4" /> },
+    { key: "preferences", group: "creation", label: "偏好设置", description: "外观、通知与生成默认值", icon: <SlidersHorizontal className="size-4" /> },
     { key: "prompts", group: "creation", label: "提示词偏好", description: "定制平台模板", icon: <MessageSquareText className="size-4" /> },
     { key: "agent-memory", group: "creation", label: "Agent 记忆", description: "记忆文档与历史", icon: <Brain className="size-4" /> },
     { key: "storage", group: "account", label: "我的对象存储", description: "个人媒体存储", icon: <Cloud className="size-4" /> },
+    { key: "ark-assets", group: "account", label: "方舟素材库", description: "真人认证与专属素材", icon: <ShieldCheck className="size-4" /> },
     { key: "diagnostics", group: "support", label: "问题诊断", description: "导出日志排查", icon: <Bug className="size-4" /> },
     { key: "feedbacks", group: "support", label: "我的反馈", description: "提交问题与官方答复", icon: <Inbox className="size-4" /> },
 ];
@@ -75,10 +80,18 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const userId = useUserStore((state) => state.user?.id);
     const userChannels = config.channels.filter((channel) => channel.scope !== "system");
+    const protocolCatalog = useUserProtocolCatalog(customChannelsEnabled);
+    const secretKeyProtocols = useMemo(() => secretKeyProtocolIds(protocolCatalog), [protocolCatalog]);
+    // 加载中或读取失败时仅保留直达入口，由素材页显示加载与重试；不开默认权限。
+    const arkOverviewQuery = useQuery({ queryKey: arkPortraitOverviewQueryKey, queryFn: ({ signal }) => getArkPortraitOverview(signal), enabled: Boolean(userId), staleTime: 60_000 });
+    const arkAssetsVisible = arkOverviewQuery.data ? arkOverviewQuery.data.enabled : initialSection === "ark-assets";
 
     const visibleSections = useMemo(
-        () => (customChannelsEnabled ? settingsSections : settingsSections.filter((section) => section.key !== "channels")).filter((section) => section.key !== "runninghub" || runningHubPluginEnabled),
-        [customChannelsEnabled, runningHubPluginEnabled],
+        () =>
+            (customChannelsEnabled ? settingsSections : settingsSections.filter((section) => section.key !== "channels"))
+                .filter((section) => section.key !== "runninghub" || runningHubPluginEnabled)
+                .filter((section) => section.key !== "ark-assets" || arkAssetsVisible),
+        [arkAssetsVisible, customChannelsEnabled, runningHubPluginEnabled],
     );
 
     const defaultSection = (): SettingsSectionKey => (customChannelsEnabled ? "channels" : "models");
@@ -110,15 +123,15 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
     };
 
     const finishConfig = () => {
-        const invalidChannel = customChannelsEnabled ? userChannels.find((channel) => channelValidationError(channel)) : undefined;
+        const invalidChannel = customChannelsEnabled ? userChannels.find((channel) => channelValidationError(channel, secretKeyProtocols)) : undefined;
         if (invalidChannel) {
             selectSection("channels");
-            message.warning(`${invalidChannel.name || "未命名渠道"}：${channelValidationError(invalidChannel)}`);
-            focusInvalidChannelField(invalidChannel);
+            message.warning(`${invalidChannel.name || "未命名渠道"}：${channelValidationError(invalidChannel, secretKeyProtocols)}`);
+            focusInvalidChannelField(invalidChannel, secretKeyProtocols);
             return;
         }
         const workflowReady = Boolean(runningHubPluginEnabled && config.runningHub.enabled && config.runningHub.workflowId.trim() && config.runningHub.baseUrl.trim() && config.runningHub.apiKey.trim());
-        if (!effectiveConfig.channels.some(isChannelReady) && !workflowReady) {
+        if (!effectiveConfig.channels.some((channel) => isChannelReady(channel, secretKeyProtocols)) && !workflowReady) {
             selectSection(customChannelsEnabled ? "channels" : "models");
             message.error(customChannelsEnabled ? (continueCreation ? "请先完成至少一个渠道的 Base URL、API Key 和模型配置" : "当前没有可用渠道，请先完成连接信息和模型配置") : "当前没有可用的系统模型，请联系管理员配置系统渠道");
             return;
@@ -153,29 +166,7 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
         ),
         preferences: (
             <SettingsPane>
-                <SettingsPaneHeader title="生成偏好" description="设置新建生成任务时使用的初始值，节点内仍可单独覆盖。" />
-                <div className="settings-section">
-                    <section className="settings-preference-block">
-                        <div className="settings-preference-heading">
-                            <h3>画布生成</h3>
-                            <p>用于新建图片生成任务，节点内仍可单独覆盖。</p>
-                        </div>
-                        <SettingsRow
-                            label="默认生图张数"
-                            control={
-                                <InputNumber
-                                    min={1}
-                                    max={15}
-                                    precision={0}
-                                    className="w-full"
-                                    value={Number(config.canvasImageCount)}
-                                    onChange={(value) => updateConfig("canvasImageCount", normalizeImageCount(String(value ?? defaultConfig.canvasImageCount)))}
-                                />
-                            }
-                            controlClassName="w-[200px]"
-                        />
-                    </section>
-                </div>
+                <PreferencesPane />
             </SettingsPane>
         ),
         prompts: (
@@ -199,6 +190,11 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
         feedbacks: (
             <SettingsPane>
                 <FeedbackInboxPane />
+            </SettingsPane>
+        ),
+        "ark-assets": (
+            <SettingsPane>
+                <ArkAssetsPane />
             </SettingsPane>
         ),
         storage: (
@@ -277,8 +273,4 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
 
 function SettingsPane({ children, fill = false }: { children: ReactNode; fill?: boolean }) {
     return <div className={fill ? "settings-pane h-full" : "settings-pane"}>{children}</div>;
-}
-
-function normalizeImageCount(value: string) {
-    return String(Math.max(1, Math.min(15, Math.floor(Math.abs(Number(value)) || Number(defaultConfig.canvasImageCount)))));
 }

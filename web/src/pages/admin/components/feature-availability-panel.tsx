@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { getAdminFeatureAvailability, updateAdminFeatureAvailability } from "@/services/api/auth";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
 import { AdminStatusBadge } from "./admin-ui";
+import { InspirationFeedRow } from "./inspiration-feed-row";
 import "./feature-availability-panel.css";
 
 type FeatureKey =
@@ -345,6 +346,10 @@ export default function FeatureAvailabilityPanel() {
                     status={<AdminStatusBadge label={draftFeatures.frontendModelsEnabled ? "前台模型目录" : "系统渠道"} tone="info" />}
                 >
                     <FeatureSourceRow row={modelFeatureRows[0]} saved={savedFeatures} draft={draftFeatures} saving={saving} onChange={requestFeatureChange} />
+                </FeatureDomainPanel>
+
+                <FeatureDomainPanel title="4. 灵感上新" description="同步外部提示词目录，补充创作首页的灵感内容" icon={<Quote className="size-4" aria-hidden="true" />} status={null}>
+                    <InspirationFeedRow />
                 </FeatureDomainPanel>
             </div>
         </div>

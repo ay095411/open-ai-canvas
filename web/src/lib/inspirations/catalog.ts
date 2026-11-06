@@ -92,6 +92,10 @@ export type CreationInspiration = {
      */
     width?: number;
     height?: number;
+    /** 灵感上新的首次收录时间（ISO）；只有后端定时同步的条目才有。 */
+    addedAt?: string;
+    /** 上游发布时间（ISO），用于同一批上新内部排序。 */
+    publishedAt?: string;
 };
 
 /** 条目在本地存储里的稳定键。 */

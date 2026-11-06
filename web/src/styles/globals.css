@@ -1366,6 +1366,8 @@
     --canvas-mention-chip-height: 22px;
     --canvas-mention-chip-preview-size: 18px;
     --canvas-mention-hover-preview-size: 160px;
+    --canvas-mention-gallery-card-min: 80px;
+    --canvas-mention-gallery-detail-width: 232px;
     --canvas-mention-chip-gap: 0.12em;
     --canvas-mention-chip-padding-inline: 0.16em;
     --canvas-mention-chip-offset-y: 0.14em;
@@ -2796,7 +2798,7 @@
         background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--foreground) 55%, transparent), transparent);
         background-size: 72px 100%;
         background-repeat: no-repeat;
-        animation: loader-sweep 2.4s ease-in-out 0.2s infinite;
+        animation: loader-sweep 2.4s ease-in-out calc(-1 * var(--loader-clock, 0ms)) infinite;
     }
 
     .full-screen-loader-copy {
@@ -6134,14 +6136,11 @@
     }
 
     .app-user-workspace .library-page .canvas-library-frame,
-    .app-user-workspace .library-page .assets-library-frame,
-    .app-user-workspace .library-page .task-library-frame {
+    .app-user-workspace .library-page .assets-library-frame {
         border-radius: var(--r-xl);
     }
 
-    .app-user-workspace .library-page .library-card,
-    .app-user-workspace .library-page .task-record-row,
-    .app-user-workspace .library-page .task-grid-card {
+    .app-user-workspace .library-page .library-card {
         transition:
             transform var(--motion-state) var(--motion-ease-out),
             background-color var(--motion-state) ease-out,
@@ -6149,11 +6148,7 @@
     }
 
     .app-user-workspace .library-page .library-card:hover,
-    .app-user-workspace .library-page .library-card:focus-within,
-    .app-user-workspace .library-page .task-record-row:hover,
-    .app-user-workspace .library-page .task-record-row:focus-within,
-    .app-user-workspace .library-page .task-grid-card:hover,
-    .app-user-workspace .library-page .task-grid-card:focus-within {
+    .app-user-workspace .library-page .library-card:focus-within {
         box-shadow: 0 12px 32px color-mix(in srgb, var(--foreground) 5%, transparent);
     }
 
@@ -6179,9 +6174,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .app-user-workspace .library-page .library-card,
-        .app-user-workspace .library-page .task-record-row,
-        .app-user-workspace .library-page .task-grid-card {
+        .app-user-workspace .library-page .library-card {
             transition: none;
         }
     }
@@ -6415,8 +6408,7 @@
         padding: 0;
     }
 
-    .assets-library-page .assets-library-frame,
-    .task-library-page .task-library-frame {
+    .assets-library-page .assets-library-frame {
         min-height: 0;
     }
 
@@ -7310,7 +7302,6 @@
         border-radius: var(--r-lg);
     }
 
-    /* 任务行卡片外观与 hover 已并入下方 .task-record-row 唯一源规则（本类仅任务页使用）。 */
     .library-page .app-page-header .workspace-signal-icon,
     .library-page .app-page-header .workspace-signal-icon > svg {
         transition: transform 420ms var(--motion-ease-out);
@@ -7998,170 +7989,6 @@
         outline: none;
     }
 
-    /* 任务列表：整屏几十条长 prompt 极易糊成一片，靠三件事拉开密度——
-       行距（min-height + gap）、标题只给一行且宽度封顶、次要信息降到 42% 前景色。 */
-    .task-record-list {
-        display: grid;
-        gap: 2px;
-        margin-top: 10px;
-    }
-    .task-record-row {
-        position: relative;
-        display: grid;
-        min-width: 0;
-        grid-template-columns: 84px minmax(0, 1fr) 120px 104px 104px;
-        align-items: center;
-        gap: 18px;
-        min-height: 92px;
-        border-radius: var(--r-md);
-        background: transparent;
-        padding: 12px 14px;
-        transition: background-color var(--motion-state) ease-out;
-    }
-    .task-record-row:hover,
-    .task-record-row:focus-within {
-        background: color-mix(in srgb, var(--foreground) 4%, transparent);
-    }
-    .task-record-row.is-attention {
-        background: color-mix(in srgb, var(--palette-status-error) 4%, transparent);
-    }
-    .task-record-main {
-        min-width: 0;
-    }
-    .task-record-heading {
-        display: flex;
-        min-width: 0;
-        align-items: baseline;
-        gap: 10px;
-        overflow: hidden;
-    }
-    /* 标题封顶 68ch：超宽屏下一行能塞 200+ 汉字，读者反而找不到落点。 */
-    .task-record-title {
-        display: block;
-        min-width: 0;
-        max-width: 68ch;
-        flex: 0 1 auto;
-        overflow: hidden;
-        border: 0;
-        background: transparent;
-        padding: 0;
-        color: color-mix(in srgb, var(--foreground) 92%, transparent);
-        text-align: left;
-        font-size: var(--fs-body);
-        font-weight: 560;
-        line-height: 1.5;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-record-title:hover {
-        color: var(--foreground);
-    }
-    .task-record-status {
-        display: inline-flex;
-        flex: 0 0 auto;
-        align-items: center;
-        gap: 6px;
-        color: color-mix(in srgb, var(--foreground) 52%, transparent);
-        font-size: var(--fs-tiny);
-        line-height: 1.4;
-        white-space: nowrap;
-    }
-    .task-record-dot {
-        position: relative;
-        display: block;
-        width: 7px;
-        height: 7px;
-        flex: 0 0 auto;
-        border-radius: var(--r-full);
-    }
-    .task-record-dot.is-pulsing::after {
-        position: absolute;
-        inset: -4px;
-        border-radius: var(--r-full);
-        background: inherit;
-        opacity: 0.45;
-        content: "";
-        animation: task-record-dot-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
-    }
-    @keyframes task-record-dot-ping {
-        75%,
-        100% {
-            transform: scale(2.1);
-            opacity: 0;
-        }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .task-record-dot.is-pulsing::after {
-            animation: none;
-        }
-    }
-    .task-record-status.is-failed {
-        color: color-mix(in srgb, var(--palette-status-error) 74%, var(--foreground));
-    }
-    .task-record-status.is-active {
-        color: color-mix(in srgb, var(--palette-status-warning) 74%, var(--foreground));
-    }
-    .task-record-status.is-success {
-        color: color-mix(in srgb, var(--palette-status-success) 74%, var(--foreground));
-    }
-    .task-record-dot.is-success {
-        background: var(--palette-status-success);
-    }
-    .task-record-dot.is-active {
-        background: var(--palette-status-warning);
-    }
-    .task-record-dot.is-queued {
-        background: var(--palette-status-loading);
-    }
-    .task-record-dot.is-failed {
-        background: var(--palette-status-error);
-    }
-    .task-record-dot.is-idle {
-        background: color-mix(in srgb, var(--foreground) 30%, transparent);
-    }
-    .task-record-thumb {
-        position: relative;
-        display: grid;
-        width: 84px;
-        height: 60px;
-        flex: 0 0 auto;
-        place-items: center;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--foreground) 4%, transparent);
-        padding: 0;
-        color: color-mix(in srgb, var(--foreground) 28%, transparent);
-    }
-    /* 媒体脱离 Grid 固有尺寸计算，避免竖图按原始宽高比把固定缩略图撑出任务行。 */
-    .task-record-thumb img,
-    .task-record-thumb video {
-        position: absolute;
-        inset: 0;
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .task-video-poster-placeholder {
-        display: grid;
-        width: 100%;
-        height: 100%;
-        place-content: center;
-        justify-items: center;
-        gap: 4px;
-        background: color-mix(in srgb, var(--foreground) 3%, transparent);
-        color: color-mix(in srgb, var(--foreground) 42%, transparent);
-    }
-    .task-video-poster-placeholder small {
-        font-size: var(--fs-micro);
-        font-weight: 600;
-        letter-spacing: 0.08em;
-    }
-    .task-video-poster-placeholder > svg {
-        width: 20px;
-        height: 20px;
-    }
     /* 资源已被删除或失效时，由组件接管原生破图，相关页面仍保持可读。 */
     .media-unavailable {
         display: flex;
@@ -8181,823 +8008,6 @@
         height: 18px;
         flex: 0 0 auto;
     }
-    .task-record-thumb:disabled {
-        cursor: default;
-    }
-    .task-record-meta {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 8px;
-        margin-top: 7px;
-        overflow: hidden;
-        color: color-mix(in srgb, var(--foreground) 40%, transparent);
-        font-size: var(--fs-label);
-        white-space: nowrap;
-    }
-    .task-record-meta-canvas {
-        display: inline-flex;
-        min-width: 0;
-        align-items: center;
-        gap: 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .task-record-meta-canvas svg {
-        flex: 0 0 auto;
-        opacity: 0.7;
-    }
-    .task-record-progress {
-        display: grid;
-        max-width: 420px;
-        grid-template-columns: minmax(80px, 1fr) 42px;
-        align-items: center;
-        gap: 10px;
-        margin-top: 8px;
-        color: color-mix(in srgb, var(--foreground) 45%, transparent);
-        font-size: var(--fs-label);
-    }
-    .task-record-progress span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-record-progress span:nth-child(2) {
-        text-align: right;
-    }
-    .task-record-progress i {
-        grid-column: 1 / -1;
-        display: block;
-        height: 3px;
-        margin-top: -4px;
-        overflow: hidden;
-        border-radius: var(--r-full);
-        background: color-mix(in srgb, var(--foreground) 9%, transparent);
-    }
-    .task-record-progress b {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--workspace-accent);
-        transition: width 420ms var(--motion-ease-out);
-    }
-    .task-record-error {
-        display: -webkit-box;
-        max-width: 68ch;
-        margin: 7px 0 0;
-        overflow: hidden;
-        color: color-mix(in srgb, var(--palette-status-error) 72%, var(--foreground));
-        font-size: var(--fs-label);
-        line-height: 1.5;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-    }
-    .task-record-date {
-        min-width: 0;
-        color: color-mix(in srgb, var(--foreground) 38%, transparent);
-    }
-    .task-record-date-value {
-        display: block;
-        overflow: hidden;
-        font-size: var(--fs-label);
-        font-variant-numeric: tabular-nums;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-record-billing,
-    .task-record-billing-empty {
-        display: inline-flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 7px;
-    }
-    /* 积分列去掉图标 glow：一屏 20 行同时发光比正文还抢眼。 */
-    .task-record-billing {
-        color: color-mix(in srgb, var(--palette-status-warning) 52%, var(--foreground));
-    }
-    .task-record-billing > svg {
-        width: 14px;
-        height: 14px;
-        opacity: 0.72;
-    }
-    .task-record-billing > span {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 1px;
-    }
-    .task-record-billing strong {
-        color: color-mix(in srgb, var(--foreground) 82%, transparent);
-        font-size: var(--fs-caption);
-        font-weight: 560;
-        font-variant-numeric: tabular-nums;
-    }
-    .task-record-billing small {
-        color: color-mix(in srgb, var(--foreground) 36%, transparent);
-        font-size: var(--fs-tiny);
-    }
-    .task-record-billing.is-uncertain {
-        color: color-mix(in srgb, var(--palette-status-warning) 84%, var(--foreground));
-    }
-    .task-record-billing.is-uncertain strong,
-    .task-record-billing.is-uncertain small {
-        color: inherit;
-    }
-    .task-record-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 2px;
-        opacity: 0;
-        transform: translateX(4px);
-        transition:
-            opacity 220ms ease-out,
-            transform 320ms var(--motion-ease-out);
-    }
-    .task-record-actions .ant-btn {
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        border-radius: var(--r-md);
-    }
-    .task-record-row:hover .task-record-actions,
-    .task-record-row:focus-within .task-record-actions {
-        opacity: 1;
-        transform: translateX(0);
-    }
-
-    .task-status-filter {
-        display: inline-flex;
-        min-width: 0;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px;
-    }
-    .task-status-today {
-        color: color-mix(in srgb, var(--foreground) 44%, transparent);
-        font-size: var(--fs-label);
-        white-space: nowrap;
-    }
-    .task-status-today strong {
-        margin-left: 4px;
-        color: var(--foreground);
-        font-weight: 620;
-        font-variant-numeric: tabular-nums;
-    }
-    .task-status-filter .ant-segmented-item-label > span {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .task-status-filter .ant-segmented-item-label b {
-        color: inherit;
-        font-size: var(--fs-tiny);
-        font-weight: 620;
-        font-variant-numeric: tabular-nums;
-        opacity: 0.62;
-    }
-    .task-view-switch {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        padding: 2px;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--foreground) 5%, transparent);
-    }
-    /* AntD 6 按钮样式经 CSS-in-JS 运行时注入（晚于本文件），hover 组合特异性达 .ant-btn:not(:disabled):not(.ant-btn-disabled):hover (0,4,0)，必须用 !important 才能稳定覆盖；限定在本组件作用域内，不污染全局。 */
-    .task-view-switch .ant-btn {
-        border: 0 !important;
-        box-shadow: none !important;
-    }
-    .task-view-switch .ant-btn:not([aria-pressed="true"]) {
-        background: transparent !important;
-        color: color-mix(in srgb, var(--foreground) 48%, transparent) !important;
-    }
-    .task-view-switch .ant-btn:not([aria-pressed="true"]):hover {
-        color: var(--foreground) !important;
-        background: color-mix(in srgb, var(--foreground) 7%, transparent) !important;
-    }
-    .task-group {
-        margin-bottom: 22px;
-    }
-    .task-group:last-child {
-        margin-bottom: 0;
-    }
-    .task-group-head {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0 2px 10px;
-    }
-    .task-group-ic {
-        display: grid;
-        width: 36px;
-        height: 36px;
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--foreground) 5%, transparent);
-        color: var(--workspace-accent);
-    }
-    .task-group-ic svg {
-        width: 17px;
-        height: 17px;
-    }
-    .task-group-name {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 9px;
-        font-size: var(--fs-heading-lg);
-        font-weight: 620;
-        letter-spacing: -0.01em;
-    }
-    .task-group-name > span:first-child {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-group-count {
-        flex: 0 0 auto;
-        color: color-mix(in srgb, var(--foreground) 42%, transparent);
-        font-size: var(--fs-tiny);
-        font-weight: 500;
-        font-variant-numeric: tabular-nums;
-    }
-    .task-group-sub {
-        display: block;
-        margin-top: 4px;
-        color: color-mix(in srgb, var(--foreground) 40%, transparent);
-        font-size: var(--fs-label);
-    }
-    .task-group-sub b.is-bad {
-        color: color-mix(in srgb, var(--palette-status-error) 80%, var(--foreground));
-        font-weight: 560;
-    }
-    .task-group-reset {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        height: 28px;
-        margin-left: auto;
-        flex: 0 0 auto;
-        border: 0;
-        border-radius: var(--r-md);
-        background: transparent;
-        padding: 0 8px;
-        color: color-mix(in srgb, var(--palette-status-error) 78%, var(--foreground));
-        font-size: var(--fs-label);
-        font-weight: 550;
-        cursor: pointer;
-        transition:
-            background-color 160ms ease-out,
-            color 160ms ease-out;
-    }
-    .task-group-reset:hover {
-        background: color-mix(in srgb, var(--palette-status-error) 8%, transparent);
-        color: color-mix(in srgb, var(--palette-status-error) 92%, var(--foreground));
-    }
-    .task-group-reset svg {
-        width: 13px;
-        height: 13px;
-    }
-    .task-grid-view {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-        gap: 16px;
-        margin-top: 10px;
-    }
-    .task-grid-card {
-        min-width: 0;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--r-lg);
-        background: var(--library-surface);
-        box-shadow: none;
-        transition:
-            transform var(--motion-state) var(--motion-ease-out),
-            background-color var(--motion-state) ease-out;
-    }
-    .task-grid-card:hover,
-    .task-grid-card:focus-within {
-        background: var(--library-surface-hover);
-        transform: translateY(var(--library-hover-offset));
-    }
-    .task-grid-card.is-attention .task-grid-body {
-        background: color-mix(in srgb, var(--palette-status-error) 5%, transparent);
-    }
-    .task-grid-thumb {
-        position: relative;
-        display: grid;
-        aspect-ratio: 16 / 9;
-        place-items: center;
-        overflow: hidden;
-        background: color-mix(in srgb, var(--foreground) 4%, transparent);
-        color: color-mix(in srgb, var(--foreground) 30%, transparent);
-    }
-    .task-grid-thumb > svg {
-        width: 26px;
-        height: 26px;
-    }
-    .task-grid-thumb .media-unavailable > svg {
-        width: 26px;
-        height: 26px;
-    }
-    .task-grid-thumb img,
-    .task-grid-thumb video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .task-grid-overlay {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        background: color-mix(in srgb, var(--background) 58%, transparent);
-        opacity: 0;
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
-        transition: opacity 200ms ease-out;
-    }
-    .task-grid-card:hover .task-grid-overlay,
-    .task-grid-card:focus-within .task-grid-overlay {
-        opacity: 1;
-    }
-    .task-grid-overlay .ant-btn {
-        width: 32px;
-        height: 32px;
-        border: 0;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--background) 86%, transparent);
-        box-shadow: none;
-        color: var(--foreground);
-    }
-    .task-grid-overlay .ant-btn:hover {
-        color: var(--foreground);
-        background: var(--background);
-    }
-    .task-grid-body {
-        padding: 10px 12px 12px;
-    }
-    .task-grid-title {
-        display: block;
-        width: 100%;
-        min-width: 0;
-        overflow: hidden;
-        border: 0;
-        background: transparent;
-        padding: 0;
-        color: color-mix(in srgb, var(--foreground) 90%, transparent);
-        text-align: left;
-        font-size: var(--fs-body);
-        font-weight: 560;
-        line-height: 1.5;
-        cursor: pointer;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-grid-title:hover {
-        color: var(--foreground);
-    }
-    .task-grid-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 7px;
-    }
-    .task-grid-status {
-        display: inline-flex;
-        min-width: 0;
-        align-items: center;
-        gap: 6px;
-        color: color-mix(in srgb, var(--foreground) 48%, transparent);
-        font-size: var(--fs-label);
-        white-space: nowrap;
-    }
-    .task-grid-status.is-failed {
-        color: color-mix(in srgb, var(--palette-status-error) 80%, var(--foreground));
-    }
-    .task-grid-status.is-active {
-        color: color-mix(in srgb, var(--palette-status-warning) 80%, var(--foreground));
-    }
-    .task-grid-status.is-success {
-        color: color-mix(in srgb, var(--palette-status-success) 80%, var(--foreground));
-    }
-    .task-grid-date {
-        flex: 0 0 auto;
-        color: color-mix(in srgb, var(--foreground) 36%, transparent);
-        font-size: var(--fs-label);
-        font-variant-numeric: tabular-nums;
-    }
-    .task-grid-progress {
-        display: grid;
-        min-width: 0;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 6px 8px;
-        margin-top: 10px;
-        color: color-mix(in srgb, var(--foreground) 46%, transparent);
-        font-size: var(--fs-label);
-    }
-    .task-grid-progress span {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-grid-progress strong {
-        color: color-mix(in srgb, var(--foreground) 68%, transparent);
-        font-size: var(--fs-tiny);
-        font-weight: 620;
-        font-variant-numeric: tabular-nums;
-    }
-    .task-grid-progress i {
-        grid-column: 1 / -1;
-        display: block;
-        height: 3px;
-        overflow: hidden;
-        border-radius: var(--r-full);
-        background: color-mix(in srgb, var(--foreground) 9%, transparent);
-    }
-    .task-grid-progress b {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--workspace-accent);
-        transition: width 420ms var(--motion-ease-out);
-    }
-    .task-grid-error {
-        display: -webkit-box;
-        margin: 8px 0 0;
-        overflow: hidden;
-        color: color-mix(in srgb, var(--palette-status-error) 72%, var(--foreground));
-        font-size: var(--fs-label);
-        line-height: 1.5;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-    }
-    @media (max-width: 640px) {
-        .task-group-name {
-            flex-wrap: wrap;
-        }
-        .task-group-reset {
-            margin-left: 0;
-        }
-        .task-status-filter {
-            width: 100%;
-        }
-        .task-status-filter .ant-segmented {
-            width: 100%;
-        }
-    }
-
-    .task-status-filter {
-        display: inline-flex;
-        min-width: 0;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
-    }
-    .task-status-today {
-        color: color-mix(in srgb, var(--foreground) 44%, transparent);
-        font-size: var(--fs-label);
-        white-space: nowrap;
-    }
-    .task-status-today strong {
-        margin-left: 4px;
-        color: var(--foreground);
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-    }
-    /* 状态与视图切换都是 SegmentedControl，轨道由组件本身提供，外层只负责排布。 */
-    .task-view-switch {
-        display: inline-flex;
-        align-items: center;
-    }
-    /* AntD 6 按钮样式经 CSS-in-JS 运行时注入（晚于本文件），hover 组合特异性达 .ant-btn:not(:disabled):not(.ant-btn-disabled):hover (0,4,0)，必须用 !important 才能稳定覆盖；限定在本组件作用域内，不污染全局。 */
-    .task-view-switch .ant-btn {
-        border: 0 !important;
-        box-shadow: none !important;
-    }
-    .task-view-switch .ant-btn:not([aria-pressed="true"]) {
-        background: transparent !important;
-        color: color-mix(in srgb, var(--foreground) 48%, transparent) !important;
-    }
-    .task-view-switch .ant-btn:not([aria-pressed="true"]):hover {
-        color: var(--foreground) !important;
-        background: color-mix(in srgb, var(--foreground) 7%, transparent) !important;
-    }
-    .task-group {
-        margin-bottom: 24px;
-    }
-    .task-group:last-child {
-        margin-bottom: 0;
-    }
-    .task-group-head {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0 2px 8px;
-    }
-    .task-group-ic {
-        display: grid;
-        width: 36px;
-        height: 36px;
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--foreground) 5%, transparent);
-        color: var(--workspace-accent);
-    }
-    .task-group-ic svg {
-        width: 17px;
-        height: 17px;
-    }
-    .task-group-name {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 8px;
-        font-size: var(--fs-heading-lg);
-        font-weight: 600;
-        letter-spacing: -0.01em;
-    }
-    .task-group-name > span:first-child {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-group-count {
-        flex: 0 0 auto;
-        color: color-mix(in srgb, var(--foreground) 42%, transparent);
-        font-size: var(--fs-tiny);
-        font-weight: 500;
-        font-variant-numeric: tabular-nums;
-    }
-    .task-group-sub {
-        display: block;
-        margin-top: 4px;
-        color: color-mix(in srgb, var(--foreground) 40%, transparent);
-        font-size: var(--fs-label);
-    }
-    .task-group-sub b.is-bad {
-        color: color-mix(in srgb, var(--palette-status-error) 80%, var(--foreground));
-        font-weight: 500;
-    }
-    .task-group-reset {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        height: 28px;
-        margin-left: auto;
-        flex: 0 0 auto;
-        border: 0;
-        border-radius: var(--r-md);
-        background: transparent;
-        padding: 0 8px;
-        color: color-mix(in srgb, var(--palette-status-error) 78%, var(--foreground));
-        font-size: var(--fs-label);
-        font-weight: 500;
-        cursor: pointer;
-        transition:
-            background-color 160ms ease-out,
-            color 160ms ease-out;
-    }
-    .task-group-reset:hover {
-        background: color-mix(in srgb, var(--palette-status-error) 8%, transparent);
-        color: color-mix(in srgb, var(--palette-status-error) 92%, var(--foreground));
-    }
-    .task-group-reset svg {
-        width: 13px;
-        height: 13px;
-    }
-    .task-grid-view {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-        gap: 16px;
-        margin-top: 8px;
-    }
-    .task-grid-card {
-        min-width: 0;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--r-lg);
-        background: var(--library-surface);
-        box-shadow: none;
-        transition:
-            transform var(--motion-state) var(--motion-ease-out),
-            background-color var(--motion-state) ease-out;
-    }
-    .task-grid-card:hover,
-    .task-grid-card:focus-within {
-        background: var(--library-surface-hover);
-    }
-    .task-grid-card.is-attention .task-grid-body {
-        background: color-mix(in srgb, var(--palette-status-error) 5%, transparent);
-    }
-    .task-grid-thumb {
-        position: relative;
-        display: grid;
-        aspect-ratio: 16 / 9;
-        place-items: center;
-        overflow: hidden;
-        background: color-mix(in srgb, var(--foreground) 4%, transparent);
-        color: color-mix(in srgb, var(--foreground) 30%, transparent);
-    }
-    .task-grid-thumb > svg {
-        width: 26px;
-        height: 26px;
-    }
-    .task-grid-thumb .media-unavailable > svg {
-        width: 26px;
-        height: 26px;
-    }
-    .task-grid-thumb img,
-    .task-grid-thumb video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .task-grid-overlay {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        background: color-mix(in srgb, var(--background) 58%, transparent);
-        opacity: 0;
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
-        transition: opacity 200ms ease-out;
-    }
-    .task-grid-card:hover .task-grid-overlay,
-    .task-grid-card:focus-within .task-grid-overlay {
-        opacity: 1;
-    }
-    .task-grid-overlay .ant-btn {
-        width: 32px;
-        height: 32px;
-        border: 0;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--background) 86%, transparent);
-        box-shadow: none;
-        color: var(--foreground);
-    }
-    .task-grid-overlay .ant-btn:hover {
-        color: var(--foreground);
-        background: var(--background);
-    }
-    .task-grid-body {
-        padding: 8px 12px 12px;
-    }
-    .task-grid-title {
-        display: block;
-        width: 100%;
-        min-width: 0;
-        overflow: hidden;
-        border: 0;
-        background: transparent;
-        padding: 0;
-        color: color-mix(in srgb, var(--foreground) 90%, transparent);
-        text-align: left;
-        font-size: var(--fs-body);
-        font-weight: 500;
-        line-height: 1.45;
-        cursor: pointer;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-grid-title:hover {
-        color: var(--foreground);
-    }
-    .task-grid-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 8px;
-    }
-    .task-grid-status {
-        display: inline-flex;
-        min-width: 0;
-        align-items: center;
-        gap: 8px;
-        color: color-mix(in srgb, var(--foreground) 48%, transparent);
-        font-size: var(--fs-label);
-        white-space: nowrap;
-    }
-    .task-grid-status.is-failed {
-        color: color-mix(in srgb, var(--palette-status-error) 80%, var(--foreground));
-    }
-    .task-grid-status.is-active {
-        color: color-mix(in srgb, var(--palette-status-warning) 80%, var(--foreground));
-    }
-    .task-grid-status.is-success {
-        color: color-mix(in srgb, var(--palette-status-success) 80%, var(--foreground));
-    }
-    .task-grid-date {
-        flex: 0 0 auto;
-        color: color-mix(in srgb, var(--foreground) 36%, transparent);
-        font-size: var(--fs-label);
-        font-variant-numeric: tabular-nums;
-    }
-    .task-grid-progress {
-        display: grid;
-        min-width: 0;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px 8px;
-        margin-top: 8px;
-        color: color-mix(in srgb, var(--foreground) 46%, transparent);
-        font-size: var(--fs-label);
-    }
-    .task-grid-progress span {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .task-grid-progress strong {
-        color: color-mix(in srgb, var(--foreground) 68%, transparent);
-        font-size: var(--fs-tiny);
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-    }
-    .task-grid-progress i {
-        grid-column: 1 / -1;
-        display: block;
-        height: 3px;
-        overflow: hidden;
-        border-radius: var(--r-full);
-        background: color-mix(in srgb, var(--foreground) 9%, transparent);
-    }
-    .task-grid-progress b {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--workspace-accent);
-        transition: transform 250ms var(--motion-ease-out);
-    }
-    .task-grid-error {
-        display: -webkit-box;
-        margin: 8px 0 0;
-        overflow: hidden;
-        color: color-mix(in srgb, var(--palette-status-error) 72%, var(--foreground));
-        font-size: var(--fs-label);
-        line-height: 1.45;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-    }
-    @media (max-width: 640px) {
-        .task-group-name {
-            flex-wrap: wrap;
-        }
-        .task-group-reset {
-            margin-left: 0;
-        }
-        .task-status-filter {
-            width: 100%;
-        }
-        .task-status-filter .ant-segmented {
-            width: 100%;
-        }
-    }
-
-    .task-detail-facts {
-        gap: 2px;
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--foreground) 2.5%, transparent);
-        padding: 4px;
-    }
-    .task-detail-fact {
-        border-radius: var(--r-sm);
-    }
-    .task-detail-error {
-        border-radius: var(--r-md);
-        background: color-mix(in srgb, var(--palette-status-error) 8%, transparent);
-        color: color-mix(in srgb, var(--palette-status-error) 78%, var(--foreground));
-    }
-    .task-result-media {
-        aspect-ratio: 1;
-        width: 100%;
-        border-radius: var(--r-md);
-        object-fit: contain;
-    }
-    .task-result-media.is-video {
-        aspect-ratio: 16 / 9;
-    }
-    .task-media-preview-unavailable {
-        aspect-ratio: 16 / 9;
-        max-height: 76vh;
-        background: color-mix(in srgb, var(--foreground) 4%, transparent);
-    }
-
     /* 项目概览：原本是「有边框的浅色盒子 + 一堆等重小字」，层级读不出来。
        改成：主区留白撑开、标题字阶拉高、右栏用背景色而非边框分隔、流水线行给足行高。 */
     .project-workspace-header {
@@ -10964,15 +9974,6 @@
         background: var(--skeleton-surface);
         animation: library-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
-    .task-library-page .library-loading-grid {
-        grid-template-columns: 1fr;
-        gap: 2px;
-    }
-    .task-library-page .library-loading-grid .library-skeleton {
-        height: 92px;
-        aspect-ratio: auto;
-        border-radius: var(--r-lg);
-    }
     @keyframes library-pulse {
         0%,
         100% {
@@ -11068,58 +10069,6 @@
         .skill-library-card h3 {
             font-size: var(--fs-body);
         }
-        .task-record-row {
-            grid-template-columns: 60px minmax(0, 1fr) 36px;
-            align-items: start;
-            gap: 10px;
-            min-height: 0;
-            padding: 12px 8px;
-        }
-        .task-record-row > .task-record-thumb {
-            width: 60px;
-            height: 44px;
-        }
-        .task-record-heading {
-            flex-wrap: wrap;
-            gap: 6px 8px;
-        }
-        .task-record-title {
-            max-width: none;
-            flex: 1 1 100%;
-            white-space: normal;
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
-        }
-        .task-record-date {
-            display: none;
-        }
-        .task-record-billing,
-        .task-record-billing-empty {
-            display: none;
-        }
-        .task-record-actions {
-            opacity: 1;
-            transform: none;
-        }
-        .task-record-actions {
-            justify-content: flex-end;
-        }
-        .task-record-actions .ant-btn {
-            width: 30px;
-            height: 30px;
-        }
-        .task-record-meta {
-            flex-wrap: wrap;
-            white-space: normal;
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .task-grid-progress b,
-        .task-record-progress b {
-            transition: none;
-        }
     }
 
     @media (max-width: 639px) {
@@ -11192,14 +10141,6 @@
 
     .app-data-table .ant-table-thead > tr > th {
         white-space: nowrap;
-    }
-
-    .task-media-preview-modal .ant-modal-body {
-        display: grid;
-        min-height: 240px;
-        place-items: center;
-        padding: 0 !important;
-        background: #000;
     }
 
     .wallet-ledger-table .ant-table-cell:nth-last-child(-n + 2) {
@@ -15186,7 +14127,8 @@
         min-height: 56px;
     }
 
-    .canvas-resource-mention-item.is-active {
+    .canvas-resource-mention-item.is-active,
+    .canvas-resource-mention-folder.is-active {
         background: var(--control-selected-bg);
         color: var(--control-selected-fg);
     }
@@ -15333,6 +14275,186 @@
         color: color-mix(in srgb, var(--foreground) 42%, transparent);
         font-size: var(--fs-tiny);
         text-align: center;
+    }
+
+    /* 画廊布局（菜单够宽时）：左侧多列卡片，右侧放大预览当前高亮的候选。列数由 auto-fill 决定，方向键读取实际列数。 */
+    .canvas-resource-mention-body {
+        display: flex;
+        min-height: 0;
+        flex: 1 1 auto;
+    }
+
+    .canvas-resource-mention-body > .canvas-resource-mention-scroll {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .canvas-resource-mention-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(var(--canvas-mention-gallery-card-min), 1fr));
+        gap: var(--space-1);
+    }
+
+    .canvas-resource-mention-card {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: var(--space-1);
+        border: 0;
+        border-radius: var(--r-md);
+        background: transparent;
+        padding: var(--space-1);
+        color: inherit;
+        text-align: left;
+        transition: background-color var(--motion-instant) ease-out;
+    }
+
+    .canvas-resource-mention-card:hover {
+        background: var(--canvas-composer-control-hover);
+    }
+
+    .canvas-resource-mention-card.is-active {
+        background: var(--control-selected-bg);
+        color: var(--control-selected-fg);
+    }
+
+    .canvas-resource-mention-card:focus-visible {
+        outline: var(--stroke-2) solid var(--control-focus-ring);
+        outline-offset: -2px;
+    }
+
+    .canvas-resource-mention-card-media {
+        display: grid;
+        width: 100%;
+        aspect-ratio: 1;
+        place-items: center;
+        overflow: hidden;
+        border-radius: var(--r-xs);
+        background: var(--canvas-composer-control-surface);
+    }
+
+    .canvas-resource-mention-card-media > .canvas-resource-mention-preview {
+        width: 100%;
+        height: 100%;
+        flex: none;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .canvas-resource-mention-card-media > .canvas-resource-mention-preview > svg {
+        width: var(--space-6);
+        height: var(--space-6);
+        color: color-mix(in srgb, currentColor 56%, transparent);
+    }
+
+    .canvas-resource-mention-card-label {
+        min-width: 0;
+        overflow: hidden;
+        padding-inline: var(--space-half);
+        font-size: var(--fs-caption);
+        font-weight: 500;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .canvas-resource-mention-detail {
+        display: flex;
+        width: var(--canvas-mention-gallery-detail-width);
+        min-width: 0;
+        min-height: 0;
+        flex: 0 0 var(--canvas-mention-gallery-detail-width);
+        flex-direction: column;
+        gap: var(--space-2);
+        overflow: hidden;
+        border-left: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+        padding: var(--space-1) var(--space-3) var(--space-3);
+    }
+
+    /* 固定方框，切换候选时面板高度不跳；空间不足时方框先收缩。 */
+    .canvas-resource-mention-detail-media {
+        position: relative;
+        display: grid;
+        width: 100%;
+        min-height: 96px;
+        aspect-ratio: 1;
+        flex: 0 1 auto;
+        place-items: center;
+        overflow: hidden;
+        border-radius: var(--r-md);
+        background: var(--canvas-composer-control-surface);
+        color: var(--cn-faint);
+    }
+
+    .canvas-resource-mention-detail-media > img,
+    .canvas-resource-mention-detail-media > video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .canvas-resource-mention-detail-media > svg {
+        width: var(--space-8);
+        height: var(--space-8);
+    }
+
+    .canvas-resource-mention-detail-media.is-text {
+        place-items: start;
+        padding: var(--space-2) var(--space-3);
+        color: var(--cn-muted);
+    }
+
+    .canvas-resource-mention-detail-media.is-text > p {
+        display: -webkit-box;
+        margin: 0;
+        overflow: hidden;
+        font-size: var(--fs-caption);
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 9;
+    }
+
+    .canvas-resource-mention-detail-caption {
+        display: grid;
+        min-width: 0;
+        gap: var(--space-half);
+    }
+
+    .canvas-resource-mention-detail-caption > strong,
+    .canvas-resource-mention-detail-caption > span {
+        display: -webkit-box;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+    }
+
+    .canvas-resource-mention-detail-caption > strong {
+        font-size: var(--fs-ui);
+        font-weight: 600;
+        line-height: 1.4;
+        -webkit-line-clamp: 2;
+    }
+
+    .canvas-resource-mention-detail-caption > span {
+        color: var(--cn-muted);
+        font-size: var(--fs-caption);
+        line-height: 1.45;
+        -webkit-line-clamp: 3;
+    }
+
+    .canvas-resource-mention-detail-caption > small,
+    .canvas-resource-mention-detail-keys {
+        color: var(--cn-faint);
+        font-size: var(--fs-micro);
+        line-height: 1.4;
+    }
+
+    .canvas-resource-mention-detail-keys {
+        margin-top: auto;
     }
 
     [data-canvas-viewport-interacting="true"] .canvas-node-shell,
@@ -19789,7 +18911,7 @@ html:not(.dark) .creation-custom-value {
     align-items: center;
     justify-content: center;
 }
-.creation-history-menu-overlay .ant-dropdown-menu-item-icon svg {
+.creation-history-menu-overlay :is(.ant-dropdown-menu-item-icon svg, svg.ant-dropdown-menu-item-icon) {
     display: block;
     width: 14px;
     height: 14px;
@@ -20426,248 +19548,6 @@ html:not(.dark) .creation-custom-value {
         justify-content: flex-start;
     }
 }
-.asset-library-picker-modal {
-    margin: 0 auto !important;
-}
-.asset-library-picker-modal .ant-modal-container {
-    padding: 0 !important;
-}
-.asset-library-picker-modal .ant-modal-body {
-    padding: 0 !important;
-}
-.asset-library-picker-modal .ant-modal-close {
-    top: 12px;
-    right: 12px;
-}
-.asset-picker-shell {
-    display: flex;
-    height: min(640px, calc(100vh - var(--space-12)));
-    min-height: 460px;
-    flex-direction: column;
-    color: var(--foreground);
-    overscroll-behavior: contain;
-}
-.asset-picker-toolbar {
-    display: grid;
-    min-height: 64px;
-    flex-shrink: 0;
-    grid-template-columns: minmax(132px, 1fr) minmax(240px, 360px) minmax(132px, 1fr);
-    align-items: center;
-    gap: 16px;
-    padding: 10px 52px 10px 18px;
-}
-.asset-picker-heading {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 10px;
-    overflow: hidden;
-}
-.asset-picker-heading-copy {
-    display: flex;
-    min-width: 0;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 10px;
-}
-.asset-picker-heading-copy > span {
-    color: var(--foreground);
-    font-size: var(--fs-label);
-    font-weight: 650;
-    line-height: 1.2;
-}
-.asset-picker-title-trigger {
-    display: inline-flex;
-    min-height: 32px;
-    align-items: center;
-    gap: 6px;
-    border: 0;
-    border-radius: var(--r-sm);
-    background: transparent;
-    padding: 0 6px;
-    color: var(--foreground);
-    cursor: pointer;
-    transition:
-        background-color var(--motion-state) ease,
-        color var(--motion-state) ease;
-}
-.asset-picker-title-trigger strong {
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
-    font-size: var(--fs-label);
-    font-weight: 560;
-    line-height: 1.2;
-}
-.asset-picker-title-trigger:hover {
-    background: color-mix(in srgb, var(--foreground) 7%, transparent);
-}
-.asset-picker-title-trigger:hover strong {
-    color: var(--foreground);
-}
-.asset-picker-title-trigger:focus-visible {
-    outline: 2px solid var(--control-focus-ring);
-    outline-offset: -2px;
-}
-.asset-picker-title-trigger svg {
-    width: 14px;
-    height: 14px;
-    color: color-mix(in srgb, var(--foreground) 48%, transparent);
-}
-.asset-picker-source-dropdown .ant-dropdown-menu {
-    width: 148px !important;
-    min-width: 0 !important;
-    padding: 3px !important;
-}
-.asset-picker-source-dropdown .ant-dropdown-menu-item {
-    min-height: 30px;
-    padding: 4px 8px !important;
-    border-radius: var(--r-sm) !important;
-    font-size: var(--fs-micro);
-    line-height: 20px;
-}
-.asset-picker-source-dropdown .ant-dropdown-menu-item-icon {
-    width: 15px;
-    height: 15px;
-    margin-inline-end: 6px !important;
-}
-.asset-picker-source-menu-label {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.asset-picker-source-menu-label em {
-    color: color-mix(in srgb, currentColor 58%, transparent);
-    font-size: var(--fs-micro);
-    font-style: normal;
-}
-.asset-picker-search {
-    display: flex;
-    height: 38px;
-    min-width: 0;
-    align-items: center;
-    gap: 9px;
-    border-radius: var(--r-sm);
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    padding: 0 12px;
-    transition:
-        background-color var(--motion-state) ease,
-        box-shadow var(--motion-state) ease;
-}
-.asset-picker-search:focus-within {
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
-    box-shadow: none;
-}
-.asset-picker-search svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    color: color-mix(in srgb, var(--foreground) 42%, transparent);
-}
-.asset-picker-search input {
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--foreground);
-    font-size: var(--fs-label);
-}
-.asset-picker-count {
-    justify-self: end;
-    color: color-mix(in srgb, var(--foreground) 42%, transparent);
-    font-size: var(--fs-micro);
-}
-.asset-picker-body {
-    display: grid;
-    min-height: 0;
-    flex: 1;
-    grid-template-columns: 176px minmax(0, 1fr);
-    gap: var(--space-4);
-    padding: 0 18px;
-}
-.asset-picker-categories {
-    overflow-y: auto;
-    padding: 10px 0;
-}
-.asset-picker-nav-label {
-    display: block;
-    padding: 10px 10px 4px;
-    color: color-mix(in srgb, var(--foreground) 38%, transparent);
-    font-size: var(--fs-micro);
-    font-weight: 650;
-    letter-spacing: 0.04em;
-}
-.asset-picker-categories .assets-filter-item {
-    width: 100%;
-    height: 32px;
-}
-.asset-picker-categories .assets-filter-item:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    color: var(--foreground);
-}
-.asset-picker-categories .assets-filter-item.is-active {
-    background: var(--control-selected-bg);
-    color: var(--control-selected-fg);
-    font-weight: 560;
-}
-.asset-picker-categories .assets-filter-item.is-active:hover {
-    background: var(--control-selected-hover-bg);
-    color: var(--control-selected-fg);
-}
-.asset-picker-grid-wrap {
-    min-width: 0;
-    overflow-y: auto;
-    padding: 8px 0 16px;
-}
-.asset-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-5) var(--space-4);
-    align-content: start;
-}
-.asset-picker-card {
-    min-width: 0;
-    overflow: hidden;
-}
-.asset-picker-card-action {
-    display: block;
-    width: 100%;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    color: inherit;
-    cursor: pointer;
-    text-align: left;
-}
-.asset-picker-card-action:disabled {
-    cursor: not-allowed;
-}
-.asset-library-picker-modal .asset-picker-card > .asset-picker-card-action {
-    padding-inline: 0;
-}
-.asset-picker-card:hover {
-    background: var(--library-surface-hover);
-}
-.asset-picker-card:active {
-    transform: translateY(var(--library-active-offset)) scale(0.995);
-}
-.asset-picker-card-action:focus-visible {
-    outline: 2px solid var(--control-focus-ring);
-    outline-offset: -2px;
-}
-.asset-picker-card.is-selected {
-    box-shadow: inset 0 0 0 1px var(--library-selected-stroke);
-}
-.asset-picker-card.is-disabled {
-    opacity: 0.46;
-}
-.asset-picker-card-media {
-    position: relative;
-    aspect-ratio: 4 / 3;
-    overflow: hidden;
-    background: var(--library-cover-surface);
-}
 .cached-resource-image-shell {
     display: grid;
     width: 100%;
@@ -20686,262 +19566,11 @@ html:not(.dark) .creation-custom-value {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
 }
-.asset-picker-card-media > img,
-.asset-picker-card-media > video,
-.asset-picker-card-media > .cached-resource-image-shell > img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.asset-picker-card-media > img.is-contain,
-.asset-picker-card-media > video.is-contain,
-.asset-picker-card-media > .cached-resource-image-shell > img.is-contain {
-    object-fit: contain;
-    padding: 4px;
-}
-.asset-picker-card-check {
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    z-index: 3;
-    display: grid;
-    width: 22px;
-    height: 22px;
-    place-items: center;
-    border: 1.5px solid rgba(255, 255, 255, 0.72);
-    border-radius: 7px;
-    background: var(--glass-scrim-media-soft);
-    color: transparent;
-    opacity: 0;
-    backdrop-filter: blur(6px);
-    transition:
-        opacity 180ms ease-out,
-        background-color 180ms ease-out,
-        border-color 180ms ease-out;
-}
-.asset-picker-card-check svg {
-    width: 13px;
-    height: 13px;
-}
-.asset-picker-card:hover .asset-picker-card-check,
-.asset-picker-card:focus-within .asset-picker-card-check,
-.asset-picker-card.is-selected .asset-picker-card-check {
-    opacity: 1;
-}
-.asset-picker-card.is-selected .asset-picker-card-check {
-    border-color: var(--control-check-bg);
-    background: var(--control-check-bg);
-    color: var(--control-check-fg);
-}
-
-.asset-picker-card-lock {
-    position: absolute;
-    right: 38px;
-    bottom: 8px;
-    max-width: 112px;
-    color: rgba(255, 255, 255, 0.82);
-    font-size: var(--fs-micro);
-    text-align: right;
-}
-.asset-picker-card-copy {
-    display: flex;
-    min-height: 64px;
-    min-width: 0;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    padding: 10px 10px 12px;
-}
-.asset-picker-card-copy strong,
-.asset-picker-card-copy span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.asset-picker-card-copy strong {
-    font-size: var(--fs-body);
-    font-weight: 620;
-}
-.asset-picker-card-copy span {
-    color: color-mix(in srgb, var(--foreground) 42%, transparent);
-    font-size: var(--fs-micro);
-}
-.asset-picker-card-fallback,
-.asset-picker-empty {
-    display: grid;
-    place-items: center;
-    color: color-mix(in srgb, var(--foreground) 36%, transparent);
-}
-.asset-picker-card-fallback {
-    height: 100%;
-}
-.asset-picker-card-fallback svg {
-    width: 27px;
-    height: 27px;
-}
-.asset-picker-empty {
-    grid-column: 1 / -1;
-    min-height: 260px;
-    align-content: center;
-    gap: 8px;
-    text-align: center;
-}
-.asset-picker-empty svg {
-    width: 30px;
-    height: 30px;
-    color: color-mix(in srgb, var(--foreground) 48%, transparent);
-}
-.asset-picker-empty strong {
-    color: color-mix(in srgb, var(--foreground) 70%, transparent);
-    font-size: var(--fs-label);
-}
-.asset-picker-empty span {
-    font-size: var(--fs-micro);
-}
-.asset-picker-footer {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 16px 14px;
-}
-.asset-picker-footer.is-compact {
-    min-height: 64px;
-    justify-content: space-between;
-}
-.asset-picker-upload {
-    display: flex;
-    min-height: 56px;
-    flex: 1;
-    align-items: center;
-    gap: 12px;
-    border: 0;
-    border-radius: var(--r-md);
-    background: color-mix(in srgb, var(--foreground) 5%, transparent);
-    padding: 0 16px;
-    color: var(--foreground);
-    text-align: left;
-    transition: background-color var(--motion-state) ease;
-}
-.asset-picker-upload:hover:not(:disabled) {
-    background: var(--library-surface-hover);
-}
-.asset-picker-upload:disabled {
-    cursor: wait;
-    opacity: 0.72;
-}
-.asset-picker-upload > svg {
-    width: 20px;
-    height: 20px;
-    color: color-mix(in srgb, var(--foreground) 58%, transparent);
-}
-.asset-picker-upload span {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-.asset-picker-upload strong {
-    font-size: var(--fs-label);
-    font-weight: 650;
-}
-.asset-picker-upload small,
-.asset-picker-footer-note {
-    color: color-mix(in srgb, var(--foreground) 46%, transparent);
-    font-size: var(--fs-micro);
-}
-.asset-picker-footer-error {
-    max-width: 240px;
-    color: var(--destructive);
-    font-size: var(--fs-micro);
-    line-height: 1.5;
-}
-.asset-picker-actions {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 8px;
-}
-.asset-picker-categories button:focus-visible,
-.asset-picker-upload:focus-visible {
-    outline: 2px solid var(--control-focus-ring);
-    outline-offset: -2px;
-}
-.asset-picker-actions .ant-btn {
-    box-shadow: none;
-}
-.asset-picker-actions svg {
-    width: 14px;
-    height: 14px;
-}
 
 @media (max-width: 680px) {
     .creation-empty-workspace {
         width: calc(100% - 28px);
         padding-top: 28px;
-    }
-    .asset-picker-shell {
-        min-height: 0;
-        height: min(640px, calc(100vh - var(--space-8)));
-    }
-    .asset-picker-toolbar {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px 12px;
-        padding: 10px 42px 10px 12px;
-    }
-    .asset-picker-heading {
-        gap: 6px;
-    }
-    .asset-picker-heading-copy {
-        gap: 6px;
-    }
-    .asset-picker-title-trigger {
-        padding-inline: 4px;
-    }
-    .asset-picker-search {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        max-width: none;
-    }
-    .asset-picker-count {
-        grid-column: 2;
-        grid-row: 1;
-    }
-    .asset-picker-body {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto minmax(0, 1fr);
-    }
-    .asset-picker-categories {
-        display: flex;
-        gap: 6px;
-        overflow-x: auto;
-        padding: 8px;
-    }
-    .asset-picker-nav-label {
-        display: none;
-    }
-    .asset-picker-categories button {
-        width: auto;
-        min-width: 96px;
-    }
-    .asset-picker-grid-wrap {
-        padding: 10px 4px;
-    }
-    .asset-picker-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 9px;
-    }
-    .asset-picker-footer {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        padding: 10px 12px 12px;
-    }
-    .asset-picker-footer.is-compact {
-        min-height: 0;
-    }
-    .asset-picker-actions {
-        justify-content: flex-end;
     }
 }
 
@@ -22986,6 +21615,23 @@ html:not(.dark) .creation-custom-value {
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: var(--glass-scrim-media);
     color: rgba(255, 255, 255, 0.86);
+}
+/* 方舟认证角标：与类型角标同一深色玻璃底，盾牌图标承担状态色；窄屏也保留。 */
+.assets-cover-badge.is-ark {
+    background: rgba(10, 10, 10, 0.62);
+    color: #fff;
+}
+.assets-cover-badge.is-ark svg {
+    color: var(--status-success);
+}
+.assets-cover-badge.is-ark[data-tone="warning"] svg {
+    color: var(--status-warning);
+}
+.assets-cover-badge.is-ark[data-tone="error"] svg {
+    color: var(--status-error);
+}
+.assets-cover-badge.is-ark[data-tone="loading"] svg {
+    color: var(--status-loading);
 }
 .assets-cover-clock {
     position: absolute;
@@ -25223,6 +23869,8 @@ html:not(.dark) .creation-home .creation-user-avatar {
     background: var(--workspace-sidebar-bg);
 }
 
+/* 品牌行与下方导航同一网格：12px 侧栏内边距 + 8px 行内边距，Logo 方块与导航图标框同为 28px、同一条左边线，
+   字标起点与导航文字对齐。折叠态只留 Logo，居中。 */
 .app-user-workspace .app-workspace-sidebar-brand-row {
     display: flex;
     min-height: 54px;
@@ -25383,6 +24031,7 @@ html:not(.dark) .creation-home .creation-user-avatar {
     border-top: 1px solid rgba(0, 0, 0, 0.055);
 }
 
+/* 字标单行：品牌名用正文墨色，不再叠一行「创作工作台」副标题；中文字标略放字距，避免 600 字重挤成一团。 */
 .app-user-workspace .app-workspace-brand-wordmark {
     font-size: 15px;
     font-weight: 700;
@@ -27510,8 +26159,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .app-user-workspace .app-table-surface,
 .app-user-workspace .canvas-library-frame,
 .app-user-workspace .project-library-card,
-.app-user-workspace .asset-library-card,
-.app-user-workspace .task-library-frame {
+.app-user-workspace .asset-library-card {
     border-color: var(--user-border);
     background: var(--user-surface);
     box-shadow: 0 7px 22px rgba(25, 25, 30, 0.035);
@@ -27579,44 +26227,6 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 
 .app-user-workspace .skill-library-card {
     min-height: 268px;
-}
-
-.app-user-workspace .task-library-frame {
-    overflow: hidden;
-    border: 1px solid var(--user-border);
-    border-radius: 16px;
-    background: var(--user-surface);
-}
-
-.app-user-workspace .task-record-row {
-    min-height: 88px;
-    border-bottom: 1px solid rgba(25, 25, 30, 0.07);
-    border-radius: 0;
-    background: var(--user-surface);
-    color: var(--user-ink);
-}
-
-.app-user-workspace .task-record-row:last-child {
-    border-bottom: 0;
-}
-
-.app-user-workspace .task-record-row:hover,
-.app-user-workspace .task-record-row:focus-within {
-    background: var(--user-surface-hover);
-}
-
-.app-user-workspace .task-grid-card {
-    border: 1px solid var(--user-border);
-    border-radius: 16px;
-    background: var(--user-surface);
-    box-shadow: 0 5px 16px rgba(25, 25, 30, 0.025);
-}
-
-.app-user-workspace .task-grid-card:hover,
-.app-user-workspace .task-grid-card:focus-within {
-    background: var(--user-surface);
-    border-color: rgba(95, 85, 217, 0.32);
-    box-shadow: 0 12px 26px rgba(25, 25, 30, 0.08);
 }
 
 .app-user-workspace .project-library-grid {
@@ -28150,7 +26760,7 @@ html:not(.dark) .home-background {
 
 .app-user-workspace .creation-empty-composer {
     width: 100% !important;
-    margin: 0 0 20px !important;
+    margin: 0 !important;
 }
 .app-user-workspace .creation-composer-shell {
     width: 100%;
@@ -28247,6 +26857,7 @@ html:not(.dark) .home-background {
     border-radius: 50%;
 }
 
+/* 首页输入框嵌在 CreationModeCard 的内容面里，顶边贴着页签，底部圆角由 .creation-mode-panel 裁切。 */
 .app-user-workspace .creation-launchpad .creation-chat-composer {
     border-radius: 22px !important;
 }
@@ -28376,22 +26987,18 @@ html:not(.dark) .home-background {
 
 /* Shared library surfaces: no dark-mode geometry fork, only token changes. */
 .app-user-workspace .library-page > div,
-.app-user-workspace .task-library-frame,
 .app-user-workspace .settings-library-frame,
 .app-user-workspace .assets-library-page .canvas-library-frame,
 .app-user-workspace .project-library-card,
-.app-user-workspace .task-grid-card,
 .app-user-workspace .skill-library-card {
     color: var(--user-ink) !important;
 }
-.app-user-workspace .task-library-frame,
 .app-user-workspace .settings-library-frame,
 .app-user-workspace .assets-library-page .canvas-library-frame {
     border-color: var(--user-border) !important;
     background: var(--user-surface) !important;
     box-shadow: var(--user-shadow-card) !important;
 }
-.dark .app-user-workspace .task-library-frame,
 .dark .app-user-workspace .settings-library-frame,
 .dark .app-user-workspace .assets-library-page .canvas-library-frame {
     background: var(--user-surface) !important;
@@ -28453,8 +27060,6 @@ html:not(.dark) .home-background {
 .app-user-workspace .project-library-page {
     color: var(--user-ink) !important;
 }
-.app-user-workspace .task-record-row,
-.app-user-workspace .task-grid-card,
 .app-user-workspace .project-library-card,
 .app-user-workspace .skill-library-card,
 .app-user-workspace .assets-library-page .canvas-library-frame,
@@ -28466,10 +27071,6 @@ html:not(.dark) .home-background {
     color: var(--user-ink) !important;
     box-shadow: var(--user-shadow-card) !important;
 }
-.app-user-workspace .task-record-row:hover,
-.app-user-workspace .task-record-row:focus-within,
-.app-user-workspace .task-grid-card:hover,
-.app-user-workspace .task-grid-card:focus-within,
 .app-user-workspace .project-library-card:hover,
 .app-user-workspace .project-library-card:focus-within,
 .app-user-workspace .skill-library-card:hover,

@@ -96,6 +96,8 @@ describe("workspace route loading", () => {
 
         expect(loader).toContain("full-screen-loader-track");
         expect(loader).toContain("full-screen-loader-sweep");
+        expect(loader).toContain("useLoaderTimeline");
+        expect(loader).toContain("--loader-clock");
         expect(loader).toContain('role="status"');
         expect(loader).toContain('aria-live="polite"');
         expect(loader).toContain("window.setTimeout(() => setVisible(true), 140)");

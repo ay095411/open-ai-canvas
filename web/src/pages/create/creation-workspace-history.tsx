@@ -129,7 +129,7 @@ export function CreationHistoryDrawer({
             onClose={onClose}
             placement="right"
             size="min(440px, 100vw)"
-            closeIcon={<X className="size-4" />}
+            closable={{ placement: "end", closeIcon: <X className="size-4" /> }}
             aria-labelledby={titleId}
             className="creation-history-drawer"
             rootClassName="creation-history-drawer-root"

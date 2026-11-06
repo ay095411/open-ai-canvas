@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from "react-router";
 
 import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-picker-modal";
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
+import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
 import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
 import { declaredInspirationSources } from "@/lib/inspirations/catalog";
@@ -1150,16 +1151,18 @@ export default function CreatePage() {
         }
     };
 
-    // 作品可能已经生成（页面只是没拿到结果，或仍在重连）时，重新生成会提交新任务并再次扣费，先确认。
+    // 作品可能已经生成（页面只是没拿到结果，或仍在重连），或上游超时后费用不确定时，重新生成会提交新任务并再次扣费，先确认。
     const regenerateMessage = (item: CreationMessage, index: number) => {
-        if (!creationMessageNeedsResultSync(item) && !(item.syncInterrupted && (item.status === "pending" || item.status === "streaming"))) {
+        const resultMayExist = creationMessageNeedsResultSync(item) || Boolean(item.syncInterrupted && (item.status === "pending" || item.status === "streaming"));
+        const costUncertain = item.status === "error" && isGenerationCostUncertainError(item.error);
+        if (!resultMayExist && !costUncertain) {
             void retryFailedMessage(item, index);
             return;
         }
         modal.confirm({
             className: "workspace-modal workspace-modal-compact",
-            title: "作品可能已经生成",
-            content: "页面只是没有及时拿到结果，建议先点「重新获取结果」。重新生成会提交新任务并再次扣费。",
+            title: resultMayExist ? "作品可能已经生成" : "上游费用暂未确认",
+            content: resultMayExist ? "页面只是没有及时拿到结果，建议先点「重新获取结果」。重新生成会提交新任务并再次扣费。" : "上游超时后可能已经扣费，重新生成会提交新任务并可能再次扣费。建议先核对任务记录与上游账单。",
             okText: "仍要重新生成",
             cancelText: "先不",
             onOk: () => retryFailedMessage(item, index),
