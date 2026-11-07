@@ -549,6 +549,114 @@
     color: var(--auth-notice-color);
 }
 
+/* --- 「该账号还不存在 → 就地补注册」提示 -------------------------------------
+   登录与注册合成一张表单之后，这是新用户唯一的分岔点，不该画成一条状态色横幅：
+   原先取 --palette-status-loading（antd Alert 的蓝），而本项目经典皮肤是纯中性
+   （主色 #171717 / #f5f5f5），那条蓝色是全屏唯一的彩色，看着像第三方组件漏进来了。
+   现在底色与描边全部由 --workspace-accent（= 皮肤主色）派生：
+   经典皮肤下是中性灰，换成有彩主色的皮肤后自动带上品牌色，不需要再改这里。
+   兜底写 var(--auth-accent)：`--workspace-accent` 由 skin-themes 在根节点注入，
+   单独渲染 auth 场景（如独立登录页的静态截图）时它可能还没生效。 */
+.auth-scene-pending {
+    --auth-pending-accent: var(--workspace-accent, var(--auth-accent));
+    /* 用 grid 而不是「一行 flex + 下面一段说明」：
+       视觉上按钮要贴标题那一行的右侧，读屏顺序却应该是 标题 → 说明 → 按钮。
+       grid-area 让这两件事解耦，DOM 顺序按语义写就行。 */
+    display: grid;
+    grid-template-areas:
+        "mark title switch"
+        "mark hint switch";
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-2);
+    row-gap: 2px;
+    padding: var(--space-3);
+    /* 边框拆成「宽度 / 样式」+ 单独的 border-color：颜色用 color-mix，构建产物里它会以
+       「纯色降级 + color-mix」成对出现（lightningcss 为不支持 color-mix 的浏览器留的退路）。
+       拆开写时那两条规则只改颜色，不会把宽度和样式一起重复一遍。 */
+    border: var(--control-border-width) solid transparent;
+    border-color: color-mix(in srgb, var(--auth-pending-accent) 20%, transparent);
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--auth-pending-accent) 5%, var(--auth-card-bg));
+    color: var(--foreground);
+}
+
+/* 图标底座做成一个小圆片：和同屏的输入框前缀图标区分开，读到这行就知道「这里在说账号」。 */
+.auth-scene-pending-mark {
+    display: grid;
+    grid-area: mark;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--auth-pending-accent) 14%, transparent);
+    color: color-mix(in srgb, var(--auth-pending-accent) 78%, var(--foreground));
+}
+
+.auth-scene-pending-title {
+    grid-area: title;
+    margin: 0;
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.auth-scene-pending-hint {
+    grid-area: hint;
+    margin: 0;
+    color: var(--auth-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.5;
+}
+
+/* 唯一的退路，必须一眼可见：描边 + 浅底 + 图标，hover 时把主色加深一档。
+   ⚠️ 焦点环画在 ::after 上：unified-buttons.css 用 `:where(button):focus-visible`
+   把所有普通按钮的 outline/box-shadow 清空了（只放过带 data-input-modality 的），
+   直接写 outline 会被静默吃掉（实测 outlineStyle 仍是 none、::after 才吃到环）。 */
+.auth-scene-pending-switch {
+    position: relative;
+    display: inline-flex;
+    grid-area: switch;
+    align-self: center;
+    align-items: center;
+    gap: 4px;
+    min-height: 26px;
+    padding: 0 10px;
+    border: var(--control-border-width) solid transparent;
+    border-color: color-mix(in srgb, var(--auth-pending-accent) 26%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--auth-pending-accent) 8%, transparent);
+    color: var(--foreground);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--motion-instant) ease-out,
+        border-color var(--motion-instant) ease-out,
+        opacity var(--motion-instant) ease-out;
+}
+
+.auth-scene-pending-switch:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--auth-pending-accent) 46%, transparent);
+    background: color-mix(in srgb, var(--auth-pending-accent) 14%, transparent);
+}
+
+.auth-scene-pending-switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.auth-scene-pending-switch:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--ring);
+    pointer-events: none;
+}
+
 .auth-scene-return {
     border: var(--control-border-width) solid var(--border);
     background: color-mix(in srgb, var(--foreground) 4%, transparent);

@@ -52,6 +52,9 @@ describe("authentication follows the application theme", () => {
         expect(login).toContain('aria-label="用户名或邮箱"');
         expect(login).toContain('aria-label="密码"');
         expect(login).toContain("auth-scene-notice");
+        // 「该账号还不存在」不再是 status-loading 蓝的状态条（换肤后颜色对不上）：
+        // 改成主色描边面板 + 胶囊按钮式的「换一个账号」，锁住这两个钩子。
+        expect(login).toContain("auth-scene-pending-switch");
         expect(login).toContain("autoRegister");
         expect(login).toContain('"account_not_registered"');
         expect(login).toContain("auth-agreement-row");
@@ -68,6 +71,9 @@ describe("authentication follows the application theme", () => {
         expect(css).toContain("-webkit-text-fill-color: var(--foreground) !important");
         expect(css).toContain("box-shadow: 0 0 0 1000px var(--auth-card-bg) inset !important");
         expect(css).toContain(".auth-scene-link:focus-visible");
+        // 普通 <button> 的焦点环被 unified-buttons.css 全局清空，胶囊按钮只能画在 ::after 上；
+        // 这条断言防的是「顺手改成 outline 看起来更简单」——那样环会静默消失。
+        expect(css).toContain(".auth-scene-pending-switch:focus-visible::after");
         expect(css).toContain("box-shadow: 0 0 0 var(--focus-ring-width) color-mix(in srgb, var(--ring) 16%, transparent)");
     });
 

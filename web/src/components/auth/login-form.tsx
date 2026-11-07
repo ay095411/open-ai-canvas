@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { App, Button, Checkbox, Input, Segmented } from "antd";
-import { Info, LockKeyhole, Mail, TriangleAlert, UserRound } from "lucide-react";
+import { ArrowLeftRight, Info, LockKeyhole, Mail, TriangleAlert, UserRound, UserRoundPlus } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 
 import { getAuthSession, getAuthSettings, linuxDOLoginURL, login, register, type AuthSettings } from "@/services/api/auth";
@@ -184,17 +184,28 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     首个账号自动成为管理员，邮箱验证码暂不要求。
                 </div>
             ) : null}
+            {/*
+              「账号不存在 → 就地把注册补完」是新用户唯一的分岔点，因此这里不再画成一条
+              状态色（原先取的是 status-loading 蓝，是 antd Alert 的语言，跟本项目的中性
+              皮肤打架）。现在是一个主色描边面板：底色与描边都取自 --workspace-accent
+              （= 皮肤主色），换肤后自动跟随。可访问性上给 role="status"，
+              进入补充注册这一步时读屏会播报。
+            */}
             {pending ? (
-                <div data-tone="blue" className="auth-scene-notice flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-5">
-                    <span className="mt-0.5 shrink-0">
-                        <Info className="size-3.5" />
+                <div className="auth-scene-pending" role="status">
+                    <span className="auth-scene-pending-mark" aria-hidden="true">
+                        <UserRoundPlus className="size-3" />
                     </span>
-                    <span>
-                        该账号还不存在，补全信息后立即创建并登录。
-                        <button type="button" className="auth-scene-link ml-1 transition" onClick={cancelRegistration} disabled={submitting}>
-                            换一个账号
-                        </button>
-                    </span>
+                    <p className="auth-scene-pending-title">该账号还不存在</p>
+                    <p className="auth-scene-pending-hint">补全信息后立即创建并登录</p>
+                    {/* 「换一个账号」原先只是句号后的一小段同色链接，几乎是隐形的；
+                        改成带描边和图标的胶囊按钮——这是唯一的退路，必须一眼看到。
+                        DOM 里排在标题和说明之后（读屏顺序 = 标题 → 说明 → 操作），
+                        视觉上靠 grid-area 摆回右上角。 */}
+                    <button type="button" className="auth-scene-pending-switch" onClick={cancelRegistration} disabled={submitting}>
+                        <ArrowLeftRight className="size-3" aria-hidden="true" />
+                        换一个账号
+                    </button>
                 </div>
             ) : null}
             {verificationUnavailable ? (
