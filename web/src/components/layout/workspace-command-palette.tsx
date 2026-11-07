@@ -10,6 +10,7 @@ import { mayNavigateWithAuth } from "@/lib/guard-navigation";
 import { cn } from "@/lib/utils";
 import { openWorkspaceSettings } from "@/lib/workspace-settings";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
+import { workbenchEntryPath } from "@/lib/workbench-navigation";
 import { useUserStore } from "@/stores/use-user-store";
 
 type PaletteEntry = {
@@ -35,11 +36,10 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
         };
         return [
             { id: "home", title: "首页", icon: Home, to: "/" },
-            ...(features.shortDramaEnabled ? [toolEntry("projects", "/projects")] : []),
-            // 「创作影棚」= /ecommerce（旧 /toolbox/image|video 工作台已下线）。
-            // 图标用侧栏同款大眼萌相机，两个入口对同一个页面必须长得一样。
-            ...(features.ecommerceEnabled ? [{ id: "toolbox", title: "创作影棚", icon: ToolboxNavIcon, to: "/ecommerce" }] : []),
+            ...(features.imageWorkbenchEnabled || features.videoWorkbenchEnabled ? [{ ...toolEntry("toolbox", workbenchEntryPath(features)), icon: ToolboxNavIcon }] : []),
             toolEntry("canvas", "/canvas"),
+            ...(features.shortDramaEnabled ? [{ ...toolEntry("projects", "/projects"), title: "短剧 Agent" }] : []),
+            ...(features.ecommerceEnabled ? [toolEntry("ecommerce", "/ecommerce")] : []),
             ...(features.taskCenterEnabled ? [toolEntry("tasks", "/tasks")] : []),
             toolEntry("assets", "/assets"),
             toolEntry("skills", "/skills"),

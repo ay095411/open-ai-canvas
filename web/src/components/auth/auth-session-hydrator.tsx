@@ -6,8 +6,10 @@ import { FullScreenLoader } from "@/components/ui/aceternity/full-screen-loader"
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 import { useUserStore } from "@/stores/use-user-store";
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
+import { useFeatureAvailabilitySync } from "@/hooks/use-feature-availability-sync";
 
 export function AuthSessionHydrator({ children }: { children: ReactNode }) {
+    useFeatureAvailabilitySync();
     const hydrated = useUserStore((state) => state.hydrated);
 
     useEffect(() => {

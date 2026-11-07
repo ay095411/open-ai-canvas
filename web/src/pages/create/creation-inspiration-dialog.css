@@ -1,0 +1,171 @@
+.creation-inspiration-dialog {
+    display: flex;
+    height: min(88dvh, 960px);
+    min-height: 0;
+    flex-direction: column;
+    color: var(--user-ink);
+    background: var(--user-surface);
+}
+
+.creation-inspiration-dialog-header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    border-bottom: 1px solid var(--user-border);
+    padding: var(--space-3) var(--space-5);
+}
+
+.creation-inspiration-dialog-header > div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.creation-inspiration-dialog-header h2 {
+    margin: 0;
+    font-size: var(--fs-heading);
+    font-weight: 600;
+}
+
+.creation-inspiration-dialog-header button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--user-radius-control);
+    padding: var(--space-2);
+    background: transparent;
+    color: var(--user-ink-muted);
+    cursor: pointer;
+}
+
+.creation-inspiration-dialog-header button:hover {
+    color: var(--user-ink);
+    background: var(--user-surface-hover);
+}
+
+.creation-inspiration-dialog-header button:focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 2px;
+}
+
+.creation-inspiration-dialog-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.creation-inspiration-dialog-library,
+.creation-inspiration-dialog .inspiration-detail {
+    height: 100%;
+}
+
+.creation-inspiration-dialog-loading {
+    margin: 0;
+    padding: var(--space-5);
+    color: var(--user-ink-muted);
+}
+
+.inspiration-library-pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--user-border);
+    padding: var(--space-5) 0 var(--space-2);
+}
+
+.inspiration-library-pagination .app-pagination-controls {
+    display: flex;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+.inspiration-library-pagination .app-pagination-pages {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1);
+}
+
+.inspiration-library-pagination .app-pagination-btn {
+    min-width: var(--space-8);
+    height: var(--space-8);
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-control);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    cursor: pointer;
+}
+
+.inspiration-library-pagination .app-pagination-btn.is-active {
+    border-color: var(--control-selected-border);
+    background: var(--control-selected-bg);
+    color: var(--control-selected-fg);
+    font-weight: 600;
+}
+
+.inspiration-library-pagination .app-pagination-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.inspiration-library-pagination .app-pagination-jump {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    white-space: nowrap;
+}
+
+.inspiration-library-pagination .app-pagination-jump input {
+    width: calc(var(--space-8) + var(--space-4));
+    height: var(--space-8);
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-control);
+    background: var(--user-surface);
+    color: var(--user-ink);
+    font: inherit;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.inspiration-library-pagination .app-pagination-size.ant-select {
+    min-width: calc(var(--space-10) * 3);
+    height: var(--space-8) !important;
+    border-radius: var(--user-radius-control) !important;
+}
+
+.inspiration-library-pagination :is(button, input):focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+    .creation-inspiration-dialog {
+        height: 90dvh;
+    }
+
+    .creation-inspiration-dialog-header {
+        padding-inline: var(--space-3);
+    }
+
+    .creation-inspiration-dialog .inspiration-detail {
+        grid-template-rows: minmax(0, 26dvh) minmax(0, 1fr);
+    }
+
+    .creation-inspiration-dialog .inspiration-detail-footer {
+        padding-inline: var(--space-3);
+    }
+
+    .inspiration-library-pagination .app-pagination-pages {
+        flex-basis: 100%;
+    }
+}

@@ -20,6 +20,38 @@
     gap: var(--space-2);
 }
 
+[data-admin-root] .afp-scope-note {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    color: var(--admin-text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+[data-admin-root] .afp-list > .afp-row + .afp-row:not(.is-nested) {
+    border-top: 1px solid var(--admin-row-border);
+}
+
+[data-admin-root] .afp-legacy > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    color: var(--admin-text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+[data-admin-root] .afp-legacy > summary::after {
+    margin-left: auto;
+    content: "展开";
+}
+
+[data-admin-root] .afp-legacy[open] > summary::after {
+    content: "收起";
+}
+
 [data-admin-root] .afp-command-copy strong {
     color: var(--admin-text);
     font-size: 12px;
@@ -192,6 +224,7 @@
 }
 
 [data-admin-root] .afp-dep-link {
+    margin-inline: var(--space-1);
     padding: 0;
     border: 0;
     background: none;
@@ -244,7 +277,7 @@
     opacity: 0.42;
 }
 
-[data-admin-root] :is(.afp-source button, .afp-dep-link, .afp-link):focus-visible {
+[data-admin-root] :is(.afp-source button, .afp-dep-link, .afp-link, .afp-legacy > summary):focus-visible {
     outline: 2px solid var(--admin-focus);
     outline-offset: 2px;
 }

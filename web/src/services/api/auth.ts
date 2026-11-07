@@ -2,7 +2,7 @@ import type { ModelChannel } from "@/stores/use-config-store";
 import type { BillingOrder, CreditLedgerEntry } from "@/services/api/wallet";
 import type { GenerationTask, TaskStatus } from "@/services/api/task-center";
 import type { CanvasDrawingEngineSetting } from "@/lib/canvas/canvas-drawing-engine";
-import type { FeatureAvailability } from "@/stores/use-user-store";
+import type { FeatureAvailability, FeatureAvailabilityPatch } from "@/stores/use-user-store";
 import { http, apiBaseURL } from "@/services/api/request";
 import type { OSSConnectionTestInput, OSSConnectionTestResult, OSSProvider, S3Preset } from "@/lib/oss-settings";
 import type { VerificationPolicy } from "./verification";
@@ -481,9 +481,7 @@ export function getAdminFeatureAvailability() {
     return http.get<{ features: FeatureAvailability }>("/admin/settings/features");
 }
 
-export function updateAdminFeatureAvailability(
-    features: Partial<Pick<FeatureAvailability, "welcomeEnabled" | "shortDramaEnabled" | "taskCenterEnabled" | "creditsEnabled" | "customChannelsEnabled" | "frontendModelsEnabled" | "pluginCenterEnabled" | "systemPluginsVisibleToUsers" | "inspirationSourcesVisible" | "imageWorkbenchEnabled" | "videoWorkbenchEnabled" | "globalAgentEnabled">>,
-) {
+export function updateAdminFeatureAvailability(features: FeatureAvailabilityPatch) {
     return http.patch<{ features: FeatureAvailability }>("/admin/settings/features", features);
 }
 

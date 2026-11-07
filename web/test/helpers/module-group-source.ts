@@ -18,6 +18,7 @@ export const SPLIT_MODULE_GROUPS: Record<string, readonly string[]> = {
     "lib/art-critique/pipeline.ts": ["lib/art-critique/pipeline-messages.ts", "lib/art-critique/pipeline-parse.ts"],
     "lib/model-capabilities.ts": ["lib/model-capabilities-workflow.ts"],
     "pages/admin/components/admin-announcements-panel.tsx": ["pages/admin/components/admin-announcement-editor.tsx", "pages/admin/components/admin-announcement-results.ts"],
+    "pages/admin/components/feature-availability-panel.tsx": ["pages/admin/components/feature-availability-catalog.ts", "pages/admin/components/use-feature-availability-editor.ts"],
     "pages/admin/components/redemption-codes-panel.tsx": ["pages/admin/components/redemption-codes-modals.tsx"],
     "pages/admin/settings/appearance-settings-page.tsx": ["pages/admin/settings/appearance-settings-parts.tsx"],
     "pages/admin/settings/storage-settings-page.tsx": ["pages/admin/settings/storage-settings-model.ts"],

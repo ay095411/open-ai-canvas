@@ -128,9 +128,9 @@ const adminNavigation: AdminNavigationGroup[] = [
     },
     {
         key: "ecommerce-agent",
-        label: "电商 Agent",
+        label: "电商Agent",
         items: [
-            { path: "/admin/ecommerce/agent", label: "电商 Agent 配置", shortLabel: "配置", icon: <Bot className="size-4" /> },
+            { path: "/admin/ecommerce/agent", label: "电商Agent配置", shortLabel: "配置", icon: <Bot className="size-4" /> },
             { path: "/admin/ecommerce/library", label: "知识与技能", shortLabel: "知识", icon: <Database className="size-4" /> },
         ],
     },
@@ -140,6 +140,7 @@ const adminNavigation: AdminNavigationGroup[] = [
         items: [
             { path: "/admin/settings/appearance", label: "站点及外观", shortLabel: "外观", icon: <Palette className="size-4" /> },
             { path: "/admin/settings/features", label: "功能开放", shortLabel: "功能", icon: <ToggleLeft className="size-4" /> },
+            { path: "/admin/settings/yoru", label: "小夜助手", shortLabel: "助手", icon: <Bot className="size-4" /> },
             { path: "/admin/settings/access", label: "登录与注册", shortLabel: "注册", icon: <ShieldCheck className="size-4" /> },
             { path: "/admin/settings/email", label: "邮件服务", shortLabel: "邮件", icon: <Mail className="size-4" /> },
             { path: "/admin/settings/storage", label: "存储服务", shortLabel: "存储", icon: <HardDrive className="size-4" /> },

@@ -71,13 +71,12 @@ async function mount() {
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
-    const history = mock(() => {});
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: 0, placeholderData: keepPreviousData } } });
     await act(async () =>
         root.render(
             <QueryClientProvider client={client}>
                 <MemoryRouter>
-                    <CreationRecentProjects onOpenHistory={history} />
+                    <CreationRecentProjects />
                 </MemoryRouter>
             </QueryClientProvider>,
         ),
@@ -85,7 +84,6 @@ async function mount() {
     await settle();
     return {
         host,
-        history,
         client,
         unmount: async () => {
             await act(() => root.unmount());
@@ -163,7 +161,7 @@ describe("首页继续创作真实查询与交互", () => {
         expect(requests).toHaveLength(1);
     });
 
-    test("首屏仅请求 updated 排序的六条画布，展示更新时间和原历史回调", async () => {
+    test("首屏仅请求 updated 排序的六条画布，展示更新时间并保留查看全部", async () => {
         canvasData = [canvas("a")];
         activeView = await mount();
         expect(requests).toHaveLength(1);
@@ -175,9 +173,8 @@ describe("首页继续创作真实查询与交互", () => {
         expect(activeView.host.querySelector(".canvas-collection-badge")?.textContent).toBe("3个节点");
         expect(activeView.host.textContent).not.toContain("创建于");
         expect(activeView.host.textContent).not.toContain("创建画布");
-        expect(activeView.host.querySelector('a[href="/canvas"]')).not.toBeNull();
-        await click("历史对话");
-        expect(activeView.history).toHaveBeenCalledTimes(1);
+        expect(activeView.host.querySelector('a[href="/canvas"]')?.textContent).toBe("查看全部");
+        expect(activeView.host.textContent).not.toContain("历史对话");
     });
 
     test("切短剧才加载六条摘要，封面和真实状态计数可见，查看全部随 tab 变化", async () => {

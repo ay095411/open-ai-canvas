@@ -1,5 +1,5 @@
 /* 电商创作页（/ecommerce）：左侧方案与作品，右侧创作面板。
-   与 /toolbox/image 同一套面板规则：面板只有一层表面，区块之间用细分隔线，不套卡片；
+   面板只有一层表面，区块之间用细分隔线，不套卡片；
    字号只用 --fs-label / --fs-caption / --fs-ui / --fs-body / --fs-heading 五档。
    旧 workspace/studio/agent-theme 仍服务历史弹窗、方向卡片与风格库；这里出现的同名类都在 .ecs-* 作用域内覆盖。 */
 .ecs-page {
@@ -7,40 +7,76 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
+    padding: 0;
 }
 .ecs-page > div:first-child {
     display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
 }
+.ecs-workspace-header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-5) var(--space-3);
+}
+.ecs-workspace-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+.ecs-workspace-mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--space-10);
+    height: var(--space-10);
+    color: var(--user-ink);
+}
+.ecs-workspace-identity h1 {
+    margin: 0;
+    color: var(--user-ink);
+    font-family: var(--font-heading);
+    font-size: var(--fs-heading);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: var(--lh-heading);
+}
+.ecs-workspace-actions {
+    display: flex;
+    flex: none;
+    gap: var(--space-2);
+}
 .ecs-shell {
     --ecs-motion: var(--motion-dur-base) var(--motion-ease-out);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(380px, 420px);
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(400px, 440px);
+    flex: 1 1 auto;
+    gap: var(--space-4);
     width: 100%;
-    height: 100%;
+    height: auto;
     min-width: 0;
     min-height: 0;
-    padding: 12px;
+    padding: var(--space-2) var(--space-5) var(--space-5);
     background: var(--user-page-bg);
     color: var(--user-ink);
 }
-/* 「创作影棚」外壳统一成旧生图工作台那套卡片语言：
-   页面 12px 内边距 + 每栏一块 18px 圆角、1px 描边、单层表面的卡片，栏间 12px 缝。
-   之前「方案与作品」直接浮在页面底色上，只有右栏是卡片，两栏高度也对不齐，
-   读起来像两套页面拼在一起。 */
+/* 两栏使用同一层表面，细分隔线承担分组，作品与操作互不遮挡。 */
 .ecs-shell > .commerce-output-gallery {
-    padding: 14px;
+    padding: var(--space-4);
     border: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
-    border-radius: 18px;
+    border-radius: var(--r-xl);
     background: var(--user-surface);
     overflow: hidden;
 }
 .ecs-shell > .ecs-composer {
     border: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
-    border-radius: 18px;
+    border-radius: var(--r-xl);
 }
 .ecs-mobile-tabs {
     display: none;
@@ -66,39 +102,29 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-    /* 旧生图工作台的工具条以一条细线收口，栏头与其下的表单因此分成两层。 */
+    padding: var(--space-4) var(--space-4) var(--space-3) var(--space-5);
     border-bottom: 1px solid color-mix(in srgb, var(--user-border) 72%, transparent);
 }
-.ecs-kind-switch {
-    display: inline-flex;
-    gap: 2px;
-    padding: var(--space-1);
-    border-radius: var(--r-lg);
-    background: var(--user-surface-muted);
-}
-.ecs-kind-switch button {
-    display: inline-flex;
+.ecs-composer-title {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 var(--space-3);
-    border: 0;
-    border-radius: var(--r-md);
-    background: transparent;
-    color: var(--user-ink-muted);
+    gap: var(--space-2);
+    min-width: 0;
     font-size: var(--fs-ui);
-    font-weight: 500;
-    cursor: pointer;
 }
-.ecs-kind-switch button.is-active {
-    background: var(--user-surface);
+.ecs-composer-title strong {
+    font-weight: 650;
+}
+.ecs-composer-title > svg {
+    flex: none;
     color: var(--user-ink);
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--user-ink) 10%, transparent);
 }
-.ecs-kind-switch button:disabled {
-    color: var(--user-ink-soft);
-    cursor: not-allowed;
+.ecs-composer-title > span {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--r-sm);
+    background: var(--user-surface-muted);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
 }
 .ecs-head-actions {
     display: flex;
@@ -129,14 +155,16 @@
 }
 .ecs-project-line {
     display: flex;
-    align-items: baseline;
+    flex-wrap: nowrap;
+    align-items: center;
     gap: var(--space-2);
     min-width: 0;
-    padding: var(--space-3) var(--space-4) 0;
+    padding: var(--space-3) var(--space-5);
+    background: var(--user-surface-muted);
 }
 .ecs-project-line strong {
     overflow: hidden;
-    font-size: var(--fs-heading);
+    font-size: var(--fs-ui);
     font-weight: 600;
     line-height: var(--lh-heading);
     text-overflow: ellipsis;
@@ -161,7 +189,7 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 0 var(--space-4) var(--space-2);
+    padding: 0 var(--space-5) var(--space-4);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--user-ink) 18%, transparent) transparent;
@@ -177,7 +205,7 @@
 }
 .ecs-block > header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--space-2);
     min-width: 0;
 }
@@ -239,15 +267,17 @@
     gap: var(--space-2);
 }
 .ecs-scene {
-    display: grid;
-    gap: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-width: 0;
-    padding: var(--space-2) var(--space-3);
-    border: 0;
-    border-radius: var(--r-md);
-    background: var(--user-surface-muted);
-    color: var(--user-ink);
-    text-align: left;
+    min-height: var(--space-8);
+    padding: var(--space-2) var(--space-1);
+    border: 1px solid var(--user-border);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--user-ink-muted);
+    white-space: nowrap;
     cursor: pointer;
     transition: background-color var(--ecs-motion);
 }
@@ -256,16 +286,20 @@
 }
 .ecs-scene[aria-pressed="true"] {
     background: var(--control-selected-bg);
-    box-shadow: inset 0 0 0 1px var(--control-selected-border);
+    border-color: var(--control-selected-border);
     color: var(--control-selected-fg);
 }
 .ecs-scene strong {
-    font-size: var(--fs-ui);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    font-size: var(--fs-caption);
     font-weight: 500;
 }
-.ecs-scene small {
-    color: var(--user-ink-soft);
-    font-size: var(--fs-label);
+.ecs-workflow-choice {
+    display: grid;
+    gap: var(--space-2);
 }
 .ecs-select-row {
     display: flex;
@@ -349,6 +383,85 @@
 .ecs-product-slot .commerce-reference-add svg {
     width: 18px;
     height: 18px;
+}
+.ecs-product-slot.is-empty .commerce-reference-list {
+    display: grid;
+}
+.ecs-product-slot.is-empty .commerce-reference-add {
+    width: 100%;
+    height: auto;
+    min-height: 104px;
+    gap: var(--space-2);
+    background: var(--user-surface-muted);
+    color: var(--user-ink);
+    font-size: var(--fs-ui);
+}
+.ecs-product-memory {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--user-border);
+    border-radius: var(--r-md);
+    font-size: var(--fs-caption);
+}
+.ecs-product-memory > svg {
+    flex: none;
+    margin-top: var(--space-1);
+    color: var(--status-success);
+}
+.ecs-product-memory > div {
+    flex: 1;
+    min-width: 0;
+}
+.ecs-product-memory strong {
+    font-weight: 600;
+}
+.ecs-product-memory p {
+    margin: var(--space-1) 0 0;
+    color: var(--user-ink-muted);
+    line-height: var(--lh-body);
+}
+.ecs-product-memory button {
+    flex: none;
+}
+.ecs-disclosure {
+    min-width: 0;
+    border-top: 1px solid var(--user-border);
+}
+.ecs-disclosure > summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--space-10);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    list-style: none;
+    cursor: pointer;
+}
+.ecs-disclosure > summary::-webkit-details-marker {
+    display: none;
+}
+.ecs-disclosure > summary > span {
+    flex: 1;
+}
+.ecs-disclosure > summary > small {
+    color: var(--user-ink-soft);
+    font-size: inherit;
+}
+.ecs-disclosure > summary > svg {
+    flex: none;
+}
+.ecs-disclosure[open] > summary {
+    color: var(--user-ink);
+}
+.ecs-disclosure[open] > summary > svg:last-child {
+    transform: rotate(180deg);
+}
+.ecs-disclosure-body {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-2) 0 var(--space-3);
 }
 .ecs-product-slot .commerce-reference-item {
     border: 0;
@@ -456,29 +569,37 @@
     flex-direction: column;
     min-width: 0;
     padding: var(--space-3) var(--space-3) var(--space-2);
-    border-radius: var(--r-lg);
-    background: var(--user-surface-muted);
-    box-shadow: inset 0 0 0 1px transparent;
+    border: 1px solid var(--user-border);
+    border-radius: var(--r-md);
+    background: var(--user-surface);
     cursor: text;
-    transition:
-        background-color var(--ecs-motion),
-        box-shadow var(--ecs-motion);
+    transition: border-color var(--ecs-motion);
 }
 .ecs-prompt:focus-within {
-    background: var(--user-surface);
-    box-shadow: inset 0 0 0 1px var(--user-border-strong);
+    border-color: var(--ring);
 }
 .ecs-prompt.is-dropping {
-    box-shadow: inset 0 0 0 1px var(--control-selected-border);
+    border-color: var(--control-selected-border);
 }
-.ecs-composer .ecs-prompt textarea.ant-input {
+.ecs-prompt-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 4lh;
+    max-height: 10lh;
+    margin: 0;
     padding: 0;
     border: 0;
+    border-radius: 0;
+    outline: none;
     background: transparent;
     color: var(--user-ink);
-    font-size: var(--fs-body);
-    line-height: 1.7;
+    font-family: inherit;
+    font-size: var(--fs-ui);
+    line-height: var(--lh-body);
+    text-shadow: none;
     box-shadow: none;
+    field-sizing: content;
     resize: none;
 }
 .ecs-prompt textarea::placeholder {
@@ -505,6 +626,7 @@
     margin-top: var(--space-2);
     color: var(--user-ink-soft);
     font-size: var(--fs-label);
+    white-space: nowrap;
 }
 .ecs-text-button {
     display: inline-flex;
@@ -758,21 +880,23 @@
 
 /* 底部提交栏 */
 .ecs-footer {
-    display: flex;
+    display: grid;
     flex: none;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4) var(--space-4);
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
     border-top: 1px solid var(--user-border);
 }
 .ecs-estimate {
-    display: grid;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     flex: 1 1 auto;
-    gap: 2px;
+    gap: var(--space-3);
     min-width: 0;
 }
 .ecs-estimate strong {
     display: flex;
+    flex: none;
     align-items: center;
     gap: var(--space-1);
     font-size: var(--fs-ui);
@@ -789,14 +913,26 @@
     font-weight: 400;
 }
 .ecs-estimate > span {
-    overflow: hidden;
+    min-width: 0;
     color: var(--user-ink-soft);
     font-size: var(--fs-caption);
-    text-overflow: ellipsis;
+    line-height: var(--lh-body);
+    text-align: right;
     white-space: nowrap;
 }
+.ecs-footer-actions {
+    display: flex;
+    gap: var(--space-2);
+}
 .ecs-submit.ant-btn {
-    min-width: 96px;
+    flex: 1;
+    min-width: 0;
+    min-height: var(--space-10);
+    font-weight: 600;
+}
+.ecs-footer-actions > .ecommerce-plan-button {
+    min-height: var(--space-10);
+    font-size: var(--fs-caption);
 }
 
 /* 本轮流程区：已发送需求、方向选择、方案审阅、进度与错误 */
@@ -1000,6 +1136,21 @@
     }
 }
 @media (max-width: 760px) {
+    .ecs-workspace-header {
+        align-items: flex-start;
+        padding: var(--space-3);
+        gap: var(--space-2);
+    }
+    .ecs-workspace-mark {
+        display: none;
+    }
+    .ecs-workspace-actions {
+        gap: var(--space-1);
+    }
+    .ecs-workspace-actions .ant-btn {
+        padding-inline: var(--space-2);
+        font-size: var(--fs-caption);
+    }
     .ecs-shell {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto minmax(0, 1fr);
@@ -1012,9 +1163,6 @@
     .ecs-shell[data-mobile-view="create"] .commerce-output-gallery,
     .ecs-shell[data-mobile-view="works"] .ecs-composer {
         display: none;
-    }
-    .ecs-scene-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -178,7 +178,7 @@ test("high impact feature shutdowns require confirmation", async () => {
     const source = await Bun.file(new URL("../src/pages/admin/components/feature-availability-panel.tsx", import.meta.url)).text();
     expect(source).toContain('title: "关闭用户积分功能？"');
     expect(source).toContain('title: "关闭前台模型功能？"');
-    expect(source).toContain("onChange={requestFeatureChange}");
+    expect(source).toContain("onChange={requestChange}");
 });
 
 test("admin settings use full-width summaries without selected-card side stripes", async () => {
@@ -200,7 +200,7 @@ test("task-first settings reveal dependent configuration only after the primary 
         Promise.resolve(moduleGroupSource("pages/admin/settings/storage-settings-page.tsx")),
         Bun.file(new URL("../src/pages/admin/components/email-settings-panel.tsx", import.meta.url)).text(),
         Bun.file(new URL("../src/pages/admin/components/access-settings-panel.tsx", import.meta.url)).text(),
-        Bun.file(new URL("../src/pages/admin/components/feature-availability-panel.tsx", import.meta.url)).text(),
+        Promise.resolve(moduleGroupSource("pages/admin/components/feature-availability-panel.tsx")),
         Promise.resolve(moduleGroupSource("pages/admin/settings/appearance-settings-page.tsx")),
         Bun.file(new URL("../src/pages/admin/settings/components/welcome-setting.tsx", import.meta.url)).text(),
         Bun.file(new URL("../src/pages/admin/settings/drawing-engine-settings-page.tsx", import.meta.url)).text(),
@@ -227,8 +227,11 @@ test("task-first settings reveal dependent configuration only after the primary 
     expect(featureSource).toContain('title: "创作功能"');
     expect(featureSource).toContain('title: "插件与记录"');
     expect(featureSource).toContain('title: "模型与计费"');
-    expect(featureSource).toContain('disabled={savingKey !== null || state === "blocked"}');
-    expect(featureSource).toContain('requires: [{ key: "imageWorkbenchEnabled"');
+    expect(featureSource).toContain('disabled={savingKey !== null || uncertain || state === "blocked"}');
+    expect(featureSource).toContain('title: "影棚视频生成"');
+    expect(featureSource).not.toContain('parent: "ecommerceEnabled"');
+    expect(featureSource).toContain('requires: ["ecommerceEnabled"]');
+    expect(featureSource).not.toContain('requires: ["ecommerceEnabled", "videoWorkbenchEnabled"]');
     expect(appearanceSource).toContain("<WelcomeSetting />");
     expect(welcomeSource).toContain("<strong>启用欢迎页</strong>");
     expect(welcomeSource).toContain("updateAdminFeatureAvailability({ welcomeEnabled: value })");

@@ -8,9 +8,13 @@ import { loadAssetsPage, loadCanvasPage, loadCanvasProjectPage, loadCreatePage, 
 import { CanvasRefreshShell } from "@/pages/canvas/canvas-refresh-shell";
 import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
+import { workbenchEntryPath } from "@/lib/workbench-navigation";
+import { useUserStore } from "@/stores/use-user-store";
 
 const AdminPage = lazy(() => import("@/pages/admin"));
 const EcommercePage = lazy(loadEcommercePage);
+const ImageWorkbenchPage = lazy(() => import("@/pages/workbench/image-workbench-route"));
+const VideoWorkbenchPage = lazy(() => import("@/pages/workbench/video-workbench-page"));
 const EcommerceManagementPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-management-page"));
 const EcommerceAgentConfigPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-agent-config-page"));
 const AnalyticsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AnalyticsPage })));
@@ -34,6 +38,7 @@ const LoginLogsPage = lazyAdminPage(() => import("@/pages/admin/login-logs/login
 const RedemptionCodesPage = lazyAdminPage(() => import("@/pages/admin/redemption-codes/redemption-codes-page"));
 const RuntimePolicySettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/runtime-policy-settings-page"));
 const AppearanceSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/appearance-settings-page"));
+const YoruSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/yoru-settings-page"));
 const DrawingEngineSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/drawing-engine-settings-page"));
 const StorageSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/storage-settings-page"));
 const ArkPrivateAssetsSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/ark-private-assets-settings-page"));
@@ -118,6 +123,12 @@ function AuthRouteShell() {
     return null;
 }
 
+function WorkbenchEntryRedirect() {
+    const features = useUserStore((state) => state.features);
+    const { search } = useLocation();
+    return <Navigate to={`${workbenchEntryPath(features)}${search}`} replace />;
+}
+
 export const router = createBrowserRouter([
     { path: "/share/canvas/:token", element: fullScreenDeferred(<SharedCanvasPage />), errorElement: <RouteErrorPage /> },
     // H5 真人认证回跳页：多在未登录的手机上打开，不进入工作区登录守卫。
@@ -138,11 +149,16 @@ export const router = createBrowserRouter([
             { path: "/", element: deferred(<CreatePage />) },
             { path: "/create", element: deferred(<CreatePage />) },
             { path: "/ecommerce", element: <RequireAuth>{deferred(<EcommercePage />)}</RequireAuth> },
-            // 旧「创作影棚」（/toolbox/image、/toolbox/video 的生图 / 视频工作台）已下线，
-            // 能力并入 /ecommerce 这一套「创作影棚」。这里保留重定向，旧收藏和分享链接不落空。
-            { path: "/toolbox", element: <Navigate to="/ecommerce" replace /> },
-            { path: "/toolbox/image", element: <Navigate to="/ecommerce" replace /> },
-            { path: "/toolbox/video", element: <Navigate to="/ecommerce" replace /> },
+            {
+                path: "/toolbox",
+                element: (
+                    <RequireAuth>
+                        <WorkbenchEntryRedirect />
+                    </RequireAuth>
+                ),
+            },
+            { path: "/toolbox/image", element: <RequireAuth>{deferred(<ImageWorkbenchPage />)}</RequireAuth> },
+            { path: "/toolbox/video", element: <RequireAuth>{deferred(<VideoWorkbenchPage />)}</RequireAuth> },
             {
                 path: "/tasks",
                 element: (
@@ -259,7 +275,7 @@ export const router = createBrowserRouter([
                     { path: "redemption-codes", element: <RedemptionCodesPage /> },
                     { path: "referral", element: <AdminReferralPage /> },
                     { path: "logs", element: <LogsPage /> },
-                    { path: "settings/yoru", element: <Navigate to="/admin/ecommerce/agent" replace /> },
+                    { path: "settings/yoru", element: deferred(<YoruSettingsPage />) },
                     { path: "settings", element: <Navigate to="runtime-policy" replace /> },
                     { path: "settings/appearance", element: <AppearanceSettingsPage /> },
                     { path: "settings/drawing-engine", element: <DrawingEngineSettingsPage /> },

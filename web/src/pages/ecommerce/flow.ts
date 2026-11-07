@@ -28,7 +28,7 @@ export type CommerceFlowInput = {
 const labels: Record<CommerceFlowStepKey, string> = {
     material: "准备素材",
     direction: "选视觉方向",
-    plan: "确认方案",
+    plan: "图片方案",
     generate: "生成图片",
     deliver: "导出交付",
 };
@@ -46,17 +46,17 @@ function currentStep(input: CommerceFlowInput): CommerceFlowStepKey {
 function stepDetail(key: CommerceFlowStepKey, input: CommerceFlowInput): string {
     switch (key) {
         case "material":
-            return !input.hasProduct ? "添加商品图，并描述想要的画面" : "描述想要的画面，或点选描述短语";
+            return !input.hasProduct ? "添加商品图，填写画面描述" : "填写画面描述";
         case "direction":
-            return input.directionsLoading ? "正在识别商品并推荐 4 套视觉方向，切换页面不会中断" : input.directionsReady ? "选一套视觉方向，选定后自动策划并出图" : "点「开始创作」，先推荐 4 套视觉方向；也可以「跳过选方向」直接策划";
+            return input.directionsLoading ? "正在推荐 4 套方向，可离开页面" : input.directionsReady ? "选择方向后自动策划、出图" : "推荐 4 套方向，或跳过选方向";
         case "plan":
-            if (input.planningPending) return `正在写卖点文案、逐张分镜和生图提示词，${input.directionChosen ? "完成后自动出图" : "完成后请审阅方案再出图"}`;
+            if (input.planningPending) return `正在策划，${input.directionChosen ? "完成后自动出图" : "完成后可审阅方案"}`;
             return input.planReady ? `方案共 ${input.planCount} 张，审阅后确认出图` : "按选定方向生成图片方案";
         case "generate":
-            if (!input.submitted) return input.direct ? "点「开始创作」直接按设置出图" : "确认方案后逐张出图";
+            if (!input.submitted) return input.direct ? "确认后直接按设置出图" : "确认方案后逐张出图";
             return `已完成 ${input.completed} / ${input.planCount} 张${input.failed ? `，${input.failed} 张失败可重试` : ""}`;
         case "deliver":
-            return "全部完成，已保存到资产库，可导出、做成视频或继续下一组";
+            return "作品已保存，可导出或继续创作";
     }
 }
 

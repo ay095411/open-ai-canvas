@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -25,8 +26,13 @@ func TestYoruDefaultsFailClosedAndPublicProjection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if setting.Enabled || !strings.Contains(setting.Knowledge, "/toolbox/image") {
+	if setting.Enabled || !strings.Contains(setting.Knowledge, "创作影棚位于 /toolbox") || !strings.Contains(setting.Knowledge, "电商Agent位于 /ecommerce") {
 		t.Fatalf("unsafe default: %+v", setting)
+	}
+	for _, rule := range []string{"仅需开启电商Agent即可识图、策划和出图，不依赖图片或视频工作台开关", "电商项目视频任务需同时开启电商Agent与电商视频开关"} {
+		if !strings.Contains(setting.Knowledge, rule) {
+			t.Fatalf("default knowledge lost independent ecommerce admission rule: %s", rule)
+		}
 	}
 	public, err := svc.PublicYoruSettings(nil)
 	if err != nil {
@@ -97,7 +103,7 @@ func TestYoruCreatesRepeatedBillableRoutedTextTasks(t *testing.T) {
 		t.Fatalf("multiturn context lost: %#v", history)
 	}
 	context, _ := history[0].(map[string]any)
-	if !strings.Contains(context["content"].(string), "/toolbox/image") || !strings.Contains(context["content"].(string), "当前页面：/create") {
+	if !strings.Contains(context["content"].(string), "创作影棚位于 /toolbox") || !strings.Contains(context["content"].(string), "电商Agent位于 /ecommerce") || !strings.Contains(context["content"].(string), "当前页面：/create") {
 		t.Fatalf("site knowledge or page context missing: %#v", context)
 	}
 	second, err := svc.CreateYoruChatTask(actor, YoruChatRequest{Message: "视频在哪里？"})
@@ -198,5 +204,71 @@ func TestYoruAdminSettingsRequireModelAndRejectGuests(t *testing.T) {
 	public, err := svc.PublicYoruSettings(admin)
 	if err != nil || public.SystemPrompt != "" {
 		t.Fatalf("private instructions exposed: %+v %v", public, err)
+	}
+}
+
+func TestYoruNavigationNormalizesSavedAndSubmittedLegacyNames(t *testing.T) {
+	svc, _, _, _ := newAppearanceTestService(t)
+	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	setting := defaultYoruSettings()
+	setting.Navigation = []string{"图片生成", "自由画布", "视频生成", "创作影棚", "电商Agent", "技能"}
+	encoded, err := json.Marshal(setting)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.repo.SaveSystemSetting(&model.SystemSetting{Key: yoruSettingKey, ValueJSON: string(encoded), UpdatedBy: admin.ID}); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"创作影棚", "自由画布", "电商Agent", "技能"}
+	loaded, err := svc.YoruSettings()
+	if err != nil || !reflect.DeepEqual(loaded.Navigation, want) {
+		t.Fatalf("saved legacy navigation: got=%v err=%v", loaded.Navigation, err)
+	}
+	updated, err := svc.UpdateYoruSettings(admin, setting)
+	if err != nil || !reflect.DeepEqual(updated.Navigation, want) {
+		t.Fatalf("submitted legacy navigation: got=%v err=%v", updated.Navigation, err)
+	}
+	public, err := svc.PublicYoruSettings(nil)
+	if err != nil || !reflect.DeepEqual(public.Navigation, want) {
+		t.Fatalf("public navigation: got=%v err=%v", public.Navigation, err)
+	}
+	setting.Navigation = []string{"创作影棚", "/admin/settings/yoru"}
+	if _, err := svc.UpdateYoruSettings(admin, setting); err == nil {
+		t.Fatal("unknown navigation bypassed the route allowlist")
+	}
+}
+
+func TestYoruFeatureDependenciesControlVisibilityAndAdmission(t *testing.T) {
+	svc, _, _, _ := ecommerceCreationTestService(t)
+	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	actor := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	setting := defaultYoruSettings()
+	setting.Enabled, setting.Audience, setting.ChannelModelID = true, "all", "cm"
+	if _, err := svc.UpdateYoruSettings(admin, setting); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name                   string
+		site, credits, enabled bool
+	}{
+		{"site off", false, true, false},
+		{"credits off", true, false, false},
+		{"both on", true, true, true},
+		{"site disabled again", false, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			features := defaultFeatureAvailability()
+			features.SiteAssistantEnabled, features.CreditsEnabled = tc.site, tc.credits
+			saveAdmissionFeatures(t, svc, features)
+			public, err := svc.PublicYoruSettings(actor)
+			if err != nil || public.Enabled != tc.enabled {
+				t.Fatalf("public enabled=%v want=%v err=%v", public.Enabled, tc.enabled, err)
+			}
+			if !tc.enabled {
+				if _, err := svc.CreateYoruChatTask(actor, YoruChatRequest{Message: "你好"}); err == nil {
+					t.Fatal("disabled dependency admitted a chat task")
+				}
+			}
+		})
 	}
 }

@@ -17,6 +17,7 @@
 }
 
 .creation-showcase-head {
+    position: relative;
     display: flex;
     min-width: 0;
     flex-wrap: wrap;
@@ -24,6 +25,14 @@
     justify-content: space-between;
     gap: var(--space-1) var(--space-4);
     margin-bottom: var(--space-3);
+}
+
+.creation-showcase-heading {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-4);
 }
 
 .creation-showcase-head h2 {
@@ -34,11 +43,47 @@
     line-height: 1.4;
 }
 
-.creation-showcase-head p {
-    margin: 0;
+.creation-showcase-hall-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border: 0;
+    border-radius: var(--user-radius-control);
+    padding: var(--space-1) 0;
+    background: transparent;
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
     line-height: 1.5;
+    cursor: pointer;
+}
+
+.creation-showcase-hall-entry:hover {
+    color: var(--user-ink);
+}
+
+.creation-showcase-hall-entry:focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 3px;
+}
+
+.creation-showcase-status {
+    margin: 0 0 var(--space-2);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+}
+
+.creation-showcase-status button {
+    margin-inline-start: var(--space-2);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--user-accent);
+    cursor: pointer;
+}
+
+.creation-showcase-status button:focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 3px;
 }
 
 .creation-showcase-viewport {
@@ -54,14 +99,15 @@
 .creation-showcase-track {
     display: flex;
     width: max-content;
-    /* 时长随卡片数走（21 张约 7.9s/张）：改 SHOWCASE 条目数时记得同步，不然会变快或变慢。 */
-    animation: creation-showcase-drift 165s linear infinite;
+    /* 类型筛选后的数量不同，按卡片数保持匀速。 */
+    animation: creation-showcase-drift calc(var(--showcase-entry-count, 21) * 8s) linear infinite;
     will-change: transform;
 }
 
 /* 悬停在任意卡片上、或用键盘 Tab 进来，都停在当前位置。 */
 .creation-showcase-viewport:hover .creation-showcase-track,
-.creation-showcase-viewport:focus-within .creation-showcase-track {
+.creation-showcase-viewport:focus-within .creation-showcase-track,
+.creation-showcase[data-preview-open="true"] .creation-showcase-track {
     animation-play-state: paused;
 }
 
@@ -174,6 +220,14 @@
     gap: 1px;
 }
 
+.creation-showcase-unavailable {
+    display: grid;
+    height: 100%;
+    place-items: center;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+}
+
 .creation-showcase-copy strong {
     overflow: hidden;
     color: var(--user-ink);
@@ -194,14 +248,11 @@
 }
 
 @media (max-width: 768px) {
-    .creation-showcase-head p {
-        display: none;
-    }
     .creation-showcase-item {
         width: 62vw;
     }
     .creation-showcase-track {
-        animation-duration: 120s;
+        animation-duration: calc(var(--showcase-entry-count, 21) * 6s);
     }
 }
 

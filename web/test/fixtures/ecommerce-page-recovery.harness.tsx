@@ -17,6 +17,7 @@ for (const [key, value] of Object.entries({
     HTMLBodyElement: dom.HTMLBodyElement,
     HTMLHtmlElement: dom.HTMLHtmlElement,
     HTMLAnchorElement: dom.HTMLAnchorElement,
+    HTMLDetailsElement: dom.HTMLDetailsElement,
     Element: dom.Element,
     Node: dom.Node,
     SVGElement: dom.SVGElement,
@@ -64,6 +65,7 @@ const capabilities = await import("../../src/lib/model-capabilities");
 const imageLoader = await import("../../src/services/canvas-image-loader");
 const configStore = await import("../../src/stores/use-config-store");
 const { useUserStore } = await import("../../src/stores/use-user-store");
+const userSession = await import("../../src/lib/user-session");
 const { setActiveUserScope } = await import("../../src/lib/user-scope");
 const sessions = await import("../../src/services/ecommerce-session");
 const modelPicker = await import("../../src/components/model-picker");
@@ -75,6 +77,8 @@ const resourceApi = await import("../../src/services/api/resources");
 const workbenchApi = await import("../../src/services/api/workbench");
 const exportApi = await import("../../src/pages/ecommerce/export");
 const { commerceInputSignature } = await import("../../src/pages/ecommerce/planner");
+const { directCommercePlan } = await import("../../src/pages/ecommerce/direct-plan");
+const outputGallery = await import("../../src/pages/ecommerce/output-gallery");
 const { default: EcommercePage } = await import("../../src/pages/ecommerce/index");
 const { mockEcommerceImageDelivery } = await import("../helpers/ecommerce-media-fixture");
 
@@ -149,9 +153,20 @@ async function press(text: string) {
 }
 const productInput = () => host.querySelector<HTMLInputElement>('input[placeholder="例如：便携式香薰机"]');
 const planningProgress = () => host.querySelector<HTMLElement>(".commerce-assistant-progress[role=status]");
+async function revealDetails(element: Element) {
+    const disclosures: HTMLDetailsElement[] = [];
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+        if (parent instanceof HTMLDetailsElement) disclosures.unshift(parent);
+    }
+    for (const details of disclosures) {
+        if (!details.open) await act(async () => details.querySelector<HTMLElement>("summary")!.click());
+        expect(details.open).toBe(true);
+    }
+}
 async function selectOption(label: string, text: string) {
     const input = host.querySelector<HTMLElement>(`[aria-label="${label}"]`);
     expect(input).not.toBeNull();
+    await revealDetails(input!);
     await act(async () => {
         input!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     });
@@ -183,6 +198,7 @@ function uploadedImage(id: string, userId = scope): RemoteResource {
 async function uploadModeFile(name = "新参考图.png", selector = '[aria-label="参考方式设置"] input[type="file"]') {
     const input = host.querySelector<HTMLInputElement>(selector);
     expect(input).not.toBeNull();
+    await revealDetails(input!);
     Object.defineProperty(input, "files", { configurable: true, value: [new File(["image-test-data"], name, { type: "image/png" })] });
     await act(async () => {
         input!.dispatchEvent(new Event("change", { bubbles: true }));
@@ -194,7 +210,8 @@ beforeEach(async () => {
     scope = crypto.randomUUID();
     setActiveUserScope(scope);
     // 电商创作默认关闭；页面生命周期用例在管理员已开放的前提下运行。
-    useUserStore.setState({ user: { id: scope, username: "test", displayName: "测试", role: "user", status: "active" }, features: { ...originalUser.features, ecommerceEnabled: true } });
+    useUserStore.setState({ user: { id: scope, username: "test", displayName: "测试", role: "user", status: "active" }, features: { ...originalUser.features, ecommerceEnabled: true, imageWorkbenchEnabled: true } });
+    spyOn(userSession, "refreshFeatureAvailability").mockImplementation(async () => useUserStore.getState().features);
     projects.clear();
     tasks.clear();
     fetched.length = 0;
@@ -332,7 +349,590 @@ afterAll(() => {
     }
 });
 
+function setFeatureFlags(flags: Partial<ReturnType<typeof useUserStore.getState>["features"]>) {
+    useUserStore.setState({ features: { ...useUserStore.getState().features, ...flags } });
+}
+
+function captureGalleryActions() {
+    let current!: Parameters<typeof outputGallery.EcommerceOutputGallery>[0];
+    spyOn(outputGallery, "EcommerceOutputGallery").mockImplementation((props) => {
+        current = props;
+        return <section>{props.stage}</section>;
+    });
+    return () => current;
+}
+
+function savedImagePlan(task?: GenerationTask) {
+    draft = { ...draft, noText: true, imageType: "main", instruction: "保持商品真实外观" };
+    const plan = directCommercePlan(draft);
+    if (task) {
+        plan.images[0].taskId = task.id;
+        tasks.set(task.id, task);
+    }
+    const saved = { ...project(draft), planJson: JSON.stringify(plan) };
+    projects.set(saved.id, saved);
+    spyOn(configStore, "resolveModelChannel").mockReturnValue({ id: "test" } as ReturnType<typeof configStore.resolveModelChannel>);
+    return { saved, plan };
+}
+
+describe("电商Agent功能开关的真实提交边界", () => {
+    test.each(["ecommerceEnabled", "imageWorkbenchEnabled"] as const)("按方案生成独立校验电商开关，关闭 %s 时遵守模块边界", async (flag) => {
+        const { saved } = savedImagePlan();
+        const accepted = runningTask("independent-planned-image");
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask").mockResolvedValue(accepted);
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => setFeatureFlags({ [flag]: false, videoWorkbenchEnabled: false }));
+        expect(host.querySelector<HTMLButtonElement>(".ecs-submit")?.disabled).toBe(flag === "ecommerceEnabled");
+        await press("按方案生成 1 张图片");
+        if (flag === "ecommerceEnabled") {
+            expect(createImage).not.toHaveBeenCalled();
+            expect(host.textContent).toContain("电商Agent暂未开放");
+            expect(projects.get(saved.id)?.planJson).toBe(saved.planJson);
+        } else {
+            expect(createImage).toHaveBeenCalledTimes(1);
+            expect(createImage.mock.calls[0][0]).toMatchObject({ kind: "image", ecommerceProjectId: saved.id });
+            expect(JSON.parse(projects.get(saved.id)!.planJson).images[0].taskId).toBe(accepted.id);
+            expect(errors.some((value) => value.includes("暂未开放"))).toBe(false);
+        }
+        expect(host.textContent).not.toContain("图片生成暂未开放");
+        expect(paidSubmissions).toHaveLength(0);
+    });
+
+    test.each(["推荐视觉方向", "跳过选方向"])("关闭影棚图片和视频仍允许%s的电商识图或策划请求", async (command) => {
+        draft = { ...draft, instruction: "分析商品并准备方案" };
+        setFeatureFlags({ imageWorkbenchEnabled: false, videoWorkbenchEnabled: false });
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
+        await render();
+        await press(command);
+        expect(paidSubmissions).toHaveLength(1);
+        expect((paidSubmissions[0] as { metadata: { stage: string } }).metadata.stage).toBe(command === "推荐视觉方向" ? "creative-directions" : "planning");
+        expect(host.textContent).not.toContain("图片生成暂未开放");
+        expect(errors.some((value) => value.includes("暂未开放"))).toBe(false);
+    });
+
+    test("关闭影棚图片和视频仍能由电商直接出图，任务归属当前电商项目", async () => {
+        draft = { ...draft, imageType: "single", noText: true, instruction: "保持商品真实外观" };
+        setFeatureFlags({ imageWorkbenchEnabled: false, videoWorkbenchEnabled: false });
+        spyOn(configStore, "resolveModelChannel").mockReturnValue({ id: "test" } as ReturnType<typeof configStore.resolveModelChannel>);
+        const accepted = runningTask("independent-direct-image");
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask").mockResolvedValue(accepted);
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "direct", autoGenerate: false });
+        await render();
+        expect(host.querySelector<HTMLButtonElement>(".ecs-submit")?.disabled).toBe(false);
+        await press("生成 1 张商品图");
+        expect(createImage).toHaveBeenCalledTimes(1);
+        const current = sessions.peekEcommerceWorkspace(scope)!;
+        expect(current.project?.id).toBeTruthy();
+        expect(createImage.mock.calls[0][0]).toMatchObject({ kind: "image", ecommerceProjectId: current.project!.id, references: [{ resourceId: "owned-product", kind: "image", role: "reference" }] });
+        expect(current.plan?.images[0].taskId).toBe(accepted.id);
+        expect(projects.size).toBe(1);
+        expect(paidSubmissions).toHaveLength(0);
+        expect(host.textContent).not.toContain("图片生成暂未开放");
+        expect(errors.some((value) => value.includes("暂未开放"))).toBe(false);
+    });
+
+    test.each(["ai", "direct"] as const)("%s 确认框打开后服务端关闭开关，不提交新任务", async (mode) => {
+        draft = { ...draft, instruction: "保持商品真实外观" };
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: mode, autoGenerate: false });
+        await render();
+        await act(async () => host.querySelector<HTMLButtonElement>(".ecs-submit")!.click());
+        expect(document.body.textContent).toContain("确认生成配置");
+        spyOn(userSession, "refreshFeatureAvailability").mockImplementation(async () => {
+            setFeatureFlags({ ecommerceEnabled: false });
+            return useUserStore.getState().features;
+        });
+        const confirm = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.trim().startsWith("确认并"));
+        await act(async () => confirm!.click());
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(projects.size).toBe(0);
+        expect(errors.some((value) => value.includes("暂未开放"))).toBe(true);
+    });
+
+    test("功能状态刷新失败时阻止新操作并保留输入", async () => {
+        draft = { ...draft, instruction: "需要保留的商品需求" };
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
+        await render();
+        spyOn(userSession, "refreshFeatureAvailability").mockRejectedValue(new Error("network unavailable"));
+        await press("推荐视觉方向");
+        expect(paidSubmissions).toHaveLength(0);
+        expect(projects.size).toBe(0);
+        expect(errors).toContain("无法确认电商Agent开放状态，请稍后重试。");
+        expect(host.querySelector<HTMLTextAreaElement>('[aria-label="电商创作输入"]')?.value).toBe(draft.instruction);
+    });
+
+    test("识图准备完成前关闭总开关，不调用任务创建 API", async () => {
+        draft = { ...draft, instruction: "分析当前商品" };
+        let finishPreparation!: (value: Awaited<ReturnType<typeof generationApi.prepareBackendGenerationTask>>) => void;
+        spyOn(generationApi, "prepareBackendGenerationTask").mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finishPreparation = resolve;
+                }),
+        );
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
+        await render();
+        await press("推荐视觉方向");
+        expect(finishPreparation).toBeDefined();
+        await act(async () => {
+            setFeatureFlags({ ecommerceEnabled: false });
+            finishPreparation({} as Awaited<ReturnType<typeof generationApi.prepareBackendGenerationTask>>);
+        });
+        expect(paidSubmissions).toHaveLength(0);
+        expect(errors.some((value) => value.includes("电商Agent暂未开放"))).toBe(true);
+    });
+
+    test("图片等待账号名额时关闭电商开关，不提交等待中的图片", async () => {
+        const { saved } = savedImagePlan();
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        let finishList!: (value: GenerationTask[]) => void;
+        spyOn(taskApi, "listGenerationTasks").mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finishList = resolve;
+                }),
+        );
+        await press("按方案生成 1 张图片");
+        expect(finishList).toBeDefined();
+        expect(host.querySelector('[data-ecommerce-image-id="direct-1"]')?.getAttribute("data-status")).toBe("active");
+        await act(async () => {
+            setFeatureFlags({ ecommerceEnabled: false });
+            finishList([]);
+        });
+        expect(createImage).not.toHaveBeenCalled();
+        expect(errors.some((value) => value.includes("电商Agent暂未开放"))).toBe(true);
+        const waitingCard = host.querySelector('[data-ecommerce-image-id="direct-1"]')!;
+        expect(waitingCard.getAttribute("data-status")).toBe("waiting");
+        expect(waitingCard.querySelector(".commerce-output-status")?.textContent).toBe("待生成");
+        expect(waitingCard.querySelector(".commerce-output-pending-artwork")).toBeNull();
+    });
+
+    test("批量上传中关闭总开关，保留首张回执且不上传后续图片", async () => {
+        draft = { ...draft, referenceMode: "style" };
+        const saved = project(draft);
+        projects.set(saved.id, saved);
+        const upload = spyOn(resourceApi, "uploadResourceFile").mockImplementation(async () => {
+            setFeatureFlags({ ecommerceEnabled: false });
+            return uploadedImage("accepted-upload");
+        });
+        await render(`/ecommerce?project=${saved.id}`);
+        const input = host.querySelector<HTMLInputElement>('[aria-label="参考方式设置"] input[type="file"]')!;
+        Object.defineProperty(input, "files", { configurable: true, value: [new File(["first"], "first.png", { type: "image/png" }), new File(["second"], "second.png", { type: "image/png" })] });
+        await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
+        expect(upload).toHaveBeenCalledTimes(1);
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.layoutReferences?.map((reference) => reference.resourceId)).toEqual(["accepted-upload"]);
+        expect(host.querySelector('[role="alert"]')?.textContent).toContain("电商Agent暂未开放");
+    });
+
+    test.each(["queued", "running"] as const)("电商关闭后仍能从图片方案取消已受理的 %s 任务，不产生新任务", async (status) => {
+        const task = { ...runningTask(`cancel-existing-${status}`), status };
+        const { saved } = savedImagePlan(task);
+        const cancel = spyOn(taskApi, "cancelGenerationTask").mockResolvedValue({ ...task, status: "cancelled" });
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        const retry = spyOn(taskApi, "retryGenerationTask");
+        setFeatureFlags({ ecommerceEnabled: false });
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(task.id)?.forEach((listener) => listener(task)));
+        await revealDetails(host.querySelector(".ecs-review")!);
+        await press("取消任务");
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(cancel).toHaveBeenCalledWith(task.id);
+        const card = host.querySelector('[data-ecommerce-image-id="direct-1"]')!;
+        expect(card.getAttribute("data-status")).toBe("failed");
+        expect(card.querySelector(".commerce-output-status")?.textContent).toBe("已取消");
+        expect(Array.from(host.querySelectorAll(".ecs-review-actions button")).some((button) => button.textContent?.trim() === "取消任务")).toBe(false);
+        expect(createImage).not.toHaveBeenCalled();
+        expect(retry).not.toHaveBeenCalled();
+        expect(paidSubmissions).toHaveLength(0);
+        expect(projects.get(saved.id)?.planJson).toBe(saved.planJson);
+        expect(errors).toContain("已提交取消请求，请等待服务端确认");
+    });
+
+    test("取消任务请求未完成时切换项目，迟到的取消回包不更新当前任务或显示旧项目提示", async () => {
+        const actions = captureGalleryActions();
+        const sourceTask = runningTask("late-cancel-source");
+        const { saved: source } = savedImagePlan(sourceTask);
+        const currentTask = runningTask("late-cancel-current");
+        const { saved: current } = savedImagePlan(currentTask);
+        let finishCancellation!: (value: GenerationTask) => void;
+        const cancel = spyOn(taskApi, "cancelGenerationTask").mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finishCancellation = resolve;
+                }),
+        );
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        const retry = spyOn(taskApi, "retryGenerationTask");
+        setFeatureFlags({ ecommerceEnabled: false });
+        await render(`/ecommerce?project=${source.id}`);
+        await act(async () => observers.get(sourceTask.id)?.forEach((listener) => listener(sourceTask)));
+        await revealDetails(host.querySelector(".ecs-review")!);
+        await press("取消任务");
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(cancel).toHaveBeenCalledWith(sourceTask.id);
+        expect(finishCancellation).toBeDefined();
+        await act(async () => navigate(`/ecommerce?project=${current.id}`));
+        await act(async () => observers.get(currentTask.id)?.forEach((listener) => listener(currentTask)));
+        expect(actions().tasks[sourceTask.id]).toBeUndefined();
+        await act(async () => finishCancellation({ ...sourceTask, status: "cancelled" }));
+        expect(actions().tasks[sourceTask.id]).toBeUndefined();
+        expect(actions().tasks[currentTask.id].status).toBe("running");
+        expect(sessions.peekEcommerceWorkspace(scope)?.project?.id).toBe(current.id);
+        expect(errors).not.toContain("已提交取消请求，请等待服务端确认");
+        expect(createImage).not.toHaveBeenCalled();
+        expect(retry).not.toHaveBeenCalled();
+        expect(paidSubmissions).toHaveLength(0);
+    });
+
+    test.each(["ecommerceEnabled", "imageWorkbenchEnabled"] as const)("失败图片重试独立校验电商开关，关闭 %s 时遵守模块边界", async (flag) => {
+        const actions = captureGalleryActions();
+        const { saved, plan } = savedImagePlan({ ...runningTask("failed-image"), status: "failed" });
+        const accepted = runningTask("independent-retry");
+        const retry = spyOn(taskApi, "retryGenerationTask").mockResolvedValue(accepted);
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => {
+            setFeatureFlags({ [flag]: false, videoWorkbenchEnabled: false });
+            actions().onRetry(plan.images[0]);
+        });
+        if (flag === "ecommerceEnabled") {
+            expect(retry).not.toHaveBeenCalled();
+            expect(errors.some((value) => value.includes("电商Agent暂未开放"))).toBe(true);
+            expect(projects.get(saved.id)?.planJson).toBe(saved.planJson);
+        } else {
+            expect(retry).toHaveBeenCalledTimes(1);
+            expect(retry).toHaveBeenCalledWith("failed-image");
+            expect(JSON.parse(projects.get(saved.id)!.planJson).images[0].taskId).toBe(accepted.id);
+            expect(errors.some((value) => value.includes("暂未开放"))).toBe(false);
+        }
+        expect(host.textContent).not.toContain("图片生成暂未开放");
+    });
+
+    test("关闭两个开关后仍能恢复已受理的重试回执", async () => {
+        const actions = captureGalleryActions();
+        const { saved, plan } = savedImagePlan({ ...runningTask("failed-image"), status: "failed" });
+        const accepted = runningTask("accepted-retry");
+        tasks.set(accepted.id, accepted);
+        sessionStorage.setItem(`ecommerce-retry:${saved.id}:${plan.images[0].id}`, accepted.id);
+        const retry = spyOn(taskApi, "retryGenerationTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => {
+            setFeatureFlags({ ecommerceEnabled: false, imageWorkbenchEnabled: false });
+            actions().onRetry(plan.images[0]);
+        });
+        expect(retry).not.toHaveBeenCalled();
+        expect(JSON.parse(projects.get(saved.id)!.planJson).images[0].taskId).toBe(accepted.id);
+        expect(sessionStorage.getItem(`ecommerce-retry:${saved.id}:${plan.images[0].id}`)).toBeNull();
+    });
+
+    test("关闭两个开关后仍能恢复已生成图片的媒体保存", async () => {
+        const actions = captureGalleryActions();
+        const task = { ...runningTask("recoverable-image"), status: "failed" as const, canRecoverMedia: true };
+        const { saved, plan } = savedImagePlan(task);
+        const recover = spyOn(taskApi, "recoverGenerationTaskMedia").mockResolvedValue({ ...task, status: "running" });
+        const retry = spyOn(taskApi, "retryGenerationTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(task.id)?.forEach((listener) => listener(task)));
+        await act(async () => {
+            setFeatureFlags({ ecommerceEnabled: false, imageWorkbenchEnabled: false });
+            actions().onRetry(plan.images[0]);
+        });
+        expect(recover).toHaveBeenCalledTimes(1);
+        expect(retry).not.toHaveBeenCalled();
+        expect(actions().tasks[task.id].status).toBe("running");
+    });
+
+    test("图片编辑后关闭电商开关，重新生成不会创建任务或写入待受理回执", async () => {
+        const actions = captureGalleryActions();
+        const { saved, plan } = savedImagePlan({ ...runningTask("old-image"), status: "failed" });
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        const regenerate = actions().onRegenerate;
+        await act(async () => {
+            setFeatureFlags({ ecommerceEnabled: false });
+            await expect(regenerate(plan.images[0])).rejects.toThrow("电商Agent暂未开放");
+        });
+        expect(createImage).not.toHaveBeenCalled();
+        expect(sessionStorage.getItem(`ecommerce-edit:${saved.id}:${plan.images[0].id}`)).toBeNull();
+    });
+
+    test("关闭两个开关后重新生成的已受理回执仍可恢复", async () => {
+        const actions = captureGalleryActions();
+        const { saved, plan } = savedImagePlan({ ...runningTask("original-image"), status: "failed" });
+        const accepted = runningTask("accepted-regeneration");
+        tasks.set(accepted.id, accepted);
+        const edited = plan.images[0];
+        const receiptKey = `ecommerce-edit:${saved.id}:${edited.id}`;
+        sessionStorage.setItem(receiptKey, JSON.stringify({ projectId: saved.id, taskId: accepted.id, signature: JSON.stringify([edited.prompt, edited.copy, edited.negativePrompt, edited.imageModel, edited.ratio, edited.resolution]) }));
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => {
+            setFeatureFlags({ ecommerceEnabled: false, imageWorkbenchEnabled: false });
+            await actions().onRegenerate(edited);
+        });
+        expect(createImage).not.toHaveBeenCalled();
+        expect(JSON.parse(projects.get(saved.id)!.planJson).images[0].taskId).toBe(accepted.id);
+        expect(sessionStorage.getItem(receiptKey)).toBeNull();
+    });
+
+    test("总开关关闭时回执只恢复到本地，重新开放后同步且不生成未提交图片", async () => {
+        draft = { ...draft, count: 2 };
+        const { saved, plan } = savedImagePlan();
+        const accepted = runningTask("accepted-last-image");
+        tasks.set(accepted.id, accepted);
+        const receiptKey = `ecommerce-task:${scope}:${saved.id}:${plan.images[1].id}`;
+        sessionStorage.setItem(receiptKey, accepted.id);
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        const updateProject = spyOn(http, "put");
+        updateProject.mockClear();
+        await act(async () => setFeatureFlags({ ecommerceEnabled: false, imageWorkbenchEnabled: false }));
+        await press("恢复已提交任务");
+        expect(updateProject).not.toHaveBeenCalled();
+        expect(projects.get(saved.id)!.planJson).toBe(saved.planJson);
+        expect(sessions.peekEcommerceWorkspace(scope)?.plan?.images[1].taskId).toBe(accepted.id);
+        expect(sessionStorage.getItem(receiptKey)).toBe(accepted.id);
+        expect(host.textContent).toContain("任务已恢复到当前页面");
+        expect(host.textContent).toContain("无法同步项目记录");
+        expect(host.querySelector<HTMLButtonElement>(".ecs-submit")?.disabled).toBe(true);
+        expect(host.querySelector(".ecs-submit")?.textContent).toContain("任务已恢复，待开放同步");
+        expect(paidSubmissions).toHaveLength(0);
+        expect(createImage).not.toHaveBeenCalled();
+        await act(async () => setFeatureFlags({ ecommerceEnabled: true }));
+        expect(useUserStore.getState().features.imageWorkbenchEnabled).toBe(false);
+        await press("恢复已提交任务");
+        expect(updateProject).toHaveBeenCalledTimes(1);
+        expect(sessionStorage.getItem(receiptKey)).toBeNull();
+        expect(paidSubmissions).toHaveLength(0);
+        expect(createImage).not.toHaveBeenCalled();
+        const savedPlan = JSON.parse(projects.get(saved.id)!.planJson) as EcommercePlan;
+        expect(savedPlan.images[0].taskId).toBeUndefined();
+        expect(savedPlan.images[1].taskId).toBe(accepted.id);
+    });
+
+    test("已受理的策划完成后关闭两个开关仍保存结果且不自动出图", async () => {
+        const { saved, plan } = savedImagePlan();
+        const task = { ...runningTask("finished-planning"), status: "succeeded" as const, inputJson: JSON.stringify({ metadata: { ecommerceDraft: draft } }), resultJson: JSON.stringify({ text: JSON.stringify(plan) }) };
+        tasks.set(task.id, task);
+        saved.draftJson = JSON.stringify({ ...draft, planningTaskId: task.id });
+        saved.planJson = "{}";
+        sessions.setEcommercePlanningReceipt(scope, saved.id, task.id);
+        setFeatureFlags({ ecommerceEnabled: false, imageWorkbenchEnabled: false });
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        expect(JSON.parse(projects.get(saved.id)!.planJson).images).toHaveLength(1);
+        expect(sessions.getEcommercePlanningReceipt(scope, saved.id)).toBeNull();
+        expect(createImage).not.toHaveBeenCalled();
+        expect(paidSubmissions).toHaveLength(0);
+    });
+
+    test("删除确认框打开后关闭总开关，不删除项目且仍能打开历史", async () => {
+        const { saved } = savedImagePlan();
+        await render(`/ecommerce?project=${saved.id}`);
+        await press("历史项目");
+        await act(async () => document.querySelector<HTMLButtonElement>(`[aria-label="删除项目：${saved.name}"]`)!.click());
+        const remove = spyOn(http, "deleteWithBody");
+        spyOn(userSession, "refreshFeatureAvailability").mockImplementation(async () => {
+            setFeatureFlags({ ecommerceEnabled: false });
+            return useUserStore.getState().features;
+        });
+        await act(async () => document.querySelector<HTMLButtonElement>(".ecommerce-delete-confirm .ant-modal-footer .ant-btn-primary")!.click());
+        expect(remove).not.toHaveBeenCalled();
+        expect(projects.has(saved.id)).toBe(true);
+        expect(document.querySelector<HTMLButtonElement>(`.ecommerce-project-card`)?.disabled).toBe(false);
+        expect(errors.some((value) => value.includes("电商Agent暂未开放"))).toBe(true);
+    });
+});
+
 describe("真实电商页面生命周期", () => {
+    test("主创作入口可发现，高级选项默认折叠且可逐项展开，不触发提交", async () => {
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
+        await render();
+        const header = host.querySelector(".ecs-workspace-header")!;
+        expect(header.querySelector("h1")?.textContent).toBe("电商Agent");
+        expect(Array.from(header.querySelectorAll("button")).map((button) => button.textContent?.trim())).toEqual(["历史项目", "新建商品"]);
+        const disclosures = Array.from(host.querySelectorAll<HTMLDetailsElement>("details.ecs-disclosure"));
+        expect(disclosures).toHaveLength(4);
+        const labels = ["参考设置", "常用描述", "画幅、清晰度与模特", "文案与视觉偏好"];
+        for (const [index, details] of disclosures.entries()) {
+            expect(details.querySelector("summary")?.textContent).toContain(labels[index]);
+            expect(details.open).toBe(false);
+            await revealDetails(details);
+        }
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(projects.size).toBe(0);
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.instruction).toBe("");
+    });
+
+    test("Agent策划与直接出图切换只更新模式及阶段主动作，不创建任何任务", async () => {
+        draft = { ...draft, imageType: "single", instruction: "保持蓝色商品的真实外观" };
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
+        await render();
+        const mode = host.querySelector('[aria-label="创作方式"]')!;
+        const buttons = Array.from(mode.querySelectorAll<HTMLButtonElement>("button"));
+        expect(buttons.map((button) => button.textContent?.trim())).toEqual(["Agent 策划", "直接出图"]);
+        expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
+        expect(host.querySelector(".ecs-submit")?.getAttribute("aria-label")).toBe("推荐视觉方向");
+        await press("直接出图");
+        expect(buttons[1].getAttribute("aria-pressed")).toBe("true");
+        expect(buttons[0].getAttribute("aria-pressed")).toBe("false");
+        expect(sessions.peekEcommerceWorkspace(scope)?.creationMode).toBe("direct");
+        expect(host.querySelector(".ecs-submit")?.textContent).toContain("生成 1 张商品图");
+        expect(host.querySelectorAll('[aria-label="创作流程"] li')).toHaveLength(3);
+        expect(host.querySelector(".ecs-estimate")?.textContent).toContain("1 张 · 图片费用");
+        await press("Agent 策划");
+        expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
+        expect(sessions.peekEcommerceWorkspace(scope)?.creationMode).toBe("ai");
+        expect(host.querySelector(".ecs-submit")?.textContent).toContain("推荐视觉方向");
+        expect(host.querySelectorAll('[aria-label="创作流程"] li')).toHaveLength(5);
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.instruction).toBe(draft.instruction);
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.references).toEqual(draft.references);
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(projects.size).toBe(0);
+        expect(document.body.textContent).not.toContain("确认生成配置");
+    });
+
+    test("追加示例保留原有商品描述并换行补充，草稿同步且不触发提交", async () => {
+        draft = { ...draft, instruction: "保留商品蓝色外壳，不增加文字" };
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
+        await render();
+        const example = host.querySelector<HTMLButtonElement>('[aria-label="填入示例描述"]')!;
+        expect(example.textContent).toContain("追加示例");
+        expect(host.querySelector(".commerce-example-preview img")?.getAttribute("src")).toBe("/commerce/examples/diffuser-white-v1.png");
+        await press("追加示例");
+        const input = host.querySelector<HTMLTextAreaElement>('[aria-label="电商创作输入"]')!;
+        expect(input.value.startsWith(`${draft.instruction}\n`)).toBe(true);
+        expect(input.value.slice(draft.instruction.length + 1).trim().length).toBeGreaterThan(0);
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.instruction).toBe(input.value);
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.references).toEqual(draft.references);
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(projects.size).toBe(0);
+    });
+
+    test("恢复视觉方向后主动作仅查看并聚焦已有作品，不重复付费或选择方向", async () => {
+        draft = { ...draft, imageType: "single", instruction: "展示蓝色商品质感" };
+        const task = {
+            ...runningTask("review-directions"),
+            status: "succeeded" as const,
+            inputJson: JSON.stringify({ metadata: { stage: "creative-directions", ecommerceDraft: draft } }),
+            resultJson: JSON.stringify({
+                text: JSON.stringify({
+                    recommendationId: "review-recommendation",
+                    directions: Array.from({ length: 4 }, (_, index) => ({ id: `review-direction-${index}`, name: `待选择方向 ${index}`, summary: "蓝色商品的真实视觉表达", tags: [] })),
+                    evidence: [],
+                    retrievalStatus: "ready",
+                    productCategory: "商品",
+                }),
+            }),
+        };
+        const saved = project({ ...draft, directionsTaskId: task.id });
+        projects.set(saved.id, saved);
+        tasks.set(task.id, task);
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        expect(host.querySelectorAll(".ecs-stage .flylep-direction-card")).toHaveLength(4);
+        expect(host.querySelector(".ecs-submit")?.getAttribute("aria-label")).toBe("查看并选择视觉方向");
+        expect(host.querySelector(".ecs-estimate")?.textContent).toContain("仅查看进度");
+        await press("查看并选择视觉方向");
+        await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+        expect(host.querySelector(".ecs-shell")?.getAttribute("data-mobile-view")).toBe("works");
+        expect(host.querySelector(".commerce-output-gallery")!.contains(document.activeElement)).toBe(true);
+        expect(document.body.textContent).not.toContain("确认生成配置");
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft.creativeDirectionId).toBeUndefined();
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(projects.size).toBe(1);
+    });
+
+    test("生成中主动作仅查看进度，已完成流程步骤可返回而未来步骤不可提交", async () => {
+        const task = runningTask("view-existing-image");
+        const { saved } = savedImagePlan(task);
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        const retry = spyOn(taskApi, "retryGenerationTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(task.id)?.forEach((listener) => listener(task)));
+        const primary = host.querySelector<HTMLButtonElement>(".ecs-submit")!;
+        expect(primary.textContent).toContain("查看生成进度");
+        expect(primary.disabled).toBe(false);
+        expect(host.querySelector(".ecs-estimate")?.textContent).toContain("仅查看进度");
+        await press("查看生成进度");
+        await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+        expect(host.querySelector(".ecs-shell")?.getAttribute("data-mobile-view")).toBe("works");
+        expect(host.querySelector(".commerce-output-gallery")!.contains(document.activeElement)).toBe(true);
+        const materialStep = host.querySelector<HTMLButtonElement>('[aria-label="查看准备素材"]')!;
+        expect(materialStep.disabled).toBe(false);
+        await act(async () => materialStep.click());
+        await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+        expect(host.querySelector(".ecs-shell")?.getAttribute("data-mobile-view")).toBe("create");
+        expect(host.querySelector<HTMLButtonElement>('[aria-label="查看导出交付"]')?.disabled).toBe(true);
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(retry).not.toHaveBeenCalled();
+        expect(projects.size).toBe(1);
+        expect(sessions.peekEcommerceWorkspace(scope)?.plan?.images[0].taskId).toBe(task.id);
+    });
+
+    test("生成中按Enter与主动作一致只查看进度，不弹出付费确认或创建任务", async () => {
+        const task = runningTask("keyboard-existing-image");
+        const { saved } = savedImagePlan(task);
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        const retry = spyOn(taskApi, "retryGenerationTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(task.id)?.forEach((listener) => listener(task)));
+        expect(host.querySelector(".ecs-submit")?.textContent).toContain("查看生成进度");
+        const editor = host.querySelector<HTMLTextAreaElement>('[aria-label="电商创作输入"]')!;
+        const enter = new dom.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+        await act(async () => {
+            editor.focus();
+            editor.dispatchEvent(enter);
+        });
+        await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+        expect(enter.defaultPrevented).toBe(true);
+        expect(host.querySelector(".ecs-shell")?.getAttribute("data-mobile-view")).toBe("works");
+        expect(host.querySelector(".commerce-output-gallery")!.contains(document.activeElement)).toBe(true);
+        expect(document.body.textContent).not.toContain("确认生成配置");
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(retry).not.toHaveBeenCalled();
+        expect(projects.size).toBe(1);
+        expect(projects.get(saved.id)?.planJson).toBe(saved.planJson);
+    });
+
+    test("直接出图完成后改选详情图，重新挂载页面仍使用Agent策划并保留旧作品", async () => {
+        const task = { ...runningTask("finished-direct-image"), status: "succeeded" as const, outputs: [{ outputIndex: 0, materializedAssetId: "finished-direct-asset" }], resultJson: JSON.stringify({ images: [{ dataUrl: "/finished-direct.png" }] }) };
+        const { saved, plan } = savedImagePlan(task);
+        const images = spyOn(workbenchApi, "createWorkbenchTask");
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(task.id)?.forEach((listener) => listener(task)));
+        expect(sessions.peekEcommerceWorkspace(scope)?.creationMode).toBe("direct");
+        const detail = Array.from(host.querySelectorAll<HTMLButtonElement>(".ecs-scene")).find((button) => button.textContent?.includes("详情图"))!;
+        await act(async () => detail.click());
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft).toMatchObject({ imageType: "detail", count: 9 });
+        expect(sessions.peekEcommerceWorkspace(scope)?.creationMode).toBe("ai");
+        await act(async () => root!.unmount());
+        root = undefined;
+        host.remove();
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(task.id)?.forEach((listener) => listener(task)));
+        expect(sessions.peekEcommerceWorkspace(scope)?.creationMode).toBe("ai");
+        expect(sessions.peekEcommerceWorkspace(scope)?.draft).toMatchObject({ imageType: "detail", count: 9 });
+        expect(host.querySelector(".ecs-composer-title")?.textContent).toContain("详情图");
+        expect(host.querySelectorAll('[aria-label="创作流程"] li')).toHaveLength(5);
+        expect(host.querySelector(".ecs-submit")?.textContent).toContain("推荐方向");
+        expect(sessions.peekEcommerceWorkspace(scope)?.plan?.images[0]).toMatchObject({ id: plan.images[0].id, taskId: task.id });
+        expect(host.querySelector('[data-ecommerce-image-id="direct-1"]')).not.toBeNull();
+        expect(paidSubmissions).toHaveLength(0);
+        expect(images).not.toHaveBeenCalled();
+        expect(projects.size).toBe(1);
+    });
+
     test("发送后从对话反复拖图复用原资源，连续导入不清空对话且刷新保留已发送快照", async () => {
         const observer = Object.getOwnPropertyDescriptor(globalThis, "IntersectionObserver");
         Object.defineProperty(globalThis, "IntersectionObserver", { value: undefined, configurable: true });
@@ -491,7 +1091,7 @@ describe("真实电商页面生命周期", () => {
         expect(paidSubmissions).toHaveLength(1);
     });
 
-    test("首张图片完成后恢复发送箭头，修改商品需求可开启新一轮创作", async () => {
+    test("部分图片完成时可查看进度，修改商品需求可开启新一轮创作", async () => {
         const first = {
             id: "first-image",
             taskId: "first-task",
@@ -523,7 +1123,11 @@ describe("真实电商页面生命周期", () => {
             for (const id of ["first-task", "second-task"]) observers.get(id)?.forEach((listener) => listener(tasks.get(id)!));
         });
         const send = () => host.querySelector<HTMLButtonElement>(".ecs-submit")!;
-        expect(send().disabled).toBe(true);
+        expect(send().disabled).toBe(false);
+        expect(send().textContent).toContain("查看生成进度");
+        await press("查看生成进度");
+        expect(paidSubmissions).toHaveLength(0);
+        expect(document.body.textContent).not.toContain("确认生成配置");
         expect(send().getAttribute("aria-busy")).toBe("false");
         expect(send().querySelector(".commerce-planning-spin")).toBeNull();
         expect(host.querySelector<HTMLInputElement>('[aria-label="添加商品参考图"]')?.disabled).toBe(false);
@@ -674,6 +1278,56 @@ describe("真实电商页面生命周期", () => {
         expect(tasks.get("followup-task")?.status).toBe("running");
     });
 
+    test("导出旧作品尚未完成时，新方案的未提交图片保持待生成且不创建任务", async () => {
+        const { saved, plan } = savedImagePlan();
+        const deliveredTask = {
+            ...runningTask("previous-export-task"),
+            status: "succeeded" as const,
+            outputs: [{ outputIndex: 0, materializedAssetId: "previous-export-asset" }],
+            resultJson: JSON.stringify({ images: [{ dataUrl: "/previous-export.png" }] }),
+        };
+        plan.previousImages = [{ ...plan.images[0], id: "previous-export-image", taskId: deliveredTask.id }];
+        saved.planJson = JSON.stringify(plan);
+        tasks.set(deliveredTask.id, deliveredTask);
+        const createImage = spyOn(workbenchApi, "createWorkbenchTask");
+        const retryImage = spyOn(taskApi, "retryGenerationTask");
+        let finishExport!: (value: Awaited<ReturnType<typeof exportApi.downloadEcommerceImage>>) => void;
+        const exporting = spyOn(exportApi, "downloadEcommerceImage").mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finishExport = resolve;
+                }),
+        );
+        await render(`/ecommerce?project=${saved.id}`);
+        await act(async () => observers.get(deliveredTask.id)?.forEach((listener) => listener(deliveredTask)));
+        const waitingCard = () => host.querySelector('[data-ecommerce-image-id="direct-1"]')!;
+        const exportButton = () => host.querySelector<HTMLButtonElement>('[aria-label="导出图片，共 1 张"]')!;
+        expect(waitingCard().getAttribute("data-status")).toBe("waiting");
+        expect(exportButton().disabled).toBe(false);
+        try {
+            await act(async () => exportButton().click());
+            expect(exporting).toHaveBeenCalledTimes(1);
+            expect(exporting.mock.calls[0][0]).toMatchObject({ image: { id: "previous-export-image" }, assetId: "previous-export-asset" });
+            expect(exportButton().disabled).toBe(true);
+            expect(finishExport).toBeDefined();
+            expect(waitingCard().getAttribute("data-status")).toBe("waiting");
+            expect(waitingCard().querySelector(".commerce-output-status")?.textContent).toBe("待生成");
+            expect(waitingCard().querySelector(".commerce-output-pending-artwork")).toBeNull();
+            expect(host.querySelector('.commerce-output-card[data-status="active"]')).toBeNull();
+            expect(sessions.peekEcommerceWorkspace(scope)?.plan?.images[0].taskId).toBeUndefined();
+            expect(projects.get(saved.id)?.planJson).toBe(saved.planJson);
+            expect(paidSubmissions).toHaveLength(0);
+            expect(createImage).not.toHaveBeenCalled();
+            expect(retryImage).not.toHaveBeenCalled();
+        } finally {
+            if (finishExport) await act(async () => finishExport({ blob: new Blob(["previous-image"], { type: "image/png" }), fileName: "旧作品.png" }));
+        }
+        expect(waitingCard().getAttribute("data-status")).toBe("waiting");
+        expect(host.querySelector('a[download="旧作品.png"]')).not.toBeNull();
+        expect(createImage).not.toHaveBeenCalled();
+        expect(paidSubmissions).toHaveLength(0);
+    });
+
     test("打开和刷新已完成项目只恢复结果，不提交付费任务也不新建项目", async () => {
         draft = { ...draft, instruction: "生成详情页", creativeDirectionId: "chosen", creativeRecommendationId: "rec-done" };
         const images = Array.from({ length: 9 }, (_, index) => ({
@@ -775,7 +1429,11 @@ describe("真实电商页面生命周期", () => {
         expect(paidSubmissions).toHaveLength(0);
         expect(imageTasks).not.toHaveBeenCalled();
         expect(projects.size).toBe(1);
-        expect(Array.from(host.querySelectorAll("button")).some((button) => button.textContent?.includes("继续生成剩余 5 张图片"))).toBe(true);
+        const continueButtons = Array.from(host.querySelectorAll("button")).filter((button) => button.textContent?.trim() === "继续生成剩余 5 张图片");
+        expect(continueButtons).toHaveLength(1);
+        expect(continueButtons[0]).toBe(host.querySelector(".ecs-footer .ecs-submit"));
+        expect(host.querySelector(".ecs-estimate")?.textContent).toContain("图片费用预估");
+        expect(host.querySelector(".ecs-estimate strong")?.getAttribute("title")).toContain("整套图片预估");
     });
     test("已选方向策划失败后输入框保持清空仍能确认重试", async () => {
         draft = { ...draft, references: [], instruction: "为蓝色耳机生成详情页", creativeDirectionId: "dark-style", creativeRecommendationId: "dark-rec" };
@@ -808,7 +1466,9 @@ describe("真实电商页面生命周期", () => {
         await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
         await render();
         expect(host.querySelector<HTMLButtonElement>(".ecs-submit")!.disabled).toBe(true);
-        await press("示例");
+        const example = host.querySelector<HTMLButtonElement>('[aria-label="填入示例描述"]')!;
+        expect(example.textContent).toContain("示例");
+        await act(async () => example.click());
         expect(host.querySelector<HTMLButtonElement>(".ecs-submit")!.disabled).toBe(false);
         const editor = host.querySelector<HTMLTextAreaElement>(".flylep-composer textarea") || host.querySelector<HTMLTextAreaElement>("textarea");
         expect(editor).not.toBeNull();
@@ -999,7 +1659,7 @@ describe("真实电商页面生命周期", () => {
         expect(errors).toEqual([]);
         if (!images.mock.calls.length) throw new Error(host.querySelector(".commerce-assistant-status")?.textContent || JSON.stringify([...observers.keys()]));
         expect(images).toHaveBeenCalledTimes(1);
-        expect(host.querySelector('.commerce-output-card[data-status="working"]')).not.toBeNull();
+        expect(host.querySelector('.commerce-output-card[data-status="active"]')).not.toBeNull();
         const finishedImage = { ...runningTask("generated-image"), status: "succeeded" as const, resultJson: JSON.stringify({ images: [{ dataUrl: "/finished-image.png" }] }), outputs: [{ outputIndex: 0, materializedAssetId: "finished-asset" }] };
         await act(async () => {
             tasks.set(finishedImage.id, finishedImage);
@@ -1040,17 +1700,18 @@ describe("真实电商页面生命周期", () => {
         expect(sessions.peekEcommerceWorkspace(scope)?.draft).toMatchObject({ platform: "amazon", language: "ru", count: 4 });
         expect(paidSubmissions).toHaveLength(0);
     });
-    test("创作场景区分视频灰度项，主副图和张数步进更新真实草稿", async () => {
+    test("商品图用途可发现，主副图和张数步进更新真实草稿", async () => {
         await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
         await render();
-        // 未开放商品视频时不放永远点不了的按钮。
-        expect(host.querySelector(".ecs-kind-switch")?.textContent).not.toContain("商品视频");
+        expect(host.querySelector(".ecs-workspace-header h1")?.textContent).toBe("电商Agent");
+        expect(host.querySelector(".ecs-composer")?.textContent).toContain("选择用途");
+        expect(host.querySelectorAll(".ecs-scene small")).toHaveLength(0);
         const mainSecondary = Array.from(host.querySelectorAll<HTMLButtonElement>(".ecs-scene")).find((button) => button.textContent?.includes("主副图"))!;
         await act(async () => {
             mainSecondary.click();
         });
         expect(mainSecondary.getAttribute("aria-pressed")).toBe("true");
-        expect(host.querySelector(".ecs-project-line")?.textContent).toContain("主副图");
+        expect(host.querySelector(".ecs-composer-title")?.textContent).toContain("主副图");
         expect(sessions.peekEcommerceWorkspace(scope)?.draft).toMatchObject({ imageType: "set", count: 2, typeOptions: { distribution: "主图 1 张、副图 1 张" } });
         await act(async () => {
             host.querySelector<HTMLButtonElement>('[aria-label="增加一张"]')!.click();
@@ -1063,6 +1724,7 @@ describe("真实电商页面生命周期", () => {
     test("场景短语写入描述并可再次点击移除，不触发生图", async () => {
         await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft: { ...draft, instruction: "" }, plan: null, project: null, creationMode: "ai", autoGenerate: false });
         await render();
+        await revealDetails(host.querySelector(".ecs-phrases")!);
         const chip = () => Array.from(host.querySelectorAll<HTMLButtonElement>(".ecs-phrase-chips .ecs-chip")).find((button) => button.textContent === "柔和棚拍光");
         await act(async () => {
             Array.from(host.querySelectorAll<HTMLButtonElement>(".ecs-phrase-tabs button"))
@@ -1748,7 +2410,7 @@ describe("真实电商页面生命周期", () => {
         projects.set(saved.id, saved);
         sessions.setEcommerceActiveProject(scope, saved.id);
         await render();
-        await press("新建项目");
+        await press("新建商品");
         expect(productInput()?.value).toBe("");
         expect(planningProgress()).toBeNull();
         await act(async () => {

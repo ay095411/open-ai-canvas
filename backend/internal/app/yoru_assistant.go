@@ -53,7 +53,22 @@ type YoruChatRequest struct {
 }
 
 func defaultYoruSettings() YoruSettings {
-	return YoruSettings{Name: "小夜", Audience: "admin", Welcome: "你好呀，我是小夜。想了解影策的哪个功能？", Questions: []string{"怎么生成图片？", "我生成的视频在哪里？", "为什么任务一直处理中？"}, Navigation: []string{"图片生成", "视频生成", "灵感大厅", "自由画布", "Agent", "技能", "资产库", "创作历史", "积分中心"}, Knowledge: defaultYoruKnowledge, MaxOutputTokens: 1024, MotionEnabled: true, AvatarSize: 180, DefaultRight: 16, DefaultBottom: 24}
+	return YoruSettings{Name: "小夜", Audience: "admin", Welcome: "你好呀，我是小夜。想了解影策的哪个功能？", Questions: []string{"怎么生成图片？", "我生成的视频在哪里？", "为什么任务一直处理中？"}, Navigation: []string{"创作影棚", "电商Agent", "灵感大厅", "自由画布", "Agent", "技能", "资产库", "创作历史", "积分中心"}, Knowledge: defaultYoruKnowledge, MaxOutputTokens: 1024, MotionEnabled: true, AvatarSize: 180, DefaultRight: 16, DefaultBottom: 24}
+}
+
+func normalizeYoruNavigation(names []string) []string {
+	result := make([]string, 0, len(names))
+	seen := make(map[string]bool, len(names))
+	for _, name := range names {
+		if name == "图片生成" || name == "视频生成" {
+			name = "创作影棚"
+		}
+		if !seen[name] {
+			result = append(result, name)
+			seen[name] = true
+		}
+	}
+	return result
 }
 
 func yoruModelMode(value YoruSettings) string {
@@ -88,7 +103,7 @@ func (s *Service) yoruDirectModelForUser(actor *model.User, channelModelID strin
 
 // Paths are copied from web/src/router.tsx and are also kept in the widget's
 // allowlist. An unavailable feature must still be described as unavailable.
-const defaultYoruKnowledge = `影策真实页面：图片生成 /toolbox/image（需管理员开放）；视频生成 /toolbox/video（需管理员开放）；AI 文本对话是创作工作台 /create 内的“文本”模式；灵感大厅也嵌在 /create；自由画布 /canvas；Agent 入口在 /create 和画布内；技能 /skills；资产库 /assets；创作历史与任务 /tasks；积分中心 /wallet 会打开积分弹窗。电商 Agent 位于 /ecommerce，支持商品分析、方向选择、逐页策划和图片生成；商品与借鉴图分开上传，历史项目可恢复。图片参考图由图片生成页上传。手机验证码及微信登录在 /login。失败任务可在 /tasks 查看状态和重试；处理中可能是排队、上游运行或媒体保存，不要断言已失败。模型选择与参考图数量应以当前公开模型能力配置为准，未知时明确说明。积分余额及充值入口在 /wallet；不得承诺支付成功或擅自改变余额。`
+const defaultYoruKnowledge = `影策真实页面：创作首页 /create 和自由画布 /canvas 支持图片、视频生成，AI 文本对话位于创作首页的“文本”模式；灵感大厅也嵌在 /create；Agent 入口在 /create 和画布内；技能 /skills；资产库 /assets；创作历史与任务 /tasks；积分中心 /wallet 会打开积分弹窗。创作影棚位于 /toolbox，图片 /toolbox/image 与视频 /toolbox/video 是两个独立工作台，分别由图片、视频工作台开关控制，不依赖电商Agent。电商Agent位于 /ecommerce，支持商品分析、方向选择、逐页策划和图片生成；仅需开启电商Agent即可识图、策划和出图，不依赖图片或视频工作台开关。电商项目视频任务需同时开启电商Agent与电商视频开关。目前电商Agent页面不提供单独的视频流程，电商项目视频任务开关不影响创作影棚视频。商品与借鉴图分开上传，历史项目可恢复。图片参考图在对应创作入口上传。手机验证码及微信登录在 /login。失败任务可在 /tasks 查看状态和重试；处理中可能是排队、上游运行或媒体保存，不要断言已失败。模型选择与参考图数量应以当前公开模型能力配置为准，未知时明确说明。积分余额及充值入口在 /wallet；不得承诺支付成功或擅自改变余额。`
 
 func (s *Service) YoruSettings() (YoruSettings, error) {
 	setting, err := s.repo.SystemSettingOptional(yoruSettingKey)
@@ -100,6 +115,8 @@ func (s *Service) YoruSettings() (YoruSettings, error) {
 		return YoruSettings{}, err
 	}
 	value.DailyCalls = 0
+	value.ModelMode = yoruModelMode(value)
+	value.Navigation = normalizeYoruNavigation(value.Navigation)
 	value.MaxChargeMicrocredits = 0
 	value.MaxDailyMicrocredits = 0
 	return value, nil
@@ -195,7 +212,8 @@ func (s *Service) UpdateYoruSettings(actor *model.User, value YoruSettings) (Yor
 			return YoruSettings{}, BadAuthRequest("推荐问题无效")
 		}
 	}
-	allowed := map[string]bool{"图片生成": true, "视频生成": true, "灵感大厅": true, "自由画布": true, "Agent": true, "技能": true, "资产库": true, "创作历史": true, "积分中心": true}
+	value.Navigation = normalizeYoruNavigation(value.Navigation)
+	allowed := map[string]bool{"创作影棚": true, "电商Agent": true, "灵感大厅": true, "自由画布": true, "Agent": true, "技能": true, "资产库": true, "创作历史": true, "积分中心": true}
 	seen := map[string]bool{}
 	for _, name := range value.Navigation {
 		if !allowed[name] || seen[name] {

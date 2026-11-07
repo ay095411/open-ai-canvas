@@ -3,6 +3,7 @@ const workspaceRouteLoaders = {
     canvas: () => import("@/pages/canvas"),
     create: () => import("@/pages/create"),
     ecommerce: () => import("@/pages/ecommerce"),
+    toolbox: () => import("@/pages/workbench/image-workbench-page"),
     projects: () => import("@/pages/projects/create"),
     projectDetail: () => import("@/pages/projects/detail"),
     projectCreate: () => import("@/pages/projects/create"),
@@ -33,10 +34,9 @@ export function preloadWorkspaceRoute(pathnameOrSlug: string) {
         void workspaceRouteLoaders.skillWorkbench();
         return;
     }
-    // 「创作影棚」的落地路由是 /ecommerce；旧 /toolbox* 只做重定向，
-    // 目标就是同一个模块，所以两者都预加载 ecommerce，避免重定向后还要等一次加载。
+    // 图片和视频共用同一工作台，只需预加载一次。
     if (slug === "toolbox") {
-        void workspaceRouteLoaders.ecommerce();
+        void workspaceRouteLoaders.toolbox();
         return;
     }
     const load = workspaceRouteLoaders[slug as keyof typeof workspaceRouteLoaders];

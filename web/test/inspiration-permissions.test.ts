@@ -61,9 +61,9 @@ describe("灵感库写操作守卫", () => {
         expect(state().hidden).toHaveLength(0);
     });
 
-    test("普通用户仍然可以收藏 —— 收藏是个人书签，不改库内容", () => {
+    test("普通用户仍然可以收藏 —— 收藏是个人书签，不改库内容", async () => {
         signIn(normal);
-        useInspirationStore.getState().toggleFavorite("seedance:probe");
+        await useInspirationStore.getState().toggleFavorite("seedance:probe");
         expect(useInspirationStore.getState().favorites).toEqual(["seedance:probe"]);
     });
 

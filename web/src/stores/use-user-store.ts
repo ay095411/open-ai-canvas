@@ -52,6 +52,9 @@ export type FeatureAvailability = {
     updatedAt?: string;
 };
 
+export type FeatureAvailabilityKey = Exclude<keyof FeatureAvailability, "configured" | "updatedBy" | "updatedAt">;
+export type FeatureAvailabilityPatch = Partial<Pick<FeatureAvailability, FeatureAvailabilityKey>>;
+
 export const defaultFeatureAvailability: FeatureAvailability = {
     welcomeEnabled: true,
     shortDramaEnabled: true,

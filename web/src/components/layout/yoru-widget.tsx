@@ -4,13 +4,14 @@ import { useLocation, useNavigate } from "react-router";
 import { getPublicYoru, sendYoruMessage, type YoruMessage, type YoruSettings } from "@/services/api/yoru";
 import { useUserStore } from "@/stores/use-user-store";
 import { yoruBody, yoruBlink, yoruTail } from "@/assets/yoru";
-import { YORU_CHEER_EVENT } from "@/lib/yoru-events";
+import { YORU_CHEER_EVENT, YORU_SETTINGS_CHANGED, YORU_SETTINGS_CHANNEL } from "@/lib/yoru-events";
 import "./yoru-widget.css";
 
 // Only routes present in web/src/router.tsx may be used as assistant actions.
-// 旧 /toolbox/image|video 已下线（只剩重定向），生成类入口统一指到「创作影棚」。
+// 独立图片、视频工作台与商品策划使用各自入口。
 const links = [
-    ["创作影棚", "/ecommerce"],
+    ["创作影棚", "/toolbox"],
+    ["电商Agent", "/ecommerce"],
     ["灵感大厅", "/create"],
     ["自由画布", "/canvas"],
     ["Agent", "/canvas"],
@@ -27,6 +28,7 @@ export function YoruWidget() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const siteAssistantEnabled = useUserStore((state) => state.features.siteAssistantEnabled);
+    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const userId = useUserStore((state) => state.user?.id || "guest");
     const preferenceKey = `yoru:${userId}`;
     const [settings, setSettings] = useState<YoruSettings>(idleSettings);
@@ -62,30 +64,61 @@ export function YoruWidget() {
     const end = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        let alive = true;
-        void getPublicYoru()
-            .then((value) => {
-                if (alive) {
+        let controller: AbortController | undefined;
+        const clearConversation = () => {
+            abort.current?.abort();
+            abort.current = null;
+            setMessages([]);
+            setDraft("");
+            setError("");
+            setOpen(false);
+            setBusy(false);
+            setExpression("idle");
+        };
+        clearConversation();
+        setSettings(idleSettings);
+        if (!siteAssistantEnabled || !creditsEnabled || userId === "guest") return;
+        const refresh = () => {
+            if (document.visibilityState === "hidden") return;
+            controller?.abort();
+            const request = new AbortController();
+            controller = request;
+            void getPublicYoru(request.signal)
+                .then((value) => {
+                    if (request.signal.aborted) return;
+                    if (!value.enabled) clearConversation();
                     setSettings(value);
                     if (!localStorage.getItem(`${preferenceKey}:position`)) setPosition({ right: value.defaultRight ?? 16, bottom: value.defaultBottom ?? 24 });
-                }
-            })
-            .catch(() => {});
+                })
+                .catch((cause) => {
+                    if (!request.signal.aborted) console.warn("读取小夜助手配置失败", cause instanceof Error ? cause.message : "未知错误");
+                });
+        };
+        refresh();
+        let channel: BroadcastChannel | null = null;
+        try {
+            if (typeof BroadcastChannel !== "undefined") {
+                channel = new BroadcastChannel(YORU_SETTINGS_CHANNEL);
+                channel.onmessage = refresh;
+            }
+        } catch (error) {
+            console.warn("小夜跨标签同步暂不可用，将在返回页面时刷新", error instanceof Error ? error.message : "未知错误");
+        }
+        window.addEventListener(YORU_SETTINGS_CHANGED, refresh);
+        window.addEventListener("focus", refresh);
+        document.addEventListener("visibilitychange", refresh);
         const schedule = window.requestIdleCallback?.(() => setReady(true), { timeout: 1800 }) ?? window.setTimeout(() => setReady(true), 900);
         return () => {
-            alive = false;
+            controller?.abort();
+            channel?.close();
+            window.removeEventListener(YORU_SETTINGS_CHANGED, refresh);
+            window.removeEventListener("focus", refresh);
+            document.removeEventListener("visibilitychange", refresh);
             if (window.cancelIdleCallback && typeof schedule === "number") window.cancelIdleCallback(schedule);
             else clearTimeout(schedule);
         };
-    }, [preferenceKey]);
+    }, [preferenceKey, userId, siteAssistantEnabled, creditsEnabled]);
     useEffect(() => {
-        abort.current?.abort();
-        setMessages([]);
-        setDraft("");
-        setError("");
-        setOpen(false);
-        setBusy(false);
-        setExpression("idle");
         setHidden(localStorage.getItem(`${preferenceKey}:hidden`) === "1");
         try {
             setPanelSize(JSON.parse(localStorage.getItem(`${preferenceKey}:panel-size`) || "null") || { width: 420, height: 540 });
@@ -128,13 +161,13 @@ export function YoruWidget() {
         };
     }, []);
     useEffect(() => {
-        if (paused || compactMotion || !settings.motionEnabled || open) return;
+        if (!settings.enabled || paused || compactMotion || !settings.motionEnabled || open) return;
         const interval = window.setInterval(() => {
             setExpression((current) => (current === "idle" ? "curious" : current));
             window.setTimeout(() => setExpression((current) => (current === "curious" ? "idle" : current)), 1350);
         }, 9200);
         return () => window.clearInterval(interval);
-    }, [paused, compactMotion, settings.motionEnabled, open]);
+    }, [paused, compactMotion, settings.enabled, settings.motionEnabled, open]);
 
     const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
         if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -189,7 +222,7 @@ export function YoruWidget() {
             setError("请先登录，再使用小夜的 AI 对话。");
             return;
         }
-        if (!settings.enabled) {
+        if (!siteAssistantEnabled || !creditsEnabled || !settings.enabled) {
             setError("小夜的 AI 对话尚未由管理员启用。");
             return;
         }
@@ -229,7 +262,7 @@ export function YoruWidget() {
         }
     };
 
-    if (!siteAssistantEnabled || !settings.enabled || pathname.startsWith("/admin") || /^\/canvas\/[^/]+/.test(pathname)) return null;
+    if (!siteAssistantEnabled || !creditsEnabled || !settings.enabled || pathname.startsWith("/admin") || /^\/canvas\/[^/]+/.test(pathname)) return null;
     if (hidden)
         return (
             <button

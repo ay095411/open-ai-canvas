@@ -10,7 +10,6 @@ import { generationErrorCode, generationErrorMessage } from "@/lib/generation-er
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
 import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
-import { declaredInspirationSources } from "@/lib/inspirations/catalog";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
@@ -47,7 +46,6 @@ import "./creation-home-layout.css";
 import "./creation-login-dialog-pixtv.css";
 
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
-const InspirationHall = lazy(() => import("@/pages/inspirations"));
 const loadCreationRuntime = () => import("./creation-runtime");
 type CreationRuntime = Awaited<ReturnType<typeof loadCreationRuntime>>;
 
@@ -1281,6 +1279,7 @@ export default function CreatePage() {
                 <div className="creation-home-dashboard">
                     <CreationHomeAgentEntry
                         openingAgentCanvas={openingAgentCanvas}
+                        onOpenHistory={() => setHistoryOpen(true)}
                         onOpenAgentNewCanvas={async () => {
                             if (!user) {
                                 openLogin();
@@ -1307,29 +1306,9 @@ export default function CreatePage() {
                     />
                     {/* 顺序是「输入框 → Agent 提示 → 作品带 → 继续创作」。
                         游客没有「继续创作」（组件自己返回 null），所以作品带自然落到页面最下面。 */}
-                    <CreationShowcaseBand onStartPrompt={startPrompt} />
-                    <CreationRecentProjects onOpenHistory={() => setHistoryOpen(true)} />
+                    <CreationShowcaseBand mode={mode} onStartPrompt={startPrompt} sourcesVisible={inspirationSourcesVisible} />
+                    <CreationRecentProjects />
                 </div>
-                {/* 画廊里的素材有两份走 CC BY 4.0，署名是许可条件而不是装饰，
-                    所以这条跟着首页走：画廊换成纵深轮播后它一度掉了，这里补回来。 */}
-                {inspirationSourcesVisible ? <div className="creation-inspiration-credit">
-                    <details>
-                        <summary>素材来源</summary>
-                        {declaredInspirationSources().map((source) => (
-                            <p key={source.name ?? source.label}>
-                                {source.notice}
-                                {source.repository ? (
-                                    <>
-                                        {" "}
-                                        <a href={source.repository} target="_blank" rel="noreferrer">
-                                            {source.name} · {source.license}
-                                        </a>
-                                    </>
-                                ) : null}
-                            </p>
-                        ))}
-                    </details>
-                </div> : null}
                 </main>
             </> : <div className="creation-thread-workbench">
                 <CreationWorkspaceToolbar onNewConversation={startNewConversation} onOpenHistory={() => setHistoryOpen(true)} shots={videoShots} onJumpToShot={jumpToShot} onContinueCanvas={() => void continueOnCanvas()} openingCanvas={openingCanvas} />

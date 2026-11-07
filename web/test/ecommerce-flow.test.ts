@@ -22,7 +22,7 @@ test("walks the five steps from material to delivery", () => {
     expect(current({})?.key).toBe("material");
     expect(current({ hasProduct: true, hasInstruction: true })?.key).toBe("direction");
     expect(current({ hasProduct: true, hasInstruction: true, directionsLoading: true })).toMatchObject({ key: "direction", running: true });
-    expect(current({ hasProduct: true, hasInstruction: true, directionsReady: true })?.detail).toContain("选一套视觉方向");
+    expect(current({ hasProduct: true, hasInstruction: true, directionsReady: true })?.detail).toContain("选择方向");
     expect(current({ hasProduct: true, directionChosen: true, planningPending: true })).toMatchObject({ key: "plan", running: true });
     expect(current({ hasProduct: true, planReady: true, planCount: 8 })?.detail).toContain("方案共 8 张");
     expect(current({ hasProduct: true, planReady: true, planCount: 8, submitted: 8, completed: 3, active: 5, failed: 0 })).toMatchObject({ key: "generate", running: true, detail: "已完成 3 / 8 张" });

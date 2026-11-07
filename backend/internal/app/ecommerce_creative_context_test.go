@@ -58,6 +58,9 @@ func TestEcommerceCreativeKnowledgeRetrievesReviewedApplicableMethods(t *testing
 
 func TestEcommerceCreativeAdmissionPreservesOwnershipChargesAndSelectedStyle(t *testing.T) {
 	svc, db, _, _ := ecommerceCreationTestService(t)
+	features := defaultFeatureAvailability()
+	features.EcommerceEnabled = true
+	saveAdmissionFeatures(t, svc, features)
 	t.Setenv("AI_MODE", "mock")
 	project, _ := svc.CreateEcommerceProject("user")
 	draft := EcommerceDraft{ProductName: "耳机", Instruction: "生成详情页", ImageType: "detail", Count: 9, Ratio: "9:16"}

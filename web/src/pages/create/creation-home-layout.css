@@ -17,42 +17,108 @@
     flex-shrink: 0;
 }
 
-/* 素材来源署名：CC BY 4.0 要求可追溯，画廊形态下不再有灵感分区页脚。
-   受 features.inspirationSourcesVisible 控制，默认不渲染。 */
+/* 来源浮层跟随标题旁的按钮；单条作品署名集中在浮层中。 */
 .creation-inspiration-credit {
-    align-self: flex-end;
-    margin-top: var(--space-4);
-    max-width: min(62ch, 100%);
-    padding: 7px 10px;
-    border: 1px solid color-mix(in srgb, var(--user-ink, #fff) 16%, transparent);
-    border-radius: var(--r-md, 10px);
-    background: color-mix(in srgb, var(--user-surface, #101214) 86%, transparent);
-    box-shadow: 0 8px 24px color-mix(in srgb, #000 16%, transparent);
-    backdrop-filter: blur(10px);
-    color: var(--user-ink, #fff);
-    font-size: var(--fs-caption, 12px);
+    display: inline-flex;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
     line-height: 1.6;
 }
 
-.creation-inspiration-credit summary {
+.creation-inspiration-credit-surface {
+    width: min(460px, calc(100vw - 32px));
+    border: 1px solid var(--user-border);
+    box-shadow: var(--elevation-overlay);
+}
+
+.creation-inspiration-credit-trigger {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
     cursor: pointer;
+}
+
+.creation-inspiration-credit-trigger:hover,
+.creation-inspiration-credit-trigger[aria-expanded="true"] {
+    color: var(--user-ink);
+}
+
+.creation-inspiration-credit-trigger:focus-visible,
+.creation-inspiration-credit-panel :is(a, button):focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 3px;
+    border-radius: var(--user-radius-control);
+}
+
+.creation-inspiration-credit-panel {
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.6;
+}
+
+.creation-inspiration-credit-panel > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    color: var(--user-ink);
+}
+
+.creation-inspiration-credit-panel button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--user-radius-control);
+    padding: var(--space-1);
+    background: transparent;
+    color: var(--user-ink-muted);
+    cursor: pointer;
+}
+
+.creation-inspiration-credit-panel button:hover {
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
+}
+
+.creation-inspiration-credit-scroll {
+    max-height: min(300px, 50vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    overflow-wrap: anywhere;
+}
+
+.creation-inspiration-credit-scroll > p {
+    margin: 0 0 var(--space-3);
+}
+
+.creation-inspiration-credit-panel a {
+    color: var(--user-accent);
+}
+
+.creation-inspiration-credit-works {
+    border-top: 1px solid var(--user-border);
+    padding-top: var(--space-3);
+}
+
+.creation-inspiration-credit-works h3 {
+    margin: 0 0 var(--space-2);
+    color: var(--user-ink);
+    font-size: var(--fs-caption);
+}
+
+.creation-inspiration-credit-works ul {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
     list-style: none;
-    opacity: 0.72;
-    transition: opacity var(--user-motion, 180ms) ease;
 }
 
-.creation-inspiration-credit summary:hover {
-    opacity: 1;
-}
-
-.creation-inspiration-credit summary::-webkit-details-marker {
-    display: none;
-}
-
-.creation-inspiration-credit p {
-    margin: 6px 0;
-}
-
-.creation-inspiration-credit a {
-    color: var(--creation-accent, var(--user-accent));
+.creation-inspiration-credit-works li {
+    display: flex;
+    flex-direction: column;
 }

@@ -22,6 +22,7 @@ export type WorkspaceNavBadge = {
 
 export const navigationBadges: Record<string, WorkspaceNavBadge> = {
     toolbox: { label: "NEW", tone: "new", title: "创作影棚 · 新上线" },
+    ecommerce: { label: "NEW", tone: "new", title: "电商Agent · 新上线" },
     projects: { label: "HOT", tone: "hot", title: "短剧 Agent · 主推" },
     canvas: { label: "BETA", tone: "beta", title: "自由画布 · 试用中" },
     plugins: { label: "NEW", tone: "new", title: "插件中心 · 新上线" },

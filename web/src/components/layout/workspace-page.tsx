@@ -1,6 +1,6 @@
 import { Button } from "antd";
 import { ChevronLeft, ChevronRight, ListFilter, RotateCcw } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { currentLocale } from "@/i18n";
@@ -8,9 +8,9 @@ import { currentLocale } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { Select } from "@/components/ui/base/select";
 
-export function WorkspacePage({ children, className, grid = false, fluid = false, scroll = true }: { children: ReactNode; className?: string; grid?: boolean; fluid?: boolean; scroll?: boolean }) {
+export function WorkspacePage({ children, className, grid = false, fluid = false, scroll = true, ref }: { children: ReactNode; className?: string; grid?: boolean; fluid?: boolean; scroll?: boolean; ref?: Ref<HTMLElement> }) {
     return (
-        <main className={cn("app-user-content h-full text-foreground", scroll && "app-workspace-scroll overflow-y-auto", grid && "app-workspace-grid", className)}>
+        <main ref={ref} className={cn("app-user-content h-full text-foreground", scroll && "app-workspace-scroll overflow-y-auto", grid && "app-workspace-grid", className)}>
             <div className={fluid ? "h-full w-full" : "w-full px-3 py-3 sm:px-4 sm:py-4 xl:px-5"}>{children}</div>
         </main>
     );

@@ -5,8 +5,7 @@
  * 只列「工作台内」的路径：`/`、`/create`、三个登录深链是游客可看的，`/share/canvas/:token`
  * 走的是独立布局、也不在这里。
  */
-// /toolbox* 现在只剩重定向，真正的页面在 /ecommerce；两者都列上，
-// 免得游客点击重定向链时少弹一次登录框。
+// 电商Agent与图片/视频影棚是独立页面，均需要登录。
 const PROTECTED_WORKSPACE_PREFIXES = ["/ecommerce", "/toolbox", "/tasks", "/projects", "/assets", "/skills", "/plugins", "/wallet", "/settings", "/canvas", "/admin", "/test-voice-recording"];
 
 /**

@@ -10,13 +10,14 @@
  * ——新加一个入口时忘了判角色，也不会真的写进去。
  */
 import { createClientUUID } from "@/lib/client-id";
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { catalogIdOf, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
 import { canManageInspirations } from "@/lib/inspirations/permissions";
 import { CUSTOM_ID_PREFIX, isCustomInspiration, type InspirationOverride } from "@/lib/inspirations/resolve";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
+import { getActiveUserScope } from "@/lib/user-scope";
 import { useUserStore } from "@/stores/use-user-store";
 
 export const INSPIRATION_STORE_KEY = "open_ai_canvas:inspirations";
@@ -53,6 +54,8 @@ export type InspirationImportResult = {
 
 type InspirationStore = {
     hydrated: boolean;
+    hydrationScope: string | null;
+    hydrationError: string;
     custom: CreationInspiration[];
     overrides: Record<string, InspirationOverride>;
     hidden: string[];
@@ -63,7 +66,7 @@ type InspirationStore = {
     /** 自建条目真删，内置条目转为隐藏——内置数据来自外部目录，删了下次同步还会回来。 */
     removeEntry: (id: string) => void;
     restoreEntry: (id: string) => void;
-    toggleFavorite: (id: string) => void;
+    toggleFavorite: (id: string) => Promise<void>;
     exportPayload: () => string;
     importPayload: (text: string) => InspirationImportResult;
     resetCustomizations: () => void;
@@ -131,144 +134,183 @@ function normalizeImportedEntry(input: unknown): CreationInspiration | null {
     }
 }
 
-export const useInspirationStore = create<InspirationStore>()(
-    persist(
-        (set, get) => ({
-            hydrated: false,
-            custom: [],
-            overrides: {},
-            hidden: [],
-            favorites: [],
+let setInspirationMemory: StoreApi<InspirationStore>["setState"];
 
-            createEntry: (draft) => {
-                if (!canManageLibrary()) {
-                    warnBlocked("新建灵感");
-                    return "";
-                }
-                const id = `${CUSTOM_ID_PREFIX}${createClientUUID()}`;
-                const entry: CreationInspiration = { ...normalizeDraft(draft), id, sourceId: "original" };
-                set((state) => ({ custom: [entry, ...state.custom] }));
-                return id;
-            },
+function currentInspirationScope(): string | null {
+    try {
+        return getActiveUserScope();
+    } catch {
+        return null;
+    }
+}
 
-            updateEntry: (id, patch) => {
-                if (!canManageLibrary()) {
-                    warnBlocked("编辑灵感");
-                    return;
-                }
-                if (!id) throw new Error("缺少要修改的灵感 ID");
-                const sanitized = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined && value !== ""));
-                if (!Object.keys(sanitized).length) return;
-                if (isCustomInspiration(id)) {
-                    set((state) => ({ custom: state.custom.map((item) => (catalogIdOf(item) === id ? { ...item, ...sanitized } : item)) }));
-                    return;
-                }
-                set((state) => ({ overrides: { ...state.overrides, [id]: { ...state.overrides[id], ...sanitized } } }));
-            },
+/** 回填前清掉旧账号内存；状态标记和失败回滚不能再次写入故障存储。 */
+function clearInspirationMemory(hydrationError = "") {
+    setInspirationMemory({ hydrated: false, hydrationScope: null, hydrationError, custom: [], overrides: {}, hidden: [], favorites: [] });
+}
 
-            removeEntry: (id) => {
-                if (!canManageLibrary()) {
-                    warnBlocked("删除 / 隐藏灵感");
-                    return;
-                }
-                if (!id) throw new Error("缺少要删除的灵感 ID");
-                if (isCustomInspiration(id)) {
-                    set((state) => ({
-                        custom: state.custom.filter((item) => catalogIdOf(item) !== id),
-                        favorites: state.favorites.filter((item) => item !== id),
-                    }));
-                    return;
-                }
-                set((state) => ({
-                    hidden: state.hidden.includes(id) ? state.hidden : [...state.hidden, id],
-                    favorites: state.favorites.filter((item) => item !== id),
-                    overrides: Object.fromEntries(Object.entries(state.overrides).filter(([key]) => key !== id)),
-                }));
-            },
+const createPersistedInspirationStore = persist<InspirationStore, [], [], Pick<InspirationStore, "custom" | "overrides" | "hidden" | "favorites">>(
+    (set, get) => ({
+        hydrated: false,
+        hydrationScope: null,
+        hydrationError: "",
+        custom: [],
+        overrides: {},
+        hidden: [],
+        favorites: [],
 
-            restoreEntry: (id) => {
-                if (!canManageLibrary()) {
-                    warnBlocked("恢复显示灵感");
-                    return;
-                }
-                set((state) => ({ hidden: state.hidden.filter((item) => item !== id) }));
-            },
-
-            toggleFavorite: (id) => {
-                if (!id) throw new Error("缺少要收藏的灵感 ID");
-                set((state) => ({ favorites: state.favorites.includes(id) ? state.favorites.filter((item) => item !== id) : [id, ...state.favorites] }));
-            },
-
-            exportPayload: () => {
-                const state = get();
-                const payload: InspirationPayload = {
-                    version: INSPIRATION_PAYLOAD_VERSION,
-                    exportedAt: new Date().toISOString(),
-                    custom: state.custom,
-                    overrides: state.overrides,
-                    hidden: state.hidden,
-                    favorites: state.favorites,
-                };
-                return JSON.stringify(payload, null, 2);
-            },
-
-            importPayload: (text) => {
-                if (!canManageLibrary()) {
-                    warnBlocked("导入灵感");
-                    return { created: 0, updated: 0, skipped: 0 };
-                }
-                let parsed: unknown;
-                try {
-                    parsed = JSON.parse(text);
-                } catch {
-                    throw new Error("文件不是合法的 JSON");
-                }
-                if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("文件结构不是灵感导出格式");
-                const raw = parsed as Record<string, unknown>;
-                if (raw.version !== INSPIRATION_PAYLOAD_VERSION) throw new Error(`不支持的文件版本：${String(raw.version)}，当前支持 ${INSPIRATION_PAYLOAD_VERSION}`);
-                if (!Array.isArray(raw.custom)) throw new Error("文件缺少 custom 列表");
-
-                const incoming = raw.custom.map(normalizeImportedEntry);
-                const entries = incoming.filter((item): item is CreationInspiration => item !== null);
-                const skipped = incoming.length - entries.length;
-                const existing = new Map(get().custom.map((item) => [catalogIdOf(item), item]));
-                let created = 0;
-                let updated = 0;
-                for (const entry of entries) {
-                    if (existing.has(entry.id!)) updated += 1;
-                    else created += 1;
-                }
-
-                const overrides = raw.overrides && typeof raw.overrides === "object" && !Array.isArray(raw.overrides) ? (raw.overrides as Record<string, InspirationOverride>) : {};
-                const hidden = Array.isArray(raw.hidden) ? raw.hidden.filter((item): item is string => typeof item === "string" && Boolean(item.trim())) : [];
-                const favorites = Array.isArray(raw.favorites) ? raw.favorites.filter((item): item is string => typeof item === "string" && Boolean(item.trim())) : [];
-
-                set((state) => ({
-                    custom: [...entries, ...state.custom.filter((item) => !entries.some((incomingItem) => incomingItem.id === catalogIdOf(item)))],
-                    overrides: { ...state.overrides, ...overrides },
-                    hidden: Array.from(new Set([...state.hidden, ...hidden])),
-                    favorites: Array.from(new Set([...state.favorites, ...favorites])),
-                }));
-                return { created, updated, skipped };
-            },
-
-            resetCustomizations: () => {
-                if (!canManageLibrary()) {
-                    warnBlocked("重置灵感库改动");
-                    return;
-                }
-                set({ custom: [], overrides: {}, hidden: [], favorites: [] });
-            },
-
-            markHydrated: () => set({ hydrated: true }),
-        }),
-        {
-            name: INSPIRATION_STORE_KEY,
-            storage: createJSONStorage(() => localForageStorageForScope()),
-            partialize: (state) => ({ custom: state.custom, overrides: state.overrides, hidden: state.hidden, favorites: state.favorites }),
-            onRehydrateStorage: () => (state) => {
-                state?.markHydrated();
-            },
+        createEntry: (draft) => {
+            if (!canManageLibrary()) {
+                warnBlocked("新建灵感");
+                return "";
+            }
+            const id = `${CUSTOM_ID_PREFIX}${createClientUUID()}`;
+            const entry: CreationInspiration = { ...normalizeDraft(draft), id, sourceId: "original" };
+            set((state) => ({ custom: [entry, ...state.custom] }));
+            return id;
         },
-    ),
+
+        updateEntry: (id, patch) => {
+            if (!canManageLibrary()) {
+                warnBlocked("编辑灵感");
+                return;
+            }
+            if (!id) throw new Error("缺少要修改的灵感 ID");
+            const sanitized = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined && value !== ""));
+            if (!Object.keys(sanitized).length) return;
+            if (isCustomInspiration(id)) {
+                set((state) => ({ custom: state.custom.map((item) => (catalogIdOf(item) === id ? { ...item, ...sanitized } : item)) }));
+                return;
+            }
+            set((state) => ({ overrides: { ...state.overrides, [id]: { ...state.overrides[id], ...sanitized } } }));
+        },
+
+        removeEntry: (id) => {
+            if (!canManageLibrary()) {
+                warnBlocked("删除 / 隐藏灵感");
+                return;
+            }
+            if (!id) throw new Error("缺少要删除的灵感 ID");
+            if (isCustomInspiration(id)) {
+                set((state) => ({
+                    custom: state.custom.filter((item) => catalogIdOf(item) !== id),
+                    favorites: state.favorites.filter((item) => item !== id),
+                }));
+                return;
+            }
+            set((state) => ({
+                hidden: state.hidden.includes(id) ? state.hidden : [...state.hidden, id],
+                favorites: state.favorites.filter((item) => item !== id),
+                overrides: Object.fromEntries(Object.entries(state.overrides).filter(([key]) => key !== id)),
+            }));
+        },
+
+        restoreEntry: (id) => {
+            if (!canManageLibrary()) {
+                warnBlocked("恢复显示灵感");
+                return;
+            }
+            set((state) => ({ hidden: state.hidden.filter((item) => item !== id) }));
+        },
+
+        toggleFavorite: async (id) => {
+            if (!id) throw new Error("缺少要收藏的灵感 ID");
+            const previous = get().favorites;
+            const scope = get().hydrationScope;
+            const next = previous.includes(id) ? previous.filter((item) => item !== id) : [id, ...previous];
+            try {
+                await set({ favorites: next });
+            } catch (error) {
+                if (get().hydrationScope === scope && get().favorites === next) setInspirationMemory({ favorites: previous });
+                throw error;
+            }
+        },
+
+        exportPayload: () => {
+            const state = get();
+            const payload: InspirationPayload = {
+                version: INSPIRATION_PAYLOAD_VERSION,
+                exportedAt: new Date().toISOString(),
+                custom: state.custom,
+                overrides: state.overrides,
+                hidden: state.hidden,
+                favorites: state.favorites,
+            };
+            return JSON.stringify(payload, null, 2);
+        },
+
+        importPayload: (text) => {
+            if (!canManageLibrary()) {
+                warnBlocked("导入灵感");
+                return { created: 0, updated: 0, skipped: 0 };
+            }
+            let parsed: unknown;
+            try {
+                parsed = JSON.parse(text);
+            } catch {
+                throw new Error("文件不是合法的 JSON");
+            }
+            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("文件结构不是灵感导出格式");
+            const raw = parsed as Record<string, unknown>;
+            if (raw.version !== INSPIRATION_PAYLOAD_VERSION) throw new Error(`不支持的文件版本：${String(raw.version)}，当前支持 ${INSPIRATION_PAYLOAD_VERSION}`);
+            if (!Array.isArray(raw.custom)) throw new Error("文件缺少 custom 列表");
+
+            const incoming = raw.custom.map(normalizeImportedEntry);
+            const entries = incoming.filter((item): item is CreationInspiration => item !== null);
+            const skipped = incoming.length - entries.length;
+            const existing = new Map(get().custom.map((item) => [catalogIdOf(item), item]));
+            let created = 0;
+            let updated = 0;
+            for (const entry of entries) {
+                if (existing.has(entry.id!)) updated += 1;
+                else created += 1;
+            }
+
+            const overrides = raw.overrides && typeof raw.overrides === "object" && !Array.isArray(raw.overrides) ? (raw.overrides as Record<string, InspirationOverride>) : {};
+            const hidden = Array.isArray(raw.hidden) ? raw.hidden.filter((item): item is string => typeof item === "string" && Boolean(item.trim())) : [];
+            const favorites = Array.isArray(raw.favorites) ? raw.favorites.filter((item): item is string => typeof item === "string" && Boolean(item.trim())) : [];
+
+            set((state) => ({
+                custom: [...entries, ...state.custom.filter((item) => !entries.some((incomingItem) => incomingItem.id === catalogIdOf(item)))],
+                overrides: { ...state.overrides, ...overrides },
+                hidden: Array.from(new Set([...state.hidden, ...hidden])),
+                favorites: Array.from(new Set([...state.favorites, ...favorites])),
+            }));
+            return { created, updated, skipped };
+        },
+
+        resetCustomizations: () => {
+            if (!canManageLibrary()) {
+                warnBlocked("重置灵感库改动");
+                return;
+            }
+            set({ custom: [], overrides: {}, hidden: [], favorites: [] });
+        },
+
+        markHydrated: () => setInspirationMemory({ hydrated: true, hydrationScope: currentInspirationScope(), hydrationError: "" }),
+    }),
+    {
+        name: INSPIRATION_STORE_KEY,
+        storage: createJSONStorage(() => localForageStorageForScope()),
+        partialize: (state) => ({ custom: state.custom, overrides: state.overrides, hidden: state.hidden, favorites: state.favorites }),
+        onRehydrateStorage: () => {
+            const scope = currentInspirationScope();
+            clearInspirationMemory();
+            return (state, error) => {
+                if (error || !state || !scope || currentInspirationScope() !== scope) {
+                    clearInspirationMemory("本地灵感记录暂不可用，当前仅展示公共目录，收藏和管理操作已暂停。");
+                    if (error) console.warn("本地灵感记录读取失败", error);
+                    return;
+                }
+                setInspirationMemory({ hydrated: true, hydrationScope: scope, hydrationError: "" });
+            };
+        },
+    },
 );
+
+const initializeInspirationStore: typeof createPersistedInspirationStore = (set, get, api) => {
+    setInspirationMemory = set;
+    return createPersistedInspirationStore(set, get, api);
+};
+
+export const useInspirationStore = create<InspirationStore>()(initializeInspirationStore);

@@ -16,24 +16,23 @@ export type YoruSettings = {
 };
 export type YoruMessage = { role: "user" | "assistant"; content: string };
 
-export const getPublicYoru = () => http.get<YoruSettings>("/public/yoru");
-export const getAdminYoru = () =>
-    http.get<
-        YoruSettings & {
-            modelMode: "direct" | "smart_route";
-            channelModelId: string;
-            logicalModelId: string;
-            systemPrompt: string;
-            knowledge: string;
-            dailyCalls: number;
-            maxChargeMicrocredits: number;
-            maxDailyMicrocredits: number;
-            maxOutputTokens: number;
-            allowGuests: boolean;
-            voiceEnabled: boolean;
-        }
-    >("/admin/settings/yoru");
-export const saveAdminYoru = (value: Awaited<ReturnType<typeof getAdminYoru>>) => http.put<typeof value>("/admin/settings/yoru", value);
+export type AdminYoruSettings = YoruSettings & {
+    modelMode: "direct" | "smart_route";
+    channelModelId: string;
+    logicalModelId: string;
+    systemPrompt: string;
+    knowledge: string;
+    dailyCalls: number;
+    maxChargeMicrocredits: number;
+    maxDailyMicrocredits: number;
+    maxOutputTokens: number;
+    allowGuests: boolean;
+    voiceEnabled: boolean;
+};
+
+export const getPublicYoru = (signal?: AbortSignal) => http.get<YoruSettings>("/public/yoru", { signal });
+export const getAdminYoru = (signal?: AbortSignal) => http.get<AdminYoruSettings>("/admin/settings/yoru", { signal });
+export const saveAdminYoru = (value: AdminYoruSettings) => http.put<AdminYoruSettings>("/admin/settings/yoru", value);
 
 export async function sendYoruMessage(input: { message: string; history: YoruMessage[]; page: string; publicModelName?: string; errorText?: string }, onDelta: (text: string) => void, signal?: AbortSignal) {
     const task = await http.post<GenerationTask>("/yoru/messages", input, { signal });

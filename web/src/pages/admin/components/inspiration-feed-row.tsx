@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { RelativeTime } from "@/components/ui/product/relative-time";
 import { Switch } from "@/pages/admin/ui/controls";
-import { getAdminInspirationFeed, syncAdminInspirationFeed, updateAdminInspirationFeed, type AdminInspirationFeedStatus } from "@/services/api/inspiration-feed";
+import { getAdminInspirationFeed, publicInspirationFeedQueryKey, syncAdminInspirationFeed, updateAdminInspirationFeed, type AdminInspirationFeedStatus } from "@/services/api/inspiration-feed";
 import { invalidateInspirationCatalog } from "@/services/inspiration-catalog";
 import { AdminStatusBadge } from "./admin-ui";
 
@@ -13,7 +13,7 @@ const QUERY_KEY = ["admin", "inspiration-feed"] as const;
 const SOURCE_NAMES: Record<string, string> = { youmind: "YouMind", seedance: "awesome-seedance" };
 
 /**
- * 灵感上新：后端定时从上游同步中文提示词，补在灵感大厅的内置目录之后。
+ * 灵感上新：后端定时同步中文提示词，供首页作品带与灵感大厅使用。
  * 开关与同步走独立接口，不进「功能开放」的整包保存。
  */
 export function InspirationFeedRow() {
@@ -26,6 +26,7 @@ export function InspirationFeedRow() {
     const apply = (next: AdminInspirationFeedStatus) => {
         queryClient.setQueryData(QUERY_KEY, next);
         invalidateInspirationCatalog();
+        void queryClient.invalidateQueries({ queryKey: publicInspirationFeedQueryKey });
     };
 
     const toggle = async (enabled: boolean) => {
@@ -68,7 +69,7 @@ export function InspirationFeedRow() {
                         <strong>灵感上新</strong>
                         <span className="afp-location">创作首页 · 灵感</span>
                     </div>
-                    <p>每 {status?.intervalHours ?? 6} 小时从 YouMind、awesome-seedance 同步正文为中文的新提示词，补充到灵感大厅；英文条目仍随版本更新。</p>
+                    <p>每 {status?.intervalHours ?? 6} 小时从 YouMind、awesome-seedance 同步正文为中文的新提示词，展示在首页「看看能拍成什么样」并补充到灵感大厅；英文条目仍随版本更新。</p>
                     {query.isError ? (
                         <p className="afp-row-warning" role="alert">
                             <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />

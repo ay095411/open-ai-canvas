@@ -39,7 +39,7 @@ func TestEcommerceAgentHTTPMockSSEAndTaskRecovery(t *testing.T) {
 	if err = db.Create(&model.CreditAccount{UserID: user.ID, AvailableMicrocredits: 1_000_000}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Create(&model.SystemSetting{Key: "feature_availability", ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":true}`}).Error; err != nil {
+	if err := db.Create(&model.SystemSetting{Key: "feature_availability", ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":false,"videoWorkbenchEnabled":false}`}).Error; err != nil {
 		t.Fatal(err)
 	}
 	svc := service.New(repository.New(db), t.TempDir())

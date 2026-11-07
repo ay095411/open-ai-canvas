@@ -398,10 +398,17 @@ func (r *Repository) TasksWithWorkbenchKind(userID string, limit int, projectID 
 	}
 	if workbenchKind != "" {
 		taskType := "canvas_" + workbenchKind
+		// Independent studio history shares task storage with ecommerce, but
+		// ecommerce-owned work must stay in its project and the unified task list.
+		// Check metadata even after a project is deleted; project_id covers older
+		// receipts that did not include the ecommerce metadata marker.
+		query = query.Where("NOT EXISTS (SELECT 1 FROM ecommerce_projects WHERE ecommerce_projects.id = tasks.project_id AND ecommerce_projects.user_id = tasks.user_id)")
 		if r.db.Dialector.Name() == "postgres" {
 			query = query.Where("(workbench_kind = ? AND type = ?) OR (type = ? AND input_json::jsonb -> 'metadata' ->> 'source' = ? AND input_json::jsonb -> 'metadata' ->> 'workbenchKind' = ?)", workbenchKind, taskType, taskType, "workbench", workbenchKind)
+			query = query.Where("COALESCE(TRIM(NULLIF(input_json, '')::jsonb -> 'metadata' ->> 'ecommerceProjectId'), '') = '' AND COALESCE(NULLIF(input_json, '')::jsonb -> 'metadata' ->> 'source', '') <> ?", "ecommerce-agent")
 		} else {
 			query = query.Where("(workbench_kind = ? AND type = ?) OR (type = ? AND json_extract(input_json, '$.metadata.source') = ? AND json_extract(input_json, '$.metadata.workbenchKind') = ?)", workbenchKind, taskType, taskType, "workbench", workbenchKind)
+			query = query.Where("COALESCE(TRIM(json_extract(NULLIF(input_json, ''), '$.metadata.ecommerceProjectId')), '') = '' AND COALESCE(json_extract(NULLIF(input_json, ''), '$.metadata.source'), '') <> ?", "ecommerce-agent")
 		}
 	}
 	err := query.Order("created_at desc").Limit(limit).Find(&tasks).Error

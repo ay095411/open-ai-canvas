@@ -30,7 +30,16 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
  * 首页瀑布流只借它做「看一眼完整提示词」，所以那一组按钮与分类行都是可选的，
  * 不传就不渲染——首页不该出现改库的入口。
  */
-export function InspirationDetailModal({
+export function InspirationDetailModal({ item, afterClose, ...props }: Omit<Parameters<typeof InspirationDetailContent>[0], "item"> & { item: CreationInspiration | null; afterClose?: () => void }) {
+    return (
+        <AppModal open={Boolean(item)} onCancel={props.onClose} afterClose={afterClose} width={1080} title={null} footer={null} flush closable={false}>
+            {item ? <InspirationDetailContent item={item} {...props} /> : null}
+        </AppModal>
+    );
+}
+
+/** 大厅在同一弹窗里切换列表与详情，复用正文而不再叠一层 Modal。 */
+export function InspirationDetailContent({
     item,
     categoryLabel,
     favorite = false,
@@ -40,9 +49,12 @@ export function InspirationDetailModal({
     onDelete,
     onToggleFavorite,
     onCopy,
-    afterClose,
+    videoUrl,
+    closeLabel = "关闭",
+    useLabel = "用这个创意创作",
+    useDisabled = false,
 }: {
-    item: CreationInspiration | null;
+    item: CreationInspiration;
     categoryLabel?: (item: CreationInspiration) => string;
     favorite?: boolean;
     onClose: () => void;
@@ -51,110 +63,100 @@ export function InspirationDetailModal({
     onDelete?: (item: CreationInspiration) => void;
     onToggleFavorite?: (item: CreationInspiration) => void;
     onCopy: (text: string, label: string) => void;
-    /**
-     * 弹窗连动画都放完、子节点已卸载后触发。
-     *
-     * 调用方若要在这之后再去做「抢焦点」的动作（例如把提示词填进创作输入框并聚焦），
-     * 必须挂在这里：AntD Modal 关闭动画结束后会把焦点还给打开它的元素，
-     * 直接在 onUse 里 focus 会被这一下覆盖掉。
-     */
-    afterClose?: () => void;
+    videoUrl?: string;
+    closeLabel?: string;
+    useLabel?: string;
+    useDisabled?: boolean;
 }) {
-    const source = item ? inspirationSourceOf(item) : null;
-    const custom = item ? isCustomInspiration(catalogIdOf(item)) : false;
+    const source = inspirationSourceOf(item);
+    const custom = isCustomInspiration(catalogIdOf(item));
     const hasLibraryActions = Boolean(onToggleFavorite || onEdit || onDelete);
 
     return (
-        /* closable={false}：两栏布局下右上角的 X 会压在正文上，而底栏本来就有「关闭」，
-           关掉它省得出现两个关闭入口。Esc 与点遮罩照常可关。 */
-        <AppModal open={Boolean(item)} onCancel={onClose} afterClose={afterClose} width={1080} title={null} footer={null} flush closable={false}>
-            {item ? (
-                /* 左图右文：图片按原图比例完整显示（不裁切、不放大超过原图），
+        /* 左图右文：图片按原图比例完整显示（不裁切、不放大超过原图），
                    右栏是弹窗里唯一的滚动区，提示词正文因此能整段铺开而不是塞在一个小框里。 */
-                <div className="inspiration-detail">
-                    <div className="inspiration-detail-media">
-                        <img src={item.image} alt="" width={item.width} height={item.height} referrerPolicy="no-referrer" />
+        <div className="inspiration-detail">
+            <div className="inspiration-detail-media">
+                {videoUrl ? <video src={videoUrl} poster={item.image} controls playsInline preload="metadata" /> : <img src={item.image} alt={item.title} width={item.width} height={item.height} referrerPolicy="no-referrer" />}
+            </div>
+
+            <div className="inspiration-detail-main">
+                <div className="inspiration-detail-body">
+                    <div className="min-w-0">
+                        <h2 className="text-[var(--fs-heading,16px)] font-semibold leading-6 text-foreground">{item.title}</h2>
+                        {item.description ? <p className="mt-1 text-xs leading-5 text-foreground/58">{item.description}</p> : null}
                     </div>
 
-                    <div className="inspiration-detail-main">
-                        <div className="inspiration-detail-body">
-                            <div className="min-w-0">
-                                <h2 className="text-[var(--fs-heading,16px)] font-semibold leading-6 text-foreground">{item.title}</h2>
-                                {item.description ? <p className="mt-1 text-xs leading-5 text-foreground/58">{item.description}</p> : null}
-                            </div>
-
-                            <div className="flex flex-col gap-1.5">
-                                <MetaRow label="来源">
-                                    {source?.name ?? "原创"}
-                                    {item.credit ? ` · ${item.credit}` : ""}
-                                </MetaRow>
-                                {categoryLabel ? <MetaRow label="分类">{categoryLabel(item)}</MetaRow> : null}
-                                <MetaRow label="类型">
-                                    {modeLabels[item.mode]}
-                                    {item.ratio ? ` · ${item.ratio}` : ""}
-                                </MetaRow>
-                                {item.tags?.length ? (
-                                    <MetaRow label="标签">
-                                        <span className="flex flex-wrap gap-1.5">
-                                            {item.tags.map((tag) => (
-                                                <span key={tag} className="inspiration-chip">
-                                                    {tag}
-                                                </span>
-                                            ))}
+                    <div className="flex flex-col gap-1.5">
+                        <MetaRow label="来源">
+                            {source?.name ?? "原创"}
+                            {item.credit ? ` · ${item.credit}` : ""}
+                        </MetaRow>
+                        {categoryLabel ? <MetaRow label="分类">{categoryLabel(item)}</MetaRow> : null}
+                        <MetaRow label="类型">
+                            {modeLabels[item.mode]}
+                            {item.ratio ? ` · ${item.ratio}` : ""}
+                        </MetaRow>
+                        {item.tags?.length ? (
+                            <MetaRow label="标签">
+                                <span className="flex flex-wrap gap-1.5">
+                                    {item.tags.map((tag) => (
+                                        <span key={tag} className="inspiration-chip">
+                                            {tag}
                                         </span>
-                                    </MetaRow>
-                                ) : null}
-                                {item.sourceUrl ? (
-                                    <MetaRow label="原页">
-                                        <a className="inline-flex items-center gap-1 text-primary hover:underline" href={item.sourceUrl} target="_blank" rel="noreferrer">
-                                            查看上游内容 <ExternalLink className="size-3" />
-                                        </a>
-                                    </MetaRow>
-                                ) : null}
-                            </div>
+                                    ))}
+                                </span>
+                            </MetaRow>
+                        ) : null}
+                        {item.sourceUrl ? (
+                            <MetaRow label="原页">
+                                <a className="inline-flex items-center gap-1 text-primary hover:underline" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                                    查看上游内容 <ExternalLink className="size-3" />
+                                </a>
+                            </MetaRow>
+                        ) : null}
+                    </div>
 
-                            <PromptSection label={item.promptZh ? "提示词 · 中文" : "提示词"} text={item.promptZh || item.prompt} onCopy={onCopy} />
-                            {item.promptZh && item.prompt !== item.promptZh ? <PromptSection label="提示词 · 原文" text={item.prompt} onCopy={onCopy} /> : null}
-                        </div>
+                    <PromptSection label={item.promptZh ? "提示词 · 中文" : "提示词"} text={item.promptZh || item.prompt} onCopy={onCopy} />
+                    {item.promptZh && item.prompt !== item.promptZh ? <PromptSection label="提示词 · 原文" text={item.prompt} onCopy={onCopy} /> : null}
+                </div>
 
-                        <div className="inspiration-detail-footer">
-                            {/* 库管理动作放底栏：正文区留给阅读，也不再和关闭按钮抢右上角。 */}
-                            {hasLibraryActions ? (
-                                <div className="flex items-center gap-1.5">
-                                    {onToggleFavorite ? (
-                                        <Tooltip title={favorite ? "取消收藏" : "收藏"}>
-                                            <button type="button" className="inspiration-icon-button" aria-pressed={favorite} onClick={() => onToggleFavorite(item)}>
-                                                <Heart className="size-4" fill={favorite ? "currentColor" : "none"} />
-                                            </button>
-                                        </Tooltip>
-                                    ) : null}
-                                    {onEdit ? (
-                                        <Tooltip title="编辑">
-                                            <button type="button" className="inspiration-icon-button" onClick={() => onEdit(item)}>
-                                                <Pencil className="size-4" />
-                                            </button>
-                                        </Tooltip>
-                                    ) : null}
-                                    {onDelete ? (
-                                        <Tooltip title={custom ? "删除" : "从库中隐藏"}>
-                                            <button type="button" className="inspiration-icon-button" onClick={() => onDelete(item)}>
-                                                <Trash2 className="size-4" />
-                                            </button>
-                                        </Tooltip>
-                                    ) : null}
-                                </div>
+                <div className="inspiration-detail-footer">
+                    {/* 库管理动作放底栏：正文区留给阅读，也不再和关闭按钮抢右上角。 */}
+                    {hasLibraryActions ? (
+                        <div className="flex items-center gap-1.5">
+                            {onToggleFavorite ? (
+                                <Tooltip title={favorite ? "取消收藏" : "收藏"}>
+                                    <button type="button" className="inspiration-icon-button" aria-pressed={favorite} onClick={() => onToggleFavorite(item)}>
+                                        <Heart className="size-4" fill={favorite ? "currentColor" : "none"} />
+                                    </button>
+                                </Tooltip>
                             ) : null}
-                            <div className="ml-auto flex items-center gap-2">
-                                <Button onClick={onClose}>关闭</Button>
-                                <Button type="primary" icon={<Wand2 className="size-4" />} onClick={() => onUse(item)}>
-                                    用这个创意创作
-                                </Button>
-                            </div>
+                            {onEdit ? (
+                                <Tooltip title="编辑">
+                                    <button type="button" className="inspiration-icon-button" onClick={() => onEdit(item)}>
+                                        <Pencil className="size-4" />
+                                    </button>
+                                </Tooltip>
+                            ) : null}
+                            {onDelete ? (
+                                <Tooltip title={custom ? "删除" : "从库中隐藏"}>
+                                    <button type="button" className="inspiration-icon-button" onClick={() => onDelete(item)}>
+                                        <Trash2 className="size-4" />
+                                    </button>
+                                </Tooltip>
+                            ) : null}
                         </div>
+                    ) : null}
+                    <div className="ml-auto flex items-center gap-2">
+                        <Button onClick={onClose}>{closeLabel}</Button>
+                        <Button type="primary" disabled={useDisabled} icon={<Wand2 className="size-4" />} onClick={() => onUse(item)}>
+                            {useLabel}
+                        </Button>
                     </div>
                 </div>
-            ) : null}
-        </AppModal>
+            </div>
+        </div>
     );
 }
 
@@ -164,7 +166,7 @@ function PromptSection({ label, text, onCopy }: { label: string; text: string; o
             <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-medium text-foreground/58">{label}</h3>
                 <Button size="small" icon={<Copy className="size-3.5" />} onClick={() => onCopy(text, label)}>
-                    复制
+                    复制提示词
                 </Button>
             </div>
             <div className="inspiration-prompt-block">{text}</div>

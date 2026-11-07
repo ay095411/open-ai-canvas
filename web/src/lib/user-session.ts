@@ -1,4 +1,6 @@
-import { getFeatureAvailability, type AuthSessionPayload } from "@/services/api/auth";
+import { type AuthSessionPayload } from "@/services/api/auth";
+import { applyFeatureAvailability, refreshFeatureAvailability } from "@/services/feature-availability";
+export { refreshFeatureAvailability } from "@/services/feature-availability";
 import { projectImageParameters, imageParametersForSpec } from "./image-parameters";
 import { getModelCatalog, type CapabilitySpec, type ModelCatalogResponse, type OptionConstraint, type PublicChannelCatalog, type PublicLogicalModel } from "@/services/api/logical-models";
 import { localForageStorage } from "@/lib/localforage-storage";
@@ -56,7 +58,7 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     useUserStore.getState().setRuntimeLimits(payload.runtimeLimits);
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
     if (payload.features) {
-        useUserStore.getState().setFeatures(payload.features);
+        applyFeatureAvailability(payload.features);
     } else {
         // 游客/登出 payload 不带 features：异步拉一次公开开关，保证创作影棚等
         // 菜单的显隐对未登录用户也和线上一致（失败时保留现状，不阻塞会话）。
@@ -352,10 +354,4 @@ function maxNumericOption(option: OptionConstraint | undefined, fallback: number
 function booleanOption(option: OptionConstraint | undefined, fallback: unknown) {
     const supported = (option?.values || []).some((value) => value === true || value === "true");
     return { supported, default: supported && String(fallback) === "true" };
-}
-
-export async function refreshFeatureAvailability() {
-    const payload = await getFeatureAvailability();
-    useUserStore.getState().setFeatures(payload.features);
-    return payload.features;
 }

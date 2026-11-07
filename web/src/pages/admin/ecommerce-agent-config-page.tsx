@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import { ArrowUpRight, Image as ImageIcon, Layers3, ListChecks, RefreshCw, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, Layers3, ListChecks, RefreshCw, ShoppingBag } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { getAdminFeatureAvailability } from "@/services/api/auth";
@@ -10,14 +10,13 @@ import { AdminStatusBadge, SettingsSectionCard } from "./components/admin-ui";
 import { EcommerceStageModels } from "./ecommerce-stage-models";
 import "./ecommerce-agent-config.css";
 
-type ReadinessRow = { key: string; title: string; description: string; icon: ReactNode; ready: boolean; required: boolean; action: { label: string; run: () => void } };
+type ReadinessRow = { key: string; title: string; description: string; icon: ReactNode; ready: boolean; action: { label: string; run: () => void } };
 
 const stageModelsAnchor = "eac-stage-models";
 const hasModel = (ref?: { logicalModelId?: string; channelModelId?: string }) => Boolean(ref?.logicalModelId || ref?.channelModelId);
 
 /**
- * 电商 Agent 上线配置：先看「还差什么」，再在同一页补齐阶段模型。
- * 功能开关仍只在「功能开放」修改，这里汇总电商用得到的几项并给出去处。
+ * 电商Agent配置：汇总功能开放状态与阶段模型，并链接到各自的配置入口。
  */
 export default function EcommerceAgentConfigPage() {
     const navigate = useNavigate();
@@ -33,6 +32,8 @@ export default function EcommerceAgentConfigPage() {
             setAgentSetting(setting);
             setLoadError("");
         } catch (cause) {
+            setFeatures(null);
+            setAgentSetting(null);
             setLoadError(cause instanceof Error ? cause.message : "读取上线状态失败");
         } finally {
             setLoading(false);
@@ -50,45 +51,34 @@ export default function EcommerceAgentConfigPage() {
         ? [
               {
                   key: "ecommerce",
-                  title: "电商 Agent 已开放",
-                  description: "前台侧栏显示电商 Agent，用户可以新建商品创作。关闭后入口隐藏，已有项目和作品保留。",
+                  title: "电商Agent",
+                  description: "统一控制商品识别、策划、出图与重试，不依赖创作影棚开关。",
                   icon: <ShoppingBag className="size-4" aria-hidden="true" />,
                   ready: features.ecommerceEnabled,
-                  required: true,
-                  action: { label: "去功能开放", run: openFeatures },
-              },
-              {
-                  key: "image",
-                  title: "图片生成已开放",
-                  description: "商品图按方案逐张出图，走图片生成能力；未开放时用户只能做到确认方案。",
-                  icon: <ImageIcon className="size-4" aria-hidden="true" />,
-                  ready: features.imageWorkbenchEnabled,
-                  required: true,
                   action: { label: "去功能开放", run: openFeatures },
               },
               {
                   key: "models",
                   title: "阶段模型已配置",
-                  description: visionReady && planningReady ? "商品识别与整套策划都有可用的识图模型。" : "商品识别或整套策划还没有可用模型，用户点击创作会被拒绝。",
+                  description: visionReady && planningReady ? "识别与策划模型已指定，提交时校验可用性。" : "请配置商品识别与整套策划模型。",
                   icon: <Layers3 className="size-4" aria-hidden="true" />,
                   ready: visionReady && planningReady,
-                  required: true,
                   action: { label: "去配置", run: openStageModels },
               },
           ]
         : [];
-    const missing = rows.filter((row) => row.required && !row.ready).length;
+    const missing = rows.filter((row) => !row.ready).length;
 
     return (
-        <AdminPageFrame title="电商 Agent 配置" description="按清单补齐开放状态和阶段模型，用户就能从上传商品图一路做到导出整套商品图。" scroll>
+        <AdminPageFrame title="电商Agent配置" description="设置识别与策划模型，检查电商功能开放状态。" scroll>
             <div className="admin-settings-stack eac-page">
                 <SettingsSectionCard
                     className="eac-section"
                     layout="stacked"
                     icon={<ListChecks className="size-4" aria-hidden="true" />}
                     title="上线检查"
-                    description="必需项全部就绪后，用户才能完整走完「上传商品 → 选方向 → 确认方案 → 出图 → 导出」。"
-                    status={features ? <AdminStatusBadge label={missing ? `还差 ${missing} 项` : "可以使用"} tone={missing ? "warning" : "success"} /> : undefined}
+                    description="检查功能开关与阶段模型；模型可用性和费用在提交时校验。"
+                    status={loadError ? <AdminStatusBadge label="读取失败" tone="warning" /> : features ? <AdminStatusBadge label={missing ? `还差 ${missing} 项` : "配置已齐备"} tone={missing ? "warning" : "success"} /> : undefined}
                     footer={
                         <>
                             <span className="eac-save-state">{loadError ? `读取失败：${loadError}` : features ? "以服务端当前配置为准" : "正在读取…"}</span>
@@ -109,7 +99,7 @@ export default function EcommerceAgentConfigPage() {
                                     <span>{row.description}</span>
                                 </div>
                                 <div className="eac-readiness-actions">
-                                    <AdminStatusBadge label={row.ready ? "已就绪" : row.required ? "未完成" : "未开启"} tone={row.ready ? "success" : row.required ? "warning" : "neutral"} />
+                                    <AdminStatusBadge label={row.ready ? "已就绪" : "未完成"} tone={row.ready ? "success" : "warning"} />
                                     {row.ready ? null : (
                                         <Button size="small" icon={<ArrowUpRight className="size-3.5" />} iconPlacement="end" onClick={row.action.run}>
                                             {row.action.label}
@@ -122,7 +112,7 @@ export default function EcommerceAgentConfigPage() {
                 </SettingsSectionCard>
 
                 <div id={stageModelsAnchor}>
-                    <SettingsSectionCard className="eac-section" layout="stacked" icon={<Layers3 className="size-4" aria-hidden="true" />} title="阶段模型" description="电商页按下面的顺序调用模型，所有用户共用，前台不展示也不能更改。">
+                    <SettingsSectionCard className="eac-section" layout="stacked" icon={<Layers3 className="size-4" aria-hidden="true" />} title="阶段模型" description="识别与策划模型由管理员配置，所有用户共用。">
                         <EcommerceStageModels embedded onSaved={() => void load()} />
                     </SettingsSectionCard>
                 </div>

@@ -1,5 +1,7 @@
 import { http } from "./request";
 
+export const publicInspirationFeedQueryKey = ["public", "inspirations", "feed"] as const;
+
 /** 后端定时从上游同步的灵感条目，字段与 CreationInspiration 对齐；addedAt 是本站首次收录时间。 */
 export type InspirationFeedEntry = {
     id: string;

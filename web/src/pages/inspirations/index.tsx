@@ -1,6 +1,6 @@
 import { App, Button, Dropdown, Input } from "antd";
-import { Download, Heart, Import, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Download, Heart, Import, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2, Wand2 } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { PageHeader, PaginationBar, WorkspacePage } from "@/components/layout/workspace-page";
@@ -11,7 +11,7 @@ import { Tooltip } from "@/components/ui/base/tooltip";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { catalogIdOf, inspirationSourceOf, inspirationSources, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
 import { canManageInspirations } from "@/lib/inspirations/permissions";
-import { fillablePrompt, isCustomInspiration, resolveInspirations } from "@/lib/inspirations/resolve";
+import { EMPTY_OVERLAY, fillablePrompt, isCustomInspiration, resolveInspirations } from "@/lib/inspirations/resolve";
 import { isFreshInspiration, localDayKey, orderInspirationsByLatest, orderInspirationsForToday } from "@/lib/inspirations/daily-order";
 import { loadInspirationCatalog, type InspirationCatalog } from "@/services/inspiration-catalog";
 import { useInspirationStore } from "@/stores/use-inspiration-store";
@@ -43,6 +43,7 @@ const SORT_OPTIONS = [
     { label: "最新上架", value: "latest" },
     { label: "按标题", value: "title" },
 ];
+const NO_FAVORITES: string[] = [];
 
 /** 标签页隔夜后回到前台时换成新的一天，推荐顺序随之轮换，不必刷新页面。 */
 function useLocalDayKey(): string {
@@ -71,7 +72,13 @@ function downloadText(text: string, fileName: string) {
     URL.revokeObjectURL(url);
 }
 
-export default function InspirationsPage() {
+type InspirationsPageProps = {
+    embedded?: boolean;
+    onUse?: (item: CreationInspiration) => void;
+    onPreview?: (item: CreationInspiration) => void;
+};
+
+export default function InspirationsPage({ embedded = false, onUse, onPreview }: InspirationsPageProps = {}) {
     const { message, modal } = App.useApp();
     const navigate = useNavigate();
 
@@ -81,12 +88,21 @@ export default function InspirationsPage() {
      * 判定口径与 store 里的写守卫共用同一个纯函数，避免两处各写一套。
      */
     const isAdmin = useUserStore((state) => canManageInspirations(state.user));
+    const userScope = useUserStore((state) => state.user?.id ?? "guest");
 
-    const custom = useInspirationStore((state) => state.custom);
-    const overrides = useInspirationStore((state) => state.overrides);
-    const hidden = useInspirationStore((state) => state.hidden);
-    const favorites = useInspirationStore((state) => state.favorites);
+    const storedCustom = useInspirationStore((state) => state.custom);
+    const storedOverrides = useInspirationStore((state) => state.overrides);
+    const storedHidden = useInspirationStore((state) => state.hidden);
+    const storedFavorites = useInspirationStore((state) => state.favorites);
     const hydrated = useInspirationStore((state) => state.hydrated);
+    const hydrationScope = useInspirationStore((state) => state.hydrationScope);
+    const hydrationError = useInspirationStore((state) => state.hydrationError);
+    const localRecordsReady = hydrated && hydrationScope === userScope;
+    const canManageLibrary = isAdmin && !embedded && localRecordsReady;
+    const custom = localRecordsReady ? storedCustom : EMPTY_OVERLAY.custom;
+    const overrides = localRecordsReady ? storedOverrides : EMPTY_OVERLAY.overrides;
+    const hidden = localRecordsReady ? storedHidden : EMPTY_OVERLAY.hidden;
+    const favorites = localRecordsReady ? storedFavorites : NO_FAVORITES;
     const createEntry = useInspirationStore((state) => state.createEntry);
     const updateEntry = useInspirationStore((state) => state.updateEntry);
     const removeEntry = useInspirationStore((state) => state.removeEntry);
@@ -109,11 +125,30 @@ export default function InspirationsPage() {
     const debouncedSearch = useDebouncedValue(search, 250);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(24);
+    const pageRef = useRef<HTMLElement>(null);
+    const previousPagination = useRef({ page, pageSize });
+
+    useLayoutEffect(() => {
+        const previous = previousPagination.current;
+        if (embedded && (previous.page !== page || previous.pageSize !== pageSize) && pageRef.current) {
+            pageRef.current.scrollTop = 0;
+        }
+        previousPagination.current = { page, pageSize };
+    }, [embedded, page, pageSize]);
 
     const [detail, setDetail] = useState<CreationInspiration | null>(null);
     const [editorOpen, setEditorOpen] = useState(false);
     const [editing, setEditing] = useState<CreationInspiration | null>(null);
     const importRef = useRef<HTMLInputElement>(null);
+    const favoriteSavingRef = useRef(false);
+    const [favoriteSaving, setFavoriteSaving] = useState(false);
+
+    useEffect(() => {
+        setDetail(null);
+        setEditing(null);
+        setEditorOpen(false);
+        void useInspirationStore.persist.rehydrate();
+    }, [userScope]);
 
     useEffect(() => {
         let cancelled = false;
@@ -135,12 +170,13 @@ export default function InspirationsPage() {
         setPage(1);
     }, [source, modeFilter, category, view, sort, debouncedSearch, pageSize, dayKey]);
 
-    /** 管理视图对普通用户不可见，也就不该停在这上面（例如管理员被降级后留在该视图）。 */
+    /** 管理视图不向普通用户和嵌入浏览开放，切换能力后也不能停留在隐藏视图。 */
     useEffect(() => {
-        if (!isAdmin) setView((current) => (current === "hidden" ? "all" : current));
-    }, [isAdmin]);
+        if (!localRecordsReady) setView("all");
+        else if (!canManageLibrary) setView((current) => (current === "hidden" ? "all" : current));
+    }, [canManageLibrary, localRecordsReady]);
 
-    const viewOptions = useMemo(() => (isAdmin ? VIEW_OPTIONS : VIEW_OPTIONS.filter((option) => option.value !== "hidden")), [isAdmin]);
+    const viewOptions = useMemo(() => VIEW_OPTIONS.filter((option) => option.value === "all" || (localRecordsReady && (option.value !== "hidden" || canManageLibrary))), [canManageLibrary, localRecordsReady]);
 
     const overlay = useMemo(() => ({ custom, overrides, hidden }), [custom, hidden, overrides]);
     const resolved = useMemo(() => (catalog ? resolveInspirations(catalog.entries, overlay) : []), [catalog, overlay]);
@@ -245,19 +281,53 @@ export default function InspirationsPage() {
 
     const handleUse = useCallback(
         (item: CreationInspiration) => {
+            if (onUse) {
+                onUse(item);
+                return;
+            }
             navigate("/create", { state: { inspirationPrompt: fillablePrompt(item), inspirationMode: item.mode } });
         },
-        [navigate],
+        [navigate, onUse],
+    );
+
+    const handlePreview = useCallback(
+        (item: CreationInspiration) => {
+            if (onPreview) {
+                onPreview(item);
+                return;
+            }
+            setDetail(item);
+        },
+        [onPreview],
     );
 
     const handleCopy = useCallback(
-        (text: string, label: string) => {
-            void navigator.clipboard.writeText(text).then(
-                () => message.success(`${label}已复制`),
-                () => message.error("复制失败，请手动选中文本"),
-            );
+        async (text: string, label: string) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                message.success(`${label}已复制`);
+            } catch {
+                message.error("复制失败，请手动选中文本");
+            }
         },
         [message],
+    );
+
+    const handleFavorite = useCallback(
+        async (id: string) => {
+            if (!localRecordsReady || favoriteSavingRef.current) return;
+            favoriteSavingRef.current = true;
+            setFavoriteSaving(true);
+            try {
+                await toggleFavorite(id);
+            } catch {
+                if (useInspirationStore.getState().hydrationScope === userScope) message.error("收藏修改未保存，请重试");
+            } finally {
+                favoriteSavingRef.current = false;
+                setFavoriteSaving(false);
+            }
+        },
+        [localRecordsReady, message, toggleFavorite, userScope],
     );
 
     const handleDelete = useCallback(
@@ -325,7 +395,7 @@ export default function InspirationsPage() {
      * 页头那组按钮全是改库动作（导入 / 导出 / 新建灵感），只给管理员。
      * 普通用户整组不渲染——游标指向的隐藏 file input 也一并去掉，免得留下一个没有入口的控件。
      */
-    const headerActions = isAdmin ? (
+    const headerActions = canManageLibrary ? (
         <>
             <Button icon={<Import className="size-4" />} onClick={() => importRef.current?.click()}>
                 导入
@@ -361,19 +431,39 @@ export default function InspirationsPage() {
     const total = catalog ? resolved.length + hiddenItems.length : 0;
 
     return (
-        <WorkspacePage>
-            <PageHeader title="灵感库" description={`${total} 条提示词，每日推荐轮换，新上架的排在前面，点开可以一键带去创作页`} actions={headerActions} />
+        <WorkspacePage ref={pageRef} className={embedded ? "inspiration-library-embedded min-h-0" : undefined}>
+            {embedded ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs leading-5 text-foreground/58">共 {total} 条灵感，点卡片预览，也可复制提示词或带回创作区。</p>
+                    {headerActions ? <div className="flex flex-wrap items-center gap-2">{headerActions}</div> : null}
+                </div>
+            ) : (
+                <PageHeader title="灵感库" description={`${total} 条提示词，每日推荐轮换，新上架的排在前面，点开可以一键带去创作页`} actions={headerActions} />
+            )}
+
+            {!localRecordsReady ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs leading-5 text-foreground/65" role={hydrationError ? "alert" : "status"}>
+                    <span>{hydrationError || "正在读取本地灵感记录，当前先展示公共目录。"}</span>
+                    {hydrationError ? (
+                        <Button size="small" onClick={() => void useInspirationStore.persist.rehydrate()}>
+                            重试本地记录
+                        </Button>
+                    ) : null}
+                </div>
+            ) : null}
 
             {loadError ? (
                 <WorkspaceErrorState title="灵感目录加载失败" description={loadError} onRetry={() => setReloadKey((key) => key + 1)} />
-            ) : !catalog || !hydrated ? (
+            ) : !catalog ? (
                 <WorkspaceLoadingState label="正在加载灵感目录" detail="首次进入需要拉取全量目录，之后会走浏览器缓存" rows={4} />
             ) : (
                 <div className="mt-4 flex flex-col gap-4">
                     {/* 图片 / 视频 / 文本是两大主类，放在最上面做一级筛选。 */}
                     <div className="flex flex-wrap items-center gap-3">
                         <SegmentedControl options={modeOptions} value={modeFilter} onChange={(value) => setModeFilter(value as ModeFilter)} ariaLabel="按创作类型筛选" />
-                        <span className="text-xs text-foreground/50" role="status">共 {visible.length} 条{freshCount ? ` · 本周上新 ${freshCount} 条` : ""}</span>
+                        <span className="text-xs text-foreground/50" role="status">
+                            共 {visible.length} 条{freshCount ? ` · 本周上新 ${freshCount} 条` : ""}
+                        </span>
                     </div>
 
                     {/* 分类标签是二级筛选：一眼看到库里都有什么，点一下就能缩小范围。 */}
@@ -423,11 +513,13 @@ export default function InspirationsPage() {
                                         className="inspiration-card"
                                         tabIndex={0}
                                         role="button"
-                                        onClick={() => setDetail(item)}
+                                        aria-label={`预览灵感：${item.title}`}
+                                        onClick={() => handlePreview(item)}
                                         onKeyDown={(event) => {
+                                            if (event.target !== event.currentTarget) return;
                                             if (event.key === "Enter" || event.key === " ") {
                                                 event.preventDefault();
-                                                setDetail(item);
+                                                handlePreview(item);
                                             }
                                         }}
                                     >
@@ -441,17 +533,19 @@ export default function InspirationsPage() {
                                                     <button
                                                         type="button"
                                                         className="inspiration-card-action"
+                                                        aria-label={`${favorite ? "取消收藏" : "收藏"}：${item.title}`}
                                                         aria-pressed={favorite}
+                                                        disabled={!localRecordsReady || favoriteSaving}
                                                         onClick={(event) => {
                                                             event.stopPropagation();
-                                                            toggleFavorite(id);
+                                                            void handleFavorite(id);
                                                         }}
                                                     >
                                                         <Heart className="size-3.5" fill={favorite ? "currentColor" : "none"} />
                                                     </button>
                                                 </Tooltip>
                                                 {/* 编辑 / 隐藏 / 恢复都是改库动作，只给管理员。 */}
-                                                {!isAdmin ? null : view === "hidden" ? (
+                                                {!canManageLibrary ? null : view === "hidden" ? (
                                                     <Tooltip title="恢复显示">
                                                         <button
                                                             type="button"
@@ -497,6 +591,30 @@ export default function InspirationsPage() {
                                                 {item.ratio ? <span className="inspiration-chip">{item.ratio}</span> : null}
                                                 {item.credit ? <span className="inspiration-chip">{item.credit}</span> : null}
                                             </div>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <Button
+                                                    size="small"
+                                                    icon={<Copy className="size-3.5" />}
+                                                    aria-label={`复制提示词：${item.title}`}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        void handleCopy(fillablePrompt(item), "提示词");
+                                                    }}
+                                                >
+                                                    复制提示词
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    icon={<Wand2 className="size-3.5" />}
+                                                    aria-label={`带进创作区：${item.title}`}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        handleUse(item);
+                                                    }}
+                                                >
+                                                    带进创作区
+                                                </Button>
+                                            </div>
                                         </div>
                                     </article>
                                 );
@@ -511,8 +629,10 @@ export default function InspirationsPage() {
                     )}
 
                     <PaginationBar
+                        className={embedded ? "inspiration-library-pagination" : undefined}
                         current={page}
                         pageSize={pageSize}
+                        pageSizeOptions={[24, 48, 96]}
                         total={visible.length}
                         onChange={(next, size) => {
                             setPage(next);
@@ -522,38 +642,42 @@ export default function InspirationsPage() {
                 </div>
             )}
 
-            <InspirationDetailModal
-                item={detail}
-                favorite={detail ? favorites.includes(catalogIdOf(detail)) : false}
-                categoryLabel={categoryLabel}
-                onClose={() => setDetail(null)}
-                onUse={handleUse}
-                onCopy={handleCopy}
-                onToggleFavorite={(item) => toggleFavorite(catalogIdOf(item))}
-                /* 编辑 / 删除不传就是不渲染——弹窗自己按「有没有这几个 prop」决定底栏左侧那一组，
+            {!onPreview ? (
+                <InspirationDetailModal
+                    item={detail}
+                    favorite={detail ? favorites.includes(catalogIdOf(detail)) : false}
+                    categoryLabel={categoryLabel}
+                    onClose={() => setDetail(null)}
+                    onUse={handleUse}
+                    onCopy={handleCopy}
+                    onToggleFavorite={localRecordsReady ? (item) => void handleFavorite(catalogIdOf(item)) : undefined}
+                    /* 编辑 / 删除不传就是不渲染——弹窗自己按「有没有这几个 prop」决定底栏左侧那一组，
                    所以普通用户打开详情只看到「收藏 / 关闭 / 用这个创意创作」。 */
-                onEdit={
-                    isAdmin
-                        ? (item) => {
-                              setDetail(null);
-                              setEditing(item);
-                              setEditorOpen(true);
-                          }
-                        : undefined
-                }
-                onDelete={isAdmin ? handleDelete : undefined}
-            />
+                    onEdit={
+                        canManageLibrary
+                            ? (item) => {
+                                  setDetail(null);
+                                  setEditing(item);
+                                  setEditorOpen(true);
+                              }
+                            : undefined
+                    }
+                    onDelete={canManageLibrary ? handleDelete : undefined}
+                />
+            ) : null}
 
-            <InspirationEditorModal
-                open={editorOpen}
-                item={editing}
-                categoryOptions={categoryChoices}
-                onClose={() => {
-                    setEditorOpen(false);
-                    setEditing(null);
-                }}
-                onSubmit={handleSubmit}
-            />
+            {canManageLibrary ? (
+                <InspirationEditorModal
+                    open={editorOpen}
+                    item={editing}
+                    categoryOptions={categoryChoices}
+                    onClose={() => {
+                        setEditorOpen(false);
+                        setEditing(null);
+                    }}
+                    onSubmit={handleSubmit}
+                />
+            ) : null}
         </WorkspacePage>
     );
 }

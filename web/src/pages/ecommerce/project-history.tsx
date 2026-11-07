@@ -6,6 +6,7 @@ import { deleteEcommerceProjects, listEcommerceProjectPage, projectDraft, projec
 import { parseBackendGenerationResult } from "@/services/api/generation-task";
 import { resourceStorageKey, resolveResourceVariantUrl } from "@/services/api/resources";
 import type { GenerationTask } from "@/services/api/task-center";
+import { refreshCommerceFeatureAccess } from "./feature-access";
 
 const statusLabels: Record<string, string> = {
     draft: "草稿",
@@ -208,6 +209,7 @@ export function EcommerceProjectHistory({
         if (!deleteTarget || deleting) return;
         setDeleting(true);
         try {
+            await refreshCommerceFeatureAccess();
             const all = deleteTarget.kind === "all";
             const result = await deleteEcommerceProjects({ ...(all ? { all: true } : { ids: deleteTarget.ids }), expectedTotal: deleteTarget.count });
             onDeleted(deleteTarget.ids, all);

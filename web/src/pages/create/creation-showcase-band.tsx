@@ -1,25 +1,18 @@
-import { useRef } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Popover } from "antd";
+import { ArrowUpRight, X } from "lucide-react";
 
+import { catalogIdOf, curatedInspirations, declaredInspirationSources, inspirationCategoryLabel, inspirationSourceOf, type CreationInspiration, type InspirationCategoryLabels, type InspirationSourceInfo } from "@/lib/inspirations/catalog";
+import { localDayKey, orderInspirationsByLatest } from "@/lib/inspirations/daily-order";
+import { getPublicInspirationFeed, publicInspirationFeedQueryKey } from "@/services/api/inspiration-feed";
+import { inspirationFeedEntries } from "@/services/inspiration-catalog";
+
+import CreationInspirationDialog from "./creation-inspiration-dialog";
 import type { CreationMode } from "./creation-types";
 import "./creation-showcase-band.css";
 
-/**
- * 首页的作品带。
- *
- * 为什么需要它：首页主体只有标题、输入框和一行 Agent 提示条，1600×1000 下下面近一半是空的；
- * 「继续创作」在未登录时只是一个空态框，撑不起页面。这一条负责把「这套工具能出什么」摆出来。
- * （实测数据见 `.workbuddy/memory/2026-10-30.md`）
- *
- * 形态是**自动向左滚动的一整条**，不是可拖动的横向滚动区：
- * - 结构上把同一组卡片渲染两遍，轨道整体 `translateX(-50%)`，因为两段宽度完全相等，
- *   接缝处不会有跳帧（不会出现「滚到头再跳回开头」）。
- * - 视口 `overflow: hidden` + 两端渐隐遮罩，所以永远不出现横向滚动条。
- * - 鼠标移入 / 键盘聚焦 → `animation-play-state: paused`；移开继续，位置不重置。
- * - 卡片悬停时视频才 `play()`，`preload="none"` 不进首屏带宽。
- *
- * 它和「能力入口卡」不是一类东西：这里展示的是**输出效果** —— 每张封面都对应一条能直接
- * 粘进创作区跑出来的提示词，点一下就把提示词带回去，只写片名和题材。
- */
+/** 首页作品带优先展示后台上新，未满一组时补内置示例；两份等宽集合用于无缝滚动。 */
 
 type ShowcaseEntry = {
     id: string;
@@ -30,8 +23,13 @@ type ShowcaseEntry = {
     poster: string;
     /** 悬停才播放的示例片段。 */
     video?: string;
-    /** 点卡片时带进创作区的提示词。 */
+    /** 详情中可复制或带进创作区的提示词。 */
     prompt: string;
+    source?: InspirationSourceInfo;
+    credit?: string;
+    sourceUrl?: string;
+    isFeed?: boolean;
+    inspiration?: CreationInspiration;
 };
 
 const SHOWCASE: ShowcaseEntry[] = [
@@ -210,36 +208,188 @@ const SHOWCASE: ShowcaseEntry[] = [
     },
 ];
 
-export function CreationShowcaseBand({ onStartPrompt }: { onStartPrompt: (mode: CreationMode, prompt: string) => void }) {
+const MODE_LABELS: Record<CreationMode, string> = { text: "文本", image: "图片", video: "视频" };
+const SHOWCASE_LIMIT = 21;
+
+function showcaseEntryOf(item: CreationInspiration, labels: InspirationCategoryLabels = {}): ShowcaseEntry {
+    return {
+        id: catalogIdOf(item),
+        title: item.title,
+        genre: `${MODE_LABELS[item.mode]} · ${item.category ? inspirationCategoryLabel(item, labels) : item.description || "创作灵感"}`,
+        mode: item.mode,
+        poster: item.image,
+        prompt: item.prompt,
+        source: item.sourceId && item.sourceId !== "original" ? inspirationSourceOf(item) : undefined,
+        credit: item.credit,
+        sourceUrl: item.sourceUrl,
+        isFeed: Boolean(item.addedAt),
+        inspiration: item,
+    };
+}
+
+const BUILTIN_SHOWCASE = [...SHOWCASE, ...curatedInspirations.map((item) => showcaseEntryOf(item))];
+
+export function CreationShowcaseBand({ mode, onStartPrompt, sourcesVisible = false }: { mode: CreationMode; onStartPrompt: (mode: CreationMode, prompt: string) => void; sourcesVisible?: boolean }) {
+    const [dialog, setDialog] = useState<{ item?: CreationInspiration; video?: string } | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const feed = useQuery({
+        queryKey: publicInspirationFeedQueryKey,
+        queryFn: ({ signal }) => getPublicInspirationFeed(signal),
+        staleTime: 60_000,
+        refetchOnMount: "always",
+        retry: false,
+    });
+    const entries = useMemo(() => {
+        const latest = orderInspirationsByLatest(
+            inspirationFeedEntries(feed.data ?? null).filter((item) => item.mode === mode),
+            localDayKey(),
+        )
+            .slice(0, SHOWCASE_LIMIT)
+            .map((item) => showcaseEntryOf(item, feed.data?.categories));
+        const seen = new Set<string>();
+        return [...latest, ...BUILTIN_SHOWCASE.filter((item) => item.mode === mode)]
+            .filter((item) => {
+                if (seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+            })
+            .slice(0, SHOWCASE_LIMIT);
+    }, [feed.data, mode]);
+
+    const previewEntry = (entry: ShowcaseEntry) => {
+        setDialog({
+            item: entry.inspiration ?? { id: entry.id, title: entry.title, description: entry.genre, image: entry.poster, mode: entry.mode, prompt: entry.prompt, sourceId: "original" },
+            video: entry.video,
+        });
+        setDialogOpen(true);
+    };
+
     return (
-        <section className="creation-showcase" aria-labelledby="creation-showcase-title">
+        <section className="creation-showcase" aria-labelledby="creation-showcase-title" data-preview-open={dialogOpen || undefined}>
             <header className="creation-showcase-head">
-                <h2 id="creation-showcase-title">看看能拍成什么样</h2>
-                <p>点一张把提示词带进创作区</p>
+                <div className="creation-showcase-heading">
+                    <h2 id="creation-showcase-title">看看能拍成什么样</h2>
+                    {sourcesVisible ? <ShowcaseSources key={mode} entries={entries} /> : null}
+                </div>
+                <button
+                    type="button"
+                    className="creation-showcase-hall-entry"
+                    onClick={() => {
+                        setDialog({});
+                        setDialogOpen(true);
+                    }}
+                >
+                    灵感大厅 <ArrowUpRight size={14} aria-hidden="true" />
+                </button>
             </header>
-            <div className="creation-showcase-viewport">
-                <div className="creation-showcase-track">
-                    <ShowcaseSet onStartPrompt={onStartPrompt} />
+            {feed.isError ? (
+                <p className="creation-showcase-status" role="status">
+                    灵感上新暂时无法加载{feed.data ? "，当前保留已加载内容" : "，当前展示内置示例"}。
+                    <button type="button" onClick={() => void feed.refetch()} disabled={feed.isFetching}>
+                        重新加载
+                    </button>
+                </p>
+            ) : null}
+            <div key={mode} className="creation-showcase-viewport" aria-label={`${MODE_LABELS[mode]}灵感作品`}>
+                <div className="creation-showcase-track" style={{ "--showcase-entry-count": entries.length } as CSSProperties}>
+                    <ShowcaseSet entries={entries} onPreview={previewEntry} />
                     {/* 第二份只为了无缝衔接：不参与无障碍树，也不抢 Tab 焦点。 */}
-                    <ShowcaseSet onStartPrompt={onStartPrompt} clone />
+                    <ShowcaseSet entries={entries} onPreview={previewEntry} clone />
                 </div>
             </div>
+            {dialog ? <CreationInspirationDialog open={dialogOpen} initialItem={dialog.item} initialVideo={dialog.video} onClose={() => setDialogOpen(false)} afterClose={() => setDialog(null)} onUse={onStartPrompt} /> : null}
         </section>
     );
 }
 
-function ShowcaseSet({ onStartPrompt, clone = false }: { onStartPrompt: (mode: CreationMode, prompt: string) => void; clone?: boolean }) {
+function ShowcaseSources({ entries }: { entries: ShowcaseEntry[] }) {
+    const [open, setOpen] = useState(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const close = () => {
+        setOpen(false);
+        triggerRef.current?.focus();
+    };
+    const credited = entries.filter((entry) => entry.source);
+
+    return (
+        <span
+            className="creation-inspiration-credit"
+            onKeyDown={(event) => {
+                if (event.key === "Escape" && open) {
+                    event.stopPropagation();
+                    close();
+                }
+            }}
+        >
+            <Popover
+                open={open}
+                onOpenChange={setOpen}
+                trigger="click"
+                placement="bottomLeft"
+                align={{ overflow: { adjustX: true, adjustY: true, shiftX: true, shiftY: true } }}
+                arrow={false}
+                autoAdjustOverflow
+                destroyOnHidden
+                classNames={{ root: "creation-inspiration-credit-popover", container: "creation-inspiration-credit-surface" }}
+                content={
+                    <section className="creation-inspiration-credit-panel" role="dialog" aria-label="素材来源">
+                        <header>
+                            <strong>素材来源</strong>
+                            <button type="button" aria-label="关闭素材来源" onClick={close}>
+                                <X size={16} aria-hidden="true" />
+                            </button>
+                        </header>
+                        <div className="creation-inspiration-credit-scroll">
+                            {declaredInspirationSources().map((source) => (
+                                <p key={source.name ?? source.label}>
+                                    {source.notice}{" "}
+                                    {source.repository ? (
+                                        <a href={source.repository} target="_blank" rel="noreferrer">
+                                            {source.name} · {source.license}
+                                        </a>
+                                    ) : null}
+                                </p>
+                            ))}
+                            {credited.length ? (
+                                <section className="creation-inspiration-credit-works" aria-label="当前作品署名">
+                                    <h3>当前作品署名</h3>
+                                    <ul>
+                                        {credited.map((entry) => (
+                                            <li key={entry.id}>
+                                                <a href={entry.sourceUrl || entry.source?.repository} target="_blank" rel="noreferrer">
+                                                    {entry.title}
+                                                </a>
+                                                <span>{[entry.credit, entry.source?.name, entry.source?.license].filter(Boolean).join(" · ")}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </section>
+                            ) : null}
+                        </div>
+                    </section>
+                }
+            >
+                <button ref={triggerRef} type="button" className="creation-inspiration-credit-trigger" aria-expanded={open} aria-haspopup="dialog">
+                    素材来源
+                </button>
+            </Popover>
+        </span>
+    );
+}
+
+function ShowcaseSet({ entries, onPreview, clone = false }: { entries: ShowcaseEntry[]; onPreview: (entry: ShowcaseEntry) => void; clone?: boolean }) {
     return (
         <ul className="creation-showcase-set" aria-hidden={clone || undefined}>
-            {SHOWCASE.map((entry) => (
-                <ShowcaseCard key={entry.id} entry={entry} clone={clone} onStart={() => onStartPrompt(entry.mode, entry.prompt)} />
+            {entries.map((entry) => (
+                <ShowcaseCard key={entry.id} entry={entry} clone={clone} onPreview={() => onPreview(entry)} />
             ))}
         </ul>
     );
 }
 
-function ShowcaseCard({ entry, onStart, clone }: { entry: ShowcaseEntry; onStart: () => void; clone: boolean }) {
+function ShowcaseCard({ entry, onPreview, clone }: { entry: ShowcaseEntry; onPreview: () => void; clone: boolean }) {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [failedPoster, setFailedPoster] = useState<string | null>(null);
 
     // 只在悬停 / 聚焦时播放：十几张卡同时解码会把首屏拖死，静音预览本来也只是「看一眼运镜」。
     const start = () => {
@@ -259,17 +409,20 @@ function ShowcaseCard({ entry, onStart, clone }: { entry: ShowcaseEntry; onStart
 
     return (
         <li className="creation-showcase-item">
-            <button type="button" className="creation-showcase-card" tabIndex={clone ? -1 : undefined} aria-label={`用「${entry.title}」的提示词开始创作`} onClick={onStart} onPointerEnter={start} onPointerLeave={stop} onFocus={start} onBlur={stop}>
+            <button type="button" className="creation-showcase-card" tabIndex={clone ? -1 : undefined} aria-label={`预览灵感：${entry.title}`} onClick={onPreview} onPointerEnter={start} onPointerLeave={stop} onFocus={start} onBlur={stop}>
                 <span className="creation-showcase-cover">
                     {entry.video ? (
                         <video ref={videoRef} src={entry.video} poster={entry.poster} muted loop playsInline preload="none" aria-hidden="true" tabIndex={-1} />
+                    ) : failedPoster === entry.poster ? (
+                        <span className="creation-showcase-unavailable">封面暂不可用</span>
                     ) : (
-                        <img src={entry.poster} alt="" width={1280} height={720} loading="lazy" decoding="async" draggable={false} />
+                        <img src={entry.poster} alt="" width={1280} height={720} loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} onError={() => setFailedPoster(entry.poster)} />
                     )}
                     {entry.video ? <span className="creation-showcase-badge">示例片段</span> : null}
+                    {entry.isFeed ? <span className="creation-showcase-badge">灵感上新</span> : null}
                 </span>
                 <span className="creation-showcase-copy">
-                    <strong>{entry.title}</strong>
+                    <strong title={entry.title}>{entry.title}</strong>
                     <span>{entry.genre}</span>
                 </span>
             </button>

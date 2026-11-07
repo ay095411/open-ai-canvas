@@ -315,7 +315,7 @@
 }
 
 /* 只缩不放：max-* 会让浏览器按内在比例重算另一边，不会压变形。 */
-.inspiration-detail-media img {
+.inspiration-detail-media :is(img, video) {
     display: block;
     width: auto;
     height: auto;

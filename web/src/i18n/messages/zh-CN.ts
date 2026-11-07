@@ -38,7 +38,7 @@ export const zhCN = {
         sidebar: {
             home: "创作",
             projects: "短剧制作",
-            ecommerce: "电商 Agent",
+            ecommerce: "电商Agent",
             canvas: "自由画布",
             toolboxImage: "图片生成",
             toolboxVideo: "视频生成",

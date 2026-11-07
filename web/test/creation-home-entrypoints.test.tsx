@@ -7,7 +7,7 @@ import { CreationHomeAgentEntry } from "../src/pages/create/creation-home-featur
 function renderEntry(openingAgentCanvas = false) {
     return renderToStaticMarkup(
         <MemoryRouter>
-            <CreationHomeAgentEntry onOpenAgentNewCanvas={() => {}} openingAgentCanvas={openingAgentCanvas} />
+            <CreationHomeAgentEntry onOpenAgentNewCanvas={() => {}} onOpenHistory={() => {}} openingAgentCanvas={openingAgentCanvas} />
         </MemoryRouter>,
     );
 }
@@ -17,6 +17,7 @@ test("home retains Agent collaboration without creation chooser or resource tool
     expect(html).toContain("需要一起梳理素材和镜头？");
     expect(html).toContain("新建画布，与 Agent 创作");
     expect(html).toContain('href="/canvas?agent=1"');
+    expect(html).toContain("历史对话");
     for (const removed of ["选择创作方式", "资源与工具", 'href="/toolbox/image"', 'href="/projects"', 'href="/assets"', 'href="/skills"', 'href="/plugins"', "<video", "<img"]) expect(html).not.toContain(removed);
     const page = readFileSync(new URL("../src/pages/create/index.tsx", import.meta.url), "utf8");
     expect(page).toContain("<CreationHomeAgentEntry");

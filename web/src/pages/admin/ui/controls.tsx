@@ -23,6 +23,7 @@ export function AdminSwitch({
     onChange?: (checked: boolean) => void;
     className?: string;
     "aria-label"?: string;
+    "aria-describedby"?: string;
 }) {
     return <AntSwitch {...props} size={size === "sm" ? "small" : "default"} className={cn("admin-switch", className)} onChange={(checked) => props.onChange?.(checked)} />;
 }

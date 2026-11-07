@@ -147,6 +147,24 @@ test("non-image server response cannot become a reference and duplicate IDs need
     expect(calls).toBe(1);
 });
 
+test("write access revoked during a batch preserves accepted uploads and stops the remaining files", async () => {
+    let calls = 0;
+    let allowed = true;
+    apiClient.defaults.adapter = async (config) => {
+        calls++;
+        allowed = false;
+        return { data: { code: 0, data: { resource: resource("accepted") } }, status: 200, statusText: "OK", headers: {}, config };
+    };
+    const result = await importCommerceImageTransfer({ files: [new File(["image"], "one.png"), new File(["image"], "two.png"), new File(["image"], "three.png")] }, "primary", {
+        assertWrite: () => {
+            if (!allowed) throw new Error("创作影棚暂未开放");
+        },
+    });
+    expect(calls).toBe(1);
+    expect(result.references.map((reference) => reference.resourceId)).toEqual(["accepted"]);
+    expect(result.errors).toEqual(["创作影棚暂未开放"]);
+});
+
 test("account switch during upload discards the result and stops the batch", async () => {
     setActiveUserScope("before");
     let calls = 0;

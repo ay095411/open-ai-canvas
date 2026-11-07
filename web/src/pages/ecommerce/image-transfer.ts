@@ -107,6 +107,7 @@ export async function importCommerceImageTransfer(
         existingResourceIds?: string[];
         maxReferences?: number;
         onProgress?: (message: string) => void;
+        assertWrite?: () => void;
     } = {},
 ): Promise<{ references: EcommerceReference[]; errors: string[] }> {
     const scope = getActiveUserScope();
@@ -134,6 +135,12 @@ export async function importCommerceImageTransfer(
             assertScope();
             if (references.length >= capacity) {
                 errors.push("参考图片已达上限，剩余图片未上传");
+                break;
+            }
+            try {
+                options.assertWrite?.();
+            } catch (cause) {
+                errors.push(cause instanceof Error ? cause.message : "图片导入已停止，剩余图片未上传");
                 break;
             }
             try {
@@ -166,9 +173,11 @@ export async function importCommerceImageTransfer(
         const blob = await response.blob();
         assertScope();
         const file = normalizeCommerceImageFile(new File([blob], "网页图片", { type: blob.type }));
+        options.assertWrite?.();
         add(await uploadResourceFile(file, "image", { fileName: "网页图片" }), "网页图片");
     } else {
         // The existing import endpoint performs URL, redirects, network and content validation.
+        options.assertWrite?.();
         add(await importResourceFromUrl(url, "image"), "网页图片");
     }
     return { references, errors };

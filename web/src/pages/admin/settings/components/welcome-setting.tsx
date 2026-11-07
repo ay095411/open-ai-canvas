@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { App, Button } from "antd";
 import { Switch } from "@/pages/admin/ui/controls";
 import { getAdminFeatureAvailability, updateAdminFeatureAvailability } from "@/services/api/auth";
-import { useUserStore } from "@/stores/use-user-store";
+import { applyFeatureAvailability, notifyFeatureAvailabilityChanged } from "@/services/feature-availability";
 
 export function WelcomeSetting() {
     const { message } = App.useApp();
@@ -10,7 +10,6 @@ export function WelcomeSetting() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [revision, setRevision] = useState(0);
-    const setFeatures = useUserStore((state) => state.setFeatures);
 
     useEffect(() => {
         let active = true;
@@ -35,7 +34,8 @@ export function WelcomeSetting() {
             const { features } = await updateAdminFeatureAvailability({ welcomeEnabled: value });
             if (features.welcomeEnabled !== value) throw new Error("欢迎页状态未保存，请重试");
             setEnabled(features.welcomeEnabled);
-            setFeatures(features);
+            applyFeatureAvailability(features);
+            notifyFeatureAvailabilityChanged();
             message.success(value ? "欢迎页已启用" : "欢迎页已关闭");
         } catch (error) {
             message.error(error instanceof Error ? error.message : "保存欢迎页状态失败");

@@ -1,6 +1,6 @@
 import { useId, useState, type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Clapperboard, History, Layers3, PanelsTopLeft } from "lucide-react";
+import { ArrowUpRight, Clapperboard, Layers3, PanelsTopLeft } from "lucide-react";
 import { Link } from "react-router";
 
 import { ProjectPreview } from "@/components/canvas/canvas-project-card";
@@ -20,9 +20,7 @@ const RECENT_COUNT = 6;
 const updatedFormatter = new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 type RecentTab = "canvas" | "drama";
 
-export type CreationRecentProjectsProps = { onOpenHistory: () => void };
-
-export function CreationRecentProjects({ onOpenHistory }: CreationRecentProjectsProps) {
+export function CreationRecentProjects() {
     const userId = useUserStore((state) => state.user?.id);
     const hydrated = useUserStore((state) => state.hydrated);
     const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled);
@@ -31,10 +29,10 @@ export function CreationRecentProjects({ onOpenHistory }: CreationRecentProjects
     if (!hydrated) return null;
 
     // 会话变化时卸载旧查询与媒体，既不读取本地画布，也不保留上一账号的卡片或选中项。
-    return <RecentProjects key={userId ?? "guest"} userId={userId} shortDramaEnabled={shortDramaEnabled} onOpenHistory={onOpenHistory} />;
+    return <RecentProjects key={userId ?? "guest"} userId={userId} shortDramaEnabled={shortDramaEnabled} />;
 }
 
-function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRecentProjectsProps & { userId?: string; shortDramaEnabled: boolean }) {
+function RecentProjects({ userId, shortDramaEnabled }: { userId?: string; shortDramaEnabled: boolean }) {
     const guest = !userId;
     const [selectedTab, setSelectedTab] = useState<RecentTab>("canvas");
     const tab = shortDramaEnabled && !guest ? selectedTab : "canvas";
@@ -71,19 +69,15 @@ function RecentProjects({ userId, shortDramaEnabled, onOpenHistory }: CreationRe
         <section className="creation-recent-projects" aria-labelledby={`${id}-title`}>
             <header className="creation-recent-projects-heading">
                 <h2 id={`${id}-title`}>继续创作</h2>
-                <div className="creation-recent-projects-actions">
-                    <button type="button" onClick={onOpenHistory}>
-                        <History aria-hidden="true" />
-                        历史对话
-                    </button>
-                    {/* 游客不给「查看全部」：列表页要登录，点过去只会被弹回来，下面那块里已经有登录入口。 */}
-                    {guest ? null : (
+                {/* 游客不给「查看全部」：下面的空态已经有登录入口。 */}
+                {guest ? null : (
+                    <div className="creation-recent-projects-actions">
                         <Link to={tab === "canvas" ? "/canvas" : "/projects"}>
                             查看全部
                             <ArrowUpRight aria-hidden="true" />
                         </Link>
-                    )}
-                </div>
+                    </div>
+                )}
             </header>
             {shortDramaEnabled && !guest ? (
                 <div className="creation-recent-projects-tabs" role="tablist" aria-label="继续创作类型">

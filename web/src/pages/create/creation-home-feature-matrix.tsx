@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, History } from "lucide-react";
 import type { MouseEvent } from "react";
 import { Link } from "react-router";
 
@@ -10,17 +10,23 @@ function guardHomeLink(event: MouseEvent<HTMLAnchorElement>, to: string) {
     if (!mayNavigateWithAuth(to)) event.preventDefault();
 }
 
-export function CreationHomeAgentEntry({ onOpenAgentNewCanvas, openingAgentCanvas }: { onOpenAgentNewCanvas: () => void; openingAgentCanvas: boolean }) {
+export function CreationHomeAgentEntry({ onOpenAgentNewCanvas, openingAgentCanvas, onOpenHistory }: { onOpenAgentNewCanvas: () => void; openingAgentCanvas: boolean; onOpenHistory: () => void }) {
     return (
         <section className="creation-home-agent-entry" aria-label="画布 Agent 协作">
-            <span>需要一起梳理素材和镜头？</span>
-            <button type="button" disabled={openingAgentCanvas} onClick={onOpenAgentNewCanvas}>
-                {openingAgentCanvas ? "正在新建画布…" : "新建画布，与 Agent 创作"}
-                <ArrowUpRight aria-hidden="true" />
+            <div className="creation-home-agent-links">
+                <span>需要一起梳理素材和镜头？</span>
+                <button type="button" disabled={openingAgentCanvas} onClick={onOpenAgentNewCanvas}>
+                    {openingAgentCanvas ? "正在新建画布…" : "新建画布，与 Agent 创作"}
+                    <ArrowUpRight aria-hidden="true" />
+                </button>
+                <Link to="/canvas?agent=1" onClick={(event) => guardHomeLink(event, "/canvas?agent=1")}>
+                    使用已有画布
+                </Link>
+            </div>
+            <button type="button" className="creation-home-history-entry" onClick={onOpenHistory}>
+                <History aria-hidden="true" />
+                历史对话
             </button>
-            <Link to="/canvas?agent=1" onClick={(event) => guardHomeLink(event, "/canvas?agent=1")}>
-                使用已有画布
-            </Link>
         </section>
     );
 }

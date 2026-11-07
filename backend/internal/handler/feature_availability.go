@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 
 	"yingce/backend/internal/service"
@@ -20,6 +22,7 @@ func RegisterFeatureAvailabilityRoutes(r *gin.RouterGroup, svc *service.Service)
 	})
 
 	r.GET("/features", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store")
 		// 公开：功能开关同时决定游客侧栏的菜单显隐，无敏感数据。
 		// （/public/welcome 已经公开同一个配置，这里没有再拦的理由。）
 		setting, err := svc.FeatureAvailability()
@@ -31,6 +34,7 @@ func RegisterFeatureAvailabilityRoutes(r *gin.RouterGroup, svc *service.Service)
 	})
 
 	r.GET("/admin/settings/features", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store")
 		user, err := currentUser(c, svc)
 		if err != nil {
 			failService(c, err)
@@ -50,18 +54,22 @@ func RegisterFeatureAvailabilityRoutes(r *gin.RouterGroup, svc *service.Service)
 			failService(c, err)
 			return
 		}
-		current, err := svc.AdminFeatureAvailability(user)
-		if err != nil {
+		if err := svc.RequireAdmin(user); err != nil {
 			failService(c, err)
 			return
 		}
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
-		req := current.FeatureAvailability
-		if err := c.ShouldBindJSON(&req); err != nil {
+		var req service.FeatureAvailabilityPatch
+		decoder := json.NewDecoder(c.Request.Body)
+		if err := decoder.Decode(&req); err != nil {
 			fail(c, http.StatusBadRequest, err)
 			return
 		}
-		setting, err := svc.UpdateFeatureAvailability(user, req)
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			failService(c, service.BadAuthRequest("功能开放配置只能包含一个 JSON 对象"))
+			return
+		}
+		setting, err := svc.PatchFeatureAvailability(user, req)
 		if err != nil {
 			failService(c, err)
 			return

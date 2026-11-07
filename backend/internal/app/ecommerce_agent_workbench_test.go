@@ -62,6 +62,9 @@ func TestEcommerceWorkbenchDirectionsTaskSnapshotReceiptAndOwner(t *testing.T) {
 	t.Setenv("TEXT_API_KEY", "")
 	t.Setenv("CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS", "127.0.0.1")
 	svc, db, _, _ := ecommerceCreationTestService(t)
+	features := defaultFeatureAvailability()
+	features.EcommerceEnabled = true
+	saveAdmissionFeatures(t, svc, features)
 	if err := db.AutoMigrate(&model.EcommerceCreativeRecommendation{}); err != nil {
 		t.Fatal(err)
 	}

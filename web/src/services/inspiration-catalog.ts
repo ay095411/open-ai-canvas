@@ -75,15 +75,16 @@ function isWebLink(value: string | undefined, httpsOnly = false) {
     }
 }
 
-/** 静态目录已有的条目以静态目录为准（带人工译审和本地缩略图），上新只补目录里没有的。 */
-function mergeFeed(entriesBySource: Map<InspirationSourceId, CreationInspiration[]>, feed: InspirationFeed | null, labelsOf: (sourceId: InspirationSourceId) => Record<string, string>) {
-    if (!feed?.enabled) return;
-    const known = new Set([...entriesBySource.values()].flat().map(catalogIdOf));
+/** 首页作品带与全量目录共用上新条目的校验、去重和来源信息。 */
+export function inspirationFeedEntries(feed: InspirationFeed | null, labelsOf: (sourceId: InspirationSourceId) => Record<string, string> = (sourceId) => feed?.categories?.[sourceId] ?? {}): CreationInspiration[] {
+    if (!feed?.enabled) return [];
+    const known = new Set<string>();
+    const entries: CreationInspiration[] = [];
     for (const entry of feed.entries) {
         const sourceId = entry.sourceId as InspirationSourceId;
-        if (!FEED_SOURCES.has(sourceId) || known.has(entry.id) || !entry.title || !entry.prompt || !isWebLink(entry.image, true)) continue;
+        if (!FEED_SOURCES.has(sourceId) || !entry.id?.trim() || known.has(entry.id) || !entry.title?.trim() || !entry.prompt?.trim() || !["text", "image", "video"].includes(entry.mode) || !isWebLink(entry.image, true)) continue;
         known.add(entry.id);
-        entriesBySource.get(sourceId)?.push({
+        entries.push({
             id: entry.id,
             title: entry.title,
             // 与静态目录一致：没有中文摘要时用分类名做描述。
@@ -99,6 +100,15 @@ function mergeFeed(entriesBySource: Map<InspirationSourceId, CreationInspiration
             ...(isWebLink(entry.sourceUrl) ? { sourceUrl: entry.sourceUrl } : {}),
             ...(entry.publishedAt ? { publishedAt: entry.publishedAt } : {}),
         });
+    }
+    return entries;
+}
+
+/** 静态目录已有的条目以静态目录为准（带人工译审和本地缩略图），上新只补目录里没有的。 */
+function mergeFeed(entriesBySource: Map<InspirationSourceId, CreationInspiration[]>, feed: InspirationFeed | null, labelsOf: (sourceId: InspirationSourceId) => Record<string, string>) {
+    const known = new Set([...entriesBySource.values()].flat().map(catalogIdOf));
+    for (const entry of inspirationFeedEntries(feed, labelsOf)) {
+        if (!known.has(catalogIdOf(entry))) entriesBySource.get(entry.sourceId!)?.push(entry);
     }
 }
 

@@ -1,10 +1,11 @@
-/* 电商作品区（方案与作品）。卡片只有媒体底色一层，标题与操作排在媒体下方；--ecs-motion 来自 .ecs-shell。 */
+/* 作品审阅与交付：媒体优先，批次靠分隔线区分；颜色与字体沿用用户主题。 */
 .commerce-output-gallery {
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
     height: 100%;
+    container: commerce-works / inline-size;
     color: var(--user-ink);
 }
 .commerce-output-gallery-header {
@@ -13,26 +14,42 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    min-height: 44px;
-    /* 栏头现在长在卡片里（外层 14px 内边距），左右不再需要自己的留白。 */
-    padding: 0 0 var(--space-3);
+    padding: var(--space-1) var(--space-1) var(--space-4);
 }
 .commerce-output-title {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
+    display: grid;
+    gap: var(--space-1);
     min-width: 0;
 }
+.commerce-output-eyebrow {
+    color: var(--user-ink-soft);
+    font-size: var(--fs-label);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+}
 .commerce-output-title h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
     margin: 0;
-    font-size: var(--fs-heading);
+    font-size: var(--fs-heading-lg);
     font-weight: 600;
     letter-spacing: var(--ls-title, 0);
+    line-height: var(--lh-tight, 1.3);
+    white-space: nowrap;
 }
-.commerce-output-title span {
+.commerce-output-total {
     color: var(--user-ink-soft);
-    font-size: var(--fs-caption);
+    font-size: var(--fs-heading);
+    font-weight: 400;
     font-variant-numeric: tabular-nums;
+}
+.commerce-output-title p {
+    margin: var(--space-1) 0 0;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    line-height: var(--lh-body);
+    white-space: nowrap;
 }
 .commerce-output-tools {
     display: flex;
@@ -40,49 +57,103 @@
     align-items: center;
     gap: var(--space-2);
 }
+.commerce-output-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    margin: 0 var(--space-1) var(--space-5);
+    border-bottom: 1px solid var(--user-border);
+}
 .commerce-output-filters {
-    display: inline-flex;
-    gap: 2px;
-    padding: 3px;
-    border-radius: var(--r-lg);
-    background: var(--user-surface-muted);
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-4);
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
 }
 .commerce-output-filters button {
+    position: relative;
     display: inline-flex;
+    flex: none;
     align-items: center;
-    gap: 4px;
-    height: 26px;
-    padding: 0 var(--space-3);
+    gap: var(--space-1);
+    min-height: var(--space-10);
+    padding: 0 0 var(--space-2);
     border: 0;
-    border-radius: var(--r-md);
+    border-bottom: 2px solid transparent;
     background: transparent;
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
+    white-space: nowrap;
     cursor: pointer;
+    transition: color var(--ecs-motion);
 }
 .commerce-output-filters button:hover {
     color: var(--user-ink);
 }
 .commerce-output-filters button[aria-pressed="true"] {
-    background: var(--user-surface);
+    border-bottom-color: var(--user-ink);
     color: var(--user-ink);
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--user-ink) 10%, transparent);
+    font-weight: 600;
 }
 .commerce-output-filters button span {
+    min-width: var(--space-4);
     color: var(--user-ink-soft);
+    font-size: var(--fs-label);
+    font-weight: 400;
     font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+.commerce-output-selection {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-2);
+    padding-bottom: var(--space-2);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    white-space: nowrap;
+}
+.commerce-output-selection button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: var(--space-8);
+    padding: 0 var(--space-2);
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    cursor: pointer;
+}
+.commerce-output-selection button:hover:not(:disabled) {
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
+}
+.commerce-output-selection button:disabled {
+    color: var(--user-ink-soft);
+    cursor: not-allowed;
+}
+.commerce-output-gallery :is(button, a, input):focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--ring);
+    outline-offset: 2px;
 }
 .commerce-output-scroll {
     display: grid;
     flex: 1 1 auto;
     align-content: start;
-    gap: var(--space-4);
+    gap: var(--space-5);
     min-height: 0;
     overflow-y: auto;
-    padding: 0 var(--space-1) var(--space-6);
+    padding: var(--space-1) var(--space-1) var(--space-6);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--user-ink) 18%, transparent) transparent;
+    scrollbar-color: var(--user-border-strong) transparent;
 }
 .commerce-output-scroll:has(> .commerce-output-empty) {
     align-content: stretch;
@@ -92,87 +163,109 @@
     align-content: center;
     justify-items: center;
     gap: var(--space-2);
-    min-height: 320px;
-    padding: var(--space-6);
-    border-radius: var(--r-2xl);
-    /* 作品区整块已经是 --user-surface 卡片，空态再用同色会没有边界，改用浅一档的底。 */
-    background: var(--user-surface-muted);
+    min-height: 260px;
+    padding: var(--space-6) var(--space-4);
+    color: var(--user-ink-soft);
     text-align: center;
 }
-.commerce-output-empty-mark {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    margin-bottom: var(--space-1);
-    border-radius: var(--r-lg);
-    background: var(--user-surface-muted);
-    color: var(--user-ink-muted);
-}
 .commerce-output-empty strong {
+    color: var(--user-ink-muted);
     font-size: var(--fs-body);
-    font-weight: 600;
+    font-weight: 500;
+    line-height: var(--lh-body);
 }
-.commerce-output-empty > span:last-child {
-    max-width: 40ch;
+.commerce-output-empty p {
+    max-width: 100%;
+    margin: 0;
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
     line-height: var(--lh-body);
+    overflow-wrap: anywhere;
 }
 .commerce-output-batches {
     display: grid;
-    gap: var(--space-4);
+    gap: var(--space-8);
 }
 .commerce-output-batch {
     display: grid;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    border-radius: var(--r-2xl);
-    background: var(--user-surface);
+    gap: var(--space-4);
+    min-width: 0;
+}
+.commerce-output-batch + .commerce-output-batch {
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--user-border);
 }
 .commerce-output-batch > header {
     display: flex;
-    align-items: baseline;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+}
+.commerce-output-batch > header > div {
+    display: flex;
+    align-items: center;
     gap: var(--space-2);
+    white-space: nowrap;
 }
 .commerce-output-batch > header strong {
-    font-size: var(--fs-ui);
+    font-size: var(--fs-body);
     font-weight: 600;
 }
-.commerce-output-batch > header span,
-.commerce-output-filter-empty {
+.commerce-output-batch > header span {
     margin: 0;
     color: var(--user-ink-soft);
     font-size: var(--fs-caption);
+    line-height: var(--lh-body);
 }
 .commerce-output-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(264px, 100%), 1fr));
     align-items: start;
-    gap: var(--space-4) var(--space-3);
+    gap: var(--space-6) var(--space-5);
 }
 .commerce-output-card {
     display: grid;
     gap: var(--space-2);
     min-width: 0;
 }
+.commerce-output-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-width: 0;
+    min-height: var(--space-6);
+}
+.commerce-output-card-number {
+    color: var(--user-ink-muted);
+    font-size: var(--fs-label);
+    font-variant-numeric: tabular-nums;
+}
 .commerce-output-card-frame {
     position: relative;
     overflow: hidden;
+    border: 1px solid var(--user-border);
     border-radius: var(--r-md);
     background: var(--user-surface-muted);
+    transition: border-color var(--ecs-motion);
+}
+.commerce-output-card:hover .commerce-output-card-frame {
+    border-color: var(--user-border-strong);
 }
 .commerce-output-card.is-selected .commerce-output-card-frame {
-    box-shadow: 0 0 0 2px var(--user-ink);
+    border-color: var(--user-ink);
+    box-shadow: 0 0 0 1px var(--user-ink);
 }
 .commerce-output-card-media {
     display: grid;
     width: 100%;
-    min-height: 160px;
+    min-height: 220px;
     place-items: center;
     padding: 0;
     border: 0;
     background: transparent;
+    color: inherit;
     cursor: zoom-in;
 }
 .commerce-output-card-media:disabled {
@@ -181,102 +274,186 @@
 .commerce-output-card-media > .commerce-result-image-shell {
     width: 100%;
 }
-.commerce-output-card-check {
+.commerce-output-preview-hint {
     position: absolute;
-    top: var(--space-2);
-    left: var(--space-2);
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
+    right: var(--space-3);
+    bottom: var(--space-3);
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--user-border);
     border-radius: var(--r-sm);
-    background: rgba(16, 16, 20, 0.5);
+    background: var(--user-surface);
+    color: var(--user-ink);
+    font-size: var(--fs-label);
     opacity: 0;
+    pointer-events: none;
     transition: opacity var(--ecs-motion);
 }
-.commerce-output-card:is(:hover, :focus-within, .is-selected) .commerce-output-card-check {
+.commerce-output-card:is(:hover, :focus-within) .commerce-output-preview-hint {
     opacity: 1;
 }
+.commerce-output-pending-artwork,
 .commerce-output-empty-card {
     display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--space-3);
     width: 100%;
-    min-height: 200px;
-    place-items: center;
-    padding: var(--space-4);
-    color: var(--user-ink-muted);
+    min-height: 240px;
+    padding: var(--space-6);
+    color: var(--user-ink-soft);
     font-size: var(--fs-caption);
     line-height: var(--lh-body);
     text-align: center;
     overflow-wrap: anywhere;
 }
-.commerce-output-card-meta {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+.commerce-output-pending-artwork strong,
+.commerce-output-empty-card strong {
+    color: var(--user-ink-muted);
+    font-size: var(--fs-body);
+    font-weight: 500;
+}
+.commerce-output-pending-artwork > span:last-child,
+.commerce-output-empty-card > span:last-child {
+    max-width: 24ch;
+}
+.commerce-output-pending-layout {
+    display: grid;
     gap: var(--space-2);
+    width: 45%;
+    min-width: 84px;
+    max-width: 124px;
+    margin-bottom: var(--space-2);
+    animation: commerce-output-breathe 2.4s ease-in-out infinite;
+}
+.commerce-output-pending-layout i {
+    height: var(--space-1);
+    border-radius: var(--r-xs);
+    background: var(--user-border-strong);
+}
+.commerce-output-pending-layout i:first-child {
+    aspect-ratio: 5 / 4;
+    height: auto;
+    margin-bottom: var(--space-1);
+    border: 1px solid var(--user-border-strong);
+    background: var(--user-surface);
+}
+.commerce-output-pending-layout i:last-child {
+    width: 60%;
+}
+.commerce-output-card-meta {
+    display: grid;
+    gap: var(--space-1);
     min-width: 0;
+    padding-top: var(--space-1);
 }
 .commerce-output-card-title {
+    display: block;
+    color: var(--user-ink);
+    font-size: var(--fs-body);
+    font-weight: 500;
+    line-height: var(--lh-body);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.commerce-output-card-spec {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    min-width: 0;
-    overflow: hidden;
-}
-.commerce-output-card-title strong {
-    flex: none;
-    font-size: var(--fs-caption);
-    font-weight: 600;
-}
-.commerce-output-card-title small {
-    overflow: hidden;
+    align-items: center;
+    gap: var(--space-1);
     color: var(--user-ink-soft);
-    font-size: var(--fs-caption);
-    text-overflow: ellipsis;
+    font-size: var(--fs-label);
     white-space: nowrap;
 }
 .commerce-output-status {
-    flex: none;
-    color: var(--user-ink-soft);
-    font-size: var(--fs-caption);
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-1);
+    min-width: 0;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-label);
 }
-.commerce-output-card[data-status="failed"] .commerce-output-status {
+.commerce-output-status > svg {
+    flex: none;
+}
+.commerce-output-status > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.commerce-output-card[data-status="failed"] .commerce-output-status,
+.commerce-output-card-error {
     color: var(--status-error);
 }
-.commerce-output-card[data-status="working"] .commerce-output-status {
-    color: var(--user-ink-muted);
-}
 .commerce-output-card-copy {
-    display: -webkit-box;
     margin: 0;
-    overflow: hidden;
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
     line-height: var(--lh-body);
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.commerce-output-card-error {
+    margin: 0;
+    font-size: var(--fs-caption);
+    line-height: var(--lh-body);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 .commerce-output-issue {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
     margin: 0;
     color: var(--status-warning);
     font-size: var(--fs-caption);
+    line-height: var(--lh-body);
+}
+.commerce-output-issue svg {
+    flex: none;
+    margin-top: 2px;
 }
 .commerce-output-card > footer {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 2px;
+    gap: var(--space-1);
+    padding-top: var(--space-1);
     margin-left: calc(var(--space-2) * -1);
+}
+.commerce-output-card > footer > button,
+.commerce-output-tools > :is(button, a) {
+    flex: none;
+    white-space: nowrap;
+}
+.commerce-output-card > footer .commerce-output-remove {
+    margin-left: auto;
+    color: var(--user-ink-soft);
+}
+.commerce-output-filter-empty {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--space-3);
+    min-height: 280px;
+    padding: var(--space-6);
+    color: var(--user-ink-soft);
+    text-align: center;
+}
+.commerce-output-filter-empty strong {
+    color: var(--user-ink);
+    font-size: var(--fs-body);
+    font-weight: 500;
 }
 .commerce-output-preview {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
-    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    gap: var(--space-6);
     max-height: min(72vh, 820px);
 }
 .commerce-output-preview > .commerce-result-image-shell {
     min-height: 0;
     max-height: min(72vh, 820px);
+    border-radius: var(--r-md);
     background: var(--user-surface-muted);
 }
 .commerce-output-preview > section {
@@ -286,14 +463,22 @@
     gap: var(--space-3);
     overflow: auto;
 }
+.commerce-output-preview h3 {
+    margin: 0;
+    font-size: var(--fs-heading-lg);
+    font-weight: 500;
+    line-height: var(--lh-body);
+}
 .commerce-output-preview > section > p {
     margin: 0;
     line-height: var(--lh-body);
 }
 .commerce-output-preview dl {
     display: grid;
-    gap: var(--space-2);
-    margin: 0;
+    gap: var(--space-3);
+    margin: var(--space-2) 0;
+    padding: var(--space-4) 0;
+    border-block: 1px solid var(--user-border);
 }
 .commerce-output-preview dl > div {
     display: flex;
@@ -302,68 +487,95 @@
     font-size: var(--fs-caption);
 }
 .commerce-output-preview dt {
+    flex: none;
     color: var(--user-ink-muted);
 }
 .commerce-output-preview dd {
+    min-width: 0;
     margin: 0;
+    overflow-wrap: anywhere;
     text-align: right;
 }
-
-@media (max-width: 760px) {
-    .commerce-output-grid {
-        grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
-    }
-    .commerce-output-preview {
-        grid-template-columns: minmax(0, 1fr);
-    }
-    .commerce-output-preview > .commerce-result-image-shell {
-        max-height: 48vh;
-    }
-    .commerce-output-card-check {
-        opacity: 1;
-    }
+/* 共享图片组件在审阅面板内使用安静的载入状态，不抢作品的视觉焦点。 */
+:is(.commerce-output-gallery, .commerce-output-preview) .commerce-progress-orbit {
+    width: var(--space-8);
+    height: var(--space-8);
+    margin-bottom: var(--space-1);
 }
-
-/* 流程进度：准备素材 → 选视觉方向 → 确认方案 → 生成图片 → 导出交付。只用前景色深浅区分状态，明暗主题共用。 */
+:is(.commerce-output-gallery, .commerce-output-preview) .commerce-progress-orbit i:first-child {
+    border-color: var(--user-border-strong);
+    border-top-color: var(--user-ink-muted);
+}
+:is(.commerce-output-gallery, .commerce-output-preview) .commerce-progress-orbit :is(img, i:nth-child(2), i:nth-child(3)),
+:is(.commerce-output-gallery, .commerce-output-preview) .commerce-progress-track {
+    display: none;
+}
+/* 流程只表达真实阶段；作品计数和生成状态由服务端任务给出。 */
 .commerce-flow {
     display: grid;
-    gap: var(--space-2);
-    margin: 0 var(--space-1) var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--r-2xl);
-    background: var(--user-surface);
+    gap: var(--space-3);
+    margin: 0 var(--space-1) var(--space-4);
+    padding: var(--space-3) 0 var(--space-4);
+    border-top: 1px solid var(--user-border);
 }
 .commerce-flow ol {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2) var(--space-4);
+    gap: var(--space-4);
     margin: 0;
     padding: 0;
+    overflow-x: auto;
     list-style: none;
+    scrollbar-width: none;
 }
 .commerce-flow-step {
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: var(--space-2);
     color: var(--user-ink-soft);
     font-size: var(--fs-caption);
+    white-space: nowrap;
+}
+.commerce-flow-step > button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--space-8);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-xs);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.commerce-flow-step > button:hover:not(:disabled) {
+    color: var(--user-ink);
+}
+.commerce-flow-step > button:disabled {
+    cursor: not-allowed;
+}
+.commerce-flow-step > button:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--ring);
+    outline-offset: 3px;
 }
 .commerce-flow-step + .commerce-flow-step::before {
     content: "";
-    width: 18px;
+    width: var(--space-5);
     height: 1px;
-    margin-right: var(--space-2);
-    background: var(--user-border-strong);
+    margin-right: var(--space-1);
+    background: var(--user-border);
 }
 .commerce-flow-dot {
     display: inline-grid;
     place-items: center;
-    width: 20px;
-    height: 20px;
+    width: var(--space-5);
+    height: var(--space-5);
     border: 1px solid var(--user-border-strong);
-    border-radius: 999px;
-    font-size: 11px;
+    border-radius: var(--r-full);
+    font-size: var(--fs-label);
     font-variant-numeric: tabular-nums;
 }
 .commerce-flow-step.is-done {
@@ -372,7 +584,7 @@
 .commerce-flow-step.is-done .commerce-flow-dot {
     border-color: transparent;
     background: var(--user-surface-muted);
-    color: var(--user-ink);
+    color: var(--user-ink-muted);
 }
 .commerce-flow-step.is-current {
     color: var(--user-ink);
@@ -389,35 +601,91 @@
     font-size: var(--fs-caption);
     line-height: var(--lh-body);
 }
-/* 本轮全部完成后的交付区：导出、做成视频、继续下一组都在这里。 */
 .commerce-delivery {
-    display: grid;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    border-radius: var(--r-2xl);
-    background: var(--user-surface);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-5) 0;
+    border-block: 1px solid var(--user-border);
 }
 .commerce-delivery header {
     display: grid;
-    gap: 2px;
+    gap: var(--space-1);
 }
 .commerce-delivery strong {
     color: var(--user-ink);
-    font-size: var(--fs-ui);
+    font-size: var(--fs-body);
     font-weight: 600;
 }
 .commerce-delivery p {
     margin: 0;
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
+    line-height: var(--lh-body);
 }
 .commerce-delivery-actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
 }
+.commerce-output-spin {
+    animation: commerce-output-turn 1.5s linear infinite;
+}
+@keyframes commerce-output-turn {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@keyframes commerce-output-breathe {
+    50% {
+        opacity: 0.45;
+    }
+}
+@container commerce-works (max-width: 620px) {
+    .commerce-output-gallery-header {
+        align-items: flex-start;
+    }
+    .commerce-output-tools {
+        width: 100%;
+    }
+    .commerce-output-filters {
+        width: 100%;
+        justify-content: space-between;
+        gap: var(--space-3);
+    }
+    .commerce-output-selection {
+        min-height: var(--space-8);
+    }
+    .commerce-output-grid {
+        grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+        gap: var(--space-6) var(--space-4);
+    }
+}
+@media (max-width: 760px) {
+    .commerce-output-preview {
+        grid-template-columns: minmax(0, 1fr);
+        max-height: none;
+    }
+    .commerce-output-preview > .commerce-result-image-shell {
+        max-height: 48vh;
+    }
+    .commerce-output-preview-hint {
+        opacity: 1;
+    }
+    .commerce-output-empty {
+        min-height: 220px;
+        padding: var(--space-6) var(--space-4);
+    }
+}
 @media (prefers-reduced-motion: reduce) {
+    .commerce-output-spin,
+    .commerce-output-pending-layout,
     .commerce-flow .commerce-planning-spin {
         animation: none;
+    }
+    .commerce-output-gallery :is(.commerce-output-card-frame, .commerce-output-preview-hint, .commerce-output-filters button) {
+        transition: none;
     }
 }

@@ -276,8 +276,8 @@ func (s *Service) CreateTask(userID string, req CreateTaskRequest) (*model.Task,
 	return taskForOutput(task), nil
 }
 
-// Admission uses server-owned workbench identity and an owned ecommerce project.
-// Client metadata can request a stricter gate, but cannot grant an exemption.
+// Ecommerce admission requires an owned project and is independent of the
+// standalone workbench. Client metadata alone cannot establish that ownership.
 func (s *Service) requireTaskGenerationFeatures(userID, projectID, taskType, operation, workbenchKind string, input map[string]any) error {
 	if operation == "yoru_assistant" {
 		actor, err := s.repo.User(userID)
@@ -288,14 +288,21 @@ func (s *Service) requireTaskGenerationFeatures(userID, projectID, taskType, ope
 	}
 	metadata, _ := input["metadata"].(map[string]any)
 	ecommerceID := strings.TrimSpace(stringValue(metadata["ecommerceProjectId"]))
+	projectID = strings.TrimSpace(projectID)
 	ecommerce := false
 	if ecommerceID != "" {
+		if projectID != "" && projectID != ecommerceID {
+			return BadAuthRequest("任务关联的电商项目不一致")
+		}
 		if _, err := s.repo.EcommerceProject(userID, ecommerceID); err != nil {
-			return NotFound("电商项目不存在")
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return NotFound("电商项目不存在")
+			}
+			return err
 		}
 		ecommerce = true
 	}
-	if projectID = strings.TrimSpace(projectID); projectID != "" && projectID != ecommerceID {
+	if projectID != "" && projectID != ecommerceID {
 		if _, err := s.repo.EcommerceProject(userID, projectID); err == nil {
 			ecommerce = true
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -320,13 +327,11 @@ func (s *Service) requireTaskGenerationFeatures(userID, projectID, taskType, ope
 	// evidence so a mismatched public request cannot weaken media admission.
 	if isVideoTaskType(taskType) || stringValue(input["mode"]) == "video" || workbenchKind == WorkbenchKindVideo {
 		if ecommerce {
-			if err := s.RequireFeature(FeatureEcommerceVideo); err != nil {
-				return err
-			}
+			return s.RequireFeature(FeatureEcommerceVideo)
 		}
 		return s.RequireFeature(FeatureVideoWorkbench)
 	}
-	if taskType == "canvas_image" || stringValue(input["mode"]) == "image" || workbenchKind == WorkbenchKindImage {
+	if !ecommerce && (taskType == "canvas_image" || stringValue(input["mode"]) == "image" || workbenchKind == WorkbenchKindImage) {
 		return s.RequireFeature(FeatureImageWorkbench)
 	}
 	return nil

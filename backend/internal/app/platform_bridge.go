@@ -19,6 +19,7 @@ type (
 	PublicRuntimePolicySetting = platform.PublicRuntimePolicySetting
 	PublicRuntimeLimits        = platform.PublicRuntimeLimits
 	FeatureAvailability        = platform.FeatureAvailability
+	FeatureAvailabilityPatch   = platform.FeatureAvailabilityPatch
 	PublicFeatureAvailability  = platform.PublicFeatureAvailability
 )
 
@@ -126,6 +127,10 @@ func (s *Service) AdminFeatureAvailability(actor *model.User) (*PublicFeatureAva
 
 func (s *Service) UpdateFeatureAvailability(actor *model.User, value FeatureAvailability) (*PublicFeatureAvailability, error) {
 	return s.platformDomain().UpdateFeatureAvailability(actor, value)
+}
+
+func (s *Service) PatchFeatureAvailability(actor *model.User, patch FeatureAvailabilityPatch) (*PublicFeatureAvailability, error) {
+	return s.platformDomain().PatchFeatureAvailability(actor, patch)
 }
 
 func (s *Service) FeatureEnabled(feature string) (bool, error) {

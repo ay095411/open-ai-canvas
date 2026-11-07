@@ -2,17 +2,19 @@ import { Check, LoaderCircle } from "lucide-react";
 import type { CommerceFlowStep } from "./flow";
 
 /** 作品区顶部的流程进度：每一步一个圆点，当前步写明正在做什么、下一步做什么。 */
-export function CommerceFlowSteps({ steps }: { steps: CommerceFlowStep[] }) {
+export function CommerceFlowSteps({ steps, onNavigate }: { steps: CommerceFlowStep[]; onNavigate?: (step: CommerceFlowStep["key"]) => void }) {
     const current = steps.find((step) => step.status === "current");
     return (
         <nav className="commerce-flow" aria-label="创作流程">
             <ol>
                 {steps.map((step, index) => (
                     <li key={step.key} className={`commerce-flow-step is-${step.status}`} aria-current={step.status === "current" ? "step" : undefined}>
-                        <span className="commerce-flow-dot" aria-hidden="true">
-                            {step.status === "done" ? <Check size={12} strokeWidth={2.6} /> : step.running ? <LoaderCircle className="commerce-planning-spin" size={12} /> : index + 1}
-                        </span>
-                        <span className="commerce-flow-label">{step.label}</span>
+                        <button type="button" disabled={!onNavigate || step.status === "todo"} onClick={() => onNavigate?.(step.key)} aria-label={`查看${step.label}`}>
+                            <span className="commerce-flow-dot" aria-hidden="true">
+                                {step.status === "done" ? <Check size={12} strokeWidth={2.6} /> : step.running ? <LoaderCircle className="commerce-planning-spin" size={12} /> : index + 1}
+                            </span>
+                            <span className="commerce-flow-label">{step.label}</span>
+                        </button>
                     </li>
                 ))}
             </ol>

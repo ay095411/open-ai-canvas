@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { deleteEcommerceProjects, listEcommerceProjectPage, projectDraft, type EcommerceProject } from "@/services/api/ecommerce";
 import { resourceStorageKey } from "@/services/api/resources";
 import { CachedResourceImage } from "@/components/cached-resource-image";
+import { refreshCommerceFeatureAccess } from "./feature-access";
 
 function historyGroup(date: string) {
     const value = new Date(date);
@@ -90,6 +91,7 @@ export function CompactEcommerceHistory({
         if (!deleteTarget || deleting) return;
         setDeleting(true);
         try {
+            await refreshCommerceFeatureAccess();
             await deleteEcommerceProjects({ ids: [deleteTarget.id], expectedTotal: 1 });
             onDeleted([deleteTarget.id], false);
             setDeleteTarget(null);

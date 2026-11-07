@@ -1,10 +1,13 @@
 package platform
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"strings"
 	"time"
+
 	"yingce/backend/internal/kernel"
 
 	"yingce/backend/internal/model"
@@ -51,6 +54,101 @@ type FeatureAvailability struct {
 	SiteAssistantEnabled         bool `json:"siteAssistantEnabled"`
 	VideoRemakeEnabled           bool `json:"videoRemakeEnabled"`
 	GlobalAgentEnabled           bool `json:"globalAgentEnabled"`
+}
+
+// FeatureAvailabilityPatch contains only the switches explicitly submitted by
+// an administrator. Omitted switches retain their value at commit time.
+type FeatureAvailabilityPatch map[string]bool
+
+func (p *FeatureAvailabilityPatch) UnmarshalJSON(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	opening, err := decoder.Token()
+	if err != nil || opening != json.Delim('{') {
+		return kernel.BadAuthRequest("功能开放配置必须是 JSON 对象")
+	}
+	patch := FeatureAvailabilityPatch{}
+	for decoder.More() {
+		field, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		key, ok := field.(string)
+		if !ok {
+			return kernel.BadAuthRequest("功能开放配置字段无效")
+		}
+		if _, exists := patch[key]; exists {
+			return kernel.BadAuthRequest("功能开放配置字段不能重复")
+		}
+		token, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		enabled, ok := token.(bool)
+		if !ok {
+			return kernel.BadAuthRequest("功能开放配置必须使用布尔值")
+		}
+		patch[key] = enabled
+	}
+	if _, err := decoder.Token(); err != nil {
+		return err
+	}
+	if _, err := decoder.Token(); err != io.EOF {
+		return kernel.BadAuthRequest("功能开放配置只能包含一个 JSON 对象")
+	}
+	if _, err := patch.apply(FeatureAvailability{}); err != nil {
+		return err
+	}
+	*p = patch
+	return nil
+}
+
+func (p FeatureAvailabilityPatch) apply(value FeatureAvailability) (FeatureAvailability, error) {
+	if len(p) == 0 {
+		return value, kernel.BadAuthRequest("请至少提交一个功能开放配置")
+	}
+	for key, enabled := range p {
+		var field *bool
+		switch key {
+		case "welcomeEnabled":
+			field = &value.WelcomeEnabled
+		case "shortDramaEnabled":
+			field = &value.ShortDramaEnabled
+		case "taskCenterEnabled":
+			field = &value.TaskCenterEnabled
+		case "creditsEnabled":
+			field = &value.CreditsEnabled
+		case "customChannelsEnabled":
+			field = &value.CustomChannelsEnabled
+		case "frontendModelsEnabled":
+			field = &value.FrontendModelsEnabled
+		case "pluginCenterEnabled":
+			field = &value.PluginCenterEnabled
+		case "systemPluginsVisibleToUsers":
+			field = &value.SystemPluginsVisibleToUsers
+		case "inspirationSourcesVisible":
+			field = &value.InspirationSourcesVisible
+		case "timelineTranscriptionEnabled":
+			field = &value.TimelineTranscriptionEnabled
+		case "imageWorkbenchEnabled":
+			field = &value.ImageWorkbenchEnabled
+		case "videoWorkbenchEnabled":
+			field = &value.VideoWorkbenchEnabled
+		case "ecommerceEnabled":
+			field = &value.EcommerceEnabled
+		case "ecommerceVideoEnabled":
+			field = &value.EcommerceVideoEnabled
+		case "siteAssistantEnabled":
+			field = &value.SiteAssistantEnabled
+		case "videoRemakeEnabled":
+			field = &value.VideoRemakeEnabled
+		case "globalAgentEnabled":
+			field = &value.GlobalAgentEnabled
+		default:
+			return value, kernel.BadAuthRequest("未知功能开放配置字段")
+		}
+		*field = enabled
+	}
+	return value, nil
 }
 
 type PublicFeatureAvailability struct {
@@ -100,28 +198,55 @@ func (s *Service) AdminFeatureAvailability(actor *model.User) (*PublicFeatureAva
 }
 
 func (s *Service) UpdateFeatureAvailability(actor *model.User, value FeatureAvailability) (*PublicFeatureAvailability, error) {
+	return s.mutateFeatureAvailability(actor, func(FeatureAvailability) (FeatureAvailability, error) {
+		return value, nil
+	})
+}
+
+func (s *Service) PatchFeatureAvailability(actor *model.User, patch FeatureAvailabilityPatch) (*PublicFeatureAvailability, error) {
+	return s.mutateFeatureAvailability(actor, patch.apply)
+}
+
+func (s *Service) mutateFeatureAvailability(actor *model.User, apply func(FeatureAvailability) (FeatureAvailability, error)) (*PublicFeatureAvailability, error) {
 	if err := s.requireAdmin(actor); err != nil {
 		return nil, err
 	}
-	current, before, err := s.readFeatureAvailability()
+	if actor == nil || strings.TrimSpace(actor.ID) == "" {
+		return nil, kernel.Unauthorized("请先登录")
+	}
+	defaults, err := json.Marshal(DefaultFeatureAvailability())
 	if err != nil {
 		return nil, err
 	}
-	encoded, err := json.Marshal(value)
+	var value FeatureAvailability
+	setting, err := s.repo.MutateSystemSettingWithAudit(featureAvailabilitySettingKey, string(defaults), func(current *model.SystemSetting) (*model.AdminAuditEvent, error) {
+		before, err := decodeFeatureAvailability(current.ValueJSON)
+		if err != nil {
+			return nil, err
+		}
+		value, err = apply(before)
+		if err != nil {
+			return nil, err
+		}
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		metadata, err := json.Marshal(map[string]any{"before": before, "after": value})
+		if err != nil {
+			return nil, err
+		}
+		current.ValueJSON, current.UpdatedBy = string(encoded), actor.ID
+		return &model.AdminAuditEvent{
+			ID: kernel.NewID(), ActorUserID: actor.ID, Action: "feature_availability.update",
+			TargetType: "system_setting", TargetID: featureAvailabilitySettingKey,
+			Summary: "更新功能开放配置", MetadataJSON: string(metadata), CreatedAt: time.Now(),
+		}, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	setting := model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: string(encoded), UpdatedBy: actor.ID}
-	if current != nil {
-		setting.CreatedAt = current.CreatedAt
-	}
-	if err := s.repo.SaveSystemSetting(&setting); err != nil {
-		return nil, err
-	}
-	if err := s.appendAdminAudit(actor, "feature_availability.update", "system_setting", featureAvailabilitySettingKey, "更新功能开放配置", map[string]any{"before": before, "after": value}); err != nil {
-		return nil, err
-	}
-	return publicFeatureAvailability(&setting, value), nil
+	return publicFeatureAvailability(setting, value), nil
 }
 
 func (s *Service) FeatureEnabled(feature string) (bool, error) {
@@ -221,12 +346,17 @@ func (s *Service) readFeatureAvailability() (*model.SystemSetting, FeatureAvaila
 	if err != nil {
 		return nil, FeatureAvailability{}, err
 	}
-	// 以全开放默认值为基底，避免已有三字段配置在升级后因缺少新字段而意外关闭功能。
+	value, err := decodeFeatureAvailability(setting.ValueJSON)
+	return setting, value, err
+}
+
+func decodeFeatureAvailability(raw string) (FeatureAvailability, error) {
+	// 缺省字段沿用其当前默认值，已有配置不因增加新字段而被整体清空。
 	value := DefaultFeatureAvailability()
-	if strings.TrimSpace(setting.ValueJSON) == "" || json.Unmarshal([]byte(setting.ValueJSON), &value) != nil {
-		return nil, FeatureAvailability{}, errors.New("功能开放配置格式无效")
+	if strings.TrimSpace(raw) == "" || json.Unmarshal([]byte(raw), &value) != nil {
+		return FeatureAvailability{}, errors.New("功能开放配置格式无效")
 	}
-	return setting, value, nil
+	return value, nil
 }
 
 func publicFeatureAvailability(setting *model.SystemSetting, value FeatureAvailability) *PublicFeatureAvailability {

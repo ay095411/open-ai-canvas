@@ -16,6 +16,7 @@ import { SystemAnnouncementCenter } from "@/components/layout/system-announcemen
 import { cn } from "@/lib/utils";
 import { interceptAuthLink } from "@/lib/workspace-auth";
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
+import { workbenchEntryPath } from "@/lib/workbench-navigation";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { WorkspaceAccountCard } from "./workspace-account-card";
@@ -43,8 +44,7 @@ const sidebarIcons: Partial<Record<NavigationToolSlug, WorkspaceNavItem["icon"]>
     create: CreateNavIcon,
     projects: ProjectNavIcon,
     canvas: CanvasNavIcon,
-    // 大眼萌相机沿用旧「创作影棚」的图标：入口换成了新页面，视觉标识不换。
-    ecommerce: ToolboxNavIcon,
+    toolbox: ToolboxNavIcon,
     assets: AssetsNavIcon,
     skills: SkillsNavIcon,
     plugins: PluginsNavIcon,
@@ -61,11 +61,10 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
         {
             items: [
                 { ...toolItem("create", "/"), id: "home", title: "创作" },
-                // 「创作影棚」只有一个入口：原来 /toolbox/image|video 的生图 / 视频工作台已下线，
-                // 能力并入 /ecommerce 这一套流程，入口名与图标沿用「创作影棚」。
-                ...(features.ecommerceEnabled ? [{ ...toolItem("ecommerce", "/ecommerce"), id: "toolbox" }] : []),
+                ...(features.imageWorkbenchEnabled || features.videoWorkbenchEnabled ? [toolItem("toolbox", workbenchEntryPath(features))] : []),
                 { ...toolItem("canvas", "/canvas"), title: "自由画布" },
-                { ...toolItem("projects", "/projects"), title: "短剧 Agent" },
+                ...(features.shortDramaEnabled ? [{ ...toolItem("projects", "/projects"), title: "短剧 Agent" }] : []),
+                ...(features.ecommerceEnabled ? [toolItem("ecommerce", "/ecommerce")] : []),
             ],
         },
         {
@@ -198,13 +197,14 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
  * 折叠态窄轨里的两字标题。
  *
  * 带独立语义的菜单统一在这里登记，没登记的才退回前两字。
- * 「电商生图」默认会截成「电商」，语义已足够，因此不单独登记。
+ * 「电商Agent」在窄轨中显示为「电商」。
  */
 const COLLAPSED_NAV_TITLES: Record<string, string> = {
     home: "创作",
     projects: "短剧",
     canvas: "画布",
     toolbox: "影棚",
+    ecommerce: "电商",
     assets: "资产",
     skills: "Skills",
     plugins: "插件",
@@ -388,11 +388,8 @@ function NavGroup({ group, activeId, onNavigate, onOpenSearch, onLogout, collaps
     );
 }
 
-// 「创作影棚」保留 toolbox 这个 nav id（角标、折叠态两字标题、命令面板都按它登记），
-// 实际落地的路由是 /ecommerce；/toolbox* 只剩重定向，不再高亮成另一项。
 export function workspaceNavActiveId(pathname: string, section?: string | null) {
     const segments = pathname.split("/").filter(Boolean);
-    if (segments[0] === "ecommerce" || segments[0] === "toolbox") return "toolbox";
     const slug = segments[0] || "home";
     if (slug === "create") return "home";
     return slug === "settings" && section ? `settings:${section}` : slug;

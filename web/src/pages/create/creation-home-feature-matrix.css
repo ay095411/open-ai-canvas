@@ -3,24 +3,32 @@
     width: 100%;
     flex-direction: column;
     gap: var(--space-8);
-    /* 上边距交给输入框自己的 margin-bottom（20px）：两者相加会变成 52px，
-       而「一句话 Agent 提示条」在设计上应该贴着输入框，不另起一段。 */
-    margin: 0 auto var(--space-10);
+    margin: var(--space-5) auto var(--space-10);
 }
 
 /* 「需要一起梳理素材和镜头？」这一行是纯文字引导，不画卡：没有底色、没有描边，
    左右内边距也归零，让文字和上方输入框的左缘对齐（有卡时是 20px 内缩，看起来会缩进一块）。 */
 .creation-home-agent-entry {
-    display: flex;
+    display: grid;
     width: min(100%, var(--creation-stage-max-width));
     margin-inline: auto;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-4);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.6;
+}
+.creation-home-agent-links {
+    display: flex;
     min-width: 0;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2) var(--space-4);
-    color: var(--user-ink-muted);
-    font-size: var(--fs-caption);
-    line-height: 1.6;
+}
+.creation-home-history-entry {
+    white-space: nowrap;
 }
 .creation-home-agent-entry button,
 .creation-home-agent-entry a {
@@ -54,7 +62,7 @@
 }
 
 @media (max-width: 560px) {
-    .creation-home-agent-entry > span {
+    .creation-home-agent-links > span {
         flex-basis: 100%;
     }
 }
