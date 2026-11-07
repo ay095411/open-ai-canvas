@@ -6,6 +6,10 @@ import { startVerification, type VerificationDraft, type VerificationMethod, typ
 // 验证码输入框与「获取验证码」按钮同排显示：按钮贴右侧、竖线分隔。
 // 倒计时文案长度变化会撑动按钮宽度，因此按钮用 tabular-nums + nowrap 固定视觉节奏，
 // 输入框通过 flex: 1 吸收剩余宽度，避免每次倒计时跳一下布局。
+//
+// 不再画字段标题：每个框的占位符（手机号 / 接收验证码的邮箱 / 6 位数字验证码）已经说明用途，
+// 标题只是把同一句话说了两遍。可访问名改由 aria-label 提供——这也是为什么这里不能
+// 直接把 label 元素删掉了事。
 function CodeField({ label, value, onChange, onSend, sending, remaining, targetReady, disabled, placeholder, autoComplete, inputMode, sendLabel }: {
     label: string; value: string; onChange: (next: string) => void;
     onSend: () => void; sending: boolean; remaining: number; targetReady: boolean;
@@ -14,33 +18,31 @@ function CodeField({ label, value, onChange, onSend, sending, remaining, targetR
     const counting = remaining > 0;
     const blocked = disabled || sending || counting || !targetReady;
     return (
-        <label className="block space-y-2">
-            <span className="auth-scene-label text-xs font-medium">{label}</span>
-            <span className={`auth-code-field${sending ? " is-busy" : ""}`}>
-                <Input
-                    size="large"
-                    variant="borderless"
-                    prefix={<ShieldCheck className="auth-scene-icon size-4" />}
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    autoComplete={autoComplete}
-                    inputMode={inputMode}
-                    placeholder={placeholder}
-                    disabled={disabled || sending}
-                />
-                <Button
-                    className="auth-code-send"
-                    size="large"
-                    type="text"
-                    data-counting={counting ? "true" : "false"}
-                    loading={sending}
-                    disabled={blocked}
-                    onClick={onSend}
-                >
-                    {counting ? `${remaining} 秒后重发` : sendLabel}
-                </Button>
-            </span>
-        </label>
+        <div className={`auth-code-field${sending ? " is-busy" : ""}`}>
+            <Input
+                size="large"
+                variant="borderless"
+                prefix={<ShieldCheck className="auth-scene-icon size-4" />}
+                aria-label={label}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                autoComplete={autoComplete}
+                inputMode={inputMode}
+                placeholder={placeholder}
+                disabled={disabled || sending}
+            />
+            <Button
+                className="auth-code-send"
+                size="large"
+                type="text"
+                data-counting={counting ? "true" : "false"}
+                loading={sending}
+                disabled={blocked}
+                onClick={onSend}
+            >
+                {counting ? `${remaining} 秒后重发` : sendLabel}
+            </Button>
+        </div>
     );
 }
 
@@ -81,9 +83,10 @@ export function VerificationFields({ purpose, method, value, onChange, disabled 
     const sendLabel = method === "sms_email" ? "获取验证码" : "获取验证码";
     // 每个字段都带同一个位置的前缀图标：全部输入框独占一行之后，图标的有无会直接
     // 变成「文字左边缘对不对齐」，缺一个就看得出来。
-    return <div className="flex flex-col gap-4">
-        {sms && <label className="block space-y-2"><span className="auth-scene-label text-xs font-medium">手机号</span><Input size="large" prefix={<Smartphone className="auth-scene-icon size-4" />} value={value.phone} onChange={(e) => changeTarget("phone", e.target.value)} autoComplete="tel" inputMode="tel" placeholder="中国大陆手机号，支持 +86" required disabled={disabled || sending} /></label>}
-        {email && <label className="block space-y-2"><span className="auth-scene-label text-xs font-medium">邮箱</span><Input size="large" type="email" prefix={<Mail className="auth-scene-icon size-4" />} value={value.email} onChange={(e) => changeTarget("email", e.target.value)} autoComplete="email" placeholder="接收验证码的邮箱" required disabled={disabled || sending} /></label>}
+    // 间距跟外层表单的 gap-2.5 对齐：这段是表单的一部分，不该自带一套更大的节奏。
+    return <div className="flex flex-col gap-2.5">
+        {sms && <Input size="large" aria-label="手机号" prefix={<Smartphone className="auth-scene-icon size-4" />} value={value.phone} onChange={(e) => changeTarget("phone", e.target.value)} autoComplete="tel" inputMode="tel" placeholder="中国大陆手机号，支持 +86" required disabled={disabled || sending} />}
+        {email && <Input size="large" type="email" aria-label="邮箱" prefix={<Mail className="auth-scene-icon size-4" />} value={value.email} onChange={(e) => changeTarget("email", e.target.value)} autoComplete="email" placeholder="接收验证码的邮箱" required disabled={disabled || sending} />}
         {/* 双通道（sms_email）一次请求同时下发两种验证码，此时按钮文案不区分通道。 */}
         {(sms || email) && (
             <CodeField

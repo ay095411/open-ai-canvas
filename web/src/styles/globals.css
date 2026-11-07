@@ -10733,16 +10733,27 @@
         box-shadow: 0 0 0 var(--focus-ring-width) color-mix(in srgb, var(--ring) 16%, transparent);
     }
 
-    /* 内层 input 必须把内边距和最小高度全部让给容器：外层已经给了 14px + 48px，
+    /* 内层 input 必须把边框和最小高度全部让给容器：外层已经给了 14px + 48px，
        这里再留一份就会变成「白底细边里再套一个白底细边」的双层框。 */
     .auth-code-field .ant-input,
     .auth-code-field .ant-input-affix-wrapper {
         min-height: 0 !important;
-        padding: 0 14px !important;
+        /* ⚠️ 这里必须清零，不能跟 wrapper 一样写 14px。
+           本行结构是 wrapper(14px) > prefix 图标 > input，两层都取 14px 时
+           文字左边缘 = 行左 + 14 + 图标宽 + 间距 + 14，比同列其他输入框
+           右移 14px（实测 890 vs 876），就是「6 位数字验证码没跟左边对齐」的根因。
+           分层 !important 又高于文件末尾未分层的 `.ant-input-affix-wrapper > .ant-input`
+           归零规则，所以只能在这里单独压。 */
+        padding: 0 !important;
         border: 0 !important;
         border-radius: 0 !important;
         background: transparent !important;
         box-shadow: none !important;
+    }
+
+    /* 水平内边距只由 affix-wrapper 提供：图标起点与同列其他字段一致（848）。 */
+    .auth-code-field .ant-input-affix-wrapper {
+        padding-inline: 14px !important;
     }
 
     .auth-code-field .ant-input:focus,
