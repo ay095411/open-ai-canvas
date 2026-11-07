@@ -74,7 +74,12 @@ describe("登录 / 注册 / 找回密码弹窗", () => {
         expect(logout).toContain("await applyUserSession({ user: null })");
         expect(logout).toContain("openWorkspaceAuth()");
         expect(logout).toContain("message.error(");
-        expect(source("pages/canvas/shared.tsx")).toContain('to="/login"');
+        // 分享页的登录入口走 AuthLoginLink（内部才是 `/login` 深链 + interceptAuthLink）。
+        expect(source("pages/canvas/shared.tsx")).toContain("<AuthLoginLink");
+        const link = source("components/auth/auth-login-link.tsx");
+        // 真实地址由 authPageURL 生成（= /login?next=…），普通点击再被 openDialog 截成弹窗。
+        expect(link).toContain("authPageURL(view, location.pathname + location.search)");
+        expect(link).toContain("openDialog(view, null)");
     });
 
     test("弹窗尺寸固定、三种模式共用一个外框", () => {
@@ -90,8 +95,11 @@ describe("登录 / 注册 / 找回密码弹窗", () => {
         expect(modal).toContain("workspace-auth-modal");
         expect(modal).toContain("auth-scene-card");
         expect(modal).toContain("closable={false}");
+        // 登录与注册合成一张表单：弹窗里不再有第二个注册表单，也不再是「登录 / 注册」两个页签，
+        // `/register` 深链直接落到同一张 LoginForm。
         expect(modal).toContain("<LoginForm");
-        expect(modal).toContain("<RegisterForm");
+        expect(modal).not.toContain("<RegisterForm");
+        expect(modal).not.toContain('aria-selected={mode === "register"}');
         expect(modal).toContain('<ForgotPasswordPage next={next} onCompleted={() => onModeChange("login")} />');
         expect(source("pages/auth/forgot-password.tsx")).not.toContain("BackToLogin");
     });

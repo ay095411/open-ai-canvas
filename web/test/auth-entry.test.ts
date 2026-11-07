@@ -59,6 +59,9 @@ describe("登录入口打开方式", () => {
         // 首页创作输入框的未发送内容只在内存里，所以登录一律走弹窗事件。
         expect(source("pages/create/index.tsx")).toContain("openWorkspaceAuth(");
         expect(source("components/layout/app-top-nav.tsx")).toContain("<WorkspaceAuthHost />");
+        // 上面这些入口写的是 useAuthDialogStore，本地没有 AuthDialogHost：
+        // 宿主必须自己订阅它，否则点了既不弹窗也不跳转（受保护页面只会被踢回首页）。
+        expect(source("components/layout/workspace-auth-modal.tsx")).toContain("useAuthDialogStore((state) => state.open)");
     });
 
     test("后台登录与注册页提供打开方式选择并保留原有分区", () => {

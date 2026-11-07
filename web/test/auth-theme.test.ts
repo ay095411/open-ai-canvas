@@ -38,18 +38,24 @@ describe("authentication follows the application theme", () => {
         expect(source("components/layout/app-providers.tsx")).toContain("getAntThemeConfig(dark, appearance.activeSkin)");
     });
 
-    test("form labels, links and notices do not assume white text", () => {
-        for (const path of ["components/auth/login-form.tsx", "components/auth/register-form.tsx", "pages/auth/forgot-password.tsx"]) {
+    test("merged login/register form keeps theme-aware text and inline signup", () => {
+        // 登录与注册已是同一张表单（上游 v1.8.2），register-form.tsx 随之删除；
+        // 这里同时守住「就地建号」的三个关键点：autoRegister、account_not_registered、协议勾选。
+        for (const path of ["components/auth/login-form.tsx", "pages/auth/forgot-password.tsx"]) {
             const form = source(path);
             const classes = Array.from(form.matchAll(/className="([^"]*)"/g), (match) => match[1]).join(" ");
             expect(classes).not.toMatch(/(?:text|border|bg)-white/);
             expect(classes).not.toMatch(/text-(?:blue|amber)-[123]00/);
             expect(form).toContain("auth-scene-icon");
         }
-        expect(source("components/auth/login-form.tsx")).toContain('aria-label="用户名或邮箱"');
-        expect(source("components/auth/login-form.tsx")).toContain('aria-label="密码"');
-        expect(source("components/auth/register-form.tsx")).toContain("auth-scene-label");
-        expect(source("components/auth/register-form.tsx")).toContain("auth-scene-notice");
+        const login = source("components/auth/login-form.tsx");
+        expect(login).toContain('aria-label="用户名或邮箱"');
+        expect(login).toContain('aria-label="密码"');
+        expect(login).toContain("auth-scene-notice");
+        expect(login).toContain("autoRegister");
+        expect(login).toContain('"account_not_registered"');
+        expect(login).toContain("auth-agreement-row");
+        expect(source("components/auth/agreement-dialog.tsx")).toContain("auth-agreement-body");
         expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-label");
         expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-notice");
     });

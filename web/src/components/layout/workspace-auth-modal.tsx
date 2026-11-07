@@ -4,10 +4,10 @@ import { useLocation, useNavigate } from "react-router";
 import { useReducedMotion } from "motion/react";
 
 import { LoginForm } from "@/components/auth/login-form";
-import { RegisterForm } from "@/components/auth/register-form";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { isProtectedWorkspacePath } from "@/lib/guest-workspace";
+import { useAuthDialogStore } from "@/stores/use-auth-dialog-store";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -89,6 +89,21 @@ export function WorkspaceAuthHost() {
             // 隐私模式/禁用 storage 时忽略：ref 仍然有效，只是刷新后回落到首页。
         }
     }, [pathname, search]);
+
+    /**
+     * 上游那批登录入口（`RequireAuth` 的登录门、画布分享页的 `AuthLoginLink`、`useAuthEntry`）
+     * 写的是 `useAuthDialogStore`，本地没有 `AuthDialogHost`——不在这里订阅，点了就毫无反应：
+     * 受保护页面只会被踢回首页、什么都不弹。这里把它转成本地宿主的弹窗状态，然后消费掉，
+     * 避免 mark 成 open 后又被重复触发。
+     */
+    const dialogOpen = useAuthDialogStore((state) => state.open);
+    const dialogView = useAuthDialogStore((state) => state.view);
+    const dialogNext = useAuthDialogStore((state) => state.next);
+    useEffect(() => {
+        if (!dialogOpen) return;
+        setState({ open: true, mode: modeOfDetail(dialogView), next: safeAuthNext(dialogNext) });
+        useAuthDialogStore.getState().closeDialog();
+    }, [dialogOpen, dialogNext, dialogView]);
 
     useEffect(() => {
         const handleOpen = (raw: Event) => {
@@ -199,11 +214,13 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
 
                 <AuthCarousel slides={carouselSlides(appearance.authCarousel)} />
 
-                <section className="workspace-auth-pane" aria-label={mode === "register" ? "注册" : mode === "recovery" ? "找回密码" : "登录"}>
+                <section className="workspace-auth-pane" aria-label={mode === "recovery" ? "找回密码" : "登录或注册"}>
                     <div className="workspace-auth-scroll">
-                        {/* 顶栏：左项目标题、右登录/注册切换。放同一行是为了不吃高度——
+                        {/* 顶栏：左项目标题，右「返回登录」（仅找回密码）。放同一行是为了不吃高度——
                             表单最挤时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量，
-                            标题单独占一行会把提交按钮顶到折线以下。 */}
+                            标题单独占一行会把提交按钮顶到折线以下。
+                            登录与注册已合成一张表单（上游 v1.8.2）：账号不存在时补全信息就地建号，
+                            所以这里不再有「登录 / 注册」页签。`/register` 深链同样落到这张表单。 */}
                         <div className="workspace-auth-head">
                             <h2 className="workspace-auth-title" title={brandName}>
                                 {brandName}
@@ -214,28 +231,18 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
                                         ← 返回登录
                                     </button>
                                 </div>
-                            ) : (
-                                <div className="workspace-auth-tabs" role="tablist" aria-label="登录或注册">
-                                    <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => onModeChange("login")}>
-                                        登录
-                                    </button>
-                                    <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => onModeChange("register")}>
-                                        注册
-                                    </button>
-                                </div>
-                            )}
+                            ) : null}
                         </div>
                         {/* 复用 `.auth-scene-card`：输入框高度、圆角、主按钮这些控件规则都挂在它下面，
                             弹窗与登录页因此共用同一套样式，不必再维护第二份。 */}
                         <div className="auth-scene-card">
-                            {mode === "login" ? (
-                                <LoginForm next={next} onSuccess={onSuccess} />
-                            ) : mode === "recovery" ? (
+                            {mode === "recovery" ? (
                                 // 重置成功后就地切回登录表单，不再跳 `/login?next=…`：
                                 // 找回密码整条链路都留在弹窗里，不换页面。
                                 <ForgotPasswordPage next={next} onCompleted={() => onModeChange("login")} />
                             ) : (
-                                <RegisterForm next={next} onSuccess={onSuccess} />
+                                // login 与 register 共用这一张表单：账号不存在就地建号。
+                                <LoginForm next={next} onSuccess={onSuccess} />
                             )}
                         </div>
                     </div>

@@ -79,7 +79,8 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
     const activeRegisterMethod = registerMethod && registerMethods.includes(registerMethod) ? registerMethod : registerMethods[0];
     const verificationUnavailable = Boolean(pending && verificationRequired && !activeRegisterMethod);
     // 验证方式自带邮箱输入时不再重复显示；短信验证时邮箱作为可选或必填的附加信息。
-    const showEmailField = Boolean(pending && pending.accountKind === "username" && activeRegisterMethod !== "email" && activeRegisterMethod !== "sms_email" && !settings?.firstUser);
+    // 首用户（建管理员）也要能填邮箱：本地注册表单一直允许，别在合并后把它弄丢。
+    const showEmailField = Boolean(pending && pending.accountKind === "username" && activeRegisterMethod !== "email" && activeRegisterMethod !== "sms_email");
     const emailRequired = Boolean(settings?.emailRequired);
     const agreement = agreementFromSettings(settings, brandName);
 
@@ -327,6 +328,8 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
             >
                 {retryCountdown > 0 ? `${retryCountdown} 秒后可重试` : pending ? "创建账号并登录" : "登录并进入创作"}
             </Button>
+            {/* 登录与注册已合成一张表单：不给提示的话，新用户会以为这里只能登录。 */}
+            {!pending && canRegister && method === "password" ? <p className="auth-scene-muted text-center text-xs leading-5">未注册的账号会在确认密码后自动创建</p> : null}
             {/* 第三方登录不再配「或」分隔线：只有两个区块时，一条分割线带来的
                 视觉噪音大于它的分组作用，改用按钮间距区分。 */}
             {settings?.linuxdoEnabled && !pending ? (
