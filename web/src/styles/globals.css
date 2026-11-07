@@ -531,6 +531,61 @@
     outline-offset: 3px;
 }
 
+/* --- 输入框内嵌操作（找回密码：修改邮箱 / 重新发送） -------------------------
+   这两个动作原先在输入框右边另起一列（`1fr auto` / `1fr 116px`），同一张表单里
+   四行输入框宽度各不相同，一眼就能看出参差；收进 antd 的 suffix 之后四行都是满宽，
+   动作也不再额外占一列。
+   做成浅底胶囊而不是纯文字：它是字段内的可点控件，和输入值（--foreground 正文色）
+   必须能区分开。水平内边距一律交给 wrapper 的 14px——左侧图标起于 14px、
+   右侧胶囊止于 14px，左右对称；自己再挪负 margin 会和输入框的圆角撞在一起。 */
+.auth-input-action {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    color: var(--foreground);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--motion-instant) ease-out,
+        opacity var(--motion-instant) ease-out;
+}
+
+.auth-input-action:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.auth-input-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* 焦点环同样画在 ::after 上，原因见 .auth-scene-pending-switch。 */
+.auth-input-action:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--ring);
+    pointer-events: none;
+}
+
+/* 倒计时不是按钮，只是一段灰字：tabular-nums 让 60s → 9s 时宽度不跳，
+   整行不会跟着抖一下。 */
+.auth-input-countdown {
+    color: var(--auth-muted);
+    font-size: var(--fs-caption);
+    font-variant-numeric: tabular-nums;
+}
+
 /* .auth-scene-divider 已删：登录 / 注册页的第三方入口都改成靠间距分组，
    「或」分隔线不再渲染，规则留着就是死代码。 */
 

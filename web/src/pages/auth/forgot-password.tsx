@@ -104,7 +104,7 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
 
     if (stage === "request") {
         return (
-            <form onSubmit={requestCode} className="flex flex-col gap-4">
+            <form onSubmit={requestCode} className="flex flex-col gap-3">
                 {emailEnabled === false ? <Notice icon={<TriangleAlert className="size-3.5" />}>管理员尚未启用密码找回，请联系管理员处理。</Notice> : null}
                 <AuthField label="账号邮箱" htmlFor="recovery-email">
                     <Input
@@ -116,11 +116,17 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
                         placeholder="注册时使用的邮箱"
                         autoComplete="email"
                         inputMode="email"
+                        /* 从「重置」步骤点「修改邮箱」退回来时焦点会掉到 body 上，
+                           这里自动接住，键盘用户不会丢失位置。 */
+                        autoFocus
                         required
                         disabled={emailEnabled === false}
                     />
                 </AuthField>
-                <Button type="primary" htmlType="submit" size="large" block loading={sendingCode} disabled={emailEnabled === false}>
+                {/* 主按钮与「重置密码」、以及登录表单的提交按钮同一套尺寸/圆角：
+                    这条流程里会先看到「发送验证码」再看到「重置密码」，两个按钮不一样圆
+                    会像换了套组件；和登录表单同弹窗出现时更是直接并排对比。 */}
+                <Button type="primary" htmlType="submit" size="large" block loading={sendingCode} disabled={emailEnabled === false} className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1">
                     发送验证码
                 </Button>
             </form>
@@ -128,32 +134,52 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
     }
 
     return (
-        <form onSubmit={submitReset} className="flex flex-col gap-4">
+        <form onSubmit={submitReset} className="flex flex-col gap-3">
+            {/*
+              「修改邮箱」和验证码倒计时都收进输入框的 suffix。
+              原先它们是输入框右边另起一列（`1fr auto` / `1fr 116px`），
+              同一张表单里四行的输入框宽度各不相同，一眼就能看出参差；
+              收进去之后四行都是满宽，动作也不再额外占一列。
+            */}
             <AuthField label="账号邮箱" htmlFor="recovery-email-confirm">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                    <Input id="recovery-email-confirm" size="large" prefix={<Mail className="auth-scene-icon size-4" />} value={email} readOnly autoComplete="email" />
-                    <Button htmlType="button" size="large" onClick={editEmail}>
-                        修改邮箱
-                    </Button>
-                </div>
+                <Input
+                    id="recovery-email-confirm"
+                    size="large"
+                    prefix={<Mail className="auth-scene-icon size-4" />}
+                    suffix={
+                        <button type="button" className="auth-input-action" onClick={editEmail}>
+                            修改邮箱
+                        </button>
+                    }
+                    value={email}
+                    readOnly
+                    autoComplete="email"
+                    aria-label="账号邮箱"
+                />
             </AuthField>
             <AuthField label="邮箱验证码" htmlFor="recovery-code">
-                <div className="grid grid-cols-[minmax(0,1fr)_116px] gap-2">
-                    <Input
-                        id="recovery-code"
-                        size="large"
-                        prefix={<ShieldCheck className="auth-scene-icon size-4" />}
-                        value={emailCode}
-                        onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="6 位验证码"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        required
-                    />
-                    <Button htmlType="button" size="large" loading={sendingCode} disabled={countdown > 0} onClick={() => void sendCode(false)}>
-                        {countdown > 0 ? `${countdown}s` : "重新发送"}
-                    </Button>
-                </div>
+                <Input
+                    id="recovery-code"
+                    size="large"
+                    prefix={<ShieldCheck className="auth-scene-icon size-4" />}
+                    /* 倒计时进行中不是可点状态：只显示剩余秒数（等宽数字），
+                       归零后才换回「重新发送」按钮，不给用户一个点了没反应的控件。 */
+                    suffix={
+                        countdown > 0 ? (
+                            <span className="auth-input-countdown">{`${countdown}s`}</span>
+                        ) : (
+                            <button type="button" className="auth-input-action" onClick={() => void sendCode(false)} disabled={sendingCode}>
+                                {sendingCode ? "发送中…" : "重新发送"}
+                            </button>
+                        )
+                    }
+                    value={emailCode}
+                    onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="6 位验证码"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    required
+                />
             </AuthField>
             <AuthField label="新密码" htmlFor="recovery-password">
                 <Input.Password
@@ -181,7 +207,9 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
                     required
                 />
             </AuthField>
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting}>
+            {/* 与登录表单的主按钮同一套尺寸/圆角：两张表单在同一个弹窗里前后出现，
+                按钮不一样高会像换了个组件库。 */}
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1">
                 重置密码
             </Button>
         </form>
@@ -190,7 +218,7 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
 
 function AuthField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
     return (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
             <label htmlFor={htmlFor} className="auth-scene-label block text-xs font-medium">
                 {label}
             </label>

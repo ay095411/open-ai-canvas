@@ -63,6 +63,21 @@ describe("authentication follows the application theme", () => {
         expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-notice");
     });
 
+    test("password recovery keeps every field full width and actions inside the input", () => {
+        // 「修改邮箱」和验证码倒计时原先各自占了输入框右边的一列（`1fr auto` / `1fr 116px`），
+        // 同一张表单里四行输入框宽度对不齐。收进 suffix 后四行都是满宽——这里锁住别再退回两列。
+        const recovery = source("pages/auth/forgot-password.tsx");
+        const css = source("styles/globals.css");
+        // 只断言 className 里的写法：注释里提到过旧的两列模板（用来解释为什么改），
+        // 裸露的 not.toContain("116px") 会打到注释上。
+        expect(recovery).not.toMatch(/className="[^"]*grid-cols-\[/);
+        expect(recovery).toContain("auth-input-action");
+        expect(recovery).toContain("auth-input-countdown");
+        expect(css).toContain(".auth-input-action {");
+        // 同样是普通 <button>，焦点环只能画在 ::after 上（见 unified-buttons.css）。
+        expect(css).toContain(".auth-input-action:focus-visible::after");
+    });
+
     test("focus and autofill keep theme-aware foregrounds and visible focus", () => {
         const css = source("styles/globals.css");
         const panel = source("components/auth/auth-panel.css");
