@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { authDialogLanding, authPageURL, authViewFromPath, resolveLoginMode, safeAuthNext } from "../src/lib/auth-entry";
 
 const source = (path: string) => readFileSync(new URL(`../src/${path}`, import.meta.url), "utf8");
+/** 去掉注释后再断言：注释里解释「不要 navigate("/login")」不该算成违规。 */
+const codeOnly = (path: string) => source(path).replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
 
 describe("登录入口打开方式", () => {
     test("后台未配置或旧服务端未返回时默认弹窗", () => {
@@ -41,19 +43,22 @@ describe("登录入口打开方式", () => {
         const requireAuth = source("components/auth/require-auth.tsx");
         expect(requireAuth).toContain('openDialog("login", next)');
         expect(requireAuth).toContain('authPageURL("login", next)');
-        for (const file of [
-            "components/layout/workspace-account-menu.tsx",
-            "components/layout/workspace-sidebar-nav.tsx",
-            "components/layout/workspace-sidebar-footer.tsx",
-            "pages/canvas/shared.tsx",
-            "hooks/use-workspace-logout.ts",
-            "pages/settings/profile-pane.tsx",
-        ]) {
-            expect(source(file), file).not.toMatch(/["`]\/login/);
+        // 侧栏两处登录入口保留 `/login` 深链（中键 / 新标签页仍要能用），
+        // 但左键必须被 interceptAuthLink 截成就地开弹窗——真跳会让整页卸载重建、闪一下。
+        for (const file of ["components/layout/workspace-sidebar-nav.tsx", "components/layout/workspace-sidebar-footer.tsx"]) {
+            const code = source(file);
+            expect(code, file).toContain('to="/login"');
+            expect(code, file).toContain("interceptAuthLink");
         }
-        // 首页创作输入框的未发送内容只在内存里，两种模式都必须用弹窗。
-        expect(source("pages/create/index.tsx")).toContain("openAuth({ preferDialog: true })");
-        expect(source("application.tsx")).toContain("<AuthDialogHost navigate={navigateFromAuthDialog} />");
+        // 退出登录、设置页、账号卡与画布分享不再用导航到 /login 的方式开登录。
+        for (const file of ["hooks/use-workspace-logout.ts", "pages/settings/profile-pane.tsx", "components/layout/workspace-account-card.tsx", "pages/canvas/shared.tsx"]) {
+            const code = codeOnly(file);
+            expect(code, file).not.toMatch(/navigate\(\s*["`]\/login/);
+            expect(code, file).not.toMatch(/href=["`]\/login/);
+        }
+        // 首页创作输入框的未发送内容只在内存里，所以登录一律走弹窗事件。
+        expect(source("pages/create/index.tsx")).toContain("openWorkspaceAuth(");
+        expect(source("components/layout/app-top-nav.tsx")).toContain("<WorkspaceAuthHost />");
     });
 
     test("后台登录与注册页提供打开方式选择并保留原有分区", () => {

@@ -14,8 +14,9 @@ import (
 )
 
 // 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
-// 因此上游 78-89 顺延为 79-90，避免与已应用版本冲突。
-const CurrentSchemaVersion int64 = 90
+// 因此上游 78-91 顺延为 79-92，避免与已应用版本冲突。上游 v1.8.2 新增的
+// drama_draft_form / email_logs_and_notifications 原为 90/91，在这里是 91/92。
+const CurrentSchemaVersion int64 = 92
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -299,6 +300,17 @@ var schemaMigrations = []migration{
 	}},
 	{version: 89, name: "reference_video_billing", checksum: "sha256:reference-video-billing-v88-20261106", apply: migrateReferenceVideoBilling},
 	{version: 90, name: "reference_video_cost_price", checksum: "sha256:reference-video-cost-price-v89-20261106", apply: migrateReferenceVideoCostPrice},
+	{version: 91, name: "drama_draft_form", checksum: "sha256:drama-draft-form-v90-20261106", apply: func(tx *gorm.DB) error {
+		// 草稿的创建页表单；旧作品为空串，草稿只能在制作台开工，不能回到创建页。
+		if !tx.Migrator().HasTable(&model.DramaProduction{}) || tx.Migrator().HasColumn(&model.DramaProduction{}, "DraftJSON") {
+			return nil
+		}
+		return tx.Migrator().AddColumn(&model.DramaProduction{}, "DraftJSON")
+	}},
+	{version: 92, name: "email_logs_and_notifications", checksum: "sha256:email-logs-and-notifications-v91-20261106", apply: func(tx *gorm.DB) error {
+		// 邮件发送记录与用户邮件订阅（消费日报，默认关闭）；只建新表。
+		return tx.AutoMigrate(&model.EmailLog{}, &model.UserNotificationSetting{})
+	}},
 }
 
 // migrateReferenceVideoCostPrice 为价格档成本和账单成本快照增加带参考视频的成本价。

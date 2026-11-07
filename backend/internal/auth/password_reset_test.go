@@ -37,7 +37,9 @@ func TestPasswordResetChangesPasswordConsumesCodeAndRevokesSessions(t *testing.T
 
 	var deliveredCode string
 	svc.SetMailSender(func(_ EmailSettingValue, recipient string, subject string, body string) error {
-		if recipient != user.Email || subject != "Navo AI密码重置验证码" {
+		// 主题由模板拼成「<验证码> 是你的<品牌><验证码名称>」，品牌可配（本地是 Navo AI、上游是影策），
+		// 因此只断言结构与验证码前缀，不把品牌名写死。
+		if recipient != user.Email || !strings.HasPrefix(subject, codeFromEmailBody(body)+" ") || !strings.Contains(subject, " 是你的") || !strings.HasSuffix(subject, "密码重置验证码") {
 			t.Fatalf("unexpected reset email: recipient=%q subject=%q", recipient, subject)
 		}
 		deliveredCode = codeFromEmailBody(body)
@@ -260,7 +262,7 @@ func assertRegistrationAndPasswordResetEmailBrand(t *testing.T, fromName, wantNa
 			t.Fatalf("email did not use resolved sender name %q: %#v", wantName, delivered)
 		}
 	}
-	if deliveries[0].subject != wantName+"注册验证码" || deliveries[1].subject != wantName+"密码重置验证码" {
+	if !strings.HasSuffix(deliveries[0].subject, " 是你的"+wantName+"注册验证码") || !strings.HasSuffix(deliveries[1].subject, " 是你的"+wantName+"密码重置验证码") {
 		t.Fatalf("unexpected branded subjects: %#v", deliveries)
 	}
 	if !strings.Contains(deliveries[0].body, "你正在注册"+wantName+"。") {
@@ -274,7 +276,7 @@ func newPasswordResetTestService(t *testing.T) (*Service, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.AuthSession{}, &model.LoginLog{}, &model.EmailVerificationCode{}, &model.SystemSetting{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.AuthSession{}, &model.LoginLog{}, &model.EmailVerificationCode{}, &model.SystemSetting{}, &model.EmailLog{}); err != nil {
 		t.Fatal(err)
 	}
 	settingJSON, err := json.Marshal(EmailSettingValue{Enabled: true, Host: "smtp.example.com", Port: 587, Encryption: "starttls", FromEmail: "noreply@example.com", FromName: "Navo AI", RegistrationAllowedDomains: []string{"example.com"}})

@@ -151,7 +151,9 @@ func TestLinuxDORegistrationAgreement(t *testing.T) {
 		wantBonus    int
 	}{
 		{name: "new user without agreement", registration: true, wantError: "请先同意Navo AI服务协议"},
-		{name: "new user with agreement", accepted: true, registration: true},
+		// 新账号仍会发注册奖励（linuxdo.go 建号后调用 EnsureSignupBonus）；
+		// 8dc768b3 只取消了「已有账号登录补发」，别把这一行一起删掉。
+		{name: "new user with agreement", accepted: true, registration: true, wantBonus: 1},
 		{name: "existing user without agreement", existing: true, registration: true},
 		{name: "existing user with registration closed", existing: true},
 		{name: "agreement does not bypass registration closure", accepted: true, wantError: "管理员未开放新用户注册"},

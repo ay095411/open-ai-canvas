@@ -1,10 +1,12 @@
 import { type FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
-import { App, Button, Checkbox, Input, Modal, Segmented } from "antd";
-import { FileText, Info, LockKeyhole, Mail, TriangleAlert, UserRound } from "lucide-react";
+import { App, Button, Checkbox, Input, Segmented } from "antd";
+import { Info, LockKeyhole, Mail, TriangleAlert, UserRound } from "lucide-react";
 
 import { getAuthSession, getAuthSettings, linuxDOLoginURL, register } from "@/services/api/auth";
+import { AgreementDialog, agreementFromSettings } from "@/components/auth/agreement-dialog";
 import { LinuxDOIcon } from "@/components/auth/linuxdo-icon";
 import { ApiError } from "@/services/api/request";
+import { clearReferralCode, readReferralCode } from "@/lib/auth-entry";
 import { VerificationFields } from "@/components/auth/verification-fields";
 import { emptyVerification, methodLabels, verificationMethods, type VerificationMethod } from "@/services/api/verification";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
@@ -40,9 +42,9 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
     // 且只在确认拿到设置（settings 非空）后回退；接口失败时不猜标题，避免展示
     // 与后台真实配置不符的协议名。
     // 标题统一去掉书号后由页面补《》，避免后台已填《》时出现双书名号。
-    const agreementTitle = ((settings?.agreementTitle || "").trim() || `${brandName}服务协议`).replace(/^《|》$/g, "");
-    const agreementContent = (settings?.agreementContent || "").trim();
-    const agreementParagraphs = agreementContent ? agreementContent.split(/\n\s*\n/) : [];
+    const { title: agreementTitle, paragraphs: agreementParagraphs } = agreementFromSettings(settings, brandName);
+    // 推广码由登录路由从 ?ref= 写入会话缓存，注册成功即消费掉，避免下次注册重复带上。
+    const [referralCode] = useState(readReferralCode);
 
     useEffect(() => {
         let cancelled = false;
@@ -82,7 +84,8 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
         try {
             if (!settings?.firstUser && !verification.ticket) throw new Error("请先获取本次注册验证码");
             // 不传 displayName：后端 NormalizeDisplayName 空值时回退成用户名。
-            await register({ username, ...(settings?.firstUser ? { email } : verification), password, acceptedTerms: agreementAccepted });
+            await register({ username, ...(settings?.firstUser ? { email } : verification), password, acceptedTerms: agreementAccepted, ...(referralCode ? { referralCode } : {}) });
+            clearReferralCode();
             const { applyUserSession } = await import("@/lib/user-session");
             await applyUserSession(await getAuthSession());
             if (!settings?.firstUser) window.sessionStorage.setItem("yingce:model-setup-guide", "1");
@@ -229,32 +232,7 @@ export function RegisterForm({ next, onSuccess }: { next: string; onSuccess: () 
                     使用 Linux.do 注册 / 登录
                 </Button>
             ) : null}
-            <Modal className="workspace-modal auth-agreement-modal" title={agreementTitle} open={agreementOpen} onCancel={() => setAgreementOpen(false)} footer={null} centered destroyOnHidden>
-                {agreementParagraphs.length === 0 ? (
-                    <div className="auth-agreement-empty">
-                        <FileText className="size-3.5 shrink-0" aria-hidden />
-                        服务协议内容待补充，请联系管理员在后台「登录与注册」中完善。
-                    </div>
-                ) : (
-                    <div className="auth-agreement-body">
-                        {agreementParagraphs.map((paragraph, index) => {
-                            // 后台用纯文本框维护条款，「一、二、三…」条目通常和正文写在同一个
-                            // 段落里（只用一个换行分隔）。这里把条目标题切出来单独成行并加重，
-                            // 否则标题和正文会挤在同一行，长条款失去可扫描的层级。
-                            const blocks = splitAgreementParagraph(paragraph);
-                            return blocks.map((block, blockIndex) => (
-                                <p key={`agreement-${index}-${blockIndex}`} data-role={block.heading ? "heading" : undefined}>
-                                    {block.text}
-                                </p>
-                            ));
-                        })}
-                    </div>
-                )}
-                <p className="auth-agreement-meta">
-                    <LockKeyhole className="size-3 shrink-0" aria-hidden />
-                    继续注册即表示你已阅读并接受本协议全部条款。
-                </p>
-            </Modal>
+            <AgreementDialog open={agreementOpen} title={agreementTitle} paragraphs={agreementParagraphs} onClose={() => setAgreementOpen(false)} />
         </form>
     );
 }
@@ -277,19 +255,3 @@ function Notice({ icon, tone, children }: { icon: ReactNode; tone: "blue" | "amb
     );
 }
 
-// 中文条款里「一、」「二、」这类条目标题常与正文写在同一个段落内（只隔一个换行）。
-// 这里按「条目标题 + 紧随其后的正文」拆成独立段落，让标题能单独成行并加重；
-// 没有条目标题的普通段落原样返回，不改变后台已经整理好的排版。
-const AGREEMENT_HEADING = /^\s*([一二三四五六七八九十百]+、[^\n]{0,40})\n+([\s\S]+)$/;
-
-function splitAgreementParagraph(paragraph: string): { text: string; heading: boolean }[] {
-    const match = paragraph.match(AGREEMENT_HEADING);
-    if (!match) {
-        const headingOnly = /^\s*[一二三四五六七八九十百]+、[^\n]{0,40}\s*$/.test(paragraph);
-        return [{ text: paragraph.trim(), heading: headingOnly }];
-    }
-    return [
-        { text: match[1].trim(), heading: true },
-        { text: match[2].trim(), heading: false },
-    ];
-}

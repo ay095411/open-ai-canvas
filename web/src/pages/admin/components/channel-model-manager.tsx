@@ -16,6 +16,7 @@ import { AdminBatchBar, AdminDataTable, AdminFilterChip, AdminRowActions, AdminS
 import { ChannelOrderDialog } from "./channel-order-dialog";
 import { ChannelModelCostSummary } from "./channel-model-cost-summary";
 import { ChannelModelRepriceDialog } from "./channel-model-reprice-dialog";
+import { ChannelModelProtocolDialog } from "./channel-model-protocol-dialog";
 import { deselectVisibleModels, filterImportModels, normalizeFetchModelKey, selectExistingImportModels, selectVisibleModels } from "./channel-model-import-selection";
 import { duplicateChannelModelValues, type ChannelModelFormValues } from "./channel-model-editor-form";
 import { Select } from "@/components/ui/base/select";
@@ -27,6 +28,7 @@ export function ChannelModelManager({ channel, onChanged, health, healthLoading 
     const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
     const [deletingSelected, setDeletingSelected] = useState(false);
     const [repriceItems, setRepriceItems] = useState<ChannelModel[]>([]);
+    const [protocolItems, setProtocolItems] = useState<ChannelModel[]>([]);
     const [editing, setEditing] = useState<ChannelModel | null>(null);
     const [copyDraft, setCopyDraft] = useState<ChannelModelFormValues | null>(null);
     const [loading, setLoading] = useState(true);
@@ -334,7 +336,7 @@ export function ChannelModelManager({ channel, onChanged, health, healthLoading 
                     <h3 className="admin-channel-model-heading">
                         模型管理 <span className="admin-channel-count">{items.length}</span>
                     </h3>
-                    <p className="admin-channel-model-hint">稳定性只统计模型生成请求；勾选模型可统一调价或批量删除</p>
+                    <p className="admin-channel-model-hint">稳定性只统计模型生成请求；勾选模型可统一调价、修改协议或批量删除</p>
                 </div>
                 <Space wrap>
                     <ChannelOrderDialog
@@ -459,6 +461,9 @@ export function ChannelModelManager({ channel, onChanged, health, healthLoading 
                         <Button size="small" disabled={deletingSelected || loading || Boolean(loadError)} onClick={() => setRepriceItems(items.filter((item) => selectedModelIds.includes(item.id)))}>
                             统一调价
                         </Button>
+                        <Button size="small" disabled={deletingSelected || loading || Boolean(loadError)} onClick={() => setProtocolItems(items.filter((item) => selectedModelIds.includes(item.id)))}>
+                            修改协议
+                        </Button>
                         <Button danger size="small" icon={<Trash2 className="size-3.5" />} loading={deletingSelected} onClick={confirmBatchRemove}>
                             批量删除
                         </Button>
@@ -496,6 +501,21 @@ export function ChannelModelManager({ channel, onChanged, health, healthLoading 
                     />
                 }
             />
+            {protocolItems.length > 0 && (
+                <ChannelModelProtocolDialog
+                    channelId={channel.id}
+                    items={protocolItems}
+                    protocols={availableProtocols}
+                    protocolLoading={protocolLoading}
+                    protocolError={protocolError}
+                    onClose={() => setProtocolItems([])}
+                    onSaved={async () => {
+                        setSelectedModelIds([]);
+                        await reload();
+                        await onChanged();
+                    }}
+                />
+            )}
             {repriceItems.length > 0 && (
                 <ChannelModelRepriceDialog
                     channelId={channel.id}

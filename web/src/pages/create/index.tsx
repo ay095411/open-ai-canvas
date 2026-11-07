@@ -15,6 +15,7 @@ import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useExternalAssetSources } from "@/hooks/use-external-asset-sources";
 import { modelCapabilityConfigFor, normalizeImageValue, normalizeVideoValue, videoDurationAllowed, videoDurationOptions } from "@/lib/model-capabilities";
+import { LEGACY_TEXT_THINKING_CONFIG, isThinkingLevel, resolveThinkingLevel, thinkingLevelsFor, type ThinkingLevel, type ThinkingRequest } from "@/lib/text-thinking";
 import { inferVideoOperation, modelGroupReferenceLimits, resolveCompatibleModel, mergedImageCapabilityConfig, type ModelRequirements } from "@/lib/model-selection";
 import type { BackendGenerationResult } from "@/services/api/generation-task";
 import type { Skill } from "@/services/api/skills";
@@ -50,7 +51,25 @@ const loadCreationRuntime = () => import("./creation-runtime");
 type CreationRuntime = Awaited<ReturnType<typeof loadCreationRuntime>>;
 
 const TEXT_STREAMING_PREF_KEY = "creation.composer.text-streaming";
-const TEXT_THINKING_PREF_KEY = "creation.composer.text-thinking";
+// 思考档位按模型分别记住：{ [model]: level }。只存小型 UI 偏好。
+const TEXT_THINKING_LEVELS_PREF_KEY = "creation.composer.text-thinking-levels";
+
+function readThinkingLevelPrefs(): Record<string, ThinkingLevel> {
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(TEXT_THINKING_LEVELS_PREF_KEY) || "{}") as Record<string, unknown>;
+        return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, ThinkingLevel] => isThinkingLevel(entry[1])));
+    } catch {
+        return {};
+    }
+}
+
+function writeThinkingLevelPrefs(value: Record<string, ThinkingLevel>) {
+    try {
+        window.localStorage.setItem(TEXT_THINKING_LEVELS_PREF_KEY, JSON.stringify(value));
+    } catch {
+        // 存储不可用：仅当前会话生效
+    }
+}
 
 function readComposerPref(key: string, fallback: boolean): boolean {
     try {
@@ -126,7 +145,7 @@ export default function CreatePage() {
     const [videoQuality, setVideoQuality] = useState(config.vquality || "720");
     const [count, setCount] = useState(String(Math.max(1, Math.min(4, Number(config.count) || 1))));
     const [textStreaming, setTextStreaming] = useState(() => readComposerPref(TEXT_STREAMING_PREF_KEY, true));
-    const [textThinking, setTextThinking] = useState(() => readComposerPref(TEXT_THINKING_PREF_KEY, false));
+    const [textThinkingPrefs, setTextThinkingPrefs] = useState(readThinkingLevelPrefs);
     const [busy, setBusy] = useState(false);
     const [referenceReplacementBusy, setReferenceReplacementBusy] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -185,6 +204,22 @@ export default function CreatePage() {
         : config, [config, mode, ratio, seconds, selectedModel, videoQuality]);
     const imageProfile = useMemo(() => modelCapabilityConfigFor(config, selectedModel).image!, [config, selectedModel]);
     const videoProfile = useMemo(() => modelCapabilityConfigFor(config, selectedModel).video!, [config, selectedModel]);
+    // 上游 v1.8.2 起思考从布尔开关改成「档位」，能力来自模型的 text.thinking 配置；
+    // 没有配置的老模型回落到 LEGACY_TEXT_THINKING_CONFIG（off/medium 两档）。
+    const textThinkingConfig = useMemo(() => (mode === "text" ? modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG : undefined), [config, mode, selectedModel]);
+    const textThinkingLevels = useMemo(() => thinkingLevelsFor(textThinkingConfig), [textThinkingConfig]);
+    // 记住的档位已不被模型支持时按后端同一规则就近取档；没记住时用模型默认值。
+    const textThinkingLevel = resolveThinkingLevel(textThinkingConfig, textThinkingPrefs[selectedModel] || "auto");
+    const textThinkingRequest = textThinkingPrefs[selectedModel] || "auto";
+    const setTextThinkingLevel = (level: ThinkingRequest) => {
+        setTextThinkingPrefs((current) => {
+            const next = { ...current };
+            if (isThinkingLevel(level)) next[selectedModel] = level;
+            else delete next[selectedModel];
+            writeThinkingLevelPrefs(next);
+            return next;
+        });
+    };
     // 同名逻辑模型可能把文生视频、图生视频和全模态参考拆到不同路由。
     // 入口需要展示整个模型组的引用能力，添加素材后再由兼容路由选择具体模型。
     const videoReferenceLimits = useMemo(() => mode === "video"
@@ -222,8 +257,7 @@ export default function CreatePage() {
 
     useEffect(() => {
         writeComposerPref(TEXT_STREAMING_PREF_KEY, textStreaming);
-        writeComposerPref(TEXT_THINKING_PREF_KEY, textThinking);
-    }, [textStreaming, textThinking]);
+    }, [textStreaming]);
     useEffect(() => {
         if (!composerPreferencesHydrated || composerPreferencesInitialized) return;
         // 首页固定以「文本生成」打开；图片 / 视频的记忆参数由 selectMode 在切入对应模式时恢复。
@@ -872,7 +906,7 @@ export default function CreatePage() {
                     metadata: { source: "create-page", conversationId: activeConversation.id, messageId: assistantMessage.id, ...referenceMetadata },
                     onTaskUpdate: bindTask,
                     streamText: textStreaming,
-                    enableThinking: textThinking,
+                    thinkingLevel: textThinkingRequest,
                     onTextDelta: textStreaming ? (value) => updateOriginAssistant((item) => ({ ...item, content: value })) : undefined,
                     ...retryContext,
                 }));
@@ -1242,8 +1276,10 @@ export default function CreatePage() {
         setCount: setComposerCount,
         textStreaming,
         setTextStreaming,
-        textThinking,
-        setTextThinking,
+        textThinkingLevels,
+        textThinkingLevel,
+        textThinkingRequest,
+        setTextThinkingLevel,
         promptOptimizerProvider,
         composerFocusRef,
         onPromptFocus: loadAddedSkills,
