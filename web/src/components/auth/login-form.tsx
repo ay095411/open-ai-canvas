@@ -176,12 +176,16 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
      */
     return (
         <form onSubmit={submit} className="flex flex-col gap-2.5">
+            {/* 这两条和下面的「该账号还不存在」共用同一套主色面板材质（.auth-scene-notice /
+                .auth-scene-pending 在 globals.css 里是一组），语义靠图标形状区分，
+                不再用 --palette-status-* 的蓝 / 琥珀：经典皮肤是纯中性的，
+                那点彩色是全屏唯一的异色，换肤也不会跟随。 */}
             {settings?.firstUser && !pending ? (
-                <div data-tone="blue" className="auth-scene-notice flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-5">
-                    <span className="mt-0.5 shrink-0">
-                        <Info className="size-3.5" />
+                <div className="auth-scene-notice">
+                    <span className="auth-scene-notice-mark" aria-hidden="true">
+                        <Info className="size-3" />
                     </span>
-                    首个账号自动成为管理员，邮箱验证码暂不要求。
+                    <span>首个账号自动成为管理员，邮箱验证码暂不要求。</span>
                 </div>
             ) : null}
             {/*
@@ -208,12 +212,15 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     </button>
                 </div>
             ) : null}
+            {/* 这一条是真·异常（注册流程走不下去），但配色仍跟随主色面板：
+                三角图标 + 「请联系管理员」的措辞已经足够说明严重性，
+                同屏出现两条不同色相的横幅反而是噪音。 */}
             {verificationUnavailable ? (
-                <div data-tone="amber" className="auth-scene-notice flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-5">
-                    <span className="mt-0.5 shrink-0">
-                        <TriangleAlert className="size-3.5" />
+                <div className="auth-scene-notice" role="alert">
+                    <span className="auth-scene-notice-mark" aria-hidden="true">
+                        <TriangleAlert className="size-3" />
                     </span>
-                    当前没有可用的注册验证方式，请联系管理员检查短信及邮件配置。
+                    <span>当前没有可用的注册验证方式，请联系管理员检查短信及邮件配置。</span>
                 </div>
             ) : null}
             {!pending && methods.length > 0 && (

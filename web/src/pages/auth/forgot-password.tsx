@@ -104,25 +104,26 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
 
     if (stage === "request") {
         return (
-            <form onSubmit={requestCode} className="flex flex-col gap-3">
-                {emailEnabled === false ? <Notice icon={<TriangleAlert className="size-3.5" />}>管理员尚未启用密码找回，请联系管理员处理。</Notice> : null}
-                <AuthField label="账号邮箱" htmlFor="recovery-email">
-                    <Input
-                        id="recovery-email"
-                        size="large"
-                        prefix={<Mail className="auth-scene-icon size-4" />}
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="注册时使用的邮箱"
-                        autoComplete="email"
-                        inputMode="email"
-                        /* 从「重置」步骤点「修改邮箱」退回来时焦点会掉到 body 上，
-                           这里自动接住，键盘用户不会丢失位置。 */
-                        autoFocus
-                        required
-                        disabled={emailEnabled === false}
-                    />
-                </AuthField>
+            <form onSubmit={requestCode} className="flex flex-col gap-2.5">
+                {emailEnabled === false ? <Notice>管理员尚未启用密码找回，请联系管理员处理。</Notice> : null}
+                {/* 不再画字段标题：占位符「注册时使用的邮箱」已经说清这是什么，
+                    可访问名由 aria-label 提供——与登录表单同一套做法。 */}
+                <Input
+                    id="recovery-email"
+                    size="large"
+                    prefix={<Mail className="auth-scene-icon size-4" />}
+                    aria-label="账号邮箱"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="注册时使用的邮箱"
+                    autoComplete="email"
+                    inputMode="email"
+                    /* 从「重置」步骤点「修改邮箱」退回来时焦点会掉到 body 上，
+                       这里自动接住，键盘用户不会丢失位置。 */
+                    autoFocus
+                    required
+                    disabled={emailEnabled === false}
+                />
                 {/* 主按钮与「重置密码」、以及登录表单的提交按钮同一套尺寸/圆角：
                     这条流程里会先看到「发送验证码」再看到「重置密码」，两个按钮不一样圆
                     会像换了套组件；和登录表单同弹窗出现时更是直接并排对比。 */}
@@ -134,79 +135,76 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
     }
 
     return (
-        <form onSubmit={submitReset} className="flex flex-col gap-3">
+        <form onSubmit={submitReset} className="flex flex-col gap-2.5">
             {/*
-              「修改邮箱」和验证码倒计时都收进输入框的 suffix。
-              原先它们是输入框右边另起一列（`1fr auto` / `1fr 116px`），
-              同一张表单里四行的输入框宽度各不相同，一眼就能看出参差；
-              收进去之后四行都是满宽，动作也不再额外占一列。
+              四个字段都不再画标题，说明交给占位符（「新密码，至少 8 位」「再次输入新密码」
+              这类自带语义的文案），可访问名交给 aria-label——和登录表单是同一套。
+              「修改邮箱」和验证码倒计时都收进输入框的 suffix：原先它们是输入框右边
+              另起一列（`1fr auto` / `1fr 116px`），同一张表单里四行输入框宽度各不相同，
+              一眼就能看出参差；收进去之后四行都是满宽，动作也不再额外占一列。
             */}
-            <AuthField label="账号邮箱" htmlFor="recovery-email-confirm">
-                <Input
-                    id="recovery-email-confirm"
-                    size="large"
-                    prefix={<Mail className="auth-scene-icon size-4" />}
-                    suffix={
-                        <button type="button" className="auth-input-action" onClick={editEmail}>
-                            修改邮箱
+            <Input
+                id="recovery-email-confirm"
+                size="large"
+                prefix={<Mail className="auth-scene-icon size-4" />}
+                aria-label="账号邮箱"
+                suffix={
+                    <button type="button" className="auth-input-action" onClick={editEmail}>
+                        修改邮箱
+                    </button>
+                }
+                value={email}
+                readOnly
+                autoComplete="email"
+            />
+            <Input
+                id="recovery-code"
+                size="large"
+                prefix={<ShieldCheck className="auth-scene-icon size-4" />}
+                aria-label="邮箱验证码"
+                /* 倒计时进行中不是可点状态：只显示剩余秒数（等宽数字），
+                   归零后才换回「重新发送」按钮，不给用户一个点了没反应的控件。 */
+                suffix={
+                    countdown > 0 ? (
+                        <span className="auth-input-countdown">{`${countdown}s`}</span>
+                    ) : (
+                        <button type="button" className="auth-input-action" onClick={() => void sendCode(false)} disabled={sendingCode}>
+                            {sendingCode ? "发送中…" : "重新发送"}
                         </button>
-                    }
-                    value={email}
-                    readOnly
-                    autoComplete="email"
-                    aria-label="账号邮箱"
-                />
-            </AuthField>
-            <AuthField label="邮箱验证码" htmlFor="recovery-code">
-                <Input
-                    id="recovery-code"
-                    size="large"
-                    prefix={<ShieldCheck className="auth-scene-icon size-4" />}
-                    /* 倒计时进行中不是可点状态：只显示剩余秒数（等宽数字），
-                       归零后才换回「重新发送」按钮，不给用户一个点了没反应的控件。 */
-                    suffix={
-                        countdown > 0 ? (
-                            <span className="auth-input-countdown">{`${countdown}s`}</span>
-                        ) : (
-                            <button type="button" className="auth-input-action" onClick={() => void sendCode(false)} disabled={sendingCode}>
-                                {sendingCode ? "发送中…" : "重新发送"}
-                            </button>
-                        )
-                    }
-                    value={emailCode}
-                    onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="6 位验证码"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                />
-            </AuthField>
-            <AuthField label="新密码" htmlFor="recovery-password">
-                <Input.Password
-                    id="recovery-password"
-                    size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="至少 8 位"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                />
-            </AuthField>
-            <AuthField label="确认密码" htmlFor="recovery-confirm-password">
-                <Input.Password
-                    id="recovery-confirm-password"
-                    size="large"
-                    prefix={<LockKeyhole className="auth-scene-icon size-4" />}
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="再次输入密码"
-                    autoComplete="new-password"
-                    minLength={8}
-                    required
-                />
-            </AuthField>
+                    )
+                }
+                value={emailCode}
+                onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6 位验证码"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+            />
+            <Input.Password
+                id="recovery-password"
+                size="large"
+                prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                aria-label="新密码"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                /* 占位符自带语义：没有标题时，光写「至少 8 位」看不出这是新密码。 */
+                placeholder="新密码，至少 8 位"
+                autoComplete="new-password"
+                minLength={8}
+                required
+            />
+            <Input.Password
+                id="recovery-confirm-password"
+                size="large"
+                prefix={<LockKeyhole className="auth-scene-icon size-4" />}
+                aria-label="确认密码"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="再次输入新密码"
+                autoComplete="new-password"
+                minLength={8}
+                required
+            />
             {/* 与登录表单的主按钮同一套尺寸/圆角：两张表单在同一个弹窗里前后出现，
                 按钮不一样高会像换了个组件库。 */}
             <Button type="primary" htmlType="submit" size="large" block loading={submitting} className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1">
@@ -216,22 +214,14 @@ export default function ForgotPasswordPage({ next: nextProp, onCompleted }: { ne
     );
 }
 
-function AuthField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+/** 找回密码侧唯一的一条提示（邮件找回被管理员关掉时）：与登录表单共用 .auth-scene-notice 材质。 */
+function Notice({ children }: { children: ReactNode }) {
     return (
-        <div className="space-y-1.5">
-            <label htmlFor={htmlFor} className="auth-scene-label block text-xs font-medium">
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-}
-
-function Notice({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-    return (
-        <div className="auth-scene-notice flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-5">
-            <span className="mt-0.5 shrink-0">{icon}</span>
-            {children}
+        <div className="auth-scene-notice" role="alert">
+            <span className="auth-scene-notice-mark" aria-hidden="true">
+                <TriangleAlert className="size-3" />
+            </span>
+            <span>{children}</span>
         </div>
     );
 }

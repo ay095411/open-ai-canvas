@@ -589,31 +589,55 @@
 /* .auth-scene-divider 已删：登录 / 注册页的第三方入口都改成靠间距分组，
    「或」分隔线不再渲染，规则留着就是死代码。 */
 
-.auth-scene-notice {
-    --auth-notice-color: var(--palette-status-warning);
-    border-color: color-mix(in srgb, var(--auth-notice-color) 24%, transparent);
-    background: color-mix(in srgb, var(--auth-notice-color) 6%, transparent);
+/* --- auth 侧提示的统一材质 -----------------------------------------------------
+   三条提示（首个账号自动成为管理员 / 没有可用的注册验证方式 / 该账号还不存在）
+   原先各自取 --palette-status-* 的状态色（antd Alert 的那种蓝和琥珀）。
+   本项目经典皮肤是纯中性（主色 #171717 / #f5f5f5），那些彩色是全屏唯一的异色，
+   看着像第三方组件漏进来；换皮肤后它们也不会跟着变。
+   现在底色 / 描边 / 图标底座全部由 --workspace-accent（= 皮肤主色）派生，
+   语义交给图标形状（Info / TriangleAlert / UserRoundPlus），不再靠色相区分。
+   兜底写 var(--auth-accent)：--workspace-accent 由 skin-themes 注入根节点，
+   单独渲染 auth 场景（独立登录页截图）时它可能还没生效。 */
+.auth-scene-notice,
+.auth-scene-pending {
+    --auth-notice-accent: var(--workspace-accent, var(--auth-accent));
+    padding: var(--space-3);
+    /* 边框拆成「宽度 / 样式」+ 单独的 border-color：颜色用 color-mix，构建产物里它会以
+       「纯色降级 + color-mix」成对出现（lightningcss 为不支持 color-mix 的浏览器留的退路）。
+       拆开写时那两条规则只改颜色，不会把宽度和样式一起重复一遍。 */
+    border: var(--control-border-width) solid transparent;
+    border-color: color-mix(in srgb, var(--auth-notice-accent) 20%, transparent);
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--auth-notice-accent) 5%, var(--auth-card-bg));
     color: var(--foreground);
+    font-size: var(--fs-caption);
+    line-height: 1.5;
 }
 
-.auth-scene-notice[data-tone="blue"] {
-    --auth-notice-color: var(--palette-status-loading);
+/* 图标底座做成小圆片：和同屏输入框的前缀图标区分开，一眼看出这是提示而不是一个输入框。 */
+.auth-scene-notice-mark,
+.auth-scene-pending-mark {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--auth-notice-accent) 14%, transparent);
+    color: color-mix(in srgb, var(--auth-notice-accent) 78%, var(--foreground));
 }
 
-.auth-scene-notice > span:first-child {
-    color: var(--auth-notice-color);
+/* 单句提示：圆片图标 + 一段文字。 */
+.auth-scene-notice {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    column-gap: var(--space-2);
+    align-items: start;
 }
 
 /* --- 「该账号还不存在 → 就地补注册」提示 -------------------------------------
-   登录与注册合成一张表单之后，这是新用户唯一的分岔点，不该画成一条状态色横幅：
-   原先取 --palette-status-loading（antd Alert 的蓝），而本项目经典皮肤是纯中性
-   （主色 #171717 / #f5f5f5），那条蓝色是全屏唯一的彩色，看着像第三方组件漏进来了。
-   现在底色与描边全部由 --workspace-accent（= 皮肤主色）派生：
-   经典皮肤下是中性灰，换成有彩主色的皮肤后自动带上品牌色，不需要再改这里。
-   兜底写 var(--auth-accent)：`--workspace-accent` 由 skin-themes 在根节点注入，
-   单独渲染 auth 场景（如独立登录页的静态截图）时它可能还没生效。 */
+   比单句提示多一行说明和一个动作胶囊，所以单独排一套 grid。 */
 .auth-scene-pending {
-    --auth-pending-accent: var(--workspace-accent, var(--auth-accent));
     /* 用 grid 而不是「一行 flex + 下面一段说明」：
        视觉上按钮要贴标题那一行的右侧，读屏顺序却应该是 标题 → 说明 → 按钮。
        grid-area 让这两件事解耦，DOM 顺序按语义写就行。 */
@@ -625,43 +649,23 @@
     align-items: center;
     column-gap: var(--space-2);
     row-gap: 2px;
-    padding: var(--space-3);
-    /* 边框拆成「宽度 / 样式」+ 单独的 border-color：颜色用 color-mix，构建产物里它会以
-       「纯色降级 + color-mix」成对出现（lightningcss 为不支持 color-mix 的浏览器留的退路）。
-       拆开写时那两条规则只改颜色，不会把宽度和样式一起重复一遍。 */
-    border: var(--control-border-width) solid transparent;
-    border-color: color-mix(in srgb, var(--auth-pending-accent) 20%, transparent);
-    border-radius: var(--r-lg);
-    background: color-mix(in srgb, var(--auth-pending-accent) 5%, var(--auth-card-bg));
-    color: var(--foreground);
 }
 
-/* 图标底座做成一个小圆片：和同屏的输入框前缀图标区分开，读到这行就知道「这里在说账号」。 */
+/* 图标片在 pending 里要跨两行：交给 grid-area，圆片本身的外观与单句提示共用。 */
 .auth-scene-pending-mark {
-    display: grid;
     grid-area: mark;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--auth-pending-accent) 14%, transparent);
-    color: color-mix(in srgb, var(--auth-pending-accent) 78%, var(--foreground));
 }
 
 .auth-scene-pending-title {
     grid-area: title;
     margin: 0;
-    font-size: var(--fs-caption);
     font-weight: 500;
-    line-height: 1.5;
 }
 
 .auth-scene-pending-hint {
     grid-area: hint;
     margin: 0;
     color: var(--auth-muted);
-    font-size: var(--fs-caption);
-    line-height: 1.5;
 }
 
 /* 唯一的退路，必须一眼可见：描边 + 浅底 + 图标，hover 时把主色加深一档。
@@ -678,9 +682,9 @@
     min-height: 26px;
     padding: 0 10px;
     border: var(--control-border-width) solid transparent;
-    border-color: color-mix(in srgb, var(--auth-pending-accent) 26%, transparent);
+    border-color: color-mix(in srgb, var(--auth-notice-accent) 26%, transparent);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--auth-pending-accent) 8%, transparent);
+    background: color-mix(in srgb, var(--auth-notice-accent) 8%, transparent);
     color: var(--foreground);
     font-size: var(--fs-caption);
     font-weight: 500;
@@ -694,8 +698,8 @@
 }
 
 .auth-scene-pending-switch:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--auth-pending-accent) 46%, transparent);
-    background: color-mix(in srgb, var(--auth-pending-accent) 14%, transparent);
+    border-color: color-mix(in srgb, var(--auth-notice-accent) 46%, transparent);
+    background: color-mix(in srgb, var(--auth-notice-accent) 14%, transparent);
 }
 
 .auth-scene-pending-switch:disabled {

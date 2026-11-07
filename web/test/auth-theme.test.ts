@@ -59,8 +59,17 @@ describe("authentication follows the application theme", () => {
         expect(login).toContain('"account_not_registered"');
         expect(login).toContain("auth-agreement-row");
         expect(source("components/auth/agreement-dialog.tsx")).toContain("auth-agreement-body");
-        expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-label");
-        expect(source("pages/auth/forgot-password.tsx")).toContain("auth-scene-notice");
+        // 两张表单统一成「无可见字段标题」：说明交给占位符，可访问名交给 aria-label。
+        // 找回密码曾经带 label（auth-scene-label），现在也去掉了——这条断言防的是又加回去。
+        const recovery = source("pages/auth/forgot-password.tsx");
+        expect(recovery).not.toContain("auth-scene-label");
+        expect(recovery).toContain("auth-scene-notice");
+        expect(recovery).toContain('aria-label="新密码"');
+        expect(recovery).toContain('placeholder="新密码，至少 8 位"');
+        // 三条提示共用一套主色面板材质，别再回到 data-tone 的状态色。
+        expect(login).not.toContain('data-tone="blue"');
+        expect(login).not.toContain('data-tone="amber"');
+        expect(login).toContain("auth-scene-notice-mark");
     });
 
     test("password recovery keeps every field full width and actions inside the input", () => {
@@ -86,6 +95,11 @@ describe("authentication follows the application theme", () => {
         expect(css).toContain("-webkit-text-fill-color: var(--foreground) !important");
         expect(css).toContain("box-shadow: 0 0 0 1000px var(--auth-card-bg) inset !important");
         expect(css).toContain(".auth-scene-link:focus-visible");
+        // 三条 auth 提示（含「该账号还不存在」）共用一套由皮肤主色派生的面板材质：
+        // --auth-notice-color 是旧的 status-* 状态色入口，出现即说明有规则退回去了。
+        expect(css).not.toContain("--auth-notice-color");
+        expect(css).toContain("--auth-notice-accent: var(--workspace-accent, var(--auth-accent))");
+        expect(css).toContain(".auth-scene-notice-mark,");
         // 普通 <button> 的焦点环被 unified-buttons.css 全局清空，胶囊按钮只能画在 ::after 上；
         // 这条断言防的是「顺手改成 outline 看起来更简单」——那样环会静默消失。
         expect(css).toContain(".auth-scene-pending-switch:focus-visible::after");
