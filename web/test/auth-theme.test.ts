@@ -58,6 +58,12 @@ describe("authentication follows the application theme", () => {
         expect(login).toContain("autoRegister");
         expect(login).toContain('"account_not_registered"');
         expect(login).toContain("auth-agreement-row");
+        // 协议行在登录页也要出现（不只是补注册那一步）：勾选状态决定主按钮是否可用，
+        // 所以渲染条件不能再挂 `pending`。agreementBlocked 里带了 Boolean(settings)——
+        // 设置读不回来时没有可勾的框，必须放行提交，否则登录按钮永远点不动。
+        expect(login).not.toContain("settings && pending ? (");
+        expect(login).toContain("const agreementBlocked = Boolean(settings) && !agreementAccepted;");
+        expect(login).toContain("disabled={verificationUnavailable || retryCountdown > 0 || agreementBlocked}");
         expect(source("components/auth/agreement-dialog.tsx")).toContain("auth-agreement-body");
         // 两张表单统一成「无可见字段标题」：说明交给占位符，可访问名交给 aria-label。
         // 找回密码曾经带 label（auth-scene-label），现在也去掉了——这条断言防的是又加回去。

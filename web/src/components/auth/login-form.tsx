@@ -83,6 +83,9 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
     const showEmailField = Boolean(pending && pending.accountKind === "username" && activeRegisterMethod !== "email" && activeRegisterMethod !== "sms_email");
     const emailRequired = Boolean(settings?.emailRequired);
     const agreement = agreementFromSettings(settings, brandName);
+    // 协议行只在拿到设置后才渲染（协议名来自后台配置）。读取失败时必须放行提交：
+    // 否则屏幕上没有任何可勾的框，主按钮却永远点不动，等于把登录锁死。
+    const agreementBlocked = Boolean(settings) && !agreementAccepted;
 
     const finish = async (successText: string) => {
         const { applyUserSession } = await import("@/lib/user-session");
@@ -140,6 +143,12 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (submitting || retryCountdown > 0) return;
+        // 协议行现在两种状态都在（登录 / 补注册），所以同意必须在这里统一把关：
+        // 按钮虽然会置灰，但输入框里按回车、或设置还没读回来时，都可能绕过 disabled。
+        if (agreementBlocked) {
+            message.warning(`请先阅读并同意《${agreement.title}》`);
+            return;
+        }
         setSubmitting(true);
         try {
             if (pending) {
@@ -325,7 +334,9 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     )}
                 </>
             )}
-            {settings && pending ? (
+            {/* 协议行在登录与补注册两种状态下都要有：登录页同样需要用户明示同意
+                （勾选状态同时决定提交按钮是否可用，也决定 Linux.do 登录是否带上同意标记）。 */}
+            {settings ? (
                 <div className="auth-agreement-row" data-accepted={agreementAccepted ? "true" : "false"}>
                     <Checkbox checked={agreementAccepted} onChange={(event) => setAgreementAccepted(event.target.checked)}>
                         <span className="auth-agreement-label">我已阅读并同意</span>
@@ -341,7 +352,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                 size="large"
                 block
                 loading={submitting}
-                disabled={verificationUnavailable || retryCountdown > 0 || (Boolean(pending) && !agreementAccepted)}
+                disabled={verificationUnavailable || retryCountdown > 0 || agreementBlocked}
                 className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1"
             >
                 {retryCountdown > 0 ? `${retryCountdown} 秒后可重试` : pending ? "创建账号并登录" : "登录并进入创作"}

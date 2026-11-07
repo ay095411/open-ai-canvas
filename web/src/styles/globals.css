@@ -728,7 +728,7 @@
     color: var(--foreground);
 }
 
-/* --- 注册页协议同意行 ---------------------------------------------------------
+/* --- 协议同意行（登录 / 补注册两种状态共用） -----------------------------------
    勾选热区必须覆盖“文字 + 协议名”整段，但协议名同时是可点击的阅读入口，
    因此热区由 label 承担，协议名按钮用 stopPropagation 之外的方式独立可点：
    这里只做视觉与排布，行为仍由 React 侧控制。 */
@@ -736,7 +736,10 @@
     display: flex;
     align-items: flex-start;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
+    /* 横向内边距为 0：勾选框的左边缘要和同列输入框的描边对齐（实测带 12px 内边距时
+       勾选框落在 838、输入框在 825，一眼就能看出参差）。悬停/已勾选的底色因此正好
+       铺满输入框那一列，圆角仍由 --r-sm 收口。 */
+    padding: var(--space-2) 0;
     border: var(--control-border-width) solid transparent;
     border-radius: var(--r-sm);
     color: var(--auth-muted);
