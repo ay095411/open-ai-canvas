@@ -128,6 +128,15 @@
     display: grid;
     min-width: 0;
 }
+/* 语言浮层挂在锚点上而不是展开进正文流：正文是 display:grid 的滚动容器，浮层作为
+   同级行会被挤成一条十几像素的缝，还会把下面的规则说明顶走。 */
+.commerce-market-field--language,
+.commerce-language-anchor {
+    position: relative;
+}
+.commerce-language-anchor {
+    display: grid;
+}
 .commerce-market .commerce-language-trigger,
 .commerce-market-field input {
     display: flex;
@@ -154,6 +163,9 @@
 .commerce-market .commerce-language-trigger .is-open {
     transform: rotate(180deg);
 }
+.commerce-market .commerce-language-trigger[aria-expanded="true"] {
+    box-shadow: inset 0 0 0 1px var(--user-border-strong);
+}
 .commerce-market-field input::placeholder {
     color: var(--user-ink-soft);
 }
@@ -161,16 +173,30 @@
     box-shadow: inset 0 0 0 1px var(--user-border-strong);
 }
 .commerce-market .commerce-language-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 12;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: var(--space-1);
-    max-height: none;
-    margin: calc(var(--space-2) * -1) 0 0;
-    padding: var(--space-2);
-    border: 0;
+    gap: 1px;
+    width: 100%;
+    /* studio.css 里还有一条同名规则带 margin-top: 6px，方向与最大高度都是按这里的
+       数值算的，漏掉它会让向下展开时多吃 6px 而溢出滚动区。 */
+    margin: 0;
+    max-height: var(--commerce-language-max, 266px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--space-1);
+    border: 1px solid var(--user-border);
     border-radius: var(--r-lg);
-    background: var(--user-surface-muted);
-    box-shadow: none;
+    background: var(--user-surface);
+    box-shadow: var(--cm-pop-shadow, var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12)));
+    scrollbar-width: thin;
+}
+/* 字段贴在滚动区底部时浮层翻到触发器上方，方向与最大高度由 JS 量出来。 */
+.commerce-market .commerce-language-options[data-placement="up"] {
+    top: auto;
+    bottom: calc(100% + 6px);
 }
 .commerce-market .commerce-language-options button {
     display: flex;
