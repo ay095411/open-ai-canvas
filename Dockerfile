@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
 # 构建 Vite 前端产物。
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.9 AS web-build
+# bun 版本必须与 web/bun.lock 的 lockfileVersion 匹配：1.4.x 写入的是 v2，
+# 旧的 1.3.x 会报 UnknownLockfileVersion 并忽略锁文件，--frozen-lockfile 直接失败。
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.0 AS web-build
 
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./

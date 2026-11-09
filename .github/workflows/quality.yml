@@ -210,7 +210,9 @@ jobs:
           lfs: true
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.9
+          # 与 Dockerfile 和 web/package.json 的 packageManager 保持一致；
+          # web/bun.lock 是 lockfileVersion 2，1.3.x 读不了。
+          bun-version: 1.4.0
       - name: Reject leftover package manager lockfiles
         working-directory: ${{ github.workspace }}
         run: |
