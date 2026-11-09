@@ -30,14 +30,6 @@
     gap: var(--space-3);
     min-width: 0;
 }
-.ecs-workspace-mark {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: var(--space-10);
-    height: var(--space-10);
-    color: var(--user-ink);
-}
 .ecs-workspace-identity h1 {
     margin: 0;
     color: var(--user-ink);
@@ -1140,9 +1132,6 @@
         align-items: flex-start;
         padding: var(--space-3);
         gap: var(--space-2);
-    }
-    .ecs-workspace-mark {
-        display: none;
     }
     .ecs-workspace-actions {
         gap: var(--space-1);

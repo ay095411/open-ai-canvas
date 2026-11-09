@@ -1,6 +1,6 @@
 import { createClientUUID } from "@/lib/client-id";
 import { App, Button, Input, Select } from "antd";
-import { AlertCircle, ArrowDownToLine, ArrowRight, Check, ChevronDown, FileText, History, LoaderCircle, Minus, Plus, RotateCcw, Save, ShoppingBag, SlidersHorizontal } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, ArrowRight, Check, ChevronDown, FileText, History, LoaderCircle, Minus, Plus, RotateCcw, Save, SlidersHorizontal } from "lucide-react";
 import { WorkspacePage } from "@/components/layout/workspace-page";
 import { SegmentedControl } from "@/components/ui/base/segmented-control/segmented-control";
 import { AntTooltip } from "@/components/ui/base/tooltip/ant-tooltip";
@@ -2355,12 +2355,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
         <WorkspacePage fluid scroll={false} className="ecs-page ecommerce-page">
             <header className="ecs-workspace-header">
                 <div className="ecs-workspace-identity">
-                    <span className="ecs-workspace-mark" aria-hidden="true">
-                        <ShoppingBag size={22} />
-                    </span>
-                    <div>
-                        <h1>电商Agent</h1>
-                    </div>
+                    <h1>电商Agent</h1>
                 </div>
                 <div className="ecs-workspace-actions">
                     <Button icon={<History size={15} />} onClick={() => setHistoryOpen(true)}>
