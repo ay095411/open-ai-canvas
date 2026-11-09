@@ -15,8 +15,9 @@ import (
 
 // 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
 // 因此上游 78-91 顺延为 79-92，避免与已应用版本冲突。上游 v1.8.2 新增的
-// drama_draft_form / email_logs_and_notifications 原为 90/91，在这里是 91/92。
-const CurrentSchemaVersion int64 = 92
+// drama_draft_form / email_logs_and_notifications 原为 90/91，在这里是 91/92；
+// 上游 v1.8.3 的 drama_reference_controls 原为 92，在这里顺延为 93。
+const CurrentSchemaVersion int64 = 93
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -310,6 +311,27 @@ var schemaMigrations = []migration{
 	{version: 92, name: "email_logs_and_notifications", checksum: "sha256:email-logs-and-notifications-v91-20261106", apply: func(tx *gorm.DB) error {
 		// 邮件发送记录与用户邮件订阅（消费日报，默认关闭）；只建新表。
 		return tx.AutoMigrate(&model.EmailLog{}, &model.UserNotificationSetting{})
+	}},
+	{version: 93, name: "drama_reference_controls", checksum: "sha256:drama-reference-controls-v92", apply: func(tx *gorm.DB) error {
+		for _, change := range []struct {
+			entity any
+			fields []string
+		}{
+			{&model.DramaCast{}, []string{"ImagePrompt"}},
+			{&model.DramaSegment{}, []string{"ReferenceImagesJSON", "AudioCastIDsJSON"}},
+		} {
+			if !tx.Migrator().HasTable(change.entity) {
+				continue
+			}
+			for _, field := range change.fields {
+				if !tx.Migrator().HasColumn(change.entity, field) {
+					if err := tx.Migrator().AddColumn(change.entity, field); err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
 	}},
 }
 
