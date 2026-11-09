@@ -1,6 +1,9 @@
 package app
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // 输出被截断时必须能从结果里看出来，否则「模型写坏格式」和「模型没写完」
 // 在日志里完全一样，只能靠猜。
@@ -70,15 +73,16 @@ func TestStreamingParserRecordsNormalStop(t *testing.T) {
 	}
 }
 
-// 上游没给结束原因时不能凭空编一个。
-func TestStreamingParserOmitsMissingFinishReason(t *testing.T) {
+// 上游没给结束标记时要显式失败：这样的响应可能只是断流，上游 #979 之后
+// 不再把它当成成功，本条期望随实现一起收紧（合并 v1.8.3 时对齐）。
+func TestStreamingParserRejectsMissingFinishReason(t *testing.T) {
 	parser := newStreamingAgentParser("chat-completion", nil)
 	parser.consumeFrame(`data: {"choices":[{"delta":{"content":"只有正文"}}]}`)
-	result, err := parser.result()
-	if err != nil {
-		t.Fatal(err)
+	_, err := parser.result()
+	if err == nil {
+		t.Fatal("missing finish marker must fail instead of being reported as success")
 	}
-	if _, exists := result["finishReason"]; exists {
-		t.Fatalf("finishReason must be absent, got %v", result["finishReason"])
+	if !strings.Contains(err.Error(), "未收到结束标记") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

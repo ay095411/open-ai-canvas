@@ -474,12 +474,15 @@ func isWordByte(char byte) bool {
 func ParseBible(raw string) (Bible, error) {
 	var bible Bible
 	text, err := ExtractJSONObject(raw)
+	// 作品圣经有专用的保守修复：它能认出「[{...}],"name":...」这种被提前闭合的
+	// 资产数组，把漏掉的下一个角色/道具接回来。通用提取只交回「第一个合法前缀」，
+	// 畸形但可修复的输入会在这里被判成成功，后续角色静默消失，所以只要专用修复
+	// 成立就优先采用它（正常 JSON 不会被它改动，changed 为假时返回 false）。
+	if repaired, ok := repairBibleJSON(raw); ok {
+		text, err = repaired, nil
+	}
 	if err != nil {
-		var recovered bool
-		text, recovered = repairBibleJSON(raw)
-		if !recovered {
-			return bible, err
-		}
+		return bible, err
 	}
 	if err := json.Unmarshal([]byte(text), &bible); err != nil {
 		return bible, err
