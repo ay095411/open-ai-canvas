@@ -1,7 +1,10 @@
 .creation-thinking-inline {
+    /* 创作页输入坞里只放这一条滑块：拖一档的鼠标行程由这里的宽度决定。
+       180px 时 3 档要拖 59px、5 档要拖 29.5px，手感太"长"，收到 132px
+       后分别是 35px / 17.5px，档位仍然点得开。 */
     display: flex;
     align-items: center;
-    width: 180px;
+    width: 132px;
     flex: none;
     padding: 0 4px;
 }
@@ -24,7 +27,8 @@
 .thinking-level-track {
     position: relative;
     flex: 1;
-    min-width: 90px;
+    /* 132px 容器扣掉内边距、10px 间隙与 22px 数值标签后约 92px，下限相应下调。 */
+    min-width: 64px;
     height: 28px;
 }
 .thinking-level-rail {
