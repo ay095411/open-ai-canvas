@@ -9,6 +9,15 @@ import (
 )
 
 func TestMigrateSchemaFromForkV83PreservesHistory(t *testing.T) {
+	testMigrateSchemaFromForkPreservesHistory(t, 83)
+}
+
+func TestMigrateSchemaFromForkV93PreservesHistory(t *testing.T) {
+	testMigrateSchemaFromForkPreservesHistory(t, 93)
+}
+
+func testMigrateSchemaFromForkPreservesHistory(t *testing.T, forkVersion int64) {
+	t.Helper()
 	db, err := Open(Config{Driver: "sqlite", DSN: "file:" + t.Name() + "?mode=memory&cache=shared"})
 	if err != nil {
 		t.Fatal(err)
@@ -38,10 +47,13 @@ func TestMigrateSchemaFromForkV83PreservesHistory(t *testing.T) {
 		{Version: 88, Name: "inspiration_feed", Checksum: "sha256:inspiration-feed-v87-20261105"},
 		{Version: 89, Name: "reference_video_billing", Checksum: "sha256:reference-video-billing-v88-20261106"},
 		{Version: 90, Name: "reference_video_cost_price", Checksum: "sha256:reference-video-cost-price-v89-20261106"},
+		{Version: 91, Name: "drama_draft_form", Checksum: "sha256:drama-draft-form-v90-20261106"},
+		{Version: 92, Name: "email_logs_and_notifications", Checksum: "sha256:email-logs-and-notifications-v91-20261106"},
+		{Version: 93, Name: "drama_reference_controls", Checksum: "sha256:drama-reference-controls-v92"},
 	}
 	legacyAppliedAt := time.Date(2026, 11, 5, 0, 0, 0, 0, time.UTC)
 	for _, item := range schemaMigrations {
-		if item.version > 83 {
+		if item.version > forkVersion {
 			break
 		}
 		if err := item.apply(db); err != nil {
@@ -60,6 +72,9 @@ func TestMigrateSchemaFromForkV83PreservesHistory(t *testing.T) {
 	// The baseline uses current models; remove new tables so the upgrade must
 	// actually create them, not merely append their migration records.
 	newTables := []any{&model.PoseLibraryItem{}, &model.PoseLibrarySource{}, &model.ArkPortraitGroupGrant{}, &model.InspirationFeedEntry{}}
+	if forkVersion == 93 {
+		newTables = []any{&model.EcommerceRound{}, &model.ChannelWebsite{}, &model.SiteTrafficEvent{}, &model.MCPServerTemplate{}, &model.MCPConnection{}, &model.MCPToolExecution{}, &model.CreationConversation{}, &model.CreationConversationMessage{}, &model.CreationConversationResource{}}
+	}
 	if err := db.Migrator().DropTable(newTables...); err != nil {
 		t.Fatal(err)
 	}
@@ -72,12 +87,12 @@ func TestMigrateSchemaFromForkV83PreservesHistory(t *testing.T) {
 		return records
 	}
 	before := readLedger()
-	if len(before) == 0 || before[len(before)-1].Version != 83 {
-		t.Fatal("fixture must stop at the fork's version 83")
+	if len(before) == 0 || before[len(before)-1].Version != forkVersion {
+		t.Fatalf("fixture must stop at the fork's version %d", forkVersion)
 	}
 
 	if err := MigrateSchema(db); err != nil {
-		t.Fatalf("upgrade fork v83: %v", err)
+		t.Fatalf("upgrade fork v%d: %v", forkVersion, err)
 	}
 	after := readLedger()
 	if len(after) < len(before)+7 || !reflect.DeepEqual(before, after[:len(before)]) {

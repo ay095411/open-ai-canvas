@@ -22,7 +22,7 @@
     --creation-glass-ink: #5b57e8;
     --creation-glass-fill: #5b55f0;
     --creation-glass-fg: #ffffff;
-    --creation-tab-slide: 520ms cubic-bezier(.22, 1, .36, 1);
+    --creation-tab-slide: 520ms cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     isolation: isolate;
     display: grid;
@@ -39,7 +39,10 @@
     backdrop-filter: blur(18px) saturate(1.35);
 }
 
-.dark .creation-mode-tabs { --creation-glass-ink: #7f78ff; --creation-glass-fill: #625bff; }
+.dark .creation-mode-tabs {
+    --creation-glass-ink: #7f78ff;
+    --creation-glass-fill: #625bff;
+}
 
 /* 指示器按激活按钮的测量值定位。 */
 .creation-mode-indicator {
@@ -55,9 +58,7 @@
     /* 本体用实心 fill。原来是 ink 以 36% 叠在浅色页面上，实测白字只有 1.2~2.0:1，
        几乎读不出来；换成实底后中段达到 5.2:1（浅色）/ 4.7:1（深色），白字才立得住。
        底部的白光是「液态」的来源，只覆盖下部约 1/3，不碰中段标签所在的对比度。 */
-    background:
-        radial-gradient(100% 62% at 50% 132%, color-mix(in srgb, #fff 42%, transparent), transparent 74%),
-        var(--creation-glass-fill);
+    background: radial-gradient(100% 62% at 50% 132%, color-mix(in srgb, #fff 42%, transparent), transparent 74%), var(--creation-glass-fill);
     box-shadow:
         inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent),
         inset 0 1px color-mix(in srgb, #fff 32%, transparent),
@@ -102,76 +103,348 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: color var(--user-motion), transform var(--user-motion);
+    transition:
+        color var(--user-motion),
+        transform var(--user-motion);
 }
 /* 首页根容器：确保浅色/暗色模式背景正确（日间点阵背景见 globals.css 的 .creation-home 段） */
-.creation-home { background: var(--user-page-bg); color: var(--user-ink); }
+.creation-home {
+    background: var(--user-page-bg);
+    color: var(--user-ink);
+}
 
-.creation-home-scroll { display: block; width: 100%; min-height: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain; padding: var(--space-6) var(--space-8) var(--space-12); }
-.creation-home-scroll > * { width: 100%; max-width: 1280px; margin-inline: auto; }
-.creation-home-scroll > .creation-launchpad { width: min(960px, 100%); margin-inline: auto; }
-.creation-start-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); }
-.creation-start-heading h1 { margin: 0; color: var(--user-ink); font-size: var(--typ-display-sm); font-weight: 650; letter-spacing: -.025em; line-height: 1.3; }
-.creation-start-heading p { margin: var(--space-1) 0 0; color: var(--user-ink-muted); font-size: var(--fs-caption); line-height: 1.6; }
-.creation-history-entry { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--space-2); min-height: var(--user-control-height); border: 0; border-radius: var(--user-radius-control); padding: var(--space-2) var(--space-3); background: var(--user-surface-muted); color: var(--user-ink-muted); font-size: var(--fs-caption); cursor: pointer; }
-.creation-history-entry:hover { background: var(--user-surface-hover); color: var(--user-ink); }
-.creation-history-entry svg { width: var(--user-icon-size); height: var(--user-icon-size); }
-.creation-recent-canvases { width: 100%; margin-top: var(--space-6); }
-.creation-section-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
-.creation-section-heading h2 { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--user-ink); font-size: var(--fs-body); font-weight: 600; }
-.creation-section-heading h2 svg { width: var(--user-icon-size); height: var(--user-icon-size); color: var(--user-ink-muted); }
-.creation-section-link { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--user-ink-muted); font-size: var(--fs-caption); }
-.creation-section-link:hover { color: var(--user-ink); }
-.creation-section-link svg { width: var(--user-icon-size); height: var(--user-icon-size); }
-.creation-canvas-strip { display: flex; gap: var(--space-3); overflow-x: auto; padding: var(--space-1) var(--space-1) var(--space-2); margin-inline: calc(-1 * var(--space-1)); scroll-snap-type: x proximity; }
-.creation-canvas-strip-item { min-width: 200px; flex: 1 0 200px; scroll-snap-align: start; }
-.creation-canvas-tile { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-width: 0; height: 88px; border: 0; border-radius: var(--user-radius-card); padding: var(--space-3); background: var(--library-surface); color: var(--user-ink); text-align: left; cursor: pointer; transition: background var(--user-motion), transform var(--user-motion); }
-.creation-canvas-tile:hover { background: var(--library-surface-hover); transform: translateY(-2px); }
-.creation-canvas-tile:disabled { cursor: wait; opacity: .5; transform: none; }
-.creation-canvas-thumbnail { display: block; width: 56px; height: 56px; flex: 0 0 56px; overflow: hidden; border-radius: var(--user-radius-control); background: var(--library-cover-surface); }
-.creation-canvas-thumbnail.is-create { display: grid; place-items: center; background: var(--library-icon-surface); color: var(--user-ink-muted); }
-.creation-canvas-thumbnail.is-create svg { width: var(--space-6); height: var(--space-6); }
-.creation-canvas-thumbnail .canvas-project-empty { background: var(--library-cover-surface); }
-.creation-canvas-thumbnail .canvas-project-empty-icon { width: var(--space-5); height: var(--space-5); margin: 0; }
-.creation-canvas-thumbnail .canvas-project-empty :is(span, small) { display: none; }
-.creation-canvas-copy { display: flex; min-width: 0; flex-direction: column; gap: var(--space-1-half); }
-.creation-canvas-copy strong { overflow: hidden; font-size: var(--fs-caption); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.creation-canvas-copy small { overflow: hidden; color: var(--user-ink-muted); font-size: var(--fs-label); text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.creation-canvas-strip-state { display: flex; min-width: 0; flex: 4 0 240px; align-items: center; gap: var(--space-3); border-radius: var(--user-radius-card); padding: var(--space-4); color: var(--user-ink-muted); background: var(--library-surface); font-size: var(--fs-caption); }
-.creation-canvas-strip-state > svg { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
-.creation-canvas-strip-state button { flex: 0 0 auto; margin-left: auto; border: 0; border-radius: var(--user-radius-control); padding: var(--space-2) var(--space-3); background: var(--library-icon-surface); color: var(--user-ink); cursor: pointer; }
-.creation-canvas-skeleton { display: flex; height: 88px; align-items: center; gap: var(--space-3); border-radius: var(--user-radius-card); padding: var(--space-3); background: var(--library-surface); }
-.creation-canvas-skeleton > span { width: 56px; height: 56px; flex: 0 0 56px; border-radius: var(--user-radius-control); background: var(--library-cover-surface); }
-.creation-canvas-skeleton > span:last-child { width: 60%; height: var(--space-5); flex: 1; }
-.creation-hall-loading { margin-top: var(--space-8); padding: var(--space-6); border-radius: var(--user-radius-card); background: var(--library-surface); color: var(--user-ink-muted); font-size: var(--fs-caption); }
-.creation-source-notice { margin-top: var(--space-5); color: var(--user-ink-muted); font-size: var(--fs-caption); line-height: 1.7; }
-.creation-source-notice summary { width: fit-content; padding-block: var(--space-2); cursor: pointer; }
-.creation-source-notice p { margin: var(--space-2) 0; }
-.creation-source-notice a { color: var(--user-ink); text-decoration: underline; text-underline-offset: var(--space-half); }
-:is(.creation-history-entry, .creation-section-link, .creation-canvas-tile, .creation-canvas-strip-state button):focus-visible { outline: 2px solid var(--control-focus-ring); outline-offset: 2px; }
+.creation-home-scroll {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: var(--space-6) var(--space-8) var(--space-12);
+}
+.creation-home-scroll > * {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+}
+.creation-home-scroll > .creation-launchpad {
+    width: min(960px, 100%);
+    margin-inline: auto;
+}
+.creation-start-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+.creation-start-heading h1 {
+    margin: 0;
+    color: var(--user-ink);
+    font-size: var(--typ-display-sm);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.3;
+}
+.creation-start-heading p {
+    margin: var(--space-1) 0 0;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.6;
+}
+.creation-history-entry {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--user-control-height);
+    border: 0;
+    border-radius: var(--user-radius-control);
+    padding: var(--space-2) var(--space-3);
+    background: var(--user-surface-muted);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    cursor: pointer;
+}
+.creation-history-entry:hover {
+    background: var(--user-surface-hover);
+    color: var(--user-ink);
+}
+.creation-history-entry svg {
+    width: var(--user-icon-size);
+    height: var(--user-icon-size);
+}
+.creation-recent-canvases {
+    width: 100%;
+    margin-top: var(--space-6);
+}
+.creation-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+.creation-section-heading h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--user-ink);
+    font-size: var(--fs-body);
+    font-weight: 600;
+}
+.creation-section-heading h2 svg {
+    width: var(--user-icon-size);
+    height: var(--user-icon-size);
+    color: var(--user-ink-muted);
+}
+.creation-section-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+}
+.creation-section-link:hover {
+    color: var(--user-ink);
+}
+.creation-section-link svg {
+    width: var(--user-icon-size);
+    height: var(--user-icon-size);
+}
+.creation-canvas-strip {
+    display: flex;
+    gap: var(--space-3);
+    overflow-x: auto;
+    padding: var(--space-1) var(--space-1) var(--space-2);
+    margin-inline: calc(-1 * var(--space-1));
+    scroll-snap-type: x proximity;
+}
+.creation-canvas-strip-item {
+    min-width: 200px;
+    flex: 1 0 200px;
+    scroll-snap-align: start;
+}
+.creation-canvas-tile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-width: 0;
+    height: 88px;
+    border: 0;
+    border-radius: var(--user-radius-card);
+    padding: var(--space-3);
+    background: var(--library-surface);
+    color: var(--user-ink);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background var(--user-motion),
+        transform var(--user-motion);
+}
+.creation-canvas-tile:hover {
+    background: var(--library-surface-hover);
+    transform: translateY(-2px);
+}
+.creation-canvas-tile:disabled {
+    cursor: wait;
+    opacity: 0.5;
+    transform: none;
+}
+.creation-canvas-thumbnail {
+    display: block;
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+    overflow: hidden;
+    border-radius: var(--user-radius-control);
+    background: var(--library-cover-surface);
+}
+.creation-canvas-thumbnail.is-create {
+    display: grid;
+    place-items: center;
+    background: var(--library-icon-surface);
+    color: var(--user-ink-muted);
+}
+.creation-canvas-thumbnail.is-create svg {
+    width: var(--space-6);
+    height: var(--space-6);
+}
+.creation-canvas-thumbnail .canvas-project-empty {
+    background: var(--library-cover-surface);
+}
+.creation-canvas-thumbnail .canvas-project-empty-icon {
+    width: var(--space-5);
+    height: var(--space-5);
+    margin: 0;
+}
+.creation-canvas-thumbnail .canvas-project-empty :is(span, small) {
+    display: none;
+}
+.creation-canvas-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-1-half);
+}
+.creation-canvas-copy strong {
+    overflow: hidden;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.creation-canvas-copy small {
+    overflow: hidden;
+    color: var(--user-ink-muted);
+    font-size: var(--fs-label);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.creation-canvas-strip-state {
+    display: flex;
+    min-width: 0;
+    flex: 4 0 240px;
+    align-items: center;
+    gap: var(--space-3);
+    border-radius: var(--user-radius-card);
+    padding: var(--space-4);
+    color: var(--user-ink-muted);
+    background: var(--library-surface);
+    font-size: var(--fs-caption);
+}
+.creation-canvas-strip-state > svg {
+    width: var(--space-5);
+    height: var(--space-5);
+    flex-shrink: 0;
+}
+.creation-canvas-strip-state button {
+    flex: 0 0 auto;
+    margin-left: auto;
+    border: 0;
+    border-radius: var(--user-radius-control);
+    padding: var(--space-2) var(--space-3);
+    background: var(--library-icon-surface);
+    color: var(--user-ink);
+    cursor: pointer;
+}
+.creation-canvas-skeleton {
+    display: flex;
+    height: 88px;
+    align-items: center;
+    gap: var(--space-3);
+    border-radius: var(--user-radius-card);
+    padding: var(--space-3);
+    background: var(--library-surface);
+}
+.creation-canvas-skeleton > span {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+    border-radius: var(--user-radius-control);
+    background: var(--library-cover-surface);
+}
+.creation-canvas-skeleton > span:last-child {
+    width: 60%;
+    height: var(--space-5);
+    flex: 1;
+}
+.creation-hall-loading {
+    margin-top: var(--space-8);
+    padding: var(--space-6);
+    border-radius: var(--user-radius-card);
+    background: var(--library-surface);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+}
+.creation-source-notice {
+    margin-top: var(--space-5);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.7;
+}
+.creation-source-notice summary {
+    width: fit-content;
+    padding-block: var(--space-2);
+    cursor: pointer;
+}
+.creation-source-notice p {
+    margin: var(--space-2) 0;
+}
+.creation-source-notice a {
+    color: var(--user-ink);
+    text-decoration: underline;
+    text-underline-offset: var(--space-half);
+}
+:is(.creation-history-entry, .creation-section-link, .creation-canvas-tile, .creation-canvas-strip-state button):focus-visible {
+    outline: 2px solid var(--control-focus-ring);
+    outline-offset: 2px;
+}
 @media (max-width: 720px) {
-    .creation-home-scroll { padding: var(--space-4) var(--space-4) var(--space-8); }
-    .creation-start-heading { align-items: flex-start; margin-bottom: var(--space-4); gap: var(--space-2); }
-    .creation-start-heading h1 { font-size: var(--fs-title); }
-    .creation-history-entry { padding: var(--space-2); }
-    .creation-history-entry span { display: none; }
-    .creation-canvas-strip-item { min-width: 220px; flex-basis: 220px; }
+    .creation-home-scroll {
+        padding: var(--space-4) var(--space-4) var(--space-8);
+    }
+    .creation-start-heading {
+        align-items: flex-start;
+        margin-bottom: var(--space-4);
+        gap: var(--space-2);
+    }
+    .creation-start-heading h1 {
+        font-size: var(--fs-title);
+    }
+    .creation-history-entry {
+        padding: var(--space-2);
+    }
+    .creation-history-entry span {
+        display: none;
+    }
+    .creation-canvas-strip-item {
+        min-width: 220px;
+        flex-basis: 220px;
+    }
 }
 @media (prefers-reduced-motion: reduce) {
-    .creation-canvas-tile { transition: none; }
-    .creation-canvas-tile:hover { transform: none; }
+    .creation-canvas-tile {
+        transition: none;
+    }
+    .creation-canvas-tile:hover {
+        transform: none;
+    }
 }
-.creation-mode-button svg { width: 18px; height: 18px; stroke-width: 1.8; color: currentColor; }
-.creation-mode-button[aria-pressed="true"] { color: var(--creation-glass-fg); }
+.creation-mode-button svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.8;
+    color: currentColor;
+}
+.creation-mode-button[aria-pressed="true"] {
+    color: var(--creation-glass-fg);
+}
 /* 悬停只给轻微反馈，模式仍只由 click 改变（参考稿第 3 条）。 */
-.creation-mode-button:hover:not([aria-pressed="true"]) { color: var(--user-ink); transform: translateY(-1px); }
-.creation-mode-button:active:not([aria-pressed="true"]) { transform: scale(.97); }
-.creation-mode-button:focus-visible { outline: 2px solid var(--user-accent); outline-offset: 2px; }
+.creation-mode-button:hover:not([aria-pressed="true"]) {
+    color: var(--user-ink);
+    transform: translateY(-1px);
+}
+.creation-mode-button:active:not([aria-pressed="true"]) {
+    transform: scale(0.97);
+}
+.creation-mode-button:focus-visible {
+    outline: 2px solid var(--user-accent);
+    outline-offset: 2px;
+}
 /* Agent 圆点在激活胶囊上是深底，原来的靛蓝会糊掉，跟着反色。 */
-.creation-mode-button[aria-pressed="true"] .creation-mode-spark { background: #fff; box-shadow: 0 0 10px rgb(255 255 255 / .7); }
+.creation-mode-button[aria-pressed="true"] .creation-mode-spark {
+    background: #fff;
+    box-shadow: 0 0 10px rgb(255 255 255 / 0.7);
+}
 
 /* 首帧之后才开放过渡：初次测量是从 0 滑到目标位，否则加载时会自己动一下。 */
-.creation-mode-tabs[data-ready="false"] .creation-mode-indicator { transition: none; }
+.creation-mode-tabs[data-ready="false"] .creation-mode-indicator {
+    transition: none;
+}
 .creation-mode-spark {
     width: 6px;
     height: 6px;
@@ -187,7 +460,8 @@
 }
 
 @keyframes creation-mode-spark-pulse {
-    0%, 100% {
+    0%,
+    100% {
         transform: scale(0.85);
         opacity: 0.45;
         box-shadow: 0 0 4px rgba(99, 102, 241, 0.4);
@@ -195,34 +469,142 @@
     50% {
         transform: scale(1.3);
         opacity: 1;
-        box-shadow: 0 0 10px rgba(99, 102, 241, 0.9), 0 0 16px rgba(99, 102, 241, 0.45);
+        box-shadow:
+            0 0 10px rgba(99, 102, 241, 0.9),
+            0 0 16px rgba(99, 102, 241, 0.45);
     }
 }
-.creation-agent-orb { grid-row: span 2; }
-.creation-agent-eyebrow { font-size: 10px; font-weight: 650; letter-spacing: .14em; color: var(--user-accent); }
-.creation-agent-copy h2 { margin: 4px 0 8px; font-size: 21px; font-weight: 650; color: var(--user-ink); }
-.creation-agent-copy p { margin: 0; max-width: 62ch; font-size: 13px; line-height: 1.8; color: var(--user-ink-muted); }
-.creation-agent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.creation-agent-error { grid-column: 1 / -1; color: var(--status-error); font-size: 12px; margin: 0; }
-.creation-home .creation-empty-composer[hidden] { display: none; }
-.creation-submit { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
-.creation-submit-cost { display: inline-flex; align-items: center; gap: 4px; color: var(--user-ink-muted); font-size: 12px; padding-inline: 8px; }
-.creation-submit-cost svg { width: 14px; height: 14px; }
-.creation-home .creation-submit-action { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: var(--space-10); min-width: var(--space-10); height: var(--space-10); padding: 0; border: 0; border-radius: var(--r-full); background: var(--button-primary-bg); color: var(--button-primary-fg); cursor: pointer; transition: background var(--user-motion), transform var(--user-motion); }
-.creation-home .creation-submit-action::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 28%, rgb(255 255 255 / .28) 48%, transparent 68%); transform: translateX(-120%); pointer-events: none; }
-.creation-home .creation-submit-action svg { width: 17px; height: 17px; flex-shrink: 0; color: currentColor; }
-.creation-home .creation-submit-action:disabled:not([aria-busy="true"]) { background: var(--user-surface-hover); color: var(--user-ink-muted); cursor: not-allowed; }
-.creation-home .creation-submit-action[aria-busy="true"] { cursor: wait; }
-.creation-home .creation-submit-action:not(:disabled):hover { background: var(--button-primary-hover-bg); transform: translateY(-1px); }
-.creation-home .creation-submit-action:not(:disabled):hover::after { animation: creation-submit-sheen 640ms cubic-bezier(.16, 1, .3, 1); }
-.creation-home .creation-submit-action:not(:disabled):active { background: var(--button-primary-active-bg); transform: scale(.97); }
+.creation-agent-orb {
+    grid-row: span 2;
+}
+.creation-agent-eyebrow {
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    color: var(--user-accent);
+}
+.creation-agent-copy h2 {
+    margin: 4px 0 8px;
+    font-size: 21px;
+    font-weight: 650;
+    color: var(--user-ink);
+}
+.creation-agent-copy p {
+    margin: 0;
+    max-width: 62ch;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--user-ink-muted);
+}
+.creation-agent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.creation-agent-error {
+    grid-column: 1 / -1;
+    color: var(--status-error);
+    font-size: 12px;
+    margin: 0;
+}
+.creation-home .creation-empty-composer[hidden] {
+    display: none;
+}
+.creation-submit {
+    margin-left: auto;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.creation-submit-cost {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--user-ink-muted);
+    font-size: 12px;
+    padding-inline: 8px;
+}
+.creation-submit-cost svg {
+    width: 14px;
+    height: 14px;
+}
+.creation-home .creation-submit-action {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: var(--space-10);
+    min-width: var(--space-10);
+    height: var(--space-10);
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: var(--button-primary-bg);
+    color: var(--button-primary-fg);
+    cursor: pointer;
+    transition:
+        background var(--user-motion),
+        transform var(--user-motion);
+}
+.creation-home .creation-submit-action::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 28%, rgb(255 255 255 / 0.28) 48%, transparent 68%);
+    transform: translateX(-120%);
+    pointer-events: none;
+}
+.creation-home .creation-submit-action svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    color: currentColor;
+}
+.creation-home .creation-submit-action:disabled:not([aria-busy="true"]) {
+    background: var(--user-surface-hover);
+    color: var(--user-ink-muted);
+    cursor: not-allowed;
+}
+.creation-home .creation-submit-action[aria-busy="true"] {
+    cursor: wait;
+}
+.creation-home .creation-submit-action:not(:disabled):hover {
+    background: var(--button-primary-hover-bg);
+    transform: translateY(-1px);
+}
+.creation-home .creation-submit-action:not(:disabled):hover::after {
+    animation: creation-submit-sheen 640ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.creation-home .creation-submit-action:not(:disabled):active {
+    background: var(--button-primary-active-bg);
+    transform: scale(0.97);
+}
 @media (max-width: 620px) {
-    .creation-mode-button { padding-inline: 6px; font-size: 12px; gap: 6px; }
-    .creation-agent-orb { display: none; }
-    .creation-agent-copy h2 { font-size: 18px; }
-    .creation-agent-actions > .ant-btn { width: 100%; }
-    .creation-home .creation-chat-dock { flex-wrap: wrap; gap: 12px; }
-    .creation-home .creation-chat-controls { flex: 1 1 100%; width: 100%; }
+    .creation-mode-button {
+        padding-inline: 6px;
+        font-size: 12px;
+        gap: 6px;
+    }
+    .creation-agent-orb {
+        display: none;
+    }
+    .creation-agent-copy h2 {
+        font-size: 18px;
+    }
+    .creation-agent-actions > .ant-btn {
+        width: 100%;
+    }
+    .creation-home .creation-chat-dock {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .creation-home .creation-chat-controls {
+        flex: 1 1 100%;
+        width: 100%;
+    }
 }
 .app-user-workspace .creation-voice-trigger.ant-btn {
     width: 36px !important;
@@ -231,7 +613,11 @@
     border-radius: 999px !important;
     background: var(--user-surface-muted) !important;
     color: var(--user-ink-muted) !important;
-    transition: background var(--user-motion), color var(--user-motion), transform var(--user-motion), box-shadow var(--user-motion) !important;
+    transition:
+        background var(--user-motion),
+        color var(--user-motion),
+        transform var(--user-motion),
+        box-shadow var(--user-motion) !important;
 }
 .app-user-workspace .creation-voice-trigger.ant-btn:hover,
 .app-user-workspace .creation-voice-trigger.ant-btn:focus-visible {
@@ -240,10 +626,22 @@
     transform: translateY(-1px);
     box-shadow: 0 8px 18px color-mix(in srgb, var(--user-ink) 8%, transparent);
 }
-.app-user-workspace .creation-chat-control > svg:first-child { transition: transform var(--user-motion), color var(--user-motion); color: currentColor; }
-.app-user-workspace .creation-model-picker .canvas-model-picker-trigger-icon { color: currentColor; }
-.app-user-workspace .creation-chat-control:hover > svg:first-child { transform: scale(1.06); }
-.app-user-workspace .creation-chat-control.is-clear:hover { background: color-mix(in srgb, var(--status-error, #c45b5b) 12%, var(--user-surface)) !important; color: var(--status-error, #c45b5b) !important; }
+.app-user-workspace .creation-chat-control > svg:first-child {
+    transition:
+        transform var(--user-motion),
+        color var(--user-motion);
+    color: currentColor;
+}
+.app-user-workspace .creation-model-picker .canvas-model-picker-trigger-icon {
+    color: currentColor;
+}
+.app-user-workspace .creation-chat-control:hover > svg:first-child {
+    transform: scale(1.06);
+}
+.app-user-workspace .creation-chat-control.is-clear:hover {
+    background: color-mix(in srgb, var(--status-error, #c45b5b) 12%, var(--user-surface)) !important;
+    color: var(--status-error, #c45b5b) !important;
+}
 
 /* 思考与流式等开关在开启时的选中高亮样式：对齐系统主色调，彻底消除生硬的电光蓝硬编码 */
 .app-user-workspace .creation-chat-controls .creation-chat-control[aria-pressed="true"],
@@ -276,16 +674,31 @@
     color: var(--user-ink);
     transform: translateY(-1px);
 }
-.app-user-workspace .creation-launchpad .creation-reference-add-button:active:not(:disabled) { transform: scale(.97); }
-@keyframes creation-submit-sheen { to { transform: translateX(120%); } }
+.app-user-workspace .creation-launchpad .creation-reference-add-button:active:not(:disabled) {
+    transform: scale(0.97);
+}
+@keyframes creation-submit-sheen {
+    to {
+        transform: translateX(120%);
+    }
+}
 @media (prefers-reduced-motion: reduce) {
-    .creation-mode-button:active:not([aria-pressed="true"]) { transform: none; }
-    .creation-mode-indicator { transition: none; }
+    .creation-mode-button:active:not([aria-pressed="true"]) {
+        transform: none;
+    }
+    .creation-mode-indicator {
+        transition: none;
+    }
     .app-user-workspace .creation-chat-composer,
     .app-user-workspace .creation-chat-control,
     .app-user-workspace .creation-voice-trigger.ant-btn,
-    .app-user-workspace .creation-submit-action { transition: none !important; transform: none !important; }
-    .creation-home .creation-submit-action:not(:disabled):hover::after { animation: none; }
+    .app-user-workspace .creation-submit-action {
+        transition: none !important;
+        transform: none !important;
+    }
+    .creation-home .creation-submit-action:not(:disabled):hover::after {
+        animation: none;
+    }
 }
 
 /* 参数弹窗挂在 body overlays，必须直接用用户表面 token；描边由 Ant inner 的 1px border 造成。 */
@@ -301,7 +714,9 @@
 }
 
 .app-user-overlays .creation-control-popover .ant-popover-arrow,
-.app-product-overlays .creation-control-popover .ant-popover-arrow { display: none; }
+.app-product-overlays .creation-control-popover .ant-popover-arrow {
+    display: none;
+}
 
 .app-user-overlays .creation-control-popover.ant-popover,
 .app-user-overlays .creation-control-popover .ant-popover-container,
@@ -315,7 +730,7 @@
     outline: 0 !important;
     background: var(--user-surface-raised) !important;
     background-image: none !important;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, .36) !important;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.36) !important;
     /* 只写标准属性：原先标准在前、`-webkit-` 在后，被去重成只剩 `-webkit-`，
        于是这条覆盖在 Firefox 上从未生效，Ant 自带的模糊一直留着。 */
     backdrop-filter: none !important;
@@ -329,20 +744,28 @@
 }
 
 .app-user-overlays .creation-parameter-menu,
-.app-product-overlays .creation-parameter-menu { padding: 12px !important; }
+.app-product-overlays .creation-parameter-menu {
+    padding: 12px !important;
+}
 
 .app-user-overlays .creation-parameter-section h3,
 .app-user-overlays .creation-duration-heading > span,
 .app-product-overlays .creation-parameter-section h3,
-.app-product-overlays .creation-duration-heading > span { color: var(--user-ink-muted) !important; }
+.app-product-overlays .creation-duration-heading > span {
+    color: var(--user-ink-muted) !important;
+}
 
 .app-user-overlays .creation-parameter-section > header > span,
 .app-user-overlays .creation-duration-heading strong,
 .app-product-overlays .creation-parameter-section > header > span,
-.app-product-overlays .creation-duration-heading strong { color: var(--user-ink) !important; }
+.app-product-overlays .creation-duration-heading strong {
+    color: var(--user-ink) !important;
+}
 
 .app-user-overlays .creation-choice-grid,
-.app-product-overlays .creation-choice-grid { gap: 6px !important; }
+.app-product-overlays .creation-choice-grid {
+    gap: 6px !important;
+}
 
 .app-user-overlays .creation-choice-grid button,
 .app-user-overlays .creation-duration-choices button,
@@ -363,7 +786,9 @@
 .app-product-overlays .creation-choice-grid.is-resolution button,
 .app-product-overlays .creation-choice-grid.is-quality button,
 .app-product-overlays .creation-choice-grid.is-count button,
-.app-product-overlays .creation-duration-choices button { min-height: 34px !important; }
+.app-product-overlays .creation-duration-choices button {
+    min-height: 34px !important;
+}
 
 .app-user-overlays .creation-choice-grid button:hover,
 .app-user-overlays .creation-duration-choices button:hover,
@@ -386,11 +811,13 @@
     border: 0 !important;
     border-radius: 3px !important;
     background: currentColor;
-    opacity: .55;
+    opacity: 0.55;
 }
 
 .app-user-overlays .creation-choice-grid button.is-selected .creation-ratio-preview > span,
-.app-product-overlays .creation-choice-grid button.is-selected .creation-ratio-preview > span { opacity: .92; }
+.app-product-overlays .creation-choice-grid button.is-selected .creation-ratio-preview > span {
+    opacity: 0.92;
+}
 
 .app-user-overlays .creation-custom-value,
 .app-product-overlays .creation-custom-value {
@@ -426,7 +853,7 @@
 .app-product-overlays .creation-parameter-menu .image-size-ratio-icon {
     border: 0 !important;
     background: currentColor;
-    opacity: .55;
+    opacity: 0.55;
 }
 
 /* Keep the settings popover inside the viewport and preserve every option label. */
@@ -507,7 +934,7 @@ html:not(.dark) .app-product-overlays .creation-control-popover.ant-popover,
 html:not(.dark) .app-product-overlays .creation-control-popover .ant-popover-container,
 html:not(.dark) .app-product-overlays .creation-control-popover .ant-popover-inner,
 html:not(.dark) .app-product-overlays .creation-control-popover-surface {
-    box-shadow: 0 16px 40px rgba(25, 25, 30, .12) !important;
+    box-shadow: 0 16px 40px rgba(25, 25, 30, 0.12) !important;
 }
 
 /* 长提示词保持编辑器可控：按当前字号最多展示约 12 行，继续输入时只在编辑区内部滚动。 */
@@ -569,7 +996,9 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
 .creation-composer-stage .creation-composer-shell {
     position: relative;
     border-radius: 22px;
-    transition: box-shadow 350ms ease, border-color 350ms ease;
+    transition:
+        box-shadow 350ms ease,
+        border-color 350ms ease;
 }
 
 .creation-composer-stage .creation-composer-shell::before {
@@ -577,15 +1006,7 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
     position: absolute;
     inset: -1.5px;
     border-radius: 23px;
-    background: conic-gradient(
-        from var(--border-beam-angle, 0deg) at 50% 50%,
-        transparent 0%,
-        transparent 65%,
-        var(--beam-color-2, #3d66ff) 80%,
-        #ffffff 92%,
-        var(--beam-color-1, #f2ad4d) 98%,
-        transparent 100%
-    );
+    background: conic-gradient(from var(--border-beam-angle, 0deg) at 50% 50%, transparent 0%, transparent 65%, var(--beam-color-2, #3d66ff) 80%, #ffffff 92%, var(--beam-color-1, #f2ad4d) 98%, transparent 100%);
     animation: border-beam-spin 4.5s linear infinite;
     opacity: 0;
     pointer-events: none;
@@ -602,13 +1023,15 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
 }
 
 .creation-composer-stage .creation-composer-shell:has(:focus-within) {
-    box-shadow: 0 0 32px -4px color-mix(in srgb, var(--beam-color-1, #f2ad4d) 30%, transparent),
-                0 10px 28px -6px color-mix(in srgb, var(--beam-color-2, #3d66ff) 24%, transparent) !important;
+    box-shadow:
+        0 0 32px -4px color-mix(in srgb, var(--beam-color-1, #f2ad4d) 30%, transparent),
+        0 10px 28px -6px color-mix(in srgb, var(--beam-color-2, #3d66ff) 24%, transparent) !important;
 }
 
 .dark .creation-composer-stage .creation-composer-shell:has(:focus-within) {
-    box-shadow: 0 0 36px -4px color-mix(in srgb, var(--beam-color-1, #f2ad4d) 36%, transparent),
-                0 10px 32px -6px color-mix(in srgb, var(--beam-color-2, #3d66ff) 28%, transparent) !important;
+    box-shadow:
+        0 0 36px -4px color-mix(in srgb, var(--beam-color-1, #f2ad4d) 36%, transparent),
+        0 10px 32px -6px color-mix(in srgb, var(--beam-color-2, #3d66ff) 28%, transparent) !important;
 }
 
 /* 保留外壳组件的内容层级，避免被内部白色遮罩覆盖。 */
@@ -624,15 +1047,7 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
     position: absolute;
     inset: -1px;
     border-radius: 999px;
-    background: conic-gradient(
-        from var(--border-beam-angle, 0deg) at 50% 50%,
-        transparent 0%,
-        transparent 70%,
-        var(--beam-color-1, #f2ad4d) 88%,
-        #ffffff 95%,
-        var(--beam-color-2, #3d66ff) 99%,
-        transparent 100%
-    );
+    background: conic-gradient(from var(--border-beam-angle, 0deg) at 50% 50%, transparent 0%, transparent 70%, var(--beam-color-1, #f2ad4d) 88%, #ffffff 95%, var(--beam-color-2, #3d66ff) 99%, transparent 100%);
     animation: border-beam-spin 5.5s linear infinite;
     opacity: 0;
     pointer-events: none;
@@ -680,10 +1095,11 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
     cursor: pointer;
     outline: none;
     box-shadow: none;
-    transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
-                color 160ms cubic-bezier(0.16, 1, 0.3, 1),
-                padding 160ms cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+        background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+        color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+        padding 160ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .creation-mode-capsule-btn:hover:not(.is-active) {
@@ -696,7 +1112,9 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
     border: none;
     background: #ffffff;
     color: #0f172a;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0.5px 1px rgba(0, 0, 0, 0.04);
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.06),
+        0 0.5px 1px rgba(0, 0, 0, 0.04);
 }
 
 .creation-mode-capsule-label {

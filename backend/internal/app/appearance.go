@@ -35,10 +35,11 @@ const (
 )
 
 const (
-	appearanceSchemaVersion        = 11
-	appearanceLogoMaxBytes   int64 = 5 << 20
-	appearancePosterMaxBytes int64 = 10 << 20
-	appearanceVideoMaxBytes  int64 = 256 << 20
+	appearanceThemePackLibraryVersion       = 12
+	appearanceSchemaVersion                 = appearanceThemePackLibraryVersion
+	appearanceLogoMaxBytes            int64 = 5 << 20
+	appearancePosterMaxBytes          int64 = 10 << 20
+	appearanceVideoMaxBytes           int64 = 256 << 20
 )
 
 // 登录弹窗左侧轮播。媒体不进固定枚举槽位，而是按「条目 ID + 类型」拼出来，
@@ -560,9 +561,12 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 	// Decode stored themes without reusing built-in slice entries: omitted
 	// fields must be migrated according to each stored theme's identity.
 	value.SkinThemes = nil
+	// An omitted version in an old record must still trigger the upgrade.
+	value.SchemaVersion = 0
 	if strings.TrimSpace(setting.ValueJSON) == "" || json.Unmarshal([]byte(setting.ValueJSON), &value) != nil {
 		return nil, AppearanceSetting{}, errors.New("外观配置格式无效")
 	}
+	storedSchemaVersion := value.SchemaVersion
 	value.SchemaVersion = appearanceSchemaVersion
 	value.BrandName = strings.TrimSpace(value.BrandName)
 	if value.BrandName == "" {
@@ -592,6 +596,9 @@ func (s *Service) readAppearance() (*model.SystemSetting, AppearanceSetting, err
 		value.SkinThemes = defaultAppearanceSkinThemes()
 	}
 	value.SkinThemes = normalizeAppearanceSkinThemes(value.SkinThemes)
+	if storedSchemaVersion < appearanceThemePackLibraryVersion {
+		value.SkinThemes = appendMissingAppearanceThemePackSkins(value.SkinThemes)
+	}
 	value.SEOTitle = normalizeAppearanceSingleLine(value.SEOTitle)
 	value.SEODescription = normalizeAppearanceCopy(value.SEODescription)
 	value.SEOKeywords = normalizeAppearanceSingleLine(value.SEOKeywords)

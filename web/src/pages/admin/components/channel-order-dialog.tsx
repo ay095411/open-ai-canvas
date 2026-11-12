@@ -1,7 +1,7 @@
 import { App, Button, InputNumber, Select, Spin } from "antd";
 import { AdminModal } from "@/pages/admin/ui/overlays";
 import { ArrowDown, ArrowUp, GripVertical, ListOrdered } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AdminEmpty } from "@/pages/admin/components/admin-ui";
 import { getChannelOrder, saveChannelOrder, type ChannelOrderItem } from "@/services/api/channel-order";
 import { modelProtocolLabel, type ModelProtocolDefinition } from "@/lib/model-protocols";
@@ -58,7 +58,19 @@ export function moveOrderItem<T extends { id: string }>(items: T[], id: string, 
     return next;
 }
 
-export function ChannelOrderDialog({ channelId, channelName, protocols = [], onSaved }: { channelId?: string; channelName?: string; protocols?: ModelProtocolDefinition[]; onSaved: () => Promise<void> }) {
+export function ChannelOrderDialog({
+    channelId,
+    channelName,
+    protocols = [],
+    onSaved,
+    renderTrigger,
+}: {
+    channelId?: string;
+    channelName?: string;
+    protocols?: ModelProtocolDefinition[];
+    onSaved: () => Promise<void>;
+    renderTrigger?: (open: () => void) => ReactNode;
+}) {
     const { message } = App.useApp();
     const [open, setOpen] = useState(false),
         [loading, setLoading] = useState(false),
@@ -95,6 +107,7 @@ export function ChannelOrderDialog({ channelId, channelName, protocols = [], onS
         position: index + 1,
     }));
     const start = async () => {
+        if (loading || saving) return;
         setOpen(true);
         setLoading(true);
         setItems([]);
@@ -138,9 +151,13 @@ export function ChannelOrderDialog({ channelId, channelName, protocols = [], onS
     };
     return (
         <>
-            <Button icon={<ListOrdered className="size-4" />} disabled={loading || saving} onClick={() => void start()}>
-                {channelId ? "自定义排序" : "设置排序"}
-            </Button>
+            {renderTrigger ? (
+                renderTrigger(() => void start())
+            ) : (
+                <Button icon={<ListOrdered className="size-4" />} disabled={loading || saving} onClick={() => void start()}>
+                    {channelId ? "自定义排序" : "设置排序"}
+                </Button>
+            )}
             <AdminModal
                 title={channelId ? "自定义模型排序" : "调整渠道顺序"}
                 open={open}

@@ -3,6 +3,7 @@ import { ArrowUpRight, Bell, ChevronDown, ChevronRight, Infinity as InfinityIcon
 import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import { BrandLogoFrame } from "@/components/brand/brand-logo";
 import { CoalAvatar } from "@/components/brand/coal-avatar";
@@ -23,6 +24,9 @@ import { WorkspaceAccountCard } from "./workspace-account-card";
 import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon, ToolboxNavIcon } from "./workspace-sidebar-icons";
+import { trackSiteTrafficAction } from "@/services/site-traffic";
+import { WorkspaceSidebarHistory } from "./workspace-sidebar-history";
+import "./workspace-sidebar-history.css";
 
 export type WorkspaceNavItem = {
     id: string;
@@ -242,7 +246,7 @@ function NavItem({
     }, [isActive, hasChildren]);
 
     const Icon = item.icon;
-    const rowStyle = collapsed ? undefined : ({ paddingLeft: `${level * 12 + 10}px` } as CSSProperties);
+    const rowStyle = !collapsed && level ? ({ paddingLeft: `${level * 12 + 8}px` } as CSSProperties) : undefined;
 
     const collapsedTitle = collapsedNavTitle(item);
     // 收起侧栏后文字胶囊会被藏掉，只剩图标上的色点，提示语因此要并进 title，避免角标信息丢失。
@@ -304,6 +308,8 @@ function NavItem({
             setIsOpen((open) => !open);
             return;
         }
+        if (item.to === "/" || item.to === "/create") trackSiteTrafficAction("open_create");
+        if (item.to === "/ecommerce") trackSiteTrafficAction("open_ecommerce");
         onSelect(item.id);
     };
 
@@ -315,11 +321,11 @@ function NavItem({
             {linkTo ? (
                 <Link
                     to={linkTo}
+                    aria-current={isActive ? "page" : undefined}
                     className={rowClassName}
                     data-nav-id={item.id}
                     style={rowStyle}
                     aria-label={collapsed ? collapsedHint : undefined}
-                    aria-current={isActive ? "page" : undefined}
                     title={collapsed ? collapsedHint : undefined}
                     onClick={handleClick}
                     onFocus={() => preloadWorkspaceRoute(linkTo)}
@@ -396,6 +402,7 @@ export function workspaceNavActiveId(pathname: string, section?: string | null) 
 }
 
 export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExpand, onCollapse }: { collapsed: boolean; onNavigate: () => void; onOpenSearch: () => void; onExpand: () => void; onCollapse: () => void }) {
+    const { t } = useTranslation();
     const { pathname } = useLocation();
     const [searchParams] = useSearchParams();
     const features = useUserStore((state) => state.features);
@@ -407,19 +414,26 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
     const activeId = workspaceNavActiveId(pathname, section);
 
     const scrollRef = useRef<HTMLDivElement>(null);
+    const sectionsRef = useRef<HTMLDivElement>(null);
     const [scrollState, setScrollState] = useState({ hasTopFade: false, hasBottomFade: false });
     const handleScroll = () => {
         const element = scrollRef.current;
         if (!element) return;
         const { scrollTop, scrollHeight, clientHeight } = element;
-        setScrollState({
+        const next = {
             hasTopFade: scrollTop > 0,
             hasBottomFade: scrollTop + clientHeight < scrollHeight - 1,
-        });
+        };
+        setScrollState((previous) => (previous.hasTopFade === next.hasTopFade && previous.hasBottomFade === next.hasBottomFade ? previous : next));
     };
     useEffect(() => {
         handleScroll();
-    }, [groups]);
+        if (typeof ResizeObserver === "undefined") return;
+        const observer = new ResizeObserver(handleScroll);
+        if (scrollRef.current) observer.observe(scrollRef.current);
+        if (sectionsRef.current) observer.observe(sectionsRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     return (
         <div className={cn("app-workspace-sidebar-nav flex h-full shrink-0 flex-col", collapsed && "is-collapsed")}>
@@ -436,9 +450,14 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
                         scrollState.hasBottomFade && "has-bottom-fade",
                     )}
                 >
-                    {groups.map((group, index) => (
-                        <NavGroup key={index} group={group} activeId={activeId} onNavigate={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
-                    ))}
+                    <div ref={sectionsRef} className="app-workspace-sidebar-sections">
+                        <nav className="app-workspace-sidebar-navigation" aria-label={t("nav.sections.create")}>
+                            {groups.map((group, index) => (
+                                <NavGroup key={index} group={group} activeId={activeId} onNavigate={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
+                            ))}
+                        </nav>
+                        {!collapsed && user ? <WorkspaceSidebarHistory key={user.id} userId={user.id} onNavigate={onNavigate} /> : null}
+                    </div>
                 </div>
             </LayoutGroup>
 

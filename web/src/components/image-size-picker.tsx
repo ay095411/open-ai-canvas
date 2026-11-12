@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./image-size-picker.css";
 import { Input, Button } from "antd";
 import type { ImageCapabilityConfig } from "@/lib/model-capabilities";
-import { imageResolutionTiers, imagePresetForRatio, imagePresetValue, imageQualityForSelection, imageQualityForTier, imageResolutionUsesQuality, imageSizePresets, imageTierAvailable } from "@/lib/image-size-presets";
+import { imageResolutionTiers, imagePresetForRatio, imagePresetValue, imageQualityForSelection, imageQualityForTier, imageResolutionUsesQuality, imageSizePresets, imageTierAvailable, imageDeclaredSizePresets } from "@/lib/image-size-presets";
 import { buildImageResolutionOptions, type ImageResolutionOption, type ImageResolutionTier } from "@/lib/image-resolution-tiers";
 
 import { resolveImageRequestSize, validateImageSize } from "@/services/api/image-validation";
@@ -13,6 +13,7 @@ export function ImageSizePicker({
     quality,
     imageResolution,
     canSelectResolution,
+    declaredSizeOptions,
     onChange,
 }: {
     profile: ImageCapabilityConfig;
@@ -20,11 +21,17 @@ export function ImageSizePicker({
     quality?: string;
     imageResolution?: string;
     canSelectResolution?: (resolution: string) => boolean;
+    /** 可选：模型只有参数声明（无 size.presets）时，按 size × imageResolution 合成比例选项；图片工作台显式开启。 */
+    declaredSizeOptions?: boolean;
     onChange: (size: string, quality?: string, resolution?: string) => void;
 }) {
     const ungrouped = Boolean(profile.parameters && !profile.resolution.supported);
-    const IMAGE_RESOLUTIONS = ungrouped ? [...new Set(imageSizePresets(profile).map((p) => p.tier))] : imageResolutionTiers(profile);
-    const presets = imageSizePresets(profile).filter((preset) => imageTierAvailable(profile, preset.tier));
+    // 只在显式开启且模型没有 size.presets 时合成，避免影响画布和创作页。
+    const declaredPresets = declaredSizeOptions ? imageDeclaredSizePresets(profile) : [];
+    const tierValues = ungrouped ? [...new Set(imageSizePresets(profile).map((p) => p.tier))] : imageResolutionTiers(profile);
+    // 声明值可能是大写的 1K/2K/4K，合成选项按小写档位对齐。
+    const IMAGE_RESOLUTIONS = declaredPresets.length ? tierValues.map((value) => value.trim().toLowerCase() as ImageResolutionTier) : tierValues;
+    const presets = (declaredPresets.length ? declaredPresets : imageSizePresets(profile)).filter((preset) => imageTierAvailable(profile, preset.tier));
     const visibleTiers = IMAGE_RESOLUTIONS.filter((value) => presets.some((preset) => preset.tier === value));
     const [chosenTier, setChosenTier] = useState<ImageResolutionTier>("1k");
     const [customPreset, setCustomPreset] = useState<ImageResolutionOption>();
@@ -181,7 +188,7 @@ export function ImageSizePicker({
                         })}
                     </div>
                 </>
-            ) : !ungrouped && visibleTiers.length && (profile.size.parameter === "size" || !profile.quality.supported || imageResolutionUsesQuality(profile)) ? (
+            ) : (!ungrouped || imageResolutionUsesQuality(profile)) && visibleTiers.length && (profile.size.parameter === "size" || !profile.quality.supported || imageResolutionUsesQuality(profile)) ? (
                 <>
                     <div className="image-size-label">分辨率</div>
                     <div className="image-size-tiers">

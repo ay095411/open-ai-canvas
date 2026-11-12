@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -73,15 +74,23 @@ func TestPasswordResetRecordsSkipReasonsAndDeliveries(t *testing.T) {
 		}
 		got[entry.Recipient] = append(got[entry.Recipient], entry.Status+":"+entry.Reason)
 	}
-	expect := func(recipient, prefix string, index int) {
+	expect := func(recipient string, prefixes ...string) {
 		t.Helper()
-		if len(got[recipient]) <= index || !strings.HasPrefix(got[recipient][index], prefix) {
-			t.Fatalf("%s log[%d] = %v, want prefix %q", recipient, index, got[recipient], prefix)
+		entries := slices.Clone(got[recipient])
+		if len(entries) != len(prefixes) {
+			t.Fatalf("%s logs = %v, want %d entries", recipient, entries, len(prefixes))
+		}
+		// 同一时刻的记录使用随机 ID，读取顺序不代表投递顺序。
+		slices.Sort(entries)
+		slices.Sort(prefixes)
+		for index, prefix := range prefixes {
+			if !strings.HasPrefix(entries[index], prefix) {
+				t.Fatalf("%s logs = %v, want prefixes %v", recipient, entries, prefixes)
+			}
 		}
 	}
-	expect("missing@example.com", "skipped:该邮箱未绑定任何账号", 0)
-	expect("oauth@example.com", "skipped:账号未设置密码", 0)
-	expect("member@example.com", "sent:", 0)
-	expect("member@example.com", "skipped:60 秒内已发送过", 1)
-	expect("broken@example.com", "failed:550 mailbox unavailable", 0)
+	expect("missing@example.com", "skipped:该邮箱未绑定任何账号")
+	expect("oauth@example.com", "skipped:账号未设置密码")
+	expect("member@example.com", "sent:", "skipped:60 秒内已发送过")
+	expect("broken@example.com", "failed:550 mailbox unavailable")
 }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { applyCanvasImport } from "../src/pages/canvas/canvas-import-save";
+import { readFileSync } from "node:fs";
+import { applyCanvasImport, type CanvasImportSaveStatus } from "../src/pages/canvas/canvas-import-save";
 import { CanvasSyncPendingError, waitForCanvasSync } from "../src/lib/canvas/sync-recovery";
 import { CanvasNodeType, type CanvasNodeData, type CanvasConnection } from "../src/types/canvas";
 import { repairMissingCanvasAssets } from "../src/services/canvas-asset-repair";
@@ -170,5 +171,94 @@ describe("third-party import persistence", () => {
         await Promise.all([save(), save()]);
         expect(state.read().nodes.map((n) => n.id)).toEqual(["old", "imported"]);
         expect(state.read().connections).toEqual([connection]);
+    });
+});
+
+function importDialog(provider: "libtv" | "tapnow", onApply: () => Promise<CanvasImportSaveStatus>) {
+    const source = readFileSync(new URL(`../src/pages/canvas/components/${provider}-import-dialog.tsx`, import.meta.url), "utf8");
+    const declaration = source.match(/^    const apply = async \(\) => \{[\s\S]*?\n    \};/m)?.[0];
+    if (!declaration) throw new Error(`Missing ${provider} import callback`);
+    const state = { loading: false, saveStarted: false, resets: 0, closes: 0, successes: [] as string[], warnings: [] as string[], errors: [] as string[] };
+    const applyingRef = { current: false };
+    const scope = {
+        result: { importedNodeCount: 2, importedConnectionCount: 1, connections: [connection] },
+        applyingRef,
+        setSaveStarted: (value: boolean) => {
+            state.saveStarted = value;
+        },
+        setLoading: (value: boolean) => {
+            state.loading = value;
+        },
+        onApply,
+        buildCanvasNodes: () => [node("imported")],
+        viewport: { x: 0, y: 0, k: 1 },
+        viewportSize: { width: 1280, height: 720 },
+        reset: () => {
+            state.resets += 1;
+            state.saveStarted = false;
+        },
+        onClose: () => {
+            state.closes += 1;
+        },
+        message: {
+            success: (text: string) => state.successes.push(text),
+            warning: (text: string) => state.warnings.push(text),
+            error: (text: string) => state.errors.push(text),
+        },
+    };
+    const js = new Bun.Transpiler({ loader: "ts" }).transformSync(declaration);
+    const apply = new Function(...Object.keys(scope), `${js}; return apply;`)(...Object.values(scope)) as () => Promise<void>;
+    return { apply, state, applyingRef };
+}
+
+describe.each(["libtv", "tapnow"] as const)("%s import dialog save state", (provider) => {
+    test("only confirmed cloud saves show success while pending saves identify the local copy", async () => {
+        for (const status of ["synced", "pending"] as const) {
+            const { apply, state } = importDialog(provider, async () => status);
+            await apply();
+            expect(state.closes).toBe(1);
+            expect(state.resets).toBe(1);
+            expect(state.loading).toBe(false);
+            expect(state.errors).toEqual([]);
+            expect(state.successes).toEqual(status === "synced" ? ["已导入 2 个节点和 1 条连接并保存到云端"] : []);
+            expect(state.warnings).toEqual(status === "pending" ? ["已在本机保存 2 个节点和 1 条连接，正在后台同步"] : []);
+        }
+    });
+
+    test("rejected saves leave the result open for retry and release the submission lock", async () => {
+        let attempts = 0;
+        const { apply, state, applyingRef } = importDialog(provider, async () => {
+            attempts += 1;
+            if (attempts === 1) throw new Error("没有写入权限");
+            return "synced";
+        });
+        await apply();
+        expect(state).toMatchObject({ closes: 0, resets: 0, loading: false, saveStarted: true, errors: ["没有写入权限"], successes: [], warnings: [] });
+        expect(applyingRef.current).toBe(false);
+        await apply();
+        expect(attempts).toBe(2);
+        expect(state.closes).toBe(1);
+        expect(state.saveStarted).toBe(false);
+    });
+
+    test("double confirmation submits once while the first save remains pending", async () => {
+        let attempts = 0;
+        let finish!: (status: CanvasImportSaveStatus) => void;
+        const saving = new Promise<CanvasImportSaveStatus>((resolve) => {
+            finish = resolve;
+        });
+        const { apply, state, applyingRef } = importDialog(provider, () => {
+            attempts += 1;
+            return saving;
+        });
+        const first = apply();
+        await apply();
+        expect(attempts).toBe(1);
+        expect(applyingRef.current).toBe(true);
+        expect(state.loading).toBe(true);
+        finish("synced");
+        await first;
+        expect(applyingRef.current).toBe(false);
+        expect(state.closes).toBe(1);
     });
 });

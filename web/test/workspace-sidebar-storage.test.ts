@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { zhCN as accountZh } from "../src/i18n/messages/areas/account/zh-CN";
+import { zhCN as libraryZh } from "../src/i18n/messages/areas/library/zh-CN";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -54,12 +55,14 @@ describe("workspace account storage surfaces", () => {
         const meter = readFileSync(resolve(import.meta.dir, "../src/pages/assets/asset-storage-usage.tsx"), "utf8");
         expect(page).toContain("<AssetStorageUsage />");
         expect(meter).toContain("useAccountFileStorageUsage()");
-        expect(meter).toContain('aria-label="账号文件容量"');
+        expect(meter).toContain('aria-label={t("library.assets.storage.label")}');
+        expect(libraryZh.assets.storage.label).toBe("账号文件容量");
         expect(meter).toContain('role="progressbar"');
         expect(meter).toContain("aria-valuenow={Math.min(usage.usedBytes, usage.totalBytes)}");
         expect(meter).toContain("formatStorageBytes(usage.usedBytes)");
         expect(meter).toContain("formatStorageBytes(usage.totalBytes)");
-        expect(meter).toContain("容量统计暂时不可用");
+        expect(meter).toContain('t("library.assets.storage.unavailable")');
+        expect(libraryZh.assets.storage.unavailable).toContain("容量统计暂时不可用");
         expect(meter).toContain("query.refetch()");
     });
 
@@ -68,7 +71,8 @@ describe("workspace account storage surfaces", () => {
         const shell = readFileSync(resolve(import.meta.dir, "../src/components/layout/app-top-nav.tsx"), "utf8");
         const notice = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-storage-limit-notice.tsx"), "utf8");
         expect(wallet).toContain("${storageMeter.usedLabel} / ${storageMeter.totalLabel}");
-        expect(wallet).toContain("剩余 ${storageMeter.remainingLabel}");
+        expect(wallet).toContain('t("account.layout.storage.remaining", { size: storageMeter.remainingLabel })');
+        expect(accountZh.layout.storage.remaining).toBe("剩余 {{size}}");
         expect(wallet).toContain('onClick={() => focusProducts("storage")}');
         expect(shell).toContain("<WorkspaceStorageLimitNotice />");
         expect(notice).toContain("STORAGE_LIMIT_REASONS.has(reason)");

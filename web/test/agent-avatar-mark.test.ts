@@ -10,7 +10,7 @@ describe("agent avatar mark", () => {
         const welcome = read("../src/components/canvas/canvas-agent-welcome.tsx");
         const editor = read("../src/pages/admin/settings/components/canvas-appearance-editor.tsx");
 
-        expect(parts).toContain("<AgentAvatarMark size={54} />");
+        expect(parts).toContain("<AgentAvatarMark size={54} state={agentOrbStateForAvatar(avatarState)} />");
         expect(parts).not.toContain("FluidOrb");
         expect(welcome).toContain("<AgentAvatarMark size={40} />");
         expect(editor).toContain("<AgentAvatarMark size={60} />");
@@ -25,6 +25,8 @@ describe("agent avatar mark", () => {
         expect((mark.match(/<circle/g) ?? []).length).toBe(2);
         expect(mark).toContain("#2D7BF4");
         expect(mark).toContain("#8A5CF6");
+        expect(mark).toContain("useThemePack()?.agentOrb");
+        expect(mark).toContain("<ThemeOrb size={size} state={state} className={className} />");
         // 纯 SVG：不再引入 WebGL 球体。
         expect(mark).not.toContain("canvas");
         expect(mark).not.toContain("requestAnimationFrame");

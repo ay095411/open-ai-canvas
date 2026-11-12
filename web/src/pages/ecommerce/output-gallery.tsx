@@ -42,6 +42,9 @@ export function EcommerceOutputGallery({
     generationPending,
     regeneratingIds = new Set<string>(),
     regenerationPreviews = {},
+    historyHasMore = false,
+    historyLoading = false,
+    onLoadMoreHistory,
     stage,
     stageActive = false,
     nextStep,
@@ -66,6 +69,10 @@ export function EcommerceOutputGallery({
     generationPending: boolean;
     regeneratingIds?: Set<string>;
     regenerationPreviews?: Record<string, string>;
+    /** 历史轮次按页读取；还有更早的轮次时显示“加载更多”。 */
+    historyHasMore?: boolean;
+    historyLoading?: boolean;
+    onLoadMoreHistory?: () => void;
     /** 本轮流程：已发送的需求、视觉方向、方案审阅与进度，显示在作品之上。 */
     stage?: ReactNode;
     stageActive?: boolean;
@@ -199,6 +206,13 @@ export function EcommerceOutputGallery({
                                 </header>
                                 <div className="commerce-output-grid">{previous.map(({ image, index }) => card(image, index, false))}</div>
                             </section>
+                        ) : null}
+                        {historyHasMore && onLoadMoreHistory ? (
+                            <div className="commerce-output-history-more">
+                                <Button size="small" loading={historyLoading} onClick={onLoadMoreHistory}>
+                                    加载更早的作品
+                                </Button>
+                            </div>
                         ) : null}
                         {!current.length && !previous.length ? (
                             <div className="commerce-output-filter-empty" role="status">

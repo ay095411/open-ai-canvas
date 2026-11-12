@@ -472,6 +472,22 @@ func isWordByte(char byte) bool {
 }
 
 func ParseBible(raw string) (Bible, error) {
+	bible, err := parseBibleDocument(raw)
+	if err != nil {
+		return bible, err
+	}
+	if len(bible.Characters) == 0 {
+		return bible, errors.New("作品圣经没有识别到角色")
+	}
+	return bible, nil
+}
+
+// ParseAssetBible 解析与作品圣经相同结构的角色、道具与场景；允许只有道具或场景，供后续集补全新设定。
+func ParseAssetBible(raw string) (Bible, error) {
+	return parseBibleDocument(raw)
+}
+
+func parseBibleDocument(raw string) (Bible, error) {
 	var bible Bible
 	text, err := ExtractJSONObject(raw)
 	// 作品圣经有专用的保守修复：它能认出「[{...}],"name":...」这种被提前闭合的
@@ -533,9 +549,6 @@ func ParseBible(raw string) (Bible, error) {
 		}
 	}
 	bible.Props = props
-	if len(bible.Characters) == 0 {
-		return bible, errors.New("作品圣经没有识别到角色")
-	}
 	return bible, nil
 }
 

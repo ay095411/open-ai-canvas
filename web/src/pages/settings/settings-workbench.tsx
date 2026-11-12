@@ -1,7 +1,7 @@
 import { App, Button } from "antd";
 import { ArrowLeft, Boxes, Brain, Bug, Cloud, Inbox, MessageSquareText, RadioTower, ShieldCheck, SlidersHorizontal, UserRound, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { UserOSSSettingsForm } from "@/components/layout/user-oss-settings-form";
 import { secretKeyProtocolIds, useUserProtocolCatalog } from "@/hooks/use-user-protocol-catalog";
@@ -18,7 +18,7 @@ import { ProfilePane } from "./profile-pane";
 import { PromptPreferencesPane } from "./prompt-preferences-pane";
 import DiagnosticsPanel from "./diagnostics-panel";
 import AgentMemoryPane from "./agent-memory-pane";
-import { RunningHubSettingsPane } from "./runninghub-settings-pane";
+const RunningHubSettingsPane = lazy(() => import("./runninghub-settings-pane").then((module) => ({ default: module.RunningHubSettingsPane })));
 import { FeedbackInboxPane } from "./feedback-inbox-pane";
 import { ArkAssetsPane } from "./ark-assets-pane";
 import { PreferencesPane } from "./preferences-pane";
@@ -159,11 +159,13 @@ export function SettingsWorkbench({ variant, initialSection, taskId, projectId, 
                 </div>
             </SettingsPane>
         ),
-        runninghub: (
+        runninghub: runningHubPluginEnabled ? (
             <SettingsPane>
-                <RunningHubSettingsPane />
+                <Suspense fallback={<span role="status">正在加载工作流配置…</span>}>
+                    <RunningHubSettingsPane />
+                </Suspense>
             </SettingsPane>
-        ),
+        ) : null,
         preferences: (
             <SettingsPane>
                 <PreferencesPane />

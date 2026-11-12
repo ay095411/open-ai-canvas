@@ -5,7 +5,7 @@ import { mergeAgentCanvasEditor } from "@/lib/canvas/agent-canvas-patch";
 import { rebaseCanvasLocalEdits } from "@/lib/canvas/canvas-sync-rebase";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { App } from "antd";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 import { canvasAppearanceBaseTheme, canvasAppearanceForTheme, DEFAULT_CANVAS_BACKGROUND_MODE, normalizeCanvasAppearance, type CanvasAppearance } from "@/lib/canvas/canvas-appearance";
 import type { CanvasBackgroundMode } from "@/lib/canvas-theme";
@@ -14,19 +14,20 @@ import { normalizeCanvasNodeTimestamps } from "@/lib/canvas/canvas-node-timestam
 import { canvasPersistentNodes } from "@/lib/canvas/canvas-persistent-nodes";
 import { hydrateAssistantImages, resetInterruptedGeneration } from "@/lib/canvas/canvas-project-generation";
 import { listAddedSkills, type Skill } from "@/services/api/skills";
-import { createCanvasProjectWithRemoteSync, deleteCanvasProjectsWithRemoteSync, loadCanvasProjectForEditing, saveRemoteUserDataNow, prepareCanvasForCloudAction, subscribeAgentCanvasRefresh, refreshCanvasAfterAgent } from "@/services/user-data-sync";
+import { deleteCanvasProjectsWithRemoteSync, loadCanvasProjectForEditing, saveRemoteUserDataNow, prepareCanvasForCloudAction, subscribeAgentCanvasRefresh, refreshCanvasAfterAgent } from "@/services/user-data-sync";
 import { getCanvasSyncStatus } from "@/services/api/user-data";
 import { canvasEditLeases } from "@/services/canvas-edit-leases";
 import { startCanvasSyncPolling } from "@/services/canvas-sync-polling";
 import { subscribeCanvasRealtime } from "@/services/canvas-realtime";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { waitForCanvasSync } from "@/lib/canvas/sync-recovery";
-import { flushCanvasStorePersistence, useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-store";
-import { useCanvasThemeStore } from "@/stores/canvas/use-canvas-theme-store";
+import { canvasDraftNavigationState, flushCanvasStorePersistence, useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-store";
+import { currentWorkspaceTheme, useCanvasThemeStore } from "@/stores/canvas/use-canvas-theme-store";
 import { useSyncProgressStore } from "@/stores/use-sync-progress-store";
 import { useUserStore } from "@/stores/use-user-store";
 import type { CanvasAssistantSession, CanvasConnection, CanvasNodeData, ViewportTransform } from "@/types/canvas";
 import type { CanvasHistorySnapshot } from "./use-canvas-history";
+import { trackSiteTrafficAction } from "@/services/site-traffic";
 
 type UseCanvasProjectLifecycleOptions = {
     projectId: string;
@@ -95,13 +96,16 @@ export function useCanvasProjectLifecycle({
 }: UseCanvasProjectLifecycleOptions) {
     const { message } = App.useApp();
     const navigate = useNavigate();
+    const location = useLocation();
+    const draftIntent = location.state?.canvasDraft;
     const hydrated = useCanvasStore((state) => state.hydrated);
     const sessionHydrated = useUserStore((state) => state.hydrated);
     const userId = useUserStore((state) => state.user?.id);
     const openProject = useCanvasStore((state) => state.openProject);
     const updateProject = useCanvasStore((state) => state.updateProject);
     const renameProject = useCanvasStore((state) => state.renameProject);
-    const currentProject = useCanvasStore((state) => state.projects.find((project) => project.id === projectId));
+    const currentProject = useCanvasStore((state) => state.openProject(projectId));
+    const isDraft = useCanvasStore((state) => Boolean(state.getDraftProject(projectId)));
     const [addedSkills, setAddedSkills] = useState<Skill[]>([]);
     const [loadError, setLoadError] = useState("");
     const [loadAttempt, setLoadAttempt] = useState(0);
@@ -137,9 +141,7 @@ export function useCanvasProjectLifecycle({
             if (!restoredCustomized) useCanvasThemeStore.getState().followWorkspaceTheme();
             // 先决定跟随与否，再取基准主题：跟随之后 store 里的 theme 就是工作台主题。
             const fallbackTheme = useCanvasThemeStore.getState().theme;
-            const restoredAppearance = restoredCustomized
-                ? normalizeCanvasAppearance(targetProject.appearance, fallbackTheme)
-                : canvasAppearanceForTheme(fallbackTheme);
+            const restoredAppearance = restoredCustomized ? normalizeCanvasAppearance(targetProject.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme);
             const initialNodes = normalizeCanvasNodeTimestamps(resetInterruptedGeneration(targetProject.nodes), {
                 createdAt: targetProject.createdAt,
                 updatedAt: targetProject.updatedAt,
@@ -177,7 +179,16 @@ export function useCanvasProjectLifecycle({
         };
 
         const load = async () => {
-            const cachedProject = useCanvasStore.getState().projects.find((p) => p.id === projectId);
+            const store = useCanvasStore.getState();
+            if (!store.openProject(projectId) && draftIntent?.id === projectId && draftIntent.scope === getActiveUserScope() && typeof draftIntent.title === "string") {
+                store.createDraftProject(draftIntent.title, projectId);
+            }
+            const draft = store.getDraftProject(projectId);
+            if (draft) {
+                applyRestoredProject(draft);
+                return;
+            }
+            const cachedProject = store.projects.find((p) => p.id === projectId);
             if (cachedProject) {
                 // 本地已有该画布的持久化缓存：先以本地数据秒开渲染，彻底消除白屏与等待
                 applyRestoredProject(cachedProject);
@@ -193,11 +204,12 @@ export function useCanvasProjectLifecycle({
             // 画布媒体由节点自己的视口观察器按需加载；打开时遍历并解析全部节点会让大画布形成 N+1 资源读取。
             void hydrateAssistantImages(project.chatSessions || [])
                 .then((hydratedSessions) => {
-                    if (!cancelled) setChatSessions((current) => {
-                        const merged = mergeHydratedSessions(current, hydratedSessions);
-                        if (observedContentRef.current?.chatSessions === current) observedContentRef.current = { ...observedContentRef.current, chatSessions: merged };
-                        return merged;
-                    });
+                    if (!cancelled)
+                        setChatSessions((current) => {
+                            const merged = mergeHydratedSessions(current, hydratedSessions);
+                            if (observedContentRef.current?.chatSessions === current) observedContentRef.current = { ...observedContentRef.current, chatSessions: merged };
+                            return merged;
+                        });
                 })
                 .catch(() => {
                     if (!cancelled) message.warning(translate("canvasPage.lifecycle.assistantAssetsRestoreFailed"));
@@ -245,25 +257,36 @@ export function useCanvasProjectLifecycle({
                 if (!projectLoaded || project.id !== projectId) return;
                 if (source === "sync") {
                     const fallbackTheme = useCanvasThemeStore.getState().theme;
+                    // 跟随态的 appearance 只是渲染缓存，不能被三方合并误判成用户改色。
+                    const baseline = previous
+                        ? {
+                              ...previous,
+                              appearance: previous.appearance && previous.appearanceCustomized === true ? normalizeCanvasAppearance(previous.appearance, fallbackTheme) : canvasAppearanceForTheme(currentWorkspaceTheme()),
+                              appearanceCustomized: Boolean(previous.appearance) && previous.appearanceCustomized === true,
+                          }
+                        : undefined;
                     const editor = {
-                        ...(previous || project),
+                        ...(baseline || project),
                         nodes: nodesRef.current,
                         connections: connectionsRef.current,
                         chatSessions: chatSessionsRef.current,
                         activeChatId: activeChatIdRef.current,
                         appearance: canvasAppearance,
+                        appearanceCustomized,
                         backgroundMode,
                         showImageInfo,
                     };
-                    const merged = previous ? rebaseCanvasLocalEdits(previous, project, editor) : project;
-                    const appearance = merged.appearance ? normalizeCanvasAppearance(merged.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme);
+                    const merged = baseline ? rebaseCanvasLocalEdits(baseline, project, editor) : project;
+                    const mergedCustomized = Boolean(merged.appearance) && merged.appearanceCustomized === true;
+                    if (!mergedCustomized) useCanvasThemeStore.getState().followWorkspaceTheme();
+                    const appearance = mergedCustomized ? normalizeCanvasAppearance(merged.appearance, fallbackTheme) : canvasAppearanceForTheme(currentWorkspaceTheme());
                     const snapshot: CanvasHistorySnapshot = {
                         nodes: merged.nodes,
                         connections: merged.connections,
                         chatSessions: merged.chatSessions || [],
                         activeChatId: merged.activeChatId || null,
                         canvasAppearance: appearance,
-                        appearanceCustomized: merged.appearanceCustomized === true,
+                        appearanceCustomized: mergedCustomized,
                         backgroundMode: merged.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
                         showImageInfo: merged.showImageInfo || false,
                     };
@@ -273,8 +296,8 @@ export function useCanvasProjectLifecycle({
                         connections: project.connections,
                         chatSessions: project.chatSessions || [],
                         activeChatId: project.activeChatId || null,
-                        canvasAppearance: project.appearance ? normalizeCanvasAppearance(project.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme),
-                        appearanceCustomized: project.appearanceCustomized === true,
+                        canvasAppearance: project.appearance && project.appearanceCustomized === true ? normalizeCanvasAppearance(project.appearance, fallbackTheme) : canvasAppearanceForTheme(currentWorkspaceTheme()),
+                        appearanceCustomized: Boolean(project.appearance) && project.appearanceCustomized === true,
                         backgroundMode: project.backgroundMode || DEFAULT_CANVAS_BACKGROUND_MODE,
                         showImageInfo: project.showImageInfo || false,
                     };
@@ -287,6 +310,8 @@ export function useCanvasProjectLifecycle({
                     setChatSessions(snapshot.chatSessions);
                     setActiveChatId(snapshot.activeChatId);
                     setCanvasAppearance(snapshot.canvasAppearance);
+                    setAppearanceCustomized(snapshot.appearanceCustomized);
+                    if (mergedCustomized) useCanvasThemeStore.getState().setTheme(canvasAppearanceBaseTheme(snapshot.canvasAppearance, fallbackTheme));
                     setBackgroundMode(snapshot.backgroundMode);
                     setShowImageInfo(snapshot.showImageInfo);
                     setLoadError("");
@@ -329,6 +354,7 @@ export function useCanvasProjectLifecycle({
             chatSessionsRef,
             activeChatIdRef,
             canvasAppearance,
+            appearanceCustomized,
             backgroundMode,
             showImageInfo,
             setNodes,
@@ -336,13 +362,20 @@ export function useCanvasProjectLifecycle({
             setChatSessions,
             setActiveChatId,
             setCanvasAppearance,
+            setAppearanceCustomized,
             setBackgroundMode,
             setShowImageInfo,
         ],
     );
 
     useEffect(() => {
-        if (!projectLoaded || !sessionHydrated) return;
+        if (isDraft || !currentProject || !draftIntent) return;
+        const { canvasDraft: _draft, ...state } = location.state;
+        navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state });
+    }, [currentProject, draftIntent, isDraft, location, navigate]);
+
+    useEffect(() => {
+        if (!projectLoaded || !sessionHydrated || isDraft) return;
         const scope = getActiveUserScope();
         let connected = false;
         let agentActive = false;
@@ -351,30 +384,44 @@ export function useCanvasProjectLifecycle({
         const tick = async () => {
             if (ticking || scope !== getActiveUserScope() || navigator.onLine === false) return;
             ticking = true;
-            try { await canvasEditLeases.tick(projectId); } finally { ticking = false; }
+            try {
+                await canvasEditLeases.tick(projectId);
+            } finally {
+                ticking = false;
+            }
         };
-        const leaseTimer = setInterval(() => { void tick(); }, 2000);
+        const leaseTimer = setInterval(() => {
+            void tick();
+        }, 2000);
         void tick();
-        const stop = startCanvasSyncPolling(async (signal) => {
-            if (scope !== getActiveUserScope()) return;
-            const token = canvasEditLeases.statusToken(projectId);
-            const status = await getCanvasSyncStatus(projectId, signal);
-            if (signal.aborted || scope !== getActiveUserScope()) return;
-            agentActive = Boolean(status.agent);
-            canvasEditLeases.status(projectId, status, token);
-            const current = useCanvasStore.getState().openProject(projectId);
-            // Agent 运行时 SSE 增量会先把本地 revision 推前；轮询响应落后时不应再拉整份快照。
-            if (current && (!Number.isSafeInteger(current.revision) || status.revision > current.revision!)) await refreshCanvasAfterAgent(projectId, "sync");
-        }, undefined, {
-            interval: () => connected && !agentActive ? 30000 : 2000,
-            listen: (wake) => subscribeCanvasRealtime(projectId, (state, event) => {
-                const disconnected = connected && !state.connected;
-                connected = state.connected;
-                if (event === "invalidate" || disconnected) wake();
-            }),
-        });
-        return () => { stop(); clearInterval(leaseTimer); };
-    }, [projectId, projectLoaded, sessionHydrated, userId]);
+        const stop = startCanvasSyncPolling(
+            async (signal) => {
+                if (scope !== getActiveUserScope()) return;
+                const token = canvasEditLeases.statusToken(projectId);
+                const status = await getCanvasSyncStatus(projectId, signal);
+                if (signal.aborted || scope !== getActiveUserScope()) return;
+                agentActive = Boolean(status.agent);
+                canvasEditLeases.status(projectId, status, token);
+                const current = useCanvasStore.getState().openProject(projectId);
+                // Agent 运行时 SSE 增量会先把本地 revision 推前；轮询响应落后时不应再拉整份快照。
+                if (current && (!Number.isSafeInteger(current.revision) || status.revision > current.revision!)) await refreshCanvasAfterAgent(projectId, "sync");
+            },
+            undefined,
+            {
+                interval: () => (connected && !agentActive ? 30000 : 2000),
+                listen: (wake) =>
+                    subscribeCanvasRealtime(projectId, (state, event) => {
+                        const disconnected = connected && !state.connected;
+                        connected = state.connected;
+                        if (event === "invalidate" || disconnected) wake();
+                    }),
+            },
+        );
+        return () => {
+            stop();
+            clearInterval(leaseTimer);
+        };
+    }, [isDraft, projectId, projectLoaded, sessionHydrated, userId]);
 
     useEffect(() => {
         if (!projectLoaded || historyPausedRef.current) return;
@@ -400,21 +447,23 @@ export function useCanvasProjectLifecycle({
         };
     }, [projectId, projectLoaded, updateProject, viewport, viewportRef]);
 
-    useEffect(() => () => {
-        if (!projectLoaded) return;
-        if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
-        updateProject(projectId, { viewport: viewportRef.current });
-    }, [projectId, projectLoaded, updateProject, viewportRef]);
+    useEffect(
+        () => () => {
+            if (!projectLoaded) return;
+            if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
+            updateProject(projectId, { viewport: viewportRef.current });
+        },
+        [projectId, projectLoaded, updateProject, viewportRef],
+    );
 
     const createAndOpenProject = useCallback(() => {
-        void createCanvasProjectWithRemoteSync(translate("canvasPage.lifecycle.defaultCanvasName", { index: useCanvasStore.getState().projects.length + 1 })).then(({ id, syncError }) => {
-            if (syncError) console.warn("新画布等待后台同步", syncError);
-            navigate(`/canvas/${id}`);
-        });
+        trackSiteTrafficAction("new_canvas");
+        const id = useCanvasStore.getState().createDraftProject(translate("canvasPage.lifecycle.defaultCanvasName", { index: useCanvasStore.getState().projects.length + 1 }));
+        navigate(`/canvas/${id}`, { state: canvasDraftNavigationState(id) });
     }, [message, navigate]);
 
     const deleteCurrentProject = useCallback(async () => {
-        const drawingIds = nodesRef.current.flatMap((node) => node.type === "drawing" && node.metadata?.drawingId ? [node.metadata.drawingId] : []);
+        const drawingIds = nodesRef.current.flatMap((node) => (node.type === "drawing" && node.metadata?.drawingId ? [node.metadata.drawingId] : []));
         try {
             await deleteCanvasProjectsWithRemoteSync([projectId]);
         } catch (error) {
@@ -422,63 +471,74 @@ export function useCanvasProjectLifecycle({
             return;
         }
         if (drawingIds.length) {
-            void Promise.all(drawingIds.map((drawingId) => removeCanvasDrawing(projectId, drawingId)))
-                .catch(() => message.warning("项目已删除，但部分本地绘图缓存清理失败"));
+            void Promise.all(drawingIds.map((drawingId) => removeCanvasDrawing(projectId, drawingId))).catch(() => message.warning("项目已删除，但部分本地绘图缓存清理失败"));
         }
         cleanupAssetImages();
         navigate("/canvas");
     }, [cleanupAssetImages, message, navigate, nodesRef, projectId]);
 
-    const renameCurrentProject = useCallback((title: string) => {
-        renameProject(projectId, title);
-        // 标题是画布列表和分享入口的元数据，重命名后立即提交，避免只停留在浏览器缓存。
-        void saveRemoteUserDataNow(projectId).catch((error) => {
-            // 后台同步状态统一显示在同步面板，避免每次重试都打断编辑。
-            void error;
-        });
-    }, [message, projectId, renameProject]);
-
-    const persistLocalEdits = useCallback(async (options: { flush?: boolean } = {}) => {
-        const durableNodes = canvasPersistentNodes(nodesRef.current, observedContentRef.current?.nodes);
-        const snapshot = { nodes: durableNodes, connections: connectionsRef.current, chatSessions, activeChatId, canvasAppearance, appearanceCustomized, backgroundMode, showImageInfo };
-        if (observedContentRef.current && !sameCanvasHistorySnapshot(observedContentRef.current, snapshot)) {
-            updateProject(projectId, {
-                nodes: durableNodes,
-                connections: connectionsRef.current,
-                chatSessions,
-                activeChatId,
-                appearance: canvasAppearance,
-                appearanceCustomized,
-                backgroundMode,
-                showImageInfo,
-                viewport: viewportRef.current,
+    const renameCurrentProject = useCallback(
+        (title: string) => {
+            renameProject(projectId, title);
+            if (useCanvasStore.getState().getDraftProject(projectId)) return;
+            // 标题是画布列表和分享入口的元数据，重命名后立即提交，避免只停留在浏览器缓存。
+            void saveRemoteUserDataNow(projectId).catch((error) => {
+                // 后台同步状态统一显示在同步面板，避免每次重试都打断编辑。
+                void error;
             });
-            observedContentRef.current = snapshot;
-        }
-        updateProject(projectId, { viewport: viewportRef.current });
-        if (options.flush !== false) await waitForCanvasSync(flushCanvasStorePersistence());
-    }, [activeChatId, appearanceCustomized, backgroundMode, canvasAppearance, chatSessions, connectionsRef, nodesRef, projectId, showImageInfo, updateProject, viewportRef]);
+        },
+        [message, projectId, renameProject],
+    );
 
-    const saveCanvasProject = useCallback(async (options: { requireRemote?: boolean } = {}): Promise<boolean> => {
-        try {
-            await persistLocalEdits();
-        } catch (error) {
-            console.warn("画布本地持久化暂未完成", error);
-        }
-        try {
-            if (options.requireRemote === false) {
-                await saveRemoteUserDataNow(projectId);
-                message.success("画布已保存到云端");
-            } else {
-                await prepareCanvasForCloudAction(projectId);
-                message.success("画布已保存到云端");
+    const persistLocalEdits = useCallback(
+        async (options: { flush?: boolean } = {}) => {
+            const durableNodes = canvasPersistentNodes(nodesRef.current, observedContentRef.current?.nodes);
+            const snapshot = { nodes: durableNodes, connections: connectionsRef.current, chatSessions, activeChatId, canvasAppearance, appearanceCustomized, backgroundMode, showImageInfo };
+            if (observedContentRef.current && !sameCanvasHistorySnapshot(observedContentRef.current, snapshot)) {
+                updateProject(projectId, {
+                    nodes: durableNodes,
+                    connections: connectionsRef.current,
+                    chatSessions,
+                    activeChatId,
+                    appearance: canvasAppearance,
+                    appearanceCustomized,
+                    backgroundMode,
+                    showImageInfo,
+                    viewport: viewportRef.current,
+                });
+                observedContentRef.current = snapshot;
             }
-            return true;
-        } catch (error) {
-            console.warn("画布等待后台同步", error);
-            return false;
-        }
-    }, [message, persistLocalEdits, projectId]);
+            updateProject(projectId, { viewport: viewportRef.current });
+            if (options.flush !== false) await waitForCanvasSync(flushCanvasStorePersistence());
+        },
+        [activeChatId, appearanceCustomized, backgroundMode, canvasAppearance, chatSessions, connectionsRef, nodesRef, projectId, showImageInfo, updateProject, viewportRef],
+    );
+
+    const saveCanvasProject = useCallback(
+        async (options: { requireRemote?: boolean } = {}): Promise<boolean> => {
+            try {
+                await persistLocalEdits({ flush: false });
+                useCanvasStore.getState().materializeDraft(projectId);
+                await waitForCanvasSync(flushCanvasStorePersistence());
+            } catch (error) {
+                console.warn("画布本地持久化暂未完成", error);
+            }
+            try {
+                if (options.requireRemote === false) {
+                    await saveRemoteUserDataNow(projectId);
+                    message.success(translate("canvasPage.lifecycle.savedToCloud"));
+                } else {
+                    await prepareCanvasForCloudAction(projectId);
+                    message.success(translate("canvasPage.lifecycle.savedToCloud"));
+                }
+                return true;
+            } catch (error) {
+                console.warn("画布等待后台同步", error);
+                return false;
+            }
+        },
+        [message, persistLocalEdits, projectId],
+    );
 
     const clearCanvasFiles = useCallback(() => {
         cleanupCanvasFiles({ projectId, nodes: [], chatSessions: [] });
@@ -495,31 +555,38 @@ export function useCanvasProjectLifecycle({
         deleteCurrentProject,
         renameCurrentProject,
         saveCanvasProject,
+        persistLocalEdits,
         updateProject,
     };
 }
 
-
 function sameCanvasHistorySnapshot(left: CanvasHistorySnapshot, right: CanvasHistorySnapshot) {
-    return left.nodes === right.nodes
-        && left.connections === right.connections
-        && left.chatSessions === right.chatSessions
-        && left.activeChatId === right.activeChatId
-        && left.canvasAppearance === right.canvasAppearance
-        && left.appearanceCustomized === right.appearanceCustomized
-        && left.backgroundMode === right.backgroundMode
-        && left.showImageInfo === right.showImageInfo;
+    return (
+        left.nodes === right.nodes &&
+        left.connections === right.connections &&
+        left.chatSessions === right.chatSessions &&
+        left.activeChatId === right.activeChatId &&
+        left.canvasAppearance === right.canvasAppearance &&
+        left.appearanceCustomized === right.appearanceCustomized &&
+        left.backgroundMode === right.backgroundMode &&
+        left.showImageInfo === right.showImageInfo
+    );
 }
 
-function sameCanvasPatch(project: CanvasProject, patch: Pick<CanvasProject, "nodes" | "connections" | "chatSessions" | "activeChatId" | "backgroundMode" | "showImageInfo"> & { appearance: CanvasProject["appearance"]; appearanceCustomized: CanvasProject["appearanceCustomized"] }) {
-    return project.nodes === patch.nodes
-        && project.connections === patch.connections
-        && project.chatSessions === patch.chatSessions
-        && project.activeChatId === patch.activeChatId
-        && project.appearance === patch.appearance
-        && project.appearanceCustomized === patch.appearanceCustomized
-        && project.backgroundMode === patch.backgroundMode
-        && project.showImageInfo === patch.showImageInfo;
+function sameCanvasPatch(
+    project: CanvasProject,
+    patch: Pick<CanvasProject, "nodes" | "connections" | "chatSessions" | "activeChatId" | "backgroundMode" | "showImageInfo"> & { appearance: CanvasProject["appearance"]; appearanceCustomized: CanvasProject["appearanceCustomized"] },
+) {
+    return (
+        project.nodes === patch.nodes &&
+        project.connections === patch.connections &&
+        project.chatSessions === patch.chatSessions &&
+        project.activeChatId === patch.activeChatId &&
+        project.appearance === patch.appearance &&
+        project.appearanceCustomized === patch.appearanceCustomized &&
+        project.backgroundMode === patch.backgroundMode &&
+        project.showImageInfo === patch.showImageInfo
+    );
 }
 
 function mergeHydratedSessions(currentSessions: CanvasAssistantSession[], hydratedSessions: CanvasAssistantSession[]) {

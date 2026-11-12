@@ -1,9 +1,11 @@
 import { useId } from "react";
 
 import { cn } from "@/lib/utils";
+import type { ThemeAgentOrbState } from "@/themes/types";
+import { useThemePack } from "@/themes/use-theme-pack";
 
 /**
- * Agent 默认形象：品牌 N 徽标。
+ * Agent 默认形象：品牌 N 徽标；站点主题包提供专属形象时使用主题形象。
  *
  * 取代原来的 FluidOrb（WebGL 着色器 + 常驻 rAF）：画布本身已有一个持续渲染的上下文，
  * 悬浮入口再挂一个 shader 循环会白烧 GPU。这里用纯 SVG 画品牌字形——
@@ -11,9 +13,12 @@ import { cn } from "@/lib/utils";
  *
  * 组件不依赖外部 CSS，自带尺寸；容器（悬浮球的毛玻璃圆底、后台预览框）负责背景与阴影。
  */
-export function AgentAvatarMark({ size = 56, className }: { size?: number; className?: string }) {
+export function AgentAvatarMark({ size = 56, className, state = "idle" }: { size?: number; className?: string; state?: ThemeAgentOrbState }) {
     const uid = useId().replace(/:/g, "");
     const stroke = `${uid}-stroke`;
+    const ThemeOrb = useThemePack()?.agentOrb;
+
+    if (ThemeOrb) return <ThemeOrb size={size} state={state} className={className} />;
 
     return (
         <svg className={cn("agent-avatar-mark block shrink-0", className)} width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
