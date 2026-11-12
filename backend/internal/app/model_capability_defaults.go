@@ -217,6 +217,35 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.Resolutions = []string{"768P", "2K"}
 		video.DefaultResolution = "768P"
 		video.Watermark = VideoBooleanConfig{Supported: true, Default: false}
+	case model.ChannelInterfaceType("grsai-video"):
+		// MiniMax H3：1~15 秒（1080p 下最多 10 秒），9 张参考图、3 段参考音频（单段 ≤15 秒），不支持参考视频。
+		// 上游 aspectRatio 只收 portrait / landscape，画布比例由协议侧换算，这里仍按画布口径配置。
+		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
+		video.References.MaxImages = 9
+		video.References.MaxAudios = 3
+		video.References.MaxAudioBytes = 15 * 1024 * 1024
+		video.References.MaxAudioDuration = 15
+		video.Ratios = []string{"16:9", "9:16", "4:3", "3:4", "21:9"}
+		video.DefaultRatio = "16:9"
+		video.Resolutions = []string{"480p", "768p", "1080p"}
+	case model.ChannelInterfaceType("grsai-wan-video"):
+		// Wan 3.0：2~30 秒，10 张参考图、5 段参考音频（单段 ≤15 秒），不支持参考视频。
+		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
+		video.References.MaxImages = 10
+		video.References.MaxAudios = 5
+		video.References.MaxAudioBytes = 15 * 1024 * 1024
+		video.References.MaxAudioDuration = 15
+		video.Duration = VideoDurationConfig{Selection: "range", Min: 2, Max: 30, Step: 1, Default: 5}
+		video.Resolutions = []string{"480p", "720p", "1080p"}
+	case model.ChannelInterfaceType("grsai-agnes-video"):
+		// Agnes 2.5：4~12 秒，5 张参考图、3 段参考音频，分辨率含 2k 档。
+		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
+		video.References.MaxImages = 5
+		video.References.MaxAudios = 3
+		video.References.MaxAudioBytes = 15 * 1024 * 1024
+		video.References.MaxAudioDuration = 15
+		video.Duration = VideoDurationConfig{Selection: "range", Min: 4, Max: 12, Step: 1, Default: 5}
+		video.Resolutions = []string{"720p", "1080p", "2k"}
 	case model.ChannelInterfaceAgnesVideo:
 		video = applyModelSpecificVideoCapability(video, protocol, modelName)
 	case model.ChannelInterfaceType(VolcengineMediaKitEnhanceVideoProtocol):
