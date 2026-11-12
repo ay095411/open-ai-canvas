@@ -248,6 +248,26 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.Resolutions = []string{"720p", "1080p", "2k"}
 	case model.ChannelInterfaceAgnesVideo:
 		video = applyModelSpecificVideoCapability(video, protocol, modelName)
+	case model.ChannelInterfaceType("suanliai-video"):
+		// 算力AI 把站内全部视频模型收在同一个 /v1/videos 后面，并按模型自动收敛分辨率与时长，
+		// 所以默认值取全站最宽档（30 图 / 10 视频 / 10 音频、2~30 秒、最高 4K）。
+		// 单个模型更窄的限制（3 图、9 图、不支持参考视频、音频 ≤15.2 秒等）由网关在提交阶段
+		// 返回中文提示且不扣费；确实要卡死的模型，在渠道模型的能力配置里按模型收紧即可。
+		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
+		video.References.MaxImages = 30
+		video.References.MaxVideos = 10
+		video.References.MaxVideoBytes = 200 * 1024 * 1024
+		video.References.MaxVideoDuration = 30
+		video.References.MaxAudios = 10
+		video.References.MaxAudioBytes = 15 * 1024 * 1024
+		video.References.MaxAudioDuration = 15
+		video.Duration = VideoDurationConfig{Selection: "range", Min: 2, Max: 30, Step: 1, Default: 5}
+		video.Ratios = []string{"16:9", "9:16", "1:1", "4:3", "3:4", "21:9"}
+		video.DefaultRatio = "16:9"
+		video.Resolutions = []string{"480p", "720p", "768p", "1080p", "2k", "4k"}
+		video.DefaultResolution = "720p"
+		video.GenerateAudio = VideoBooleanConfig{Supported: true, Default: false}
+		video.Watermark = VideoBooleanConfig{Supported: true, Default: false}
 	case model.ChannelInterfaceType(VolcengineMediaKitEnhanceVideoProtocol):
 		// 画质增强：只接收一个源视频，时长由服务端按源资源测得，帧率默认保持原片。
 		video.References = VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MaxVideos: 1, MaxVideoDuration: DefaultVideoProcessingMaxSourceSeconds}

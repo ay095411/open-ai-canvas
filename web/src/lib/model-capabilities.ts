@@ -567,6 +567,25 @@ export function defaultModelCapabilityConfig(protocol?: ModelProtocol, model = "
         video.duration = { selection: "range", min: 4, max: 12, step: 1, default: 5 };
         video.resolutions = ["720p", "1080p", "2k"];
     }
+    // 算力AI 用一个 /v1/videos 覆盖全部视频模型，默认值取全站最宽档；
+    // 更窄的模型限制由网关在提交阶段返回中文提示，必要时按渠道模型收紧。
+    if (protocol === "suanliai-video") {
+        video.operations.push("reference_to_video", "audio_to_video");
+        video.references.maxImages = 30;
+        video.references.maxVideos = 10;
+        video.references.maxVideoBytes = 200 * 1024 * 1024;
+        video.references.maxVideoDurationSeconds = 30;
+        video.references.maxAudios = 10;
+        video.references.maxAudioBytes = 15 * 1024 * 1024;
+        video.references.maxAudioDurationSeconds = 15;
+        video.duration = { selection: "range", min: 2, max: 30, step: 1, default: 5 };
+        video.ratios = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
+        video.defaultRatio = "16:9";
+        video.resolutions = ["480p", "720p", "768p", "1080p", "2k", "4k"];
+        video.defaultResolution = "720p";
+        video.generateAudio = { supported: true, default: false };
+        video.watermark = { supported: true, default: false };
+    }
     if (protocol === VOLCENGINE_MEDIAKIT_ENHANCE_VIDEO_PROTOCOL) {
         // 与后端默认值一致：只接收一个源视频，帧率默认保持原片。
         video.references = { ...video.references, minImages: 0, maxImages: 0, maxImageBytes: 0, maxVideos: 1, maxVideoDurationSeconds: DEFAULT_VIDEO_PROCESSING_MAX_SOURCE_SECONDS, maxAudios: 0 };

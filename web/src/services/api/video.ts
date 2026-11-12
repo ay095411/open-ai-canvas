@@ -15,6 +15,7 @@ import { createMiniMaxVideoTask, pollMiniMaxVideoTask } from "./video-provider-m
 import { createVideoGenerationsTask, pollVideoGenerationsTask } from "./video-provider-newapi";
 import { createNovitaVideoTask, pollNovitaVideoTask } from "./video-provider-novita";
 import { createOpenAIVideoTask, pollOpenAIVideoTask } from "./video-provider-openai";
+import { createSuanliaiVideoTask } from "./video-provider-suanliai";
 import { createSeedanceTask, isSeedanceConfig, pollSeedanceTask } from "./video-provider-seedance";
 import { createVideoTransport } from "./video-transport";
 
@@ -48,6 +49,8 @@ export async function createVideoGenerationTask(config: AiConfig, prompt: string
     if (requestConfig.interfaceType === "minimax-video") return createMiniMaxVideoTask(deps, requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
     if (isAgnesConfig(requestConfig)) return createAgnesVideoTask(deps, requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
     if (isSeedanceConfig(requestConfig)) return createSeedanceTask(deps, requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
+    // 算力AI 是 JSON 协议：参考素材按 URL/base64 数组提交，不能落到下面的 multipart 兜底。
+    if (requestConfig.interfaceType === "suanliai-video") return createSuanliaiVideoTask(deps, requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
     if (videoReferences.length || audioReferences.length) throw new Error("当前视频接口不支持参考视频或参考音频，请切换到 Seedance 2.0 / 火山 Agent Plan 模型，或移除参考素材");
     return createOpenAIVideoTask(deps, requestConfig, selectedModel, prompt, references, options);
 }
