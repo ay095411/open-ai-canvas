@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { referenceCapabilityTag } from "../src/lib/model-tags";
+import { videoReferenceCapabilityTag } from "../src/lib/model-tags";
 
 test("formats video reference limits in image, video, audio order", () => {
     const examples = [
@@ -10,12 +10,12 @@ test("formats video reference limits in image, video, audio order", () => {
     ] as const;
 
     for (const [references, text] of examples) {
-        expect(referenceCapabilityTag(references)).toEqual({ text, color: "green" });
+        expect(videoReferenceCapabilityTag(references)).toEqual({ text, color: "green" });
     }
 });
 
 test("omits zero, negative, and non-finite reference limits", () => {
-    expect(referenceCapabilityTag({ maxImages: 0, maxVideos: 0, maxAudios: 0 })).toBeUndefined();
-    expect(referenceCapabilityTag({ maxImages: -1, maxVideos: Number.NaN, maxAudios: Number.POSITIVE_INFINITY })).toBeUndefined();
-    expect(referenceCapabilityTag()).toBeUndefined();
+    expect(videoReferenceCapabilityTag({ maxImages: 0, maxVideos: 0, maxAudios: 0 })).toBeUndefined();
+    expect(videoReferenceCapabilityTag({ maxImages: -1, maxVideos: Number.NaN, maxAudios: Number.POSITIVE_INFINITY })).toBeUndefined();
+    expect(videoReferenceCapabilityTag()).toBeUndefined();
 });

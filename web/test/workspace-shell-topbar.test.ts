@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { zhCN } from "../src/i18n/messages/zh-CN";
 
 const layout = (name: string) => resolve(import.meta.dir, `../src/components/layout/${name}`);
 const read = (name: string) => readFileSync(layout(name), "utf8");
@@ -12,7 +13,8 @@ describe("responsive workspace shell", () => {
         expect(shell).toContain("writeWorkspaceSidebarCollapsed(next)");
         expect(shell).toContain("setMobileSidebarExpanded((current) => !current)");
         expect(shell).toContain("if (isMobileViewport()) setMobileSidebarExpanded(false)");
-        expect(shell).toContain('aria-label="收起侧栏" onClick={() => setMobileSidebarExpanded(false)}');
+        expect(shell).toContain('aria-label={t("shell.collapseSidebar")} onClick={() => setMobileSidebarExpanded(false)}');
+        expect(zhCN.shell.collapseSidebar).toBe("收起侧栏");
     });
 
     test("shell keeps navigation and overlay hosts mounted with the page stage", () => {
