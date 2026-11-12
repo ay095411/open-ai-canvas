@@ -55,9 +55,6 @@ beforeEach(() => {
         features: { ...defaultFeatureAvailability, creditsEnabled: false },
     });
     apiClient.defaults.adapter = async (config) => {
-        if (config.url === "/canvas-projects" && config.method === "get") {
-            return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { projects: [], page: 1, pageSize: 20, total: 0, hasMore: false } } };
-        }
         if (config.url !== "/announcements" || config.method !== "get") {
             unexpectedRequests.push(`${config.method} ${config.url}`);
             throw new Error(`Unexpected navigation request: ${config.url}`);

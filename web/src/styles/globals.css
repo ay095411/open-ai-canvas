@@ -24217,7 +24217,7 @@ html:not(.dark) .creation-home .creation-user-avatar {
 }
 
 .app-user-workspace .app-workspace-nav-group-toggle > svg {
-    display: block;
+    display: none;
 }
 
 .app-user-workspace .app-workspace-nav-group-label {
