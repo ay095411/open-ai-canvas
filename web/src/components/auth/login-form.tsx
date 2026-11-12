@@ -319,9 +319,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                                     }}
                                 />
                             ) : null}
-                            {activeRegisterMethod ? (
-                                <VerificationFields key={activeRegisterMethod} purpose="register" method={activeRegisterMethod} value={registerVerification} onChange={setRegisterVerification} disabled={submitting} />
-                            ) : null}
+                            {activeRegisterMethod ? <VerificationFields key={activeRegisterMethod} purpose="register" method={activeRegisterMethod} value={registerVerification} onChange={setRegisterVerification} disabled={submitting} /> : null}
                         </>
                     ) : (
                         <div className="-my-1 flex justify-end">
@@ -346,15 +344,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     </button>
                 </div>
             ) : null}
-            <Button
-                type="primary"
-                htmlType="submit"
-                size="large"
-                block
-                loading={submitting}
-                disabled={verificationUnavailable || retryCountdown > 0 || agreementBlocked}
-                className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1"
-            >
+            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={verificationUnavailable || retryCountdown > 0 || agreementBlocked} className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1">
                 {retryCountdown > 0 ? `${retryCountdown} 秒后可重试` : pending ? "创建账号并登录" : "登录并进入创作"}
             </Button>
             {/* 登录与注册已合成一张表单：不给提示的话，新用户会以为这里只能登录。 */}

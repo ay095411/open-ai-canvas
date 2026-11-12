@@ -55,7 +55,12 @@ export default function RegisterPage() {
         let cancelled = false;
         setSettingsFailed(false);
         void getAuthSettings()
-            .then((value) => { if (!cancelled) { setSettings(value); setMethod(verificationMethods(value, "register")[0] ?? "email"); } })
+            .then((value) => {
+                if (!cancelled) {
+                    setSettings(value);
+                    setMethod(verificationMethods(value, "register")[0] ?? "email");
+                }
+            })
             .catch((error) => {
                 if (cancelled) return;
                 // 这里必须留下失败态：协议标题只能来自后台配置，读不到时不能用品牌名
@@ -136,21 +141,37 @@ export default function RegisterPage() {
                 <Input size="large" prefix={<UserRound className="auth-scene-icon size-4" />} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="3-32 位字符" autoComplete="username" required disabled={disabled} />
             </AuthField>
 
-            {settings?.firstUser ? <AuthField label={t("auth.register.emailOptional")}>
-                <Input
-                    size="large"
-                    prefix={<Mail className="auth-scene-icon size-4" />}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder={t("auth.register.emailPlaceholder")}
-                    autoComplete="email"
-                    required={!settings?.firstUser}
-                    disabled={disabled}
-                />
-            </AuthField> : <>
-                {methods.length > 1 && <Segmented block aria-label={t("auth.register.method")} options={methods.map((value) => ({ value, label: t(`auth.methods.${value}`) }))} value={method} disabled={submitting} onChange={(value) => { setMethod(value as VerificationMethod); setVerification({ ...emptyVerification }); }} />}
-                {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
-            </>}
+            {settings?.firstUser ? (
+                <AuthField label={t("auth.register.emailOptional")}>
+                    <Input
+                        size="large"
+                        prefix={<Mail className="auth-scene-icon size-4" />}
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder={t("auth.register.emailPlaceholder")}
+                        autoComplete="email"
+                        required={!settings?.firstUser}
+                        disabled={disabled}
+                    />
+                </AuthField>
+            ) : (
+                <>
+                    {methods.length > 1 && (
+                        <Segmented
+                            block
+                            aria-label={t("auth.register.method")}
+                            options={methods.map((value) => ({ value, label: t(`auth.methods.${value}`) }))}
+                            value={method}
+                            disabled={submitting}
+                            onChange={(value) => {
+                                setMethod(value as VerificationMethod);
+                                setVerification({ ...emptyVerification });
+                            }}
+                        />
+                    )}
+                    {methods.length > 0 && <VerificationFields key={method} purpose="register" method={method} value={verification} onChange={setVerification} disabled={disabled || submitting} />}
+                </>
+            )}
 
             {/* 输入框一律独占一行：两列并排在 480px 的卡宽上每格只剩 200px，
                 密码那一行要同时塞下锁图标 + 占位符 + 眼睛图标，视觉上是最挤的一行。 */}
@@ -211,15 +232,7 @@ export default function RegisterPage() {
                     使用 Linux.do 注册 / 登录
                 </Button>
             ) : null}
-            <Modal
-                className="workspace-modal auth-agreement-modal"
-                title={agreementTitle}
-                open={agreementOpen}
-                onCancel={() => setAgreementOpen(false)}
-                footer={null}
-                centered
-                destroyOnHidden
-            >
+            <Modal className="workspace-modal auth-agreement-modal" title={agreementTitle} open={agreementOpen} onCancel={() => setAgreementOpen(false)} footer={null} centered destroyOnHidden>
                 {agreementParagraphs.length === 0 ? (
                     <div className="auth-agreement-empty">
                         <FileText className="size-3.5 shrink-0" aria-hidden />

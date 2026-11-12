@@ -10,10 +10,32 @@ import { startVerification, type VerificationDraft, type VerificationMethod, typ
 // 不再画字段标题：每个框的占位符（手机号 / 接收验证码的邮箱 / 6 位数字验证码）已经说明用途，
 // 标题只是把同一句话说了两遍。可访问名改由 aria-label 提供——这也是为什么这里不能
 // 直接把 label 元素删掉了事。
-function CodeField({ label, value, onChange, onSend, sending, remaining, targetReady, disabled, placeholder, autoComplete, inputMode, sendLabel }: {
-    label: string; value: string; onChange: (next: string) => void;
-    onSend: () => void; sending: boolean; remaining: number; targetReady: boolean;
-    disabled: boolean; placeholder: string; autoComplete: string; inputMode: "text" | "email" | "tel" | "numeric"; sendLabel: string;
+function CodeField({
+    label,
+    value,
+    onChange,
+    onSend,
+    sending,
+    remaining,
+    targetReady,
+    disabled,
+    placeholder,
+    autoComplete,
+    inputMode,
+    sendLabel,
+}: {
+    label: string;
+    value: string;
+    onChange: (next: string) => void;
+    onSend: () => void;
+    sending: boolean;
+    remaining: number;
+    targetReady: boolean;
+    disabled: boolean;
+    placeholder: string;
+    autoComplete: string;
+    inputMode: "text" | "email" | "tel" | "numeric";
+    sendLabel: string;
 }) {
     const counting = remaining > 0;
     const blocked = disabled || sending || counting || !targetReady;
@@ -31,24 +53,27 @@ function CodeField({ label, value, onChange, onSend, sending, remaining, targetR
                 placeholder={placeholder}
                 disabled={disabled || sending}
             />
-            <Button
-                className="auth-code-send"
-                size="large"
-                type="text"
-                data-counting={counting ? "true" : "false"}
-                loading={sending}
-                disabled={blocked}
-                onClick={onSend}
-            >
+            <Button className="auth-code-send" size="large" type="text" data-counting={counting ? "true" : "false"} loading={sending} disabled={blocked} onClick={onSend}>
                 {counting ? `${remaining} 秒后重发` : sendLabel}
             </Button>
         </div>
     );
 }
 
-export function VerificationFields({ purpose, method, value, onChange, disabled = false, password }: {
-    purpose: VerificationPurpose; method: VerificationMethod; value: VerificationDraft;
-    onChange: (value: VerificationDraft) => void; disabled?: boolean; password?: string;
+export function VerificationFields({
+    purpose,
+    method,
+    value,
+    onChange,
+    disabled = false,
+    password,
+}: {
+    purpose: VerificationPurpose;
+    method: VerificationMethod;
+    value: VerificationDraft;
+    onChange: (value: VerificationDraft) => void;
+    disabled?: boolean;
+    password?: string;
 }) {
     const { message } = App.useApp();
     const [sending, setSending] = useState(false);
@@ -65,7 +90,8 @@ export function VerificationFields({ purpose, method, value, onChange, disabled 
     const send = async () => {
         if (inFlight.current || remaining > 0) return;
         if ((sms && !value.phone.trim()) || (email && !value.email.trim()) || (purpose === "bind" && !password)) {
-            message.warning("请先填写联系方式及必要的当前密码"); return;
+            message.warning("请先填写联系方式及必要的当前密码");
+            return;
         }
         inFlight.current = true;
         setSending(true);
@@ -77,38 +103,70 @@ export function VerificationFields({ purpose, method, value, onChange, disabled 
             onChange({ ...value, email: email ? value.email.trim().toLowerCase() : "", phone: sms ? value.phone.trim() : "", emailCode: "", smsCode: "", ticket: result.ticket });
             setRemaining(result.retryAfter);
             message.success(purpose === "login" ? "如该联系方式已验证且账号可用，验证码将发送至该联系方式" : "验证码已发送，10 分钟内有效");
-        } catch (error) { message.error(error instanceof Error ? error.message : "发送失败，请稍后重试"); }
-        finally { setSending(false); inFlight.current = false; }
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "发送失败，请稍后重试");
+        } finally {
+            setSending(false);
+            inFlight.current = false;
+        }
     };
     const sendLabel = method === "sms_email" ? "获取验证码" : "获取验证码";
     // 每个字段都带同一个位置的前缀图标：全部输入框独占一行之后，图标的有无会直接
     // 变成「文字左边缘对不对齐」，缺一个就看得出来。
     // 间距跟外层表单的 gap-2.5 对齐：这段是表单的一部分，不该自带一套更大的节奏。
-    return <div className="flex flex-col gap-2.5">
-        {sms && <Input size="large" aria-label="手机号" prefix={<Smartphone className="auth-scene-icon size-4" />} value={value.phone} onChange={(e) => changeTarget("phone", e.target.value)} autoComplete="tel" inputMode="tel" placeholder="中国大陆手机号，支持 +86" required disabled={disabled || sending} />}
-        {email && <Input size="large" type="email" aria-label="邮箱" prefix={<Mail className="auth-scene-icon size-4" />} value={value.email} onChange={(e) => changeTarget("email", e.target.value)} autoComplete="email" placeholder="接收验证码的邮箱" required disabled={disabled || sending} />}
-        {/* 双通道（sms_email）一次请求同时下发两种验证码，此时按钮文案不区分通道。 */}
-        {(sms || email) && (
-            <CodeField
-                label={method === "sms_email" ? "验证码" : sms ? "短信验证码" : "邮件验证码"}
-                value={method === "sms_email" ? value.smsCode : sms ? value.smsCode : value.emailCode}
-                onChange={(next) => {
-                    const code = next.replace(/\D/g, "").slice(0, 6);
-                    if (method === "sms_email" || sms) onChange({ ...value, smsCode: code, ...(method === "sms_email" ? { emailCode: code } : {}) });
-                    else onChange({ ...value, emailCode: code });
-                }}
-                onSend={() => void send()}
-                sending={sending}
-                remaining={remaining}
-                // 按钮在联系方式为空时保持禁用，避免用户点了才发现没填邮箱/手机号。
-                targetReady={(sms ? Boolean(value.phone.trim()) : true) && (email ? Boolean(value.email.trim()) : true) && (purpose !== "bind" || Boolean(password))}
-                disabled={disabled}
-                placeholder="6 位数字验证码"
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                sendLabel={sendLabel}
-            />
-        )}
-        {method === "sms_email" && <p className="auth-scene-muted m-0 text-xs leading-5">两项验证必须在本次注册中同时通过；修改联系方式后需要重新获取。</p>}
-    </div>;
+    return (
+        <div className="flex flex-col gap-2.5">
+            {sms && (
+                <Input
+                    size="large"
+                    aria-label="手机号"
+                    prefix={<Smartphone className="auth-scene-icon size-4" />}
+                    value={value.phone}
+                    onChange={(e) => changeTarget("phone", e.target.value)}
+                    autoComplete="tel"
+                    inputMode="tel"
+                    placeholder="中国大陆手机号，支持 +86"
+                    required
+                    disabled={disabled || sending}
+                />
+            )}
+            {email && (
+                <Input
+                    size="large"
+                    type="email"
+                    aria-label="邮箱"
+                    prefix={<Mail className="auth-scene-icon size-4" />}
+                    value={value.email}
+                    onChange={(e) => changeTarget("email", e.target.value)}
+                    autoComplete="email"
+                    placeholder="接收验证码的邮箱"
+                    required
+                    disabled={disabled || sending}
+                />
+            )}
+            {/* 双通道（sms_email）一次请求同时下发两种验证码，此时按钮文案不区分通道。 */}
+            {(sms || email) && (
+                <CodeField
+                    label={method === "sms_email" ? "验证码" : sms ? "短信验证码" : "邮件验证码"}
+                    value={method === "sms_email" ? value.smsCode : sms ? value.smsCode : value.emailCode}
+                    onChange={(next) => {
+                        const code = next.replace(/\D/g, "").slice(0, 6);
+                        if (method === "sms_email" || sms) onChange({ ...value, smsCode: code, ...(method === "sms_email" ? { emailCode: code } : {}) });
+                        else onChange({ ...value, emailCode: code });
+                    }}
+                    onSend={() => void send()}
+                    sending={sending}
+                    remaining={remaining}
+                    // 按钮在联系方式为空时保持禁用，避免用户点了才发现没填邮箱/手机号。
+                    targetReady={(sms ? Boolean(value.phone.trim()) : true) && (email ? Boolean(value.email.trim()) : true) && (purpose !== "bind" || Boolean(password))}
+                    disabled={disabled}
+                    placeholder="6 位数字验证码"
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    sendLabel={sendLabel}
+                />
+            )}
+            {method === "sms_email" && <p className="auth-scene-muted m-0 text-xs leading-5">两项验证必须在本次注册中同时通过；修改联系方式后需要重新获取。</p>}
+        </div>
+    );
 }

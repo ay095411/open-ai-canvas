@@ -5,7 +5,10 @@ import { authDialogLanding, authPageURL, authViewFromPath, resolveLoginMode, saf
 
 const source = (path: string) => readFileSync(new URL(`../src/${path}`, import.meta.url), "utf8");
 /** 去掉注释后再断言：注释里解释「不要 navigate("/login")」不该算成违规。 */
-const codeOnly = (path: string) => source(path).replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+const codeOnly = (path: string) =>
+    source(path)
+        .replace(/\/\/.*$/gm, "")
+        .replace(/\/\*[\s\S]*?\*\//g, "");
 
 describe("登录入口打开方式", () => {
     test("后台未配置或旧服务端未返回时默认弹窗", () => {

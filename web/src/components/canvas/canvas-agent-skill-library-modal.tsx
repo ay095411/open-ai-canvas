@@ -341,7 +341,7 @@ function SkillLibraryCard({
     const cover = skill.showcaseMedia?.find((item) => item.type === "image" && item.showcaseUrl) || skill.showcaseMedia?.find((item) => item.showcaseUrl);
     const coverUrl = cover?.showcaseUrl;
     const hasCover = Boolean(coverUrl && !coverFailed);
-const categoryLabel = rootLabel || categories.find((item) => item.value === skill.tag)?.label || "其他";
+    const categoryLabel = rootLabel || categories.find((item) => item.value === skill.tag)?.label || "其他";
     const author = skill.effectiveUser?.name || "Navo AI 创作者";
     const addedCount = formatSkillCount(skill.addedCount || 0);
 

@@ -7,7 +7,7 @@ export const modelTagColors = [
     { value: "pink", label: "粉色" },
 ] as const;
 
-export type ModelTag = { text: string; color: typeof modelTagColors[number]["value"] };
+export type ModelTag = { text: string; color: (typeof modelTagColors)[number]["value"] };
 
 export function videoReferenceCapabilityTag(references?: { maxImages?: number; maxVideos?: number; maxAudios?: number }): ModelTag | undefined {
     if (!references) return undefined;
