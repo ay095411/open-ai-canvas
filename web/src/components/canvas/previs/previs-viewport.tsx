@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { Grid, Html, Line, OrbitControls, TransformControls } from "@react-three/drei";
-import { Component, forwardRef, memo, Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useReducer, useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { Grid, Line, OrbitControls, TransformControls } from "@react-three/drei";
+import { Component, forwardRef, memo, Suspense, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useReducer, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import {
     AnimationClip,
     AnimationMixer,
@@ -1313,6 +1313,90 @@ function resolvePrevisCameraPalette(camera: PrevisCamera) {
     };
 }
 
+/** 摄影机标签只投影普通 DOM，避免在 R3F 清理阶段同步卸载另一个 React root。 */
+export function PrevisCameraLabel({ target, label, selected, accentHex }: { target: Group | null; label: string; selected: boolean; accentHex: string }) {
+    const host = useThree((state) => (state.events.connected instanceof HTMLElement ? state.events.connected : state.gl.domElement.parentElement));
+    const get = useThree((state) => state.get);
+    const elementRef = useRef<HTMLDivElement | null>(null);
+    const contentRef = useRef<{ badge: HTMLDivElement; dot: HTMLSpanElement; text: HTMLSpanElement } | null>(null);
+    const vectors = useMemo(() => ({ world: new Vector3(), eye: new Vector3(), direction: new Vector3(), delta: new Vector3(), projected: new Vector3() }), []);
+    const updatePosition = useCallback(() => {
+        const element = elementRef.current;
+        if (!target || !element) return;
+        const { camera, size } = get();
+        target.updateWorldMatrix(true, false);
+        vectors.world.set(0, 0.98, 0).applyMatrix4(target.matrixWorld);
+        camera.getWorldPosition(vectors.eye);
+        camera.getWorldDirection(vectors.direction);
+        vectors.delta.subVectors(vectors.world, vectors.eye);
+        vectors.projected.copy(vectors.world).project(camera);
+        if (vectors.delta.dot(vectors.direction) < 0 || !Number.isFinite(vectors.projected.x) || !Number.isFinite(vectors.projected.y)) {
+            element.style.display = "none";
+            return;
+        }
+        element.style.display = "block";
+        element.style.transform = `translate3d(${((vectors.projected.x + 1) * size.width) / 2}px, ${((-vectors.projected.y + 1) * size.height) / 2}px, 0)`;
+        element.style.zIndex = String(Math.round(12 - (12 * (vectors.delta.length() - camera.near)) / (camera.far - camera.near)));
+    }, [get, target, vectors]);
+    useFrame(updatePosition);
+
+    useLayoutEffect(() => {
+        if (!host || !target) return;
+        const element = document.createElement("div");
+        element.dataset.previsCameraLabel = "";
+        Object.assign(element.style, { position: "absolute", top: "0", left: "0", transformOrigin: "0 0", pointerEvents: "none", userSelect: "none" });
+        const centered = document.createElement("div");
+        centered.style.transform = "translate3d(-50%, -50%, 0)";
+        const badge = document.createElement("div");
+        Object.assign(badge.style, {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            maxWidth: "160px",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            background: "var(--pd-s1)",
+            boxShadow: "var(--pd-shadow-raised)",
+            color: "var(--pd-t0)",
+            fontFamily: "inherit",
+            fontSize: "11px",
+            fontWeight: "600",
+            letterSpacing: "0.02em",
+            lineHeight: "1",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+        });
+        const dot = document.createElement("span");
+        Object.assign(dot.style, { width: "4px", height: "4px", flex: "0 0 auto", borderRadius: "50%" });
+        const text = document.createElement("span");
+        Object.assign(text.style, { overflow: "hidden", textOverflow: "ellipsis" });
+        badge.append(dot, text);
+        centered.append(badge);
+        element.append(centered);
+        host.append(element);
+        elementRef.current = element;
+        contentRef.current = { badge, dot, text };
+        updatePosition();
+        return () => {
+            elementRef.current = null;
+            contentRef.current = null;
+            element.remove();
+        };
+    }, [host, target, updatePosition]);
+
+    useLayoutEffect(() => {
+        const content = contentRef.current;
+        if (!content) return;
+        content.text.textContent = label;
+        Object.assign(content.badge.style, { border: `1px solid ${accentHex}40`, opacity: selected ? "1" : "0.75", transform: selected ? "scale(1)" : "scale(0.95)" });
+        Object.assign(content.dot.style, { background: accentHex, boxShadow: selected ? `0 0 6px ${accentHex}` : "none" });
+    }, [accentHex, host, label, selected, target]);
+
+    return null;
+}
+
 /**
  * 场景内摄影机标记：导演视角中每台摄影机都保持可见；点击任意机位即可选中并调节位置、旋转或缩放。
  * 视觉上用分层的机身、镜头、取景器和热靴替代普通方盒，但交互仍由同一个 group/gizmo 承担。
@@ -1470,36 +1554,7 @@ function PrevisCameraView({
                     transparent
                     opacity={selected ? 0.85 : 0.46}
                 />
-                <Html center position={[0, 0.98, 0]} zIndexRange={[12, 0]} style={{ pointerEvents: "none", userSelect: "none" }}>
-                    <div
-                        style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            maxWidth: 160,
-                            padding: "4px 8px",
-                            border: `1px solid ${palette.accentHex}40`,
-                            borderRadius: 4,
-                            background: "var(--pd-s1)",
-                            boxShadow: "var(--pd-shadow-raised)",
-                            color: "var(--pd-t0)",
-                            fontFamily: "inherit",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            letterSpacing: "0.02em",
-                            lineHeight: 1,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            opacity: selected ? 1 : 0.75,
-                            transform: selected ? "scale(1)" : "scale(0.95)",
-                            transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                        }}
-                    >
-                        <span style={{ width: 4, height: 4, flex: "0 0 auto", borderRadius: "50%", background: palette.accentHex, boxShadow: selected ? `0 0 6px ${palette.accentHex}` : "none" }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
-                    </div>
-                </Html>
+                <PrevisCameraLabel target={target} label={label} selected={selected} accentHex={palette.accentHex} />
             </group>
             {selected && target && transformMode !== "select" ? (
                 <PrevisObjectGizmo target={target} transformMode={transformMode === "scale" ? "translate" : transformMode} onFreeze={setFrozen} onTransforming={onTransforming} onTransform={onTransform} />

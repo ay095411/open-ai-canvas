@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -180,8 +181,12 @@ func TestOfficialPluginPackageCacheCopiesAndVerifiesWhenLinkUnavailable(t *testi
 		t.Fatalf("streamed package differs from inspected source: %v", err)
 	}
 	copied, err := os.Stat(target)
-	if err != nil || os.SameFile(pkg.source, copied) || copied.Mode().Perm() != 0o600 {
-		t.Fatalf("copy did not publish an independent private file: %v", err)
+	if err != nil || os.SameFile(pkg.source, copied) {
+		t.Fatalf("copy did not publish an independent file: %v", err)
+	}
+	// Windows 用 ACL 表达访问权限，FileMode 不包含 POSIX 的用户/组权限位。
+	if runtime.GOOS != "windows" && copied.Mode().Perm() != 0o600 {
+		t.Fatalf("copied package permissions = %04o, want 0600", copied.Mode().Perm())
 	}
 }
 

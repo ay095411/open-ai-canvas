@@ -19,6 +19,15 @@ func ecommerceRoundsTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	if err := db.AutoMigrate(&model.EcommerceProject{}, &model.EcommerceRound{}); err != nil {
 		t.Fatal(err)
 	}

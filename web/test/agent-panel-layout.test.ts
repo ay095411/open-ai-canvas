@@ -71,8 +71,9 @@ describe("Agent dock layout", () => {
 
     it("restores the dock preference independently of the floating window", () => {
         expect(restoreAgentPanelDock('{"docked":true,"width":500}')).toEqual({ docked: true, width: 500 });
+        expect(restoreAgentPanelDock('{"docked":false,"width":468}')).toEqual({ docked: false, width: 468 });
         for (const raw of [null, "invalid", "null", "{}", '{"docked":true,"width":"500"}', '{"docked":true,"width":1e999}']) {
-            expect(restoreAgentPanelDock(raw)).toEqual({ docked: false, width: 420 });
+            expect(restoreAgentPanelDock(raw)).toEqual({ docked: true, width: 420 });
         }
         expect(restoreAgentPanelLayout(JSON.stringify(start), viewport)).toEqual(start);
     });

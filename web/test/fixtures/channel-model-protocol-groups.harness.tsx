@@ -94,9 +94,9 @@ async function choose(capability: keyof typeof labels, protocol = `${capability}
 }
 async function clear(capability: keyof typeof labels) {
     const field = document.querySelector(`input[aria-label="${labels[capability]}调用协议"]`)!;
-    const target = field.closest(".ant-select")!.querySelector(".ant-select-clear")!;
+    const target = field.closest(".ant-select")!.querySelector<HTMLElement>(".ant-select-clear")!;
     expect(target).toBeTruthy();
-    await act(async () => target.dispatchEvent(new dom.MouseEvent("mousedown", { bubbles: true })));
+    await act(async () => target.click());
 }
 async function mount(overrides: Partial<ComponentProps<typeof ChannelModelProtocolDialog>> = {}) {
     const host = document.createElement("div");

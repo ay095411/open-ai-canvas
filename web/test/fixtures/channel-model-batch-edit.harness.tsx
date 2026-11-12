@@ -198,9 +198,9 @@ test("批量名称读取全局目录、搜索选择、自填及清空，并且�
         expect((field as HTMLInputElement).value).toBe("Alpha 分组");
         await input("批量模型展示名", "新目录");
         expect((field as HTMLInputElement).value).toBe("新目录");
-        const clear = field.closest(".ant-select")!.querySelector(".ant-select-clear")!;
+        const clear = field.closest(".ant-select")!.querySelector<HTMLElement>(".ant-select-clear")!;
         expect(clear).toBeTruthy();
-        await act(async () => clear.dispatchEvent(new dom.MouseEvent("mousedown", { bubbles: true })));
+        await act(async () => clear.click());
         expect((field as HTMLInputElement).value).toBe("");
         await click("保存");
         expect(post.mock.calls[0][1].models[0].changes).toEqual({ displayName: "" });
