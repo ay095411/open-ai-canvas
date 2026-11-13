@@ -111,6 +111,82 @@
                     animation: boot-in 0.8s ease-out both;
                 }
             }
+            /* ---------- 启动兜底页（20s 未挂载） ----------
+               不依赖任何外链资源，所以全部用字面值；只留标题、一句说明、一个按钮。 */
+            #boot-recovery {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 14px;
+                padding: 24px;
+                background: #ffffff;
+                color: #171717;
+                font-family: -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+                text-align: center;
+                animation: boot-in 0.24s ease-out both;
+            }
+            html.dark #boot-recovery {
+                background: #111415;
+                color: #f5f5f5;
+            }
+            /* 出现兜底时必须收掉启动流光与「正在加载」伪元素，否则它们会压在按钮上形成重影。 */
+            body.boot-recovery-open #root:empty::before,
+            body.boot-recovery-open #root:empty::after {
+                display: none;
+            }
+            body.boot-recovery-open::after {
+                content: none !important;
+            }
+            #boot-recovery strong {
+                font-size: 15px;
+                font-weight: 650;
+                line-height: 1.4;
+            }
+            #boot-recovery p {
+                margin: 0;
+                max-width: 36em;
+                color: rgba(20, 20, 20, 0.6);
+                font-size: 13px;
+                line-height: 1.7;
+                text-wrap: pretty;
+            }
+            html.dark #boot-recovery p {
+                color: rgba(255, 255, 255, 0.55);
+            }
+            #boot-recovery button {
+                margin-top: 6px;
+                padding: 8px 20px;
+                border: 1px solid rgba(20, 20, 20, 0.16);
+                border-radius: 8px;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+                font-size: 13px;
+                cursor: pointer;
+                transition: background-color 0.16s ease-out;
+            }
+            html.dark #boot-recovery button {
+                border-color: rgba(255, 255, 255, 0.18);
+            }
+            #boot-recovery button:hover {
+                background: rgba(20, 20, 20, 0.05);
+            }
+            html.dark #boot-recovery button:hover {
+                background: rgba(255, 255, 255, 0.08);
+            }
+            #boot-recovery button:focus-visible {
+                outline: 2px solid #e49a58;
+                outline-offset: 2px;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                #boot-recovery {
+                    animation: none;
+                }
+            }
         </style>
         <script>
             try {
@@ -133,22 +209,25 @@
                 var notice = document.createElement("section");
                 notice.id = "boot-recovery";
                 notice.setAttribute("role", "alert");
-                notice.style.cssText = "position:fixed;inset:0;display:grid;align-content:center;justify-items:center;gap:16px;padding:24px;background:inherit;font:16px/1.6 sans-serif;text-align:center";
+
                 var title = document.createElement("strong");
                 title.textContent = "页面资源加载时间过长";
+
                 var detail = document.createElement("p");
                 detail.textContent = "部分启动资源未能加载，请重试。此操作不会清除浏览器中的画布缓存。";
+
                 var retry = document.createElement("button");
                 retry.type = "button";
                 retry.textContent = "重新加载";
-                retry.style.cssText = "padding:10px 24px;border:1px solid currentColor;border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer";
                 retry.onclick = function () {
                     var url = new URL(location.href);
                     url.searchParams.set("__chunk_recovery", String(Date.now()));
                     location.replace(url.toString());
                 };
+
                 notice.append(title, detail, retry);
                 document.body.appendChild(notice);
+                document.body.classList.add("boot-recovery-open");
             }, 20000);
             var bootObserver = new MutationObserver(function () {
                 if (!bootRoot.childNodes.length) return;
@@ -156,6 +235,7 @@
                 bootObserver.disconnect();
                 var notice = document.getElementById("boot-recovery");
                 if (notice) notice.remove();
+                document.body.classList.remove("boot-recovery-open");
             });
             bootObserver.observe(bootRoot, { childList: true });
         </script>
