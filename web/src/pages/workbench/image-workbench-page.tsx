@@ -1,4 +1,5 @@
 import { createClientUUID } from "@/lib/client-id";
+import { audioUploadTitleFromFileName } from "@/lib/audio-upload-title";
 import { App, Button, Input, Modal, Popover, Progress, Segmented, Select, Spin, Switch, Tooltip } from "antd";
 import { ArrowUp, BookOpen, Check, Camera, ChevronDown, ChevronUp, Clapperboard, Expand, FileImage, ImagePlus, Images, LoaderCircle, Mic, Palette, Plus, RefreshCw, RotateCcw, Search, ShoppingBag, Upload, UserRound, Video, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -685,7 +686,7 @@ function WorkbenchWorkspace({ initialKind, scope }: { initialKind: WorkbenchKind
         if (picked.length < accepted.length) message.warning("部分素材超过当前输入槽位数量上限，未添加");
         const pending: WorkbenchReference[] = picked.map((file) => ({
             id: createClientUUID(),
-            name: file.name,
+            name: file.type.startsWith("audio/") ? audioUploadTitleFromFileName(file.name) : file.name,
             kind: (file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "audio") as WorkbenchReference["kind"],
             previewUrl: URL.createObjectURL(file),
             progress: 0,

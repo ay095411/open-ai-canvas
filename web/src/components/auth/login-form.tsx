@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { App, Button, Checkbox, Input, Segmented } from "antd";
-import { ArrowLeftRight, Info, LockKeyhole, Mail, TriangleAlert, UserRound, UserRoundPlus } from "lucide-react";
+import { ArrowLeftRight, Info, LockKeyhole, Mail, MessageCircle, TriangleAlert, UserRound, UserRoundPlus } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 
 import { getAuthSession, getAuthSettings, linuxDOLoginURL, login, register, type AuthSettings } from "@/services/api/auth";
@@ -8,6 +8,7 @@ import { AgreementDialog, agreementFromSettings } from "@/components/auth/agreem
 import { LinuxDOIcon } from "@/components/auth/linuxdo-icon";
 import { VerificationFields } from "@/components/auth/verification-fields";
 import { ApiError } from "@/services/api/request";
+import { wechatLoginURL } from "@/services/api/wechat";
 import { clearReferralCode, readReferralCode } from "@/lib/auth-entry";
 import { emptyVerification, loginVerification, methodLabels, registrationVerificationRequired, verificationMethods, type VerificationMethod } from "@/services/api/verification";
 import { interceptAuthLink } from "@/lib/workspace-auth";
@@ -354,6 +355,11 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
             {settings?.linuxdoEnabled && !pending ? (
                 <Button size="large" block icon={<LinuxDOIcon />} href={linuxDOLoginURL(next, agreementAccepted || undefined)} className="h-12 rounded-2xl">
                     使用 Linux.do 登录
+                </Button>
+            ) : null}
+            {settings?.wechatEnabled && !pending ? (
+                <Button size="large" block icon={<MessageCircle className="size-4" aria-hidden="true" />} href={wechatLoginURL(next, agreementAccepted)} className="h-12 rounded-2xl">
+                    使用微信登录
                 </Button>
             ) : null}
             <AgreementDialog open={agreementOpen} title={agreement.title} paragraphs={agreement.paragraphs} onClose={() => setAgreementOpen(false)} />

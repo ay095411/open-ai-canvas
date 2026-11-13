@@ -4,9 +4,12 @@ import { useLocation, useNavigate } from "react-router";
 import { useReducedMotion } from "motion/react";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { WechatRegistrationForm } from "@/components/auth/wechat-registration-form";
+import { useAuthSettings } from "@/hooks/use-auth-entry";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { isProtectedWorkspacePath } from "@/lib/guest-workspace";
+import { rememberReferralCode } from "@/lib/auth-entry";
 import { useAuthDialogStore } from "@/stores/use-auth-dialog-store";
 import { openWorkspaceAuth, safeAuthNext, WORKSPACE_AUTH_OPEN_EVENT, type WorkspaceAuthMode, type WorkspaceAuthOpenDetail } from "@/lib/workspace-auth";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
@@ -30,7 +33,7 @@ function modeOfPathname(pathname: string): WorkspaceAuthMode {
 }
 
 function modeOfDetail(mode: WorkspaceAuthMode | undefined): WorkspaceAuthMode {
-    return mode === "register" || mode === "recovery" ? mode : "login";
+    return mode === "register" || mode === "recovery" || mode === "wechat-register" ? mode : "login";
 }
 
 function readReturnTarget() {
@@ -152,9 +155,10 @@ export function WorkspaceAuthHost() {
     useEffect(() => {
         if (!AUTH_ROUTES.has(pathname)) return;
         const params = new URLSearchParams(search);
+        rememberReferralCode(params.get("ref"));
         setState({
             open: true,
-            mode: modeOfPathname(pathname),
+            mode: params.get("wechat_register") === "1" ? "wechat-register" : modeOfPathname(pathname),
             next: safeAuthNext(params.get("next")),
         });
         // 深链落地（直接访问 `/login` 等）：URL 必须换回一个能正常渲染的页面，否则关掉弹窗
@@ -214,7 +218,7 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
 
                 <AuthCarousel slides={carouselSlides(appearance.authCarousel)} />
 
-                <section className="workspace-auth-pane" aria-label={mode === "recovery" ? "找回密码" : "登录或注册"}>
+                <section className="workspace-auth-pane" aria-label={mode === "wechat-register" ? "完成微信注册" : mode === "recovery" ? "找回密码" : "登录或注册"}>
                     <div className="workspace-auth-scroll">
                         {/* 顶栏：左项目标题，右「返回登录」（仅找回密码）。放同一行是为了不吃高度——
                             表单最挤时（双通道验证 + Linux.do + 协议）滚动区只剩个位数余量，
@@ -236,7 +240,9 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
                         {/* 复用 `.auth-scene-card`：输入框高度、圆角、主按钮这些控件规则都挂在它下面，
                             弹窗与登录页因此共用同一套样式，不必再维护第二份。 */}
                         <div className="auth-scene-card">
-                            {mode === "recovery" ? (
+                            {mode === "wechat-register" ? (
+                                <WorkspaceWechatRegistrationForm next={next} onSuccess={onSuccess} onCancel={() => onModeChange("login")} />
+                            ) : mode === "recovery" ? (
                                 // 重置成功后就地切回登录表单，不再跳 `/login?next=…`：
                                 // 找回密码整条链路都留在弹窗里，不换页面。
                                 <ForgotPasswordPage next={next} onCompleted={() => onModeChange("login")} />
@@ -250,6 +256,11 @@ export function WorkspaceAuthModal({ open, mode, next, onModeChange, onClose, on
             </div>
         </AppModal>
     );
+}
+
+function WorkspaceWechatRegistrationForm({ next, onSuccess, onCancel }: { next: string; onSuccess: () => void; onCancel: () => void }) {
+    const { settings, failed, reload } = useAuthSettings();
+    return <WechatRegistrationForm settings={settings} settingsFailed={failed} onReloadSettings={() => void reload()} next={next} onSuccess={onSuccess} onCancel={onCancel} />;
 }
 
 /**

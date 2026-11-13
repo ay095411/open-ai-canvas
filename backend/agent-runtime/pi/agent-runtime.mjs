@@ -1,7 +1,5 @@
-import { rmSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { isAbsolute, join } from "node:path";
 import { Agent, setGlobalDispatcher } from "undici";
 import { createAgentSession, DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
@@ -87,17 +85,24 @@ async function run() {
     throw new Error("Agent runtime is missing its bridge, session, or model configuration");
   }
 
-  // 每次运行使用独立的空配置目录：SDK 的 auth.json / models.json / 锁文件都落在这里，
-  // 不读取宿主 ~/.pi，也不会执行预置 auth.json 里的 !command。运行结束即删除。
-  // 会话文件和工作目录同样放在这里：它们只是本轮的工作副本，真实来源是服务端
-  // 数据库里的会话快照（请求带 sessionJSONL，运行中回传）。不使用服务端的路径：
-  // 独立容器里没有服务端的数据目录；空工作目录也不会被发现任何项目级配置或技能。
-  const isolatedDir = await mkdtemp(join(tmpdir(), "agent-runtime-"));
+  // 父进程拥有目录生命周期，SIGKILL/OOM 后也能回收。路径只来自受控环境，
+  // 不接受请求里的路径；SDK 不读取宿主 HOME 或项目配置。
+  const runDir = process.env.YINGCE_AGENT_RUN_DIR;
+  if (!runDir || !isAbsolute(runDir)) throw new Error("Agent runtime requires a parent-owned temporary directory");
+  const directoryInfo = await lstat(runDir);
+  // Windows 的 stat 不反映 ACL：目录权限位恒为 0666、uid 恒为 0，按 POSIX 位判断会把每个
+  // 合法目录都判成"不私密"。私密性由父进程创建目录时设置的 DACL 保证，Windows 上只校验
+  // 类型与符号链接；POSIX 平台保持原有权限位与属主校验。
+  const directoryPrivate =
+    process.platform === "win32"
+      ? true
+      : (directoryInfo.mode & 0o077) === 0 && (!process.getuid || directoryInfo.uid === process.getuid());
+  if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink() || !directoryPrivate) {
+    throw new Error("Agent runtime temporary directory is not private or is a symbolic link");
+  }
+  const isolatedDir = await realpath(runDir);
   process.env.HOME = isolatedDir;
   process.env.PI_CODING_AGENT_DIR = isolatedDir;
-  process.on("exit", () => {
-    try { rmSync(isolatedDir, { recursive: true, force: true }); } catch {}
-  });
   const agentDir = isolatedDir;
   const workDir = join(isolatedDir, "work");
   const sessionDir = join(isolatedDir, "sessions");

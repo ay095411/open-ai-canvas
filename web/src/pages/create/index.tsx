@@ -14,6 +14,7 @@ import { imageParameterRequest } from "@/lib/image-parameters";
 import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { openWorkspaceAuth } from "@/lib/workspace-auth";
+import { audioUploadTitleFromFileName } from "@/lib/audio-upload-title";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useExternalAssetSources } from "@/hooks/use-external-asset-sources";
 import { LEGACY_TEXT_THINKING_CONFIG, isThinkingLevel, resolveThinkingLevel, thinkingLevelsFor, type ThinkingLevel, type ThinkingRequest } from "@/lib/text-thinking";
@@ -790,7 +791,7 @@ export default function CreatePage() {
         if (file.type.startsWith("audio/")) {
             const uploaded = await uploadMediaFile(file, "create-upload");
             return {
-                asset: creationAudioAsset({ title: file.name, uploaded, metadata: { source: "create-upload", fileName: file.name } }),
+                asset: creationAudioAsset({ title: audioUploadTitleFromFileName(file.name), uploaded, metadata: { source: "create-upload", fileName: file.name } }),
                 attachment: creationAttachmentFromAudio(file, uploaded),
             };
         }
