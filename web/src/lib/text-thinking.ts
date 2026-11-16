@@ -100,8 +100,8 @@ export function withThinkingLevels(config: TextThinkingConfig, levels: ThinkingL
 }
 
 /**
- * 未声明思考能力的模型沿用旧开关（关闭 / 标准，默认关闭）。后端对 Chat Completions、Responses、
- * Claude 按开关执行；Gemini 与插件自定义接口不发送参数，与改造前一致。
+ * 后端对未声明思考能力的模型仍按旧开关执行（关闭 / 标准，默认关闭），前端只在解析规则上
+ * 保留这份配置：未配置的模型不再用它补齐界面，而是直接隐藏思考等级控件，请求按「模型默认」发出。
  */
 export const LEGACY_TEXT_THINKING_CONFIG: TextThinkingConfig = { mode: "toggle", levels: ["off", "medium"], default: "off", switch: { kind: "omit" }, intensity: { kind: "effort" } };
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { isThinkingLevel, thinkingLevelsFor, type TextThinkingConfig, type ThinkingRequest } from "@/lib/text-thinking";
 import { scopedStorageKey } from "@/lib/user-scope";
 
-export function useAgentReasoningPreference(userId: string | undefined, model: string, thinking: TextThinkingConfig) {
+export function useAgentReasoningPreference(userId: string | undefined, model: string, thinking: TextThinkingConfig | undefined) {
     const key = userId && model ? scopedStorageKey(`canvas.agent.reasoning-level:${encodeURIComponent(model)}`, userId) : "";
     const stored = useMemo(() => {
         if (!key) return null;

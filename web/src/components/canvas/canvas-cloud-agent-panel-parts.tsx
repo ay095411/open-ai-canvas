@@ -37,7 +37,7 @@ import { Kbd } from "@/components/ui/base/kbd";
 import { ModelPicker } from "@/components/model-picker";
 import { ThinkingLevelSlider } from "@/components/thinking-level-slider";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
-import { LEGACY_TEXT_THINKING_CONFIG, THINKING_LEVEL_LABELS, resolveThinkingLevel, thinkingLevelsFor } from "@/lib/text-thinking";
+import { THINKING_LEVEL_LABELS, resolveThinkingLevel, thinkingLevelsFor } from "@/lib/text-thinking";
 import { agentImageApproval, agentVideoApproval, agentApprovalModel } from "@/lib/canvas/agent-media-approval";
 import { mediaSettingIssues } from "@/lib/media-settings";
 import { agentApprovalPresentation } from "@/lib/canvas/agent-approval-presentation";
@@ -888,7 +888,8 @@ export function ComposerControls({
 }) {
     const [thinkingOpen, setThinkingOpen] = useState(false);
     const thinkingAnchor = usePopoverAnchorAlign(thinkingOpen);
-    const thinking = modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG;
+    // 模型未声明思考能力时没有可调档位，触发按钮随 levels 一起隐藏。
+    const thinking = modelCapabilityConfigFor(config, selectedModel).text?.thinking;
     const levels = thinkingLevelsFor(thinking);
     const thinkingLabel = reasoningMode === "auto" ? "默认" : reasoningMode === "deep" ? "深入" : THINKING_LEVEL_LABELS[reasoningMode];
     const permissionVisual = agentPermissionVisual(permissionMode);

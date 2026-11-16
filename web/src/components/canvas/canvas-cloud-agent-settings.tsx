@@ -5,7 +5,7 @@ import { ArrowLeft, BookMarked, Check, ChevronRight, Cpu, Gauge, LockKeyhole, Se
 import { ModelPicker } from "@/components/model-picker";
 import { ThinkingLevelSlider } from "@/components/thinking-level-slider";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
-import { LEGACY_TEXT_THINKING_CONFIG, resolveThinkingLevel, thinkingLevelsFor } from "@/lib/text-thinking";
+import { resolveThinkingLevel, thinkingLevelsFor } from "@/lib/text-thinking";
 import { Switch } from "@/components/ui/base/switch";
 import type { CanvasTheme } from "@/lib/canvas-theme";
 import AgentMemoryPane from "@/pages/settings/agent-memory-pane";
@@ -120,12 +120,16 @@ export function CanvasCloudAgentSettings(props: AgentSettingsProps) {
 }
 
 function SettingsHome({ props, theme, onOpen }: { props: AgentSettingsProps; theme: CanvasTheme; onOpen: (section: SettingsSection) => void }) {
-    const thinking = modelCapabilityConfigFor(props.config, props.selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG;
+    // 模型未声明 text.thinking 时不显示思考等级：既没有可调档位，也不该回落旧开关。
+    const thinking = modelCapabilityConfigFor(props.config, props.selectedModel).text?.thinking;
+    const thinkingLevels = thinkingLevelsFor(thinking);
     return (
         <div className="canvas-agent-settings-scroll thin-scrollbar min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
-            <section>
-                <ThinkingLevelSlider levels={thinkingLevelsFor(thinking)} value={props.reasoningMode} resolvedLevel={resolveThinkingLevel(thinking, props.reasoningMode)} onChange={props.onReasoningModeChange} />
-            </section>
+            {thinkingLevels.length ? (
+                <section>
+                    <ThinkingLevelSlider levels={thinkingLevels} value={props.reasoningMode} resolvedLevel={resolveThinkingLevel(thinking, props.reasoningMode)} onChange={props.onReasoningModeChange} />
+                </section>
+            ) : null}
             <section>
                 <SettingLabel label="对话模型" hint="新运行生效" />
                 <div className="min-w-0 rounded-xl px-2 py-2" style={{ background: theme.node.fill }}>

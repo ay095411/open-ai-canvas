@@ -109,7 +109,6 @@ import { loadCloudAgentConversation, mergeCloudAgentConversations, refreshCloudA
 import { canvasCloudAgentConversation, cloudAgentFollowDecision } from "@/lib/canvas/cloud-agent-follow";
 import { resolveCloudAgentModel } from "@/lib/canvas/cloud-agent-model-restore";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
-import { LEGACY_TEXT_THINKING_CONFIG } from "@/lib/text-thinking";
 import { logicalModelIDForConfig, modelDisplayName, modelOptionName, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelSupportsImageInspection, selectImageInspectionModel } from "@/lib/canvas/image-to-previs-agent";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
@@ -449,7 +448,8 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         const preferred = config.textModel || config.model || "";
         return textModels.includes(preferred) ? preferred : textModels[0] || "";
     }, [config, restoredModelResolution]);
-    const thinking = useMemo(() => modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG, [config, selectedModel]);
+    // 模型未声明 text.thinking 时不回落旧开关：思考等级控件整体不显示，推理强度按「默认」发出。
+    const thinking = useMemo(() => modelCapabilityConfigFor(config, selectedModel).text?.thinking, [config, selectedModel]);
     const [reasoningMode, setReasoningMode] = useAgentReasoningPreference(userId, selectedModel, thinking);
     const installedSkills = useMemo(() => skills.filter((skill) => skill.isAdded), [skills]);
     // 消息和输入框共用的引用表：每次渲染都新建会让全部消息重新解析 Markdown。

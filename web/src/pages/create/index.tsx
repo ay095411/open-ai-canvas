@@ -17,7 +17,7 @@ import { openWorkspaceAuth } from "@/lib/workspace-auth";
 import { audioUploadTitleFromFileName } from "@/lib/audio-upload-title";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useExternalAssetSources } from "@/hooks/use-external-asset-sources";
-import { LEGACY_TEXT_THINKING_CONFIG, isThinkingLevel, resolveThinkingLevel, thinkingLevelsFor, type ThinkingLevel, type ThinkingRequest } from "@/lib/text-thinking";
+import { isThinkingLevel, resolveThinkingLevel, thinkingLevelsFor, type ThinkingLevel, type ThinkingRequest } from "@/lib/text-thinking";
 import { modelCapabilityConfigFor, videoDurationAllowed, videoDurationOptions } from "@/lib/model-capabilities";
 import { preserveImageSettings as normalizeImageValue, mediaSettingIssues } from "@/lib/media-settings";
 import { inferVideoOperation, modelGroupReferenceLimits, resolveCompatibleModel, mergedImageCapabilityConfig, type ModelRequirements } from "@/lib/model-selection";
@@ -294,13 +294,14 @@ export default function CreatePage() {
     );
     const imageProfile = useMemo(() => modelCapabilityConfigFor(config, selectedModel).image!, [config, selectedModel]);
     const videoProfile = useMemo(() => modelCapabilityConfigFor(config, selectedModel).video!, [config, selectedModel]);
-    // 上游 v1.8.2 起思考从布尔开关改成「档位」，能力来自模型的 text.thinking 配置；
-    // 没有配置的老模型回落到 LEGACY_TEXT_THINKING_CONFIG（off/medium 两档）。
-    const textThinkingConfig = useMemo(() => (mode === "text" ? modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG : undefined), [config, mode, selectedModel]);
+    // 上游 v1.8.2 起思考从布尔开关改成「档位」，能力来自模型的 text.thinking 配置。
+    // 模型没有声明思考能力时不再回落旧开关：控件整体隐藏，请求按「模型默认」发出（后端对
+    // 未配置模型本就不发送思考参数），避免给用户一个对上游无效的档位。
+    const textThinkingConfig = useMemo(() => (mode === "text" ? modelCapabilityConfigFor(config, selectedModel).text?.thinking : undefined), [config, mode, selectedModel]);
     const textThinkingLevels = useMemo(() => thinkingLevelsFor(textThinkingConfig), [textThinkingConfig]);
     // 记住的档位已不被模型支持时按后端同一规则就近取档；没记住时用模型默认值。
     const textThinkingLevel = resolveThinkingLevel(textThinkingConfig, textThinkingPrefs[selectedModel] || "auto");
-    const textThinkingRequest = textThinkingPrefs[selectedModel] || "auto";
+    const textThinkingRequest: ThinkingRequest = textThinkingLevels.length ? textThinkingPrefs[selectedModel] || "auto" : "auto";
     const setTextThinkingLevel = (level: ThinkingRequest) => {
         setTextThinkingPrefs((current) => {
             const next = { ...current };
