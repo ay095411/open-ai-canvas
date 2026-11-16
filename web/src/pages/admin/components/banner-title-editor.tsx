@@ -191,7 +191,7 @@ export function BannerNoticePreview({ runs, hasLink, noticeType }: { runs: Banne
                     <div key={theme.key} className="space-y-1">
                         <div
                             ref={theme.ref}
-                            className={`relative flex min-h-10 w-full items-center justify-center overflow-hidden rounded-xl px-4 py-2 text-white shadow-sm ${theme.className}`}
+                            className={`relative flex min-h-12 w-full items-center justify-center overflow-hidden rounded-xl px-4 py-2.5 text-white shadow-sm ${theme.className}`}
                             style={bannerAnnouncementBarStyle(noticeType)}
                         >
                             <span className="banner-notice-shimmer" aria-hidden="true" />

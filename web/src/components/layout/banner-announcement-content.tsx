@@ -30,7 +30,7 @@ export function bannerAnnouncementBarStyle(noticeType?: string | null): CSSPrope
 export function BannerAnnouncementLinkHint({ chevronClassName }: { chevronClassName?: string }) {
     const { t } = useTranslation();
     return (
-        <span className="flex shrink-0 items-center gap-1 text-[var(--fs-label)] font-semibold text-white">
+        <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-white">
             <span>{t("account.layout.banner.details")}</span>
             <ChevronRight className={chevronClassName || "size-3.5"} aria-hidden="true" />
         </span>

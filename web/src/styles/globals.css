@@ -24575,6 +24575,12 @@ html:not(.dark) .app-user-workspace .app-workspace-topbar-credit:hover {
     translate: 0 -50%;
 }
 
+/* 顶部常驻通知条：标题基准字号。后台没单独设字号的分段走这里；
+   后台「前台效果预览」复用同一个类名，两处字号自然一致。 */
+.banner-notice-text-wrap {
+    font-size: 14px;
+}
+
 /* 顶部常驻通知条：背景渐变呼吸流动效果 */
 .app-banner-slider,
 .admin-banner-title-preview-light,

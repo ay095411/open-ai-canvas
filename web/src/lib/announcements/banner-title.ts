@@ -21,8 +21,8 @@ export const BANNER_TITLE_MAX_CHARS = 120;
 export const BANNER_TITLE_MIN_FONT_SIZE = 10;
 export const BANNER_TITLE_MAX_FONT_SIZE = 20;
 
-/** 通知条标题默认字号，与前台 `text-xs` 一致。 */
-export const BANNER_TITLE_DEFAULT_FONT_SIZE = 12;
+/** 通知条标题默认字号，与前台 `.banner-notice-text-wrap` 的基准字号一致。 */
+export const BANNER_TITLE_DEFAULT_FONT_SIZE = 14;
 /** 通知条标题默认字重，与前台 `font-semibold` 一致。 */
 export const BANNER_TITLE_DEFAULT_FONT_WEIGHT = 600;
 
