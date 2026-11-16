@@ -1,0 +1,6 @@
+.auth-turnstile {
+    display: flex;
+    min-height: 65px;
+    justify-content: center;
+    overflow: hidden;
+}

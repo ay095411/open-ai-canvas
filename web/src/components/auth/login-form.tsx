@@ -7,6 +7,7 @@ import { getAuthSession, getAuthSettings, linuxDOLoginURL, login, register, type
 import { AgreementDialog, agreementFromSettings } from "@/components/auth/agreement-dialog";
 import { LinuxDOIcon } from "@/components/auth/linuxdo-icon";
 import { VerificationFields } from "@/components/auth/verification-fields";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { ApiError } from "@/services/api/request";
 import { wechatLoginURL } from "@/services/api/wechat";
 import { clearReferralCode, readReferralCode } from "@/lib/auth-entry";
@@ -49,6 +50,8 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
     const [agreementAccepted, setAgreementAccepted] = useState(false);
     const [agreementOpen, setAgreementOpen] = useState(false);
     const [retryCountdown, setRetryCountdown] = useState(0);
+    const [turnstileToken, setTurnstileToken] = useState("");
+    const [turnstileResetKey, setTurnstileResetKey] = useState(0);
     // 推广码由登录路由从 ?ref= 写入会话缓存；弹窗与独立页面都从这里读取。
     const [referralCode] = useState(readReferralCode);
     const forgotPasswordURL = `/forgot-password?next=${encodeURIComponent(next)}`;
@@ -83,6 +86,8 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
     // 首用户（建管理员）也要能填邮箱：本地注册表单一直允许，别在合并后把它弄丢。
     const showEmailField = Boolean(pending && pending.accountKind === "username" && activeRegisterMethod !== "email" && activeRegisterMethod !== "sms_email");
     const emailRequired = Boolean(settings?.emailRequired);
+    const turnstileRequired = Boolean(settings?.turnstileEnabled && settings.turnstileSiteKey);
+    const turnstileBlocked = turnstileRequired && !turnstileToken;
     const agreement = agreementFromSettings(settings, brandName);
     // 协议行只在拿到设置后才渲染（协议名来自后台配置）。读取失败时必须放行提交：
     // 否则屏幕上没有任何可勾的框，主按钮却永远点不动，等于把登录锁死。
@@ -110,11 +115,17 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
         setRegisterVerification({ ...emptyVerification });
     };
 
+    const resetTurnstile = () => {
+        if (!turnstileRequired) return;
+        setTurnstileToken("");
+        setTurnstileResetKey((value) => value + 1);
+    };
+
     const submitLogin = async () => {
-        if (method === "password") await login({ username: username.trim(), password, autoRegister: canRegister });
+        if (method === "password") await login({ username: username.trim(), password, autoRegister: canRegister, turnstileToken: turnstileToken || undefined });
         else {
             if (!verification.ticket) throw new Error("请先获取本次登录验证码");
-            await loginVerification(verification);
+            await loginVerification({ ...verification, turnstileToken: turnstileToken || undefined });
         }
     };
 
@@ -133,6 +144,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                 password,
                 acceptedTerms: agreementAccepted,
                 ...(referralCode ? { referralCode } : {}),
+                ...(turnstileToken ? { turnstileToken } : {}),
             });
         } catch (error) {
             if (error instanceof ApiError && error.status === 429) setRetryCountdown(Math.max(1, Math.ceil((error.retryAfterMs ?? 60000) / 1000)));
@@ -150,6 +162,10 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
             message.warning(`请先阅读并同意《${agreement.title}》`);
             return;
         }
+        if (turnstileBlocked) {
+            message.warning("请完成安全验证");
+            return;
+        }
         setSubmitting(true);
         try {
             if (pending) {
@@ -163,6 +179,8 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
             } catch (error) {
                 // 账号不存在是「可以继续」的分支，不是错误：就地进入补充注册。
                 if (error instanceof ApiError && error.reason === "account_not_registered" && canRegister) {
+                    // 账号查询已消费一次性令牌，补注册必须重新验证，不能复用登录令牌。
+                    resetTurnstile();
                     startRegistration(error.details?.accountKind === "email" ? "email" : "username");
                     return;
                 }
@@ -170,6 +188,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
             }
             await finish("登录成功");
         } catch (error) {
+            resetTurnstile();
             message.error(error instanceof Error ? error.message : pending ? "注册失败" : "登录失败");
         } finally {
             setSubmitting(false);
@@ -333,6 +352,7 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     )}
                 </>
             )}
+            {turnstileRequired ? <TurnstileWidget siteKey={settings?.turnstileSiteKey ?? ""} resetKey={turnstileResetKey} onToken={setTurnstileToken} /> : null}
             {/* 协议行在登录与补注册两种状态下都要有：登录页同样需要用户明示同意
                 （勾选状态同时决定提交按钮是否可用，也决定 Linux.do 登录是否带上同意标记）。 */}
             {settings ? (
@@ -345,7 +365,15 @@ export function LoginForm({ next, onSuccess }: { next: string; onSuccess: () => 
                     </button>
                 </div>
             ) : null}
-            <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={verificationUnavailable || retryCountdown > 0 || agreementBlocked} className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1">
+            <Button
+                type="primary"
+                htmlType="submit"
+                size="large"
+                block
+                loading={submitting}
+                disabled={verificationUnavailable || retryCountdown > 0 || agreementBlocked || turnstileBlocked}
+                className="h-12 rounded-2xl font-medium text-[15px] border-0 mt-1"
+            >
                 {retryCountdown > 0 ? `${retryCountdown} 秒后可重试` : pending ? "创建账号并登录" : "登录并进入创作"}
             </Button>
             {/* 登录与注册已合成一张表单：不给提示的话，新用户会以为这里只能登录。 */}

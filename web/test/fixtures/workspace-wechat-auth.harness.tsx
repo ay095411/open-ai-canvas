@@ -78,6 +78,8 @@ const settings: AuthSettings = {
     emailRegistration: false,
     smsAndEmailRegistration: false,
     loginMode: "modal",
+    turnstileEnabled: false,
+    turnstileSiteKey: "",
     agreementTitle: "测试服务协议",
 };
 const user = { id: "wechat-user", username: "wechat-user", displayName: "微信创作者", role: "user" as const, status: "active" as const, createdAt: "", updatedAt: "" };
@@ -86,6 +88,10 @@ const callbackURL = `/login?wechat_register=1&next=${encodeURIComponent(next)}`;
 const requests: Array<{ method: string; path: string; body: unknown }> = [];
 const originalAdapter = apiClient.defaults.adapter;
 let cancelRegistration: () => Promise<void>;
+let completeRegistration: () => Promise<void>;
+let authSettings = settings;
+const challenges: Record<string, unknown>[] = [];
+const removedChallenges: Array<string | number> = [];
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
@@ -101,6 +107,18 @@ beforeEach(() => {
     appliedSessions.length = 0;
     applySession = async () => {};
     cancelRegistration = async () => {};
+    completeRegistration = async () => {};
+    authSettings = settings;
+    challenges.length = 0;
+    removedChallenges.length = 0;
+    window.turnstile = {
+        render: (_container, options) => {
+            challenges.push(options);
+            return challenges.length;
+        },
+        reset: () => {},
+        remove: (id) => removedChallenges.push(id),
+    };
     invalidateAuthSessionCache();
     useUserStore.setState({ user: null, hydrated: true });
     useAuthDialogStore.getState().closeDialog();
@@ -110,13 +128,15 @@ beforeEach(() => {
         const path = config.url || "";
         requests.push({ method, path, body: typeof config.data === "string" ? JSON.parse(config.data) : config.data });
         let data: unknown;
-        if (method === "get" && path === "/auth/settings") data = settings;
+        if (method === "get" && path === "/auth/settings") data = authSettings;
         else if (method === "get" && path === "/auth/wechat/registration") data = { displayName: user.displayName, next, acceptedTerms: true };
         else if (method === "delete" && path === "/auth/wechat/registration") {
             await cancelRegistration();
             data = { cleared: true };
-        } else if (method === "post" && path === "/auth/wechat/registration") data = { user, next };
-        else if (method === "get" && path === "/auth/session") data = { user };
+        } else if (method === "post" && path === "/auth/wechat/registration") {
+            await completeRegistration();
+            data = { user, next };
+        } else if (method === "get" && path === "/auth/session") data = { user };
         else throw new Error(`Unexpected request: ${method} ${path}`);
         return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data, msg: "ok" } };
     };
@@ -130,6 +150,7 @@ afterEach(async () => {
     host.remove();
     apiClient.defaults.adapter = originalAdapter;
     invalidateAuthSessionCache();
+    delete window.turnstile;
 });
 
 afterAll(() => {
@@ -262,4 +283,47 @@ test("普通登录的微信入口携带 next 与用户实际同意状态", async
     await act(async () => document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
     expect(new URL(link().href).searchParams.get("acceptedTerms")).toBe("true");
     expect(requests.some((item) => item.path === "/auth/wechat/registration")).toBe(false);
+});
+
+test("微信补注册无有效机器人令牌时阻止提交，通过后仍由宿主关闭弹窗并回跳", async () => {
+    authSettings = { ...settings, turnstileEnabled: true, turnstileSiteKey: "controlled-site-key" };
+    await render();
+    await eventually(() => expect(challenges).toHaveLength(1));
+    expect(button("完成注册并登录").disabled).toBe(true);
+    await act(async () => document.querySelector("form")!.dispatchEvent(new dom.Event("submit", { bubbles: true, cancelable: true })));
+    expect(requests.filter((item) => item.method === "post")).toHaveLength(0);
+    await act(async () => (challenges[0].callback as (token: string) => void)("expired-token"));
+    expect(button("完成注册并登录").disabled).toBe(false);
+    await act(async () => (challenges[0]["expired-callback"] as () => void)());
+    expect(button("完成注册并登录").disabled).toBe(true);
+    await act(async () => (challenges[0].callback as (token: string) => void)("wechat-token"));
+    await act(async () => button("完成注册并登录").click());
+    await eventually(() => {
+        expect(location()).toBe(next);
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+    });
+    expect(requests.find((item) => item.method === "post")?.body).toEqual({ email: "", acceptedTerms: true, turnstileToken: "wechat-token" });
+    expect(appliedSessions).toEqual([{ user }]);
+    expect(document.querySelector('script[src*="challenges.cloudflare.com"]')).toBeNull();
+});
+
+test("微信补注册失败消费旧令牌，重试需新令牌且保留弹窗回调", async () => {
+    authSettings = { ...settings, turnstileEnabled: true, turnstileSiteKey: "controlled-site-key" };
+    completeRegistration = async () => {
+        throw new Error("受控注册失败");
+    };
+    await render();
+    await eventually(() => expect(challenges).toHaveLength(1));
+    await act(async () => (challenges[0].callback as (token: string) => void)("first-token"));
+    await act(async () => button("完成注册并登录").click());
+    await eventually(() => expect(challenges).toHaveLength(2));
+    expect(removedChallenges).toContain(1);
+    expect(button("完成注册并登录").disabled).toBe(true);
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe("受控注册失败");
+    expect(location()).toBe("/");
+    completeRegistration = async () => {};
+    await act(async () => (challenges[1].callback as (token: string) => void)("retry-token"));
+    await act(async () => button("完成注册并登录").click());
+    await eventually(() => expect(location()).toBe(next));
+    expect(requests.filter((item) => item.method === "post").map((item) => (item.body as { turnstileToken: string }).turnstileToken)).toEqual(["first-token", "retry-token"]);
 });
