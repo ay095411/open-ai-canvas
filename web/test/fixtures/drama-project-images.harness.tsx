@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeEach, expect, mock, spyOn, test } from "bun:
 import { Window } from "happy-dom";
 import type { DramaEpisodeDetail, DramaSegment, DramaSegmentReferencePatch, DramaSummary } from "../../src/services/api/drama";
 import type { ProjectAsset } from "../../src/services/api/projects";
+import type { ImageAsset } from "../../src/stores/use-asset-store";
 
 const dom = new Window({ url: "http://localhost/projects/project" });
 const globals = new Map<string, PropertyDescriptor | undefined>();
@@ -182,7 +183,7 @@ test("project search and category filtering are sent to the server and loading f
 });
 
 test("library images keep the original remote asset identity and category when linked to the project", async () => {
-    const image = {
+    const image: ImageAsset = {
         id: "library-asset",
         kind: "image",
         title: "雨夜街道",
@@ -194,8 +195,8 @@ test("library images keep the original remote asset identity and category when l
         updatedAt: "2026-11-12",
         data: { dataUrl: "", storageKey: "resource:street", width: 1280, height: 720, bytes: 1024, mimeType: "image/png" },
     };
-    const library = spyOn(sync, "loadAssetLibraryPage").mockResolvedValue({ assets: [image], total: 1, categoryCounts: { environment: 1 }, page: 1, pageSize: 40 } as Awaited<ReturnType<typeof sync.loadAssetLibraryPage>>);
-    useAssetStore.setState({ assets: [image as (typeof originalAssets)[number]] });
+    const library = spyOn(sync, "loadAssetLibraryPage").mockResolvedValue({ assets: [image], total: 1, kindCounts: { image: 1 }, categoryCounts: { environment: 1 }, folderCounts: {}, page: 1, pageSize: 40, hasMore: false });
+    useAssetStore.setState({ assets: [image] });
     const link = spyOn(projects, "linkProjectAsset").mockResolvedValue({ asset: projectImage("library-asset", "雨夜街道", "street") });
     const save = mock(async (_patch: DramaSegmentReferencePatch) => {});
     await render(save);

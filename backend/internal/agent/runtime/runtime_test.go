@@ -14,9 +14,11 @@ import (
 // fakeRuntime 用一个假的 agent-runtime.mjs 替换真实运行时，只验证 Go 侧的进程与输出处理。
 func fakeRuntime(t *testing.T, script string) {
 	t.Helper()
-	if _, err := exec.LookPath("node"); err != nil {
+	nodePath, err := exec.LookPath("node")
+	if err != nil {
 		t.Skip("node is not installed")
 	}
+	t.Setenv("YINGCE_AGENT_NODE_BINARY", nodePath)
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "agent-runtime.mjs"), []byte(script), 0o600); err != nil {
 		t.Fatal(err)

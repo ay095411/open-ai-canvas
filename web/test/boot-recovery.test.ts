@@ -15,6 +15,7 @@ describe("index.html boot recovery", () => {
         const html = readFileSync(resolve(import.meta.dir, "../index.html"), "utf8");
         const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]).find((source) => source.includes("bootTimer"))!;
         const dom = new Window({ url: "https://canvas.example/canvas?mode=recent" });
+        dom.document.head.innerHTML = [...html.matchAll(/<style>[\s\S]*?<\/style>/g)].map((match) => match[0]).join("\n");
         dom.document.body.innerHTML = '<div id="root"></div>';
         let timer: (() => void) | undefined;
         let destination = "";
@@ -42,13 +43,15 @@ describe("index.html boot recovery", () => {
             const notice = dom.document.getElementById("boot-recovery")!;
             expect(notice.getAttribute("role")).toBe("alert");
             const button = notice.querySelector("button")!;
-            expect(button.style.background).toBe("transparent");
+            expect(dom.getComputedStyle(button).backgroundColor).toBe("transparent");
+            expect(button.hasAttribute("style")).toBe(false);
             button.click();
             expect(new URL(destination).searchParams.get("mode")).toBe("recent");
             expect(new URL(destination).searchParams.has("__chunk_recovery")).toBe(true);
             dom.document.getElementById("root")!.appendChild(dom.document.createElement("main"));
             await dom.happyDOM.whenAsyncComplete();
             expect(dom.document.getElementById("boot-recovery")).toBeNull();
+            expect(dom.document.body.classList.contains("boot-recovery-open")).toBe(false);
             expect(timer).toBeUndefined();
         } finally {
             await dom.happyDOM.abort();

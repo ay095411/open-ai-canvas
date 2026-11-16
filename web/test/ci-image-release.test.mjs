@@ -10,8 +10,10 @@ const temporaryDirectories = [];
 const sha = "a".repeat(40);
 const digest = "b".repeat(64);
 const git = Bun.which("git");
-const bash = Bun.which("bash") || (process.platform === "win32" && git ? [path.resolve(git, "../../bin/bash.exe"), path.resolve(git, "../../usr/bin/bash.exe")].find(existsSync) : undefined);
+const bash = Bun.which("bash") || (process.platform === "win32" && git ? [path.resolve(git, "../../usr/bin/bash.exe"), path.resolve(git, "../../bin/bash.exe")].find(existsSync) : undefined);
 if (!bash) throw new Error("镜像发布脚本测试需要 Bash；Windows 可安装 Git for Windows。");
+const bashTools = process.platform === "win32" ? [path.dirname(bash), path.resolve(path.dirname(bash), "../usr/bin")].find((directory) => existsSync(path.join(directory, "mktemp.exe"))) : undefined;
+if (process.platform === "win32" && !bashTools) throw new Error("镜像发布脚本测试需要 Git for Windows 的 Bash 工具目录。");
 const shellPath = (value) => value.replaceAll(path.sep, "/");
 afterEach(() => {
     for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
@@ -32,8 +34,9 @@ function fixture(overrides = {}) {
     const output = path.join(root, "output");
     writeFileSync(output, "");
     const env = {
-        ...process.env,
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+        // Windows 的 Path/PATH 为同一变量；去掉旧键，避免 Bun 子进程忽略 mock 路径。
+        ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "path")),
+        PATH: [bin, bashTools, process.env.PATH].filter(Boolean).join(path.delimiter),
         GITHUB_OUTPUT: shellPath(output),
         GITHUB_SHA: sha,
         GITHUB_REF: "refs/heads/main",
@@ -57,6 +60,7 @@ function fixture(overrides = {}) {
             const result = spawnSync(bash, [shellPath(executable), ...args], { env, encoding: "utf8", timeout: 10_000 });
             if (result.error) throw result.error;
             if (result.status === null || result.status === undefined) throw new Error(`Bash 未正常退出：${result.signal || result.stderr}`);
+            if (result.status === 127) throw new Error(`Bash 夹具命令不可用：${result.stderr}`);
             return result;
         },
         output: () => readFileSync(output, "utf8"),
@@ -78,13 +82,17 @@ describe("commit image reuse", () => {
     for (const error of ["ERROR: unauthorized", "ERROR: 429 Too Many Requests", "ERROR: dial tcp: i/o timeout", "ERROR: certificate file: not found: authentication failed"]) {
         test(`fails closed on ${error}`, () => {
             const repo = fixture({ MOCK_ERROR: error });
-            expect(repo.run("resolve-image.sh", "ghcr.io/fixture/image:sha-test").status).not.toBe(0);
+            const result = repo.run("resolve-image.sh", "ghcr.io/fixture/image:sha-test");
+            expect(result.status).not.toBe(0);
+            expect(result.stderr).toContain(error);
             expect(repo.output()).toBe("");
         });
     }
     test("rejects malformed successful responses", () => {
         const repo = fixture({ MOCK_DIGEST: "<html>error</html>" });
-        expect(repo.run("resolve-image.sh", "ghcr.io/fixture/image:sha-test").status).not.toBe(0);
+        const result = repo.run("resolve-image.sh", "ghcr.io/fixture/image:sha-test");
+        expect(result.status).not.toBe(0);
+        expect(result.stderr).toContain("Invalid existing image digest");
     });
 });
 
@@ -110,7 +118,9 @@ describe("digest promotion", () => {
     });
     test("missing architecture blocks every tag update", () => {
         const repo = fixture({ EXPECTED_DIGESTS: "2" });
-        expect(repo.run("promote-image.sh").status).not.toBe(0);
+        const result = repo.run("promote-image.sh");
+        expect(result.status).not.toBe(0);
+        expect(result.stderr).toContain("Incomplete image digest set");
         expect(repo.call()).toBe("");
     });
     test("failure to resolve main blocks promotion", () => {

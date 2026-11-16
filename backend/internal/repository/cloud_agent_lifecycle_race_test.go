@@ -178,7 +178,8 @@ func TestCloudAgentAdmissionAndCanvasDeletionAcrossConnections(t *testing.T) {
 	for _, driver := range []string{"sqlite", "postgres"} {
 		t.Run(driver, func(t *testing.T) {
 			admission, deletion := agentLifecycleRepositories(t, driver)
-			for index := 0; index < 8; index++ {
+			const rounds = 8
+			for index := 0; index < rounds; index++ {
 				canvasID := fmt.Sprintf("canvas-%d", index)
 				runID := fmt.Sprintf("run-%d", index)
 				if err := admission.db.Create(&model.CanvasProject{ID: canvasID, UserID: "user", Revision: 1, PayloadJSON: `{"nodes":[]}`}).Error; err != nil {
@@ -188,7 +189,7 @@ func TestCloudAgentAdmissionAndCanvasDeletionAcrossConnections(t *testing.T) {
 				admitted, deleted := make(chan error, 1), make(chan error, 1)
 				go func() {
 					<-start
-					admitted <- admission.CreateTaskWithActiveLimit(&model.Task{ID: runID, UserID: "user", ProjectID: canvasID, Operation: "cloud_agent", Status: model.TaskStatusTextReplay}, 100)
+					admitted <- admission.CreateTaskWithActiveLimit(&model.Task{ID: runID, UserID: "user", ProjectID: canvasID, Operation: "cloud_agent", Status: model.TaskStatusTextReplay}, 100, rounds)
 				}()
 				go func() {
 					<-start

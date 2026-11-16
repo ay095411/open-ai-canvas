@@ -51,7 +51,11 @@ export function AuthScene() {
         <main className="auth-scene h-dvh min-h-0 overflow-y-auto lg:overflow-hidden">
             <div className="grid min-h-full lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(640px,720px)]">
                 <section className="auth-scene-hero relative min-h-[200px] overflow-hidden sm:min-h-[260px] lg:min-h-0" aria-label={`${appearance.brandName}品牌影片`}>
-                    {videoActive && appearance.authVideoUrl ? <video className="absolute inset-0 size-full object-cover" src={appearance.authVideoUrl} poster={appearance.authVideoPosterUrl || undefined} autoPlay muted loop playsInline preload="metadata" /> : appearance.authVideoPosterUrl && failedPosterURL !== appearance.authVideoPosterUrl ? <img className="absolute inset-0 size-full object-cover" src={appearance.authVideoPosterUrl} alt="" decoding="async" onError={() => setFailedPosterURL(appearance.authVideoPosterUrl)} /> : null}
+                    {videoActive && appearance.authVideoUrl ? (
+                        <video className="absolute inset-0 size-full object-cover" src={appearance.authVideoUrl} poster={appearance.authVideoPosterUrl || undefined} autoPlay muted loop playsInline preload="metadata" />
+                    ) : appearance.authVideoPosterUrl && failedPosterURL !== appearance.authVideoPosterUrl ? (
+                        <img className="absolute inset-0 size-full object-cover" src={appearance.authVideoPosterUrl} alt="" decoding="async" onError={() => setFailedPosterURL(appearance.authVideoPosterUrl)} />
+                    ) : null}
                 </section>
 
                 {/* min-h-[660px] 之类的固定高度是为了让登录/注册切换时卡片不跳动，
@@ -81,9 +85,7 @@ export function AuthScene() {
                                     <img src="/auth/navo-ai-icon.png" alt="" width={664} height={467} className="auth-scene-brand-logo" />
                                     <h1 className="text-2xl font-semibold leading-tight tracking-tight">Navo AI</h1>
                                 </Link>
-                                <p className="auth-scene-muted mt-4 text-sm leading-6 lg:whitespace-nowrap">
-                                    为创作者而生，为创意而造。你的创意伙伴，越用越懂你
-                                </p>
+                                <p className="auth-scene-muted mt-4 text-sm leading-6 lg:whitespace-nowrap">为创作者而生，为创意而造。你的创意伙伴，越用越懂你</p>
                             </div>
                             <section aria-label={copy.title} className="flex flex-col">
                                 {/* 卡片标题与标签栏写的是同一个词（登录 / 注册），标题下面 40px
