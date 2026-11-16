@@ -17166,9 +17166,15 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     max-width: 100%;
     align-items: flex-start;
     gap: 0;
-    margin: 0;
     list-style: none;
-    padding: var(--space-1) var(--space-half);
+    /* 卡片默认带倾斜（展开 -3.4°/折叠 -7°），左上/右上角会探出布局盒 5~10px；轨道是
+       overflow-x: auto，内边距不够就会把倾斜出来的那条边裁掉。这里把水平内边距加到 12px
+       留出余量，再用 -10px 的负 margin 抵掉多出来的部分（max-width 同步放宽），
+       卡片起点位置仍是距轨道 2px，跟改之前一致。 */
+    --track-bleed: var(--space-2-half);
+    padding: var(--space-1) var(--space-3);
+    margin: 0 calc(-1 * var(--track-bleed));
+    max-width: calc(100% + 2 * var(--track-bleed));
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-behavior: smooth;
@@ -17251,6 +17257,20 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     margin-left: 0;
     z-index: auto;
 }
+/* 展开态默认把每张参考卡片当作随手摆开的相框，交替微微倾斜；指针落上去再摆正（见下方 hover 规则）。
+   折叠态的扇形堆叠角在 `:not(.is-expanded)` 里，选择器权重更高，会覆盖这里的默认角度。 */
+.creation-home .creation-reference-stack-card:nth-child(4n + 1) {
+    --stack-rotate: -3.4deg;
+}
+.creation-home .creation-reference-stack-card:nth-child(4n + 2) {
+    --stack-rotate: 2.4deg;
+}
+.creation-home .creation-reference-stack-card:nth-child(4n + 3) {
+    --stack-rotate: -1.8deg;
+}
+.creation-home .creation-reference-stack-card:nth-child(4n + 4) {
+    --stack-rotate: 3deg;
+}
 .creation-home .creation-reference-card-content {
     position: relative;
     width: 100%;
@@ -17261,13 +17281,13 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     background: var(--creation-surface-muted);
     transform: rotate(var(--stack-rotate, 0deg));
     transform-origin: center bottom;
+    box-shadow: var(--elevation-card);
     transition:
         transform var(--motion-state) var(--motion-ease-out),
         box-shadow var(--motion-dur-fast-calc) ease;
 }
 .creation-home .creation-reference-track.is-expanded .creation-reference-card-content {
     z-index: auto;
-    transform: rotate(0deg);
 }
 .creation-home .creation-reference-stack-card[data-framer-dragging="true"] {
     margin-left: 0;
@@ -17277,6 +17297,10 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
 .creation-home .creation-reference-stack-card[data-framer-dragging="true"] .creation-reference-card-content {
     z-index: var(--z-popover);
     transform: rotate(0deg) scale(1.05);
+}
+/* 鼠标/键盘焦点进入时把相框摆正，并轻轻上抬，做出"抽出照片"的手感。拖拽中交给上面的规则。 */
+.creation-home .creation-reference-stack-card:not([data-framer-dragging="true"]):is(:hover, :focus-within) .creation-reference-card-content {
+    transform: rotate(0deg) translateY(-2px);
 }
 .creation-home .creation-reference-card-preview {
     display: block;
@@ -17379,38 +17403,26 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     background: transparent;
     color: var(--creation-muted);
     padding: 0;
+    --slot-rotate: -3deg;
+    transform: rotate(var(--slot-rotate));
+    transform-origin: center bottom;
     transition:
         border-color var(--motion-dur-fast-calc) ease,
         background-color var(--motion-dur-fast-calc) ease,
         color var(--motion-dur-fast-calc) ease,
+        transform var(--motion-state) var(--motion-ease-out),
         width var(--motion-state) var(--motion-ease-out),
         height var(--motion-state) var(--motion-ease-out);
 }
 .creation-home .creation-reference-track:not(.is-expanded) .creation-reference-add-slot {
     margin-left: var(--space-2);
 }
+/* 未上传素材时，入口本身就是一只虚线空相框：与缩略图同尺寸、同样微微倾斜，指针落上去摆正。
+   胶囊形态已下线，空态与有素材时的「＋参考内容」保持同一副骨架。 */
 .creation-home .creation-reference-track.is-empty .creation-reference-add-slot {
     margin-left: 0;
 }
-.creation-home .creation-reference-track.is-empty .creation-reference-add-button {
-    width: auto;
-    height: 36px;
-    flex: 0 0 auto;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: var(--space-1);
-    padding: 0 12px;
-    border-radius: var(--r-full);
-    white-space: nowrap;
-}
-.creation-home .creation-reference-track.is-empty .creation-reference-add-button svg {
-    width: var(--space-4);
-    height: var(--space-4);
-}
-.creation-home .creation-reference-track.is-empty .creation-reference-add-button span {
-    font-size: 11px;
-}
-.creation-home .creation-reference-track.is-expanded:not(.is-empty) .creation-reference-add-button {
+.creation-home .creation-reference-track.is-expanded .creation-reference-add-button {
     width: 52px;
     height: 69px;
     flex-basis: 52px;
@@ -17419,6 +17431,10 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     border-color: var(--creation-text);
     background: var(--creation-surface-hover);
     color: var(--creation-text);
+}
+/* 和缩略图一致的摆正手感：指针悬停或用键盘聚焦时，空相框立正并轻抬。 */
+.creation-home .creation-reference-add-button:is(:hover, :focus-visible):not(:disabled) {
+    transform: rotate(0deg) translateY(-2px);
 }
 .creation-home .creation-reference-add-button:disabled {
     cursor: wait;
@@ -17540,7 +17556,7 @@ html:not(.dark) .creation-home .creation-reference-add-button:hover:not(:disable
         height: 61px;
         flex-basis: 46px;
     }
-    .creation-home .creation-reference-track.is-expanded:not(.is-empty) .creation-reference-add-button {
+    .creation-home .creation-reference-track.is-expanded .creation-reference-add-button {
         width: 42px;
         height: 56px;
         flex-basis: 42px;
@@ -17575,6 +17591,10 @@ html:not(.dark) .creation-home .creation-reference-add-button:hover:not(:disable
 @media (prefers-reduced-motion: reduce) {
     .creation-home .creation-reference-stack-card,
     .creation-home .creation-reference-add-button {
+        transition: box-shadow var(--motion-dur-fast-calc) ease;
+    }
+    /* 相框的倾斜/摆正直接切换，不做过渡。 */
+    .creation-home .creation-reference-card-content {
         transition: box-shadow var(--motion-dur-fast-calc) ease;
     }
 }

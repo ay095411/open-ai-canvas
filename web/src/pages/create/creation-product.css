@@ -672,10 +672,11 @@
     border-color: var(--user-border-strong);
     background: var(--user-surface-hover);
     color: var(--user-ink);
-    transform: translateY(-1px);
+    /* 首页空相框默认倾斜，悬停摆正并轻抬，位移与 globals.css 里的缩略图保持一致。 */
+    transform: rotate(0deg) translateY(-2px);
 }
 .app-user-workspace .creation-launchpad .creation-reference-add-button:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: rotate(0deg) scale(0.97);
 }
 @keyframes creation-submit-sheen {
     to {
