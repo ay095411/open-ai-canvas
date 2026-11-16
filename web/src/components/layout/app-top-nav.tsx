@@ -26,6 +26,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
     const [mobileSidebarExpanded, setMobileSidebarExpanded] = useState(false);
     const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(readWorkspaceSidebarCollapsed);
+    const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth < 1024);
     const [paletteOpen, setPaletteOpen] = useState(false);
     useWorkspaceDocumentTitle();
 
@@ -36,10 +37,18 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     // .is-creation-workspace 的舞台底色），日/夜视觉保持一致。
     const creationWorkspace = pathname === "/" || pathname === "/create" || pathname === "/projects";
 
-    const isMobileViewport = () => window.innerWidth < 1024;
+    const sidebarCollapsed = !isMobileViewport && desktopSidebarCollapsed;
+
+    useEffect(() => {
+        const media = window.matchMedia("(max-width: 1023px)");
+        const updateViewport = () => setIsMobileViewport(media.matches);
+        updateViewport();
+        media.addEventListener("change", updateViewport);
+        return () => media.removeEventListener("change", updateViewport);
+    }, []);
 
     const toggleSidebar = () => {
-        if (isMobileViewport()) {
+        if (isMobileViewport) {
             setMobileSidebarExpanded((current) => !current);
             return;
         }
@@ -61,7 +70,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     };
 
     const handleNavClick = () => {
-        if (isMobileViewport()) setMobileSidebarExpanded(false);
+        if (isMobileViewport) setMobileSidebarExpanded(false);
     };
 
     // ⌘K / Ctrl+K 全局呼出搜索面板。
@@ -97,29 +106,18 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
 
                     <div className="app-workspace-main-row flex min-h-0 min-w-0 flex-1 overflow-hidden">
                         {!hideChrome ? (
-                            <aside
-                                className={cn(
-                                    "app-workspace-sidebar flex h-full shrink-0 flex-col overflow-hidden",
-                                    mobileSidebarExpanded && "is-mobile-expanded",
-                                    desktopSidebarCollapsed && "is-collapsed",
-                                )}
-                            >
+                            <aside className={cn("app-workspace-sidebar flex h-full shrink-0 flex-col overflow-hidden", mobileSidebarExpanded && "is-mobile-expanded", sidebarCollapsed && "is-collapsed")}>
                                 <WorkspaceSidebarNav
-                                    collapsed={desktopSidebarCollapsed}
+                                    collapsed={sidebarCollapsed}
                                     onNavigate={handleNavClick}
                                     onOpenSearch={() => setPaletteOpen(true)}
                                     onExpand={expandDesktopSidebar}
-                                    onCollapse={collapseDesktopSidebar}
+                                    onCollapse={isMobileViewport ? () => setMobileSidebarExpanded(false) : collapseDesktopSidebar}
                                 />
                             </aside>
                         ) : null}
 
-                        <div
-                            className={cn(
-                                "app-workspace-stage relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-                                creationWorkspace && "isolate creation-stage-canvas-ambient",
-                            )}
-                        >
+                        <div className={cn("app-workspace-stage relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", creationWorkspace && "isolate creation-stage-canvas-ambient")}>
                             {creationWorkspace ? (
                                 <div className="home-background" aria-hidden="true">
                                     <Suspense fallback={null}>
@@ -127,12 +125,16 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                                     </Suspense>
                                 </div>
                             ) : null}
-                            {showGlobalTopBar ? <WorkspaceTopBar sidebarOpen={isMobileViewport() ? mobileSidebarExpanded : !desktopSidebarCollapsed} onToggleSidebar={toggleSidebar} /> : null}
+                            {showGlobalTopBar ? <WorkspaceTopBar sidebarOpen={isMobileViewport ? mobileSidebarExpanded : !desktopSidebarCollapsed} onToggleSidebar={toggleSidebar} /> : null}
                             <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>
                         </div>
                     </div>
 
-                    {paletteOpen ? <Suspense fallback={null}><WorkspaceCommandPalette open onClose={() => setPaletteOpen(false)} /></Suspense> : null}
+                    {paletteOpen ? (
+                        <Suspense fallback={null}>
+                            <WorkspaceCommandPalette open onClose={() => setPaletteOpen(false)} />
+                        </Suspense>
+                    ) : null}
                 </div>
             </WorkspaceTopBarExtensionProvider>
             <WorkspaceAuthHost />

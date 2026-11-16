@@ -1,35 +1,35 @@
-/**
- * 首页作品带：自动向左滚动的无缝轨道。
- *
- * 三个必须守住的点：
- * 1. `overflow: hidden` 在视口上，不是 `overflow-x: auto` —— 用户明确要求不要横向滚动条。
- * 2. 轨道里放的是**两份完全相同**的卡片集合，`translateX(-50%)` 正好等于一份的宽度，
- *    所以循环点没有跳帧。拼接靠 `.creation-showcase-set` 的 `padding-inline-end` 补上一个间距，
- *    不然两份接缝处会少一个 gap（约 12px，肉眼能看出来）。
- * 3. 暂停用 `animation-play-state`，不要用改 `animation` 或重置位移 —— 那样会从当前位置弹回开头。
- */
-
+/* 首页作品带：主筛选优先、原比例封面与完整署名。 */
 .creation-showcase {
     width: 100%;
     min-width: 0;
-    /* 它现在一直挂在 `.creation-home-dashboard` 里，间距交给那个 flex 的 gap，自己不再叠外边距。 */
     margin: 0;
 }
 
 .creation-showcase-head {
-    position: relative;
     display: flex;
     min-width: 0;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: var(--space-1) var(--space-4);
-    margin-bottom: var(--space-3);
+    gap: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-5);
 }
 
 .creation-showcase-heading {
-    display: flex;
+    display: grid;
     min-width: 0;
+    gap: var(--space-2);
+}
+
+.creation-showcase-eyebrow {
+    color: var(--user-ink-muted);
+    font-size: var(--fs-label);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+}
+
+.creation-showcase-title-row {
+    display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: var(--space-2) var(--space-4);
@@ -38,38 +38,139 @@
 .creation-showcase-head h2 {
     margin: 0;
     color: var(--user-ink);
-    font-size: var(--fs-body);
+    font-size: var(--fs-heading);
     font-weight: 600;
     line-height: 1.4;
 }
 
-.creation-showcase-hall-entry {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    border: 0;
-    border-radius: var(--user-radius-control);
-    padding: var(--space-1) 0;
-    background: transparent;
+.creation-showcase-description {
+    margin: 0;
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
+    line-height: 1.6;
+}
+
+.creation-showcase-hall-entry {
+    display: inline-flex;
+    min-height: var(--user-control-height);
+    align-items: center;
+    gap: var(--space-2);
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-control);
+    padding: var(--space-2) var(--space-3);
+    background: var(--user-surface);
+    color: var(--user-ink);
+    font-size: var(--fs-caption);
     line-height: 1.5;
+    white-space: nowrap;
     cursor: pointer;
 }
 
 .creation-showcase-hall-entry:hover {
-    color: var(--user-ink);
+    background: var(--user-surface-hover);
 }
 
-.creation-showcase-hall-entry:focus-visible {
+.creation-showcase :is(.creation-showcase-hall-entry, .creation-showcase-load-more):focus-visible,
+.creation-showcase-status button:focus-visible {
     outline: 2px solid var(--control-focus-ring);
     outline-offset: 3px;
+}
+
+.creation-showcase-filters {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--user-border);
+}
+
+.creation-showcase-filter-primary,
+.creation-showcase-filter-secondary {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.creation-showcase-filter-primary {
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.creation-showcase-filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-right: var(--space-1);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+}
+
+.creation-showcase-filter-select {
+    flex: 0 1 11rem;
+    min-width: 0;
+}
+
+.creation-showcase-filter-sort {
+    width: 8rem;
+    min-width: 0;
+}
+
+.creation-showcase-filters .creation-showcase-search {
+    flex: 0 1 22rem;
+    min-width: 0;
+    min-height: var(--user-control-height);
+    border-radius: var(--user-radius-control);
+}
+
+.creation-showcase-search .ant-input-prefix {
+    margin-inline-end: var(--space-2);
+    color: var(--user-ink-muted);
+}
+
+.creation-showcase-clear {
+    margin-left: auto;
+}
+
+.creation-showcase-clear:disabled {
+    visibility: hidden;
+}
+
+.creation-showcase-context {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    margin: var(--space-3) 0 var(--space-4);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-label);
+    line-height: 1.6;
+}
+
+.creation-showcase-license-note {
+    display: flex;
+    flex: 1 1 20rem;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.creation-showcase-license-note svg {
+    flex-shrink: 0;
+    margin-top: calc(var(--space-1) / 2);
+}
+
+.creation-showcase-query-status {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .creation-showcase-status {
     margin: 0 0 var(--space-2);
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
+    line-height: 1.6;
 }
 
 .creation-showcase-status button {
@@ -81,58 +182,132 @@
     cursor: pointer;
 }
 
-.creation-showcase-status button:focus-visible {
-    outline: 2px solid var(--control-focus-ring);
-    outline-offset: 3px;
+.creation-showcase-status button:disabled {
+    color: var(--user-ink-muted);
+    cursor: wait;
 }
 
-.creation-showcase-viewport {
-    position: relative;
-    min-width: 0;
-    overflow: hidden;
-    /* 上下留 8px：卡片悬停抬起后的阴影不被裁；左右用遮罩淡出，滚动到边缘不会硬切。 */
-    padding: 8px 0;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 3.5%, #000 96.5%, transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 3.5%, #000 96.5%, transparent 100%);
-}
-
-.creation-showcase-track {
+.creation-showcase-feedback {
     display: flex;
-    width: max-content;
-    /* 类型筛选后的数量不同，按卡片数保持匀速。 */
-    animation: creation-showcase-drift calc(var(--showcase-entry-count, 21) * 8s) linear infinite;
-    will-change: transform;
-}
-
-/* 悬停在任意卡片上、或用键盘 Tab 进来，都停在当前位置。 */
-.creation-showcase-viewport:hover .creation-showcase-track,
-.creation-showcase-viewport:focus-within .creation-showcase-track,
-.creation-showcase[data-preview-open="true"] .creation-showcase-track {
-    animation-play-state: paused;
-}
-
-@keyframes creation-showcase-drift {
-    from {
-        transform: translate3d(0, 0, 0);
-    }
-    to {
-        transform: translate3d(-50%, 0, 0);
-    }
-}
-
-.creation-showcase-set {
-    display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: var(--space-3);
+    min-height: 16rem;
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-card);
+    padding: var(--space-8) var(--space-5);
+    background: var(--user-surface);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+    text-align: center;
+}
+
+.creation-showcase-feedback-icon {
+    display: grid;
+    width: var(--space-10);
+    height: var(--space-10);
+    place-items: center;
+    border-radius: var(--user-radius-control);
+    background: var(--user-surface-muted);
+}
+
+.creation-showcase-feedback strong {
+    color: var(--user-ink);
+    font-size: var(--fs-body);
+    font-weight: 600;
+}
+
+.creation-showcase-feedback p {
+    max-width: 34rem;
     margin: 0;
-    /* 一份集合尾部再补一个间距，两份拼起来才和 translateX(-50%) 严丝合缝。 */
-    padding: 0 var(--space-3) 0 0;
-    list-style: none;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.creation-showcase-skeletons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 224px), 1fr));
+    align-items: start;
+    gap: var(--space-4);
+}
+
+.creation-showcase-skeleton {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.creation-showcase-skeleton > span {
+    display: block;
+    border-radius: var(--r-sm);
+    background: var(--user-surface-muted);
+}
+
+.creation-showcase-skeleton .creation-showcase-skeleton-cover {
+    aspect-ratio: 4 / 3;
+    margin-bottom: var(--space-1);
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-card);
+    background: var(--user-surface);
+}
+
+.creation-showcase-skeleton:nth-child(even) .creation-showcase-skeleton-cover {
+    aspect-ratio: 1;
+}
+
+.creation-showcase-skeleton-title {
+    width: 75%;
+    height: var(--space-3);
+}
+
+.creation-showcase-skeleton-meta {
+    width: 45%;
+    height: var(--space-2);
+}
+
+.creation-showcase-waterfall {
+    --inspiration-min-column-width: 224px;
+    column-gap: var(--space-4);
+}
+
+.creation-showcase-pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding-top: var(--space-6);
+}
+
+.creation-showcase-load-more {
+    display: inline-flex;
+    min-height: var(--user-control-height);
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-control);
+    padding: var(--space-2) var(--space-6);
+    background: var(--user-surface);
+    color: var(--user-ink);
+    font-size: var(--fs-caption);
+    cursor: pointer;
+}
+
+.creation-showcase-load-more:hover:not(:disabled) {
+    background: var(--user-surface-hover);
+}
+
+.creation-showcase-load-more:disabled {
+    color: var(--user-ink-muted);
+    cursor: wait;
 }
 
 .creation-showcase-item {
-    flex: 0 0 auto;
-    width: clamp(200px, 21vw, 272px);
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--user-border);
+    border-radius: var(--user-radius-card);
+    background: var(--user-surface);
 }
 
 .creation-showcase-card {
@@ -140,7 +315,6 @@
     width: 100%;
     min-width: 0;
     flex-direction: column;
-    gap: var(--space-2);
     border: 0;
     padding: 0;
     background: transparent;
@@ -148,19 +322,17 @@
     cursor: pointer;
 }
 
+.creation-showcase-card:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
 .creation-showcase-cover {
     position: relative;
     display: block;
     width: 100%;
-    aspect-ratio: 16 / 9;
     overflow: hidden;
-    border: 1px solid var(--user-border);
-    border-radius: var(--user-radius-control);
-    background: var(--user-surface);
-    transition:
-        border-color var(--user-motion, 180ms) ease,
-        transform var(--user-motion, 180ms) ease,
-        box-shadow var(--user-motion, 180ms) ease;
+    background: var(--user-surface-muted);
 }
 
 .creation-showcase-cover :is(img, video) {
@@ -170,116 +342,157 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-/* 悬停时封面缓慢推近 + 卡片抬起，滚动仍停住，看起来是「停在手里」而不是「漂过去」。 */
-.creation-showcase-card:hover .creation-showcase-cover,
-.creation-showcase-card:focus-visible .creation-showcase-cover {
-    border-color: color-mix(in srgb, var(--user-ink) 26%, transparent);
-    transform: translateY(-3px);
-    box-shadow: 0 14px 30px color-mix(in srgb, #000 26%, transparent);
+.creation-showcase-video {
+    opacity: 0;
+    pointer-events: none;
 }
 
-.creation-showcase-card:hover .creation-showcase-cover :is(img, video),
-.creation-showcase-card:focus-visible .creation-showcase-cover :is(img, video) {
-    transform: scale(1.045);
+.creation-showcase-video[data-playing="true"] {
+    opacity: 1;
 }
 
-.creation-showcase-card:focus-visible {
+.creation-showcase .creation-showcase-card:focus-visible {
     outline: 2px solid var(--control-focus-ring);
-    outline-offset: 3px;
+    outline-offset: -3px;
     border-radius: var(--user-radius-control);
 }
 
-.creation-showcase-card:active .creation-showcase-cover {
-    transform: translateY(-1px) scale(0.99);
+.creation-showcase-badge,
+.creation-showcase-preview-hint {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border: 1px solid var(--user-border);
+    border-radius: var(--r-sm);
+    padding: var(--space-1) var(--space-2);
+    background: var(--user-surface);
+    color: var(--user-ink);
+    font-size: var(--fs-label);
+    line-height: 1.5;
+    pointer-events: none;
 }
 
 .creation-showcase-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: color-mix(in srgb, #000 58%, transparent);
-    color: #f4f2ee;
-    font-size: 11px;
-    line-height: 1.6;
-    letter-spacing: 0.02em;
-    backdrop-filter: blur(6px);
+    top: var(--space-2);
+    left: var(--space-2);
+}
+
+.creation-showcase-preview-hint {
+    right: var(--space-2);
+    bottom: var(--space-2);
+    opacity: 0;
+    transition: opacity var(--user-motion);
+}
+
+.creation-showcase-card:not(:disabled):is(:hover, :focus-visible) .creation-showcase-preview-hint {
+    opacity: 1;
 }
 
 .creation-showcase-copy {
     display: flex;
+    width: 100%;
     min-width: 0;
     flex-direction: column;
-    gap: 1px;
-}
-
-.creation-showcase-unavailable {
-    display: grid;
-    height: 100%;
-    place-items: center;
-    color: var(--user-ink-muted);
-    font-size: var(--fs-caption);
+    gap: var(--space-1);
+    padding: var(--space-3);
 }
 
 .creation-showcase-copy strong {
+    display: -webkit-box;
     overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     color: var(--user-ink);
     font-size: var(--fs-caption);
     font-weight: 600;
-    line-height: 1.5;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
 }
 
-.creation-showcase-copy span {
+.creation-showcase-copy > span {
     overflow: hidden;
     color: var(--user-ink-muted);
-    font-size: 11.5px;
+    font-size: var(--fs-label);
     line-height: 1.6;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.creation-showcase-unavailable {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    color: var(--user-ink-muted);
+    font-size: var(--fs-caption);
+}
+
+.creation-showcase-item .inspiration-authorization-notice {
+    margin: 0 var(--space-3);
+    border-top: 1px solid var(--user-border);
+    padding: var(--space-2) 0 var(--space-3);
+    font-size: var(--fs-label);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.creation-showcase-item .inspiration-authorization-notice p {
+    margin: 0;
+}
+
 @media (max-width: 768px) {
-    .creation-showcase-item {
-        width: 62vw;
+    .creation-showcase-skeletons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
     }
-    .creation-showcase-track {
-        animation-duration: calc(var(--showcase-entry-count, 21) * 6s);
+
+    .creation-showcase-waterfall {
+        --inspiration-min-column-width: 152px;
+        column-gap: var(--space-3);
+    }
+
+    .creation-showcase-filter-label {
+        display: none;
     }
 }
 
-/* 关掉动效时不能变成一堵不动又滚不动的墙：退回横向可滚（此时浏览器会出滚动条，
-   属于无障碍优先的取舍，桌面端默认不会走到这里）。 */
+@media (max-width: 560px) {
+    .creation-showcase-head {
+        align-items: flex-start;
+    }
+
+    .creation-showcase-filters .creation-showcase-search {
+        flex-basis: 100%;
+    }
+
+    .creation-showcase-filter-secondary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .creation-showcase-filter-select,
+    .creation-showcase-filter-sort {
+        width: 100%;
+    }
+
+    .creation-showcase-clear {
+        justify-self: end;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .creation-showcase-card:not(:disabled) .creation-showcase-preview-hint {
+        opacity: 1;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .creation-showcase-track {
-        animation: none;
-    }
-    .creation-showcase-viewport {
-        overflow-x: auto;
-        scroll-snap-type: x proximity;
-    }
-    .creation-showcase-set[aria-hidden="true"] {
-        display: none;
-    }
-    .creation-showcase-item {
-        scroll-snap-align: start;
-    }
-    .creation-showcase-cover,
-    .creation-showcase-cover :is(img, video) {
+    .creation-showcase-preview-hint {
         transition: none;
-    }
-    .creation-showcase-card:hover .creation-showcase-cover {
-        transform: none;
-    }
-    .creation-showcase-card:hover .creation-showcase-cover :is(img, video) {
-        transform: none;
     }
 }

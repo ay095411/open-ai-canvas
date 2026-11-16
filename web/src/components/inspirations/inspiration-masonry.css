@@ -1,0 +1,21 @@
+/* 几何布局独立于卡片样式；页面可覆盖最小列宽，不改变追加时的 DOM 顺序。 */
+:where(.inspiration-gallery) {
+    --inspiration-min-column-width: 248px;
+}
+
+.inspiration-gallery {
+    position: relative;
+    column-gap: var(--space-4, 16px);
+}
+
+.inspiration-masonry-cell {
+    position: absolute;
+    min-width: 0;
+}
+
+/* 大厅默认窄屏单列；更紧凑的页面可用自己的类覆盖列宽。 */
+@media (max-width: 640px) {
+    :where(.inspiration-gallery) {
+        --inspiration-min-column-width: 10000px;
+    }
+}

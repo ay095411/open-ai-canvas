@@ -1,24 +1,15 @@
-/* 灵感库画廊 + 灵感详情弹窗。瀑布流排布：卡片从列顶往下流，每张高度按自己的图走，自然错落。
-   用 CSS 多列而不是 grid —— grid 会把同一行的卡片拉齐成等高，矮图下面空出一块。
-   注意多列是**按列**填充的：读完第一列顶部才会到第二列，不是左右左右地走。
+/* 灵感画廊 + 详情弹窗。短列布局保留 DOM 顺序，追加新页不重新平衡旧卡。
    颜色、圆角、阴影一律走项目 token，不写字面值。
 
    ⚠️ 这张表由两个模块 import：灵感库页面（index.tsx）与详情弹窗（inspiration-detail-modal.tsx）。
    首页瀑布流也会渲染详情弹窗，所以弹窗那半边样式必须跟着弹窗走，否则 /create 冷启动时没有它们。 */
 
-.inspiration-gallery {
-    column-width: 248px;
-    column-gap: var(--space-4, 16px);
-}
-
 .inspiration-card {
     position: relative;
     display: block;
     width: 100%;
-    margin: 0 0 var(--space-4, 16px);
+    margin: 0;
     overflow: hidden;
-    /* 关键：不允许被列边界切成两半。 */
-    break-inside: avoid;
     /* 玻璃质感：亮描边 + 大而软的投影，和首页纵深画廊同一套语言。 */
     border: 1px solid color-mix(in srgb, var(--user-ink) 9%, transparent);
     border-radius: var(--r-2xl, 16px);
@@ -44,19 +35,21 @@
     outline-offset: 2px;
 }
 
-/* 封面按原图比例自适应：不设固定比例、不裁切。
-   宽高由 img 的 width/height 属性给出（本地缩略图的真实尺寸），
-   图还没到时就已经占好位；上游远程图没有尺寸，只能等图片自己报。 */
+/* 上游宽高/比例预占位；缺尺寸使用稳定展示框，图片加载或失败都不改卡片高度。 */
 .inspiration-card-cover {
     position: relative;
+    aspect-ratio: 1;
     overflow: hidden;
     background: var(--user-surface-muted);
 }
 
 .inspiration-card-cover img {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: contain;
 }
 
 /* 封面底部压一层暗角，让源标签始终读得清。
@@ -364,14 +357,6 @@
     }
 }
 
-/* 窄屏单列：多列在手机上会把每张卡压成又窄又长的一条。 */
-@media (max-width: 640px) {
-    .inspiration-gallery {
-        column-count: 1;
-        column-width: auto;
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
     .inspiration-card {
         transition: none;
@@ -381,4 +366,15 @@
     .inspiration-card:focus-visible {
         transform: none;
     }
+}
+.inspiration-authorization-notice {
+    padding: var(--space-3, 12px);
+    font-size: var(--fs-caption, 11px);
+    line-height: 1.6;
+    color: var(--user-ink-muted);
+    overflow-wrap: anywhere;
+}
+.inspiration-authorization-notice a {
+    color: var(--user-ink);
+    text-decoration: underline;
 }

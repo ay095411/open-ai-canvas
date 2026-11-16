@@ -132,16 +132,41 @@ Agent 通过 `mcp_list_tools` 分三步读取连接目录、指定连接的工�
 
 使用说明见[渠道、模板与批量配置](/docs/backend/channel-configuration)，迁移见[后端数据库](/docs/backend/backend-database)。
 
-## 灵感上新
+## 旧灵感上新接口退役
 
-后端每 6 小时从 GitHub 拉取 YouMind 提示词库（两个 `README_zh.md`）和 awesome-seedance（`data/cases.json`、`data/case-taxonomy.json`），经出站 SSRF 客户端下载，只收正文已是中文的条目。上次有来源失败时 1 小时后重试；多实例部署通过协调器锁只让一个实例同步。服务器访问 GitHub 需要正常 DNS，必要时配置 `HTTPS_PROXY`。数据表见 [后端数据库](/docs/backend/backend-database)。
+旧 `/api/public/inspirations/feed`、`/api/admin/settings/inspiration-feed` 及其 `/sync` 产品路由已停用（404），旧 GitHub 中文同步 worker 不再启动。灵感大厅与首页使用下方社区在线提示词接口，并保留独立的人工审核素材库；不再混入静态精选或旧上新。历史表与迁移保留，不自动清除数据库记录。
+
+## 社区在线提示词
+
+灵感大厅和首页恢复使用这个只读在线目录，不写入数据库。它与下方人工审核素材库分开，不把社区条目标记为本站已核验授权。浏览器只调用本站业务 API；后端固定读取 `https://api.seedance.nz/api/prompt-gallery/v1`，不接受客户端指定上游 URL，不转发登录 Cookie、API Key，也不调用上游浏览计数、收藏或发布接口。
 
 | 接口 | 入参与结果 |
 | --- | --- |
-| `GET /api/public/inspirations/feed` | 匿名可读，按 IP 每分钟 120 次。返回 `data={enabled,entries,categories,syncedAt?}`；`entries` 按首次收录时间倒序，最多 3000 条，每条带 `addedAt`（首次收录）与可选的 `publishedAt`；`categories` 为来源 → 分类码 → 中文名。关闭时 `enabled=false` 且 `entries` 为空。结果在进程内缓存 5 分钟 |
-| `GET /api/admin/settings/inspiration-feed` | 管理员。返回 `data.status={enabled,intervalHours,lastAttemptAt?,lastSuccessAt?,nextSyncAt?,lastError?,trigger?,sources[],total,bySource}`，`sources[]` 为 `{sourceId,upstream,accepted,created,updated,error?}` |
-| `PATCH /api/admin/settings/inspiration-feed` | 管理员。`{ enabled: boolean }`，缺少 `enabled` 返回 400；写入审计，返回最新 `status` |
-| `POST /api/admin/settings/inspiration-feed/sync` | 管理员。立即同步，与请求解绑，最长约 8 分钟；部分来源失败返回 200 并在 `lastError`、`sources[].error` 说明；全部失败返回 502；已关闭或已有同步在进行返回 409。写入审计 |
+| `GET /api/public/inspirations/zzai-gallery/prompts` | 匿名可读；查询 `media_type`（all/image/video）、`category`、`search`、`model`、`tag`、`sort`（latest/popular/featured/random/relevance）、`seed`、`cursor`、`limit`（默认 20，最大 50）。返回 `data={items,total,nextCursor?}`；列表不含完整提示词 |
+| `GET /api/public/inspirations/zzai-gallery/prompts/:slug` | 返回完整条目与 `prompt`、可选 `promptZh/usageNotes/requiresReference`。不接受查询参数，slug 限定为 1–191 个 ASCII 字母、数字或 `._-`，首字符必须是字母或数字 |
+| `GET /api/public/inspirations/zzai-gallery/facets` | 仅接受 `media_type`，返回 `data={categories,models,tags,total}` |
+
+拒绝未知和重复查询参数；`seed` 仅用于 random，取 1–2147483646 的整数。详情保留原文，有中文正文时同时提供中文；只存在中文时仍返回可用的 `prompt`。条目带稳定 `id=zzai-gallery:<slug>`、中文优先标题、`image/mode/category/tags/width/height/ratio/model/credit/sourceUrl/galleryUrl/videoUrl/publishedAt/featured` 等元数据，空的可选字段省略。`sourceUrl` 是上游标注的原始出处；`galleryUrl` 单独保留实际收录页供更新和追溯，前台不显示聚合站品牌。模型仅为上游标注，不自动选择本站收费渠道。
+
+三个公开接口共用每 IP 每分钟 60 次的限流；浏览器响应 `Cache-Control: no-store`。服务端复用出站 SSRF 检查、20 秒请求超时、4 MiB 响应上限、有界读取缓存（128 键、16 MiB、最多 8 个并发回源、2 分钟 TTL），同 key 请求合并，失败不包装为空列表成功。外部不可用返回真实失败并支持重试；本地已收藏快照不依赖上游详情接口。
+
+社区条目的署名和出处是上游元数据，不代表本站已取得转载或商用许可。前端保留作者、原始出处与收录页；使用前需自行核实原作者许可，不伪造 `licensed-v1` 凭据。列表、详情和筛选接口只读，不能据此触发导入、审核或自动发布。
+
+## 人工审核素材库
+
+人工库继续保留在 `/api/public/inspirations/library`，与社区在线目录的 ID、查询和媒体来源独立。公开列表仅返回数据库中 `approved` 的当前条目；没有已发布条目时正常返回 `items=[]、total=0`，不自动用外部数据补位。
+
+| 接口 | 入参与结果 |
+| --- | --- |
+| `GET /api/public/inspirations/library/prompts` | 匿名只读；媒体/分类/模型/关键词/排序与游标筛选，返回 `data={items,total,nextCursor?,policyVersion:"licensed-v1"}` |
+| `GET /api/public/inspirations/library/prompts/:slug` | 返回已批准的当前详情，包含正文和两类许可；未发布、撤回或内容校验失败时不返回旧正文 |
+| `GET /api/public/inspirations/library/facets` | 仅接受 `media_type`，返回当前已发布条目的分类、模型、标签、总量和 `policyVersion` |
+| `POST /api/public/inspirations/library/resolve` | 只读解析 `{ids:["authorized-library:<slug>",...]}`，返回仍有效的已发布摘要；不读取社区目录 |
+| `GET /api/public/inspirations/library/prompts/:slug/media` | 必须提交 `kind/hash/revision`，仅返回与当前审核版本匹配的本站媒体，支持 Range；不代理任意外部 URL |
+
+管理员通过 `/api/admin/inspirations/library` 列表/详情、`POST /import` 和 `POST /:slug/review` 管理真实素材与审核；权限在 service 校验。导入默认 `pending`，审核发布绑定内容哈希、媒体哈希、版本和提示词/媒体各自的许可及署名，不自动批准。恢复社区在线目录不修改此库、审核记录、媒体或数据库迁移。公开读取仍使用 `Cache-Control: no-store`，每 IP 每分钟 60 次，限流桶与社区目录分开。
+
+`GET /api/admin/inspirations/library/:slug/media` 提供管理员候选媒体预览，同样要求 `kind/hash/revision` 并校验当前媒体字节，可查看尚未发布的候选版本；不绕过管理员身份校验，不代理任意外部地址。完整请求、响应与校验范围见 `GET /api/openapi.yaml`。
 
 ## 姿势库
 
@@ -253,7 +278,6 @@ Agent 通过 `mcp_list_tools` 分三步读取连接目录、指定连接的工�
 
 上传头像先通过共享裁剪弹窗选择 1:1 区域，支持拖动、缩放裁剪框、键盘调整与重置；确认后导出最大 512×512 的 PNG 到待保存预览，点击“保存头像”才上传。取消裁剪保留原头像；待保存图片可重新调整裁剪。选择系统头像使用现有 AppModal、Avatar 与主题 token，支持 8 个预设，确认后才写入服务端。
 
-
 ## 用户反馈
 
 所有反馈接口使用登录 Cookie 和标准业务信封。普通用户只能提交反馈、上传附件和读取本人列表；`/api/admin/feedbacks` 下的写入与全量列表由 service 强制校验管理员权限。
@@ -269,12 +293,10 @@ Agent 通过 `mcp_list_tools` 分三步读取连接目录、指定连接的工�
 | `DELETE /api/admin/feedbacks/{id}` | 删除反馈记录，返回 `data={ok:true}` |
 
 
-
 ## Agent 画布权限与大事件
-
 自由画布和项目关联画布均使用 `canvas_projects`。Agent 运行时按登录账号和画布 ID 查询归属，不能把所属项目 ID 当作画布 ID；画布不存在、属于其他账号或数据库读取失败时，不声明读写及导出权限。
-
 `canvas_updated` 的画布增量超过单事件 128 KiB 上限时，复用 `requiresRefresh: true` 通知客户端重新读取完整画布，优先保留操作摘要；摘要仍超限则仅发送刷新通知。画布正文、历史和操作回执仍完整保存，普通大小事件继续携带 `canvasPatch`。不提高事件上限、不截断正文、不修改审批暂停或模型调度判断。
+
 ## Agent 画布逐步撤销
 
 聊天卡片使用 `canvas_updated.undo` 中的原始 `runId` 和 `canvasId`，不能改用当前最新轮次 ID；历史轮次中的卡片因此仍能对应真实操作。前端调用 `POST /api/agent/runs/:id/undo`，传 `{ stepId, expectedSnapshotHash, reason? }`；哈希为完整画布内容的 64 位十六进制摘要，不使用媒体局部哈希。成功返回 `{ accepted: true, snapshotHash }` 并记录 `canvas_undone`。
@@ -296,11 +318,13 @@ Agent 取消先持久化终态和清理标记再中止运行进程，重启后�
 Pi 审批或中断后恢复时，缺失的工具结果先按调用 ID 查找服务端已持久化的回执，保留其中的任务提交与失败事实；只有没有持久化回执的缺口才使用既有的审批暂停占位结果。运行时已经收到的结果不被旧占位覆盖。补齐只修复模型请求历史，不重新执行工具或自动重发收费任务；孤立结果、无效调用 ID 等其他历史错误仍由原校验拒绝。
 
 当前系统行为合同为 v17，工具调用数量与单个 `canvas_apply_ops` 操作数量分别校验。既有活动运行受冻结合同版本保护；新会话采用新合同，不改写旧检查点。
+
 ## Agent 分镜连线参数反馈
 
 素材绑定使用“素材→分镜”和 `toHandleId: row:<rowId>`；镜头输出使用“分镜→图片/视频”和 `fromHandleId: row:<rowId>`。`rowId` 必须是读取工具返回的真实行 ID，不能用镜头编号代替。普通节点连线与镜头行连线按 handle 区分，已有整表连线不代表该行已经绑定。
 
 handle 放错端点、格式错误或行 ID 不存在时，工具错误回执提供具体 `field`（如 `ops[0].fromHandleId`）、`issue`、方向说明及连线参数模板，不再使用无关的新增节点示例。模板不会被自动执行，不自动交换端点或修改原调用。权限、快照和重复连线校验保持不变；工具契约版本为 v4，重启后端后新会话使用更新后的说明。
+
 ## KM 图片尺寸能力
 
 图片能力 `size.presets[].tier` 在已有档位之外接受 `1.5k`；前端档位选择、请求归一化与服务端预设校验保持一致。`km-kemei-seedream` 默认 `2048x2048`、单次一张、最多十张参考图，提供二十四个精确尺寸。透明输出使用插件扩展字段，不开启宿主通用透明背景开关。模型能力仍保存在现有 JSON 字段，无数据库迁移或新端点。
@@ -347,7 +371,6 @@ handle 放错端点、格式错误或行 ID 不存在时，工具错误回执提
 | GET | `/api/admin/users/:id/storage` | 管理员查看用户有效容量（不写入超额状态）和扩容记录 |
 | POST | `/api/admin/users/:id/storage-grants` | 管理员赠送，请求 `{ "bytes": 10737418240, "durationDays": 30, "note": "" }`；`bytes` 必须是整 GB，`durationDays=0` 为永久；写管理员审计 |
 | POST | `/api/admin/storage-grants/:id/revoke` | 管理员撤销，请求 `{ "reason": "线下退款" }`，原因必填；写管理员审计 |
-
 存储空间商品与积分商品共用 `/api/payments/*` 和 `/api/admin/payments/products`。商品和订单增加 `kind`/`productKind`（`credits`|`storage`）、`storageBytes`、`storageDurationDays`。`/payments/providers` 与下单不再要求积分功能；积分功能关闭时，`/payments/products` 只返回存储空间商品，积分商品下单返回功能未开启。商品类型创建后不能修改。
 
 ## AutoDL 视频画面规格配置
@@ -484,6 +507,7 @@ CANVAS_BACKEND_DATA_DIR=/明确的数据目录 ./migrate-schema repair-canvas-re
 `PATCH /admin/settings/registration` 可选提交 `loginMode`：`modal`（默认，在当前页面弹出登录框）或 `page`（跳转 `/login` 独立页面）。与协议字段相同，不提交表示保留已保存值；其他值返回 HTTP 400。`GET /admin/settings/registration` 与公开的 `GET /auth/settings` 都返回 `loginMode`，未配置或旧记录缺少该字段时为 `modal`，尚无账号时同样下发。
 
 前端站内登录入口、受保护页面的未登录跳转与退出登录后的去向按 `loginMode` 分发。弹窗模式下直达 `/login`、`/register`、`/forgot-password`（推广链接 `?ref=`、Linux.do 回跳 `?oauth_error=`、书签）会回到可公开访问的页面并打开对应视图，登录成功后进入 `next`。读取 `/auth/settings` 失败时前端退回独立页面。首页创作输入框的未发送内容只在内存中，该入口在两种模式下都使用弹窗。
+
 ## 站点皮肤主按钮
 
 ### 画布配置、更新公告、状态动画包与 Live2D（外观合同版本 11）

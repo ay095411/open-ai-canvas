@@ -25,6 +25,12 @@ func (r *Repository) DeleteDetachedResources(resources []model.Resource, deletio
 		resourceIDs = append(resourceIDs, resource.ID)
 	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if _, err := New(tx).lockInspirationLibraryResourceRows(resourceIDs); err != nil {
+			return err
+		}
+		if err := New(tx).RequireNoInspirationLibraryReferences(resourceIDs); err != nil {
+			return err
+		}
 		var current []model.Resource
 		query := tx.Where("id IN ?", resourceIDs)
 		if r.Dialect() == "postgres" {

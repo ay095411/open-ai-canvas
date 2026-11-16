@@ -1,140 +1,78 @@
-/**
- * 灵感库的本地管理状态：用户的增删改、收藏与隐藏。
- *
- * 内置目录（public/inspirations 与 lib/inspirations/highlights）始终只读，
- * 这里只保存叠加层，重新导入外部目录后用户的改动仍然对得上 id。
- * 落盘走 localforage 的用户作用域，切换账号不会串数据；理由见 AGENTS 第 4 节。
- *
- * 权限：**改库的写操作只对管理员开放**，普通用户是「只读 + 收藏」。
- * 判定口径与页面共用 `lib/inspirations/permissions.ts`，页面负责不出入口，这里负责兜底
- * ——新加一个入口时忘了判角色，也不会真的写进去。
- */
-import { createClientUUID } from "@/lib/client-id";
 import { create, type StoreApi } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 
-import { catalogIdOf, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
-import { canManageInspirations } from "@/lib/inspirations/permissions";
-import { CUSTOM_ID_PREFIX, isCustomInspiration, type InspirationOverride } from "@/lib/inspirations/resolve";
+import { catalogIdOf, type CreationInspiration } from "@/lib/inspirations/catalog";
+import { isExternalInspiration, normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
-import { getActiveUserScope } from "@/lib/user-scope";
+import { assertCurrentUserSession, captureUserSession, getActiveUserScope, isUserScopedPersistenceSuppressed, type UserSessionSnapshot } from "@/lib/user-scope";
 import { useUserStore } from "@/stores/use-user-store";
+import { getInspirationPrompt } from "@/services/api/online-gallery";
 
 export const INSPIRATION_STORE_KEY = "open_ai_canvas:inspirations";
-/** 导入导出文件的格式版本，字段变化时递增并在这里做迁移。 */
-export const INSPIRATION_PAYLOAD_VERSION = 1;
+/** 写入版本 1；旧版本只在内存适配，历史记录不因读取被改写或删除。 */
+export const INSPIRATION_STORE_VERSION = 1;
 
-/** 用户可以自己填的部分；id、来源和署名由系统生成。 */
-export type InspirationDraft = {
-    title: string;
-    description: string;
-    image: string;
-    mode: CreationInspiration["mode"];
-    prompt: string;
-    promptZh?: string;
-    category?: string;
-    tags?: string[];
-    ratio?: string;
-};
-
-export type InspirationPayload = {
-    version: number;
-    exportedAt: string;
-    custom: CreationInspiration[];
-    overrides: Record<string, InspirationOverride>;
-    hidden: string[];
+type OnlineFavorites = {
     favorites: string[];
+    externalFavorites: CreationInspiration[];
+    preservedData?: Record<string, unknown>;
 };
 
-export type InspirationImportResult = {
-    created: number;
-    updated: number;
-    skipped: number;
-};
-
-type InspirationStore = {
+type InspirationStore = OnlineFavorites & {
     hydrated: boolean;
     hydrationScope: string | null;
     hydrationError: string;
-    custom: CreationInspiration[];
-    overrides: Record<string, InspirationOverride>;
-    hidden: string[];
-    favorites: string[];
-    /** 非管理员调用会被忽略并返回空串。 */
-    createEntry: (draft: InspirationDraft) => string;
-    updateEntry: (id: string, patch: InspirationOverride) => void;
-    /** 自建条目真删，内置条目转为隐藏——内置数据来自外部目录，删了下次同步还会回来。 */
-    removeEntry: (id: string) => void;
-    restoreEntry: (id: string) => void;
-    toggleFavorite: (id: string) => Promise<void>;
-    exportPayload: () => string;
-    importPayload: (text: string) => InspirationImportResult;
-    resetCustomizations: () => void;
-    /** 持久化回填完成；页面据此决定要不要显示骨架态。 */
-    markHydrated: () => void;
+    toggleFavorite: (id: string, item?: CreationInspiration) => Promise<void>;
 };
 
-/**
- * 改库写操作的统一门禁。
- * 游客 / 尚未 hydrate 出用户时也判为「不允许」——页面上的入口本身就要先确认是管理员才渲染，
- * 所以这里 fail-closed 不会挡住合法调用。
- */
-function canManageLibrary(): boolean {
-    return canManageInspirations(useUserStore.getState().user);
-}
-
-function warnBlocked(action: string) {
-    console.warn(`[inspirations] 已忽略「${action}」：灵感库对普通用户只读，只有管理员可以改。`);
-}
-
-function nonEmpty(value: unknown, field: string): string {
-    if (typeof value !== "string" || !value.trim()) throw new Error(`缺少必填字段 ${field}`);
-    return value.trim();
-}
-
-function asStringArray(value: unknown): string[] | undefined {
-    if (!Array.isArray(value)) return undefined;
-    const items = value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim());
-    return items.length ? items : undefined;
-}
-
-/** 编辑器传来的草稿先按同一套规则收敛，不做「空字符串也写进去」的兜底。 */
-export function normalizeDraft(input: unknown): InspirationDraft {
-    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("灵感内容格式不正确");
+function onlineFavorites(input: unknown): OnlineFavorites {
+    if (input === undefined) return { favorites: [], externalFavorites: [] };
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("本地在线收藏格式不正确");
     const raw = input as Record<string, unknown>;
-    if (raw.mode !== "text" && raw.mode !== "image" && raw.mode !== "video") throw new Error("创作类型只能是 text、image 或 video");
-    return {
-        title: nonEmpty(raw.title, "标题"),
-        description: typeof raw.description === "string" ? raw.description.trim() : "",
-        image: nonEmpty(raw.image, "封面地址"),
-        mode: raw.mode,
-        prompt: nonEmpty(raw.prompt, "提示词正文"),
-        ...(typeof raw.promptZh === "string" && raw.promptZh.trim() ? { promptZh: raw.promptZh.trim() } : {}),
-        ...(typeof raw.category === "string" && raw.category.trim() ? { category: raw.category.trim() } : {}),
-        ...(asStringArray(raw.tags) ? { tags: asStringArray(raw.tags) } : {}),
-        ...(typeof raw.ratio === "string" && raw.ratio.trim() ? { ratio: raw.ratio.trim() } : {}),
-    };
-}
-
-/** 导入的外部条目同样要过一遍校验：来源不明的文件不能直接写进本地库。 */
-function normalizeImportedEntry(input: unknown): CreationInspiration | null {
-    try {
-        const draft = normalizeDraft(input);
-        const raw = input as Record<string, unknown>;
-        const id = typeof raw.id === "string" && raw.id.trim() ? raw.id.trim() : `${CUSTOM_ID_PREFIX}${createClientUUID()}`;
-        return {
-            ...draft,
-            id: id.startsWith(CUSTOM_ID_PREFIX) ? id : `${CUSTOM_ID_PREFIX}${id}`,
-            sourceId: (typeof raw.sourceId === "string" ? raw.sourceId : "original") as InspirationSourceId,
-            ...(typeof raw.credit === "string" && raw.credit.trim() ? { credit: raw.credit.trim() } : {}),
-            ...(typeof raw.sourceUrl === "string" && raw.sourceUrl.trim() ? { sourceUrl: raw.sourceUrl.trim() } : {}),
-        };
-    } catch {
-        return null;
-    }
+    const ids = raw.favorites ?? [];
+    const entries = raw.externalFavorites ?? [];
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string") || !Array.isArray(entries)) throw new Error("本地在线收藏格式不正确");
+    // 历史正文只保留，不作为展示或操作来源；任何未知记录也不因授权切换被删除。
+    return { favorites: [...new Set(ids as string[])], externalFavorites: entries as CreationInspiration[], preservedData: raw };
 }
 
 let setInspirationMemory: StoreApi<InspirationStore>["setState"];
+const favoriteWrites = new Set<string>();
+let hydrationSession: UserSessionSnapshot | undefined;
+
+function inspirationScopedStorage(): StateStorage {
+    let completedReadSession: UserSessionSnapshot | undefined;
+    return {
+        getItem: async (name) => {
+            const session = captureUserSession(true);
+            const value = await localForageStorageForScope(session.scope).getItem(name);
+            assertCurrentUserSession(session, true);
+            completedReadSession = session;
+            if (!value) return value;
+            const archive = JSON.parse(value) as { state?: unknown; version?: number };
+            if (archive.version !== undefined && archive.version !== 0 && archive.version !== INSPIRATION_STORE_VERSION) throw new Error("本地收藏版本不受支持");
+            // 仅调整内存读取信封，避免 Zustand 的 migrate 在 hydration 时自动写回。
+            return JSON.stringify({ ...archive, version: INSPIRATION_STORE_VERSION });
+        },
+        setItem: async (name, value) => {
+            if (isUserScopedPersistenceSuppressed()) return;
+            const session = completedReadSession;
+            if (!session) throw new Error("请等待当前账号的本地收藏读取完成");
+            // 写盘使用已完成读取的会话与固定 scope，不能在 await 或同步订阅回调后重算账号。
+            assertCurrentUserSession(session);
+            await localForageStorageForScope(session.scope).setItem(name, value);
+            assertCurrentUserSession(session);
+        },
+        removeItem: async (name) => {
+            if (isUserScopedPersistenceSuppressed()) return;
+            const session = completedReadSession;
+            if (!session) throw new Error("请等待当前账号的本地收藏读取完成");
+            assertCurrentUserSession(session);
+            await localForageStorageForScope(session.scope).removeItem(name);
+            assertCurrentUserSession(session);
+        },
+    };
+}
 
 function currentInspirationScope(): string | null {
     try {
@@ -144,162 +82,71 @@ function currentInspirationScope(): string | null {
     }
 }
 
-/** 回填前清掉旧账号内存；状态标记和失败回滚不能再次写入故障存储。 */
+/** 读取/迁移失败不能覆盖原记录，也不能把旧账号状态写给新账号。 */
 function clearInspirationMemory(hydrationError = "") {
-    setInspirationMemory({ hydrated: false, hydrationScope: null, hydrationError, custom: [], overrides: {}, hidden: [], favorites: [] });
+    setInspirationMemory({ hydrated: false, hydrationScope: null, hydrationError, favorites: [], externalFavorites: [], preservedData: undefined });
 }
 
-const createPersistedInspirationStore = persist<InspirationStore, [], [], Pick<InspirationStore, "custom" | "overrides" | "hidden" | "favorites">>(
+const createPersistedInspirationStore = persist<InspirationStore, [], [], OnlineFavorites>(
     (set, get) => ({
         hydrated: false,
         hydrationScope: null,
         hydrationError: "",
-        custom: [],
-        overrides: {},
-        hidden: [],
         favorites: [],
-
-        createEntry: (draft) => {
-            if (!canManageLibrary()) {
-                warnBlocked("新建灵感");
-                return "";
-            }
-            const id = `${CUSTOM_ID_PREFIX}${createClientUUID()}`;
-            const entry: CreationInspiration = { ...normalizeDraft(draft), id, sourceId: "original" };
-            set((state) => ({ custom: [entry, ...state.custom] }));
-            return id;
-        },
-
-        updateEntry: (id, patch) => {
-            if (!canManageLibrary()) {
-                warnBlocked("编辑灵感");
-                return;
-            }
-            if (!id) throw new Error("缺少要修改的灵感 ID");
-            const sanitized = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined && value !== ""));
-            if (!Object.keys(sanitized).length) return;
-            if (isCustomInspiration(id)) {
-                set((state) => ({ custom: state.custom.map((item) => (catalogIdOf(item) === id ? { ...item, ...sanitized } : item)) }));
-                return;
-            }
-            set((state) => ({ overrides: { ...state.overrides, [id]: { ...state.overrides[id], ...sanitized } } }));
-        },
-
-        removeEntry: (id) => {
-            if (!canManageLibrary()) {
-                warnBlocked("删除 / 隐藏灵感");
-                return;
-            }
-            if (!id) throw new Error("缺少要删除的灵感 ID");
-            if (isCustomInspiration(id)) {
-                set((state) => ({
-                    custom: state.custom.filter((item) => catalogIdOf(item) !== id),
-                    favorites: state.favorites.filter((item) => item !== id),
-                }));
-                return;
-            }
-            set((state) => ({
-                hidden: state.hidden.includes(id) ? state.hidden : [...state.hidden, id],
-                favorites: state.favorites.filter((item) => item !== id),
-                overrides: Object.fromEntries(Object.entries(state.overrides).filter(([key]) => key !== id)),
-            }));
-        },
-
-        restoreEntry: (id) => {
-            if (!canManageLibrary()) {
-                warnBlocked("恢复显示灵感");
-                return;
-            }
-            set((state) => ({ hidden: state.hidden.filter((item) => item !== id) }));
-        },
+        externalFavorites: [],
 
         toggleFavorite: async (id) => {
-            if (!id) throw new Error("缺少要收藏的灵感 ID");
-            const previous = get().favorites;
+            const session = captureUserSession();
             const scope = get().hydrationScope;
-            const next = previous.includes(id) ? previous.filter((item) => item !== id) : [id, ...previous];
+            if (!get().hydrated || !scope || session.scope !== scope || useUserStore.getState().user?.id !== scope) throw new Error("请登录并等待当前账号的本地收藏读取完成");
+            if (favoriteWrites.has(scope)) throw new Error("收藏操作正在保存，请稍后重试");
+            const previous = get().favorites;
+            const previousExternal = get().externalFavorites;
+            const removing = previous.includes(id);
+            if (!removing && !isExternalInspiration(id)) throw new Error("仅支持收藏在线示例或已核验授权素材");
+            favoriteWrites.add(scope);
+            let next: string[] | undefined;
+            let nextExternal: CreationInspiration[] | undefined;
             try {
-                await set({ favorites: next });
+                // 每次新增收藏重新向当前服务核验，不能信任浏览器快照或传入的授权属性。
+                const snapshot = removing ? undefined : normalizeExternalFavorite(await getInspirationPrompt(id, session.signal));
+                if (snapshot && catalogIdOf(snapshot) !== id) throw new Error("收藏条目与 ID 不一致");
+                assertCurrentUserSession(session);
+                next = removing ? previous.filter((value) => value !== id) : [id, ...previous];
+                const withoutCurrent = previousExternal.filter((entry) => !entry || typeof entry !== "object" || entry.id !== id);
+                nextExternal = removing ? withoutCurrent : [snapshot!, ...withoutCurrent];
+                await set({ favorites: next, externalFavorites: nextExternal });
+                assertCurrentUserSession(session);
             } catch (error) {
-                if (get().hydrationScope === scope && get().favorites === next) setInspirationMemory({ favorites: previous });
+                if (get().hydrationScope === scope && get().favorites === next && get().externalFavorites === nextExternal) setInspirationMemory({ favorites: previous, externalFavorites: previousExternal });
                 throw error;
+            } finally {
+                favoriteWrites.delete(scope);
             }
         },
-
-        exportPayload: () => {
-            const state = get();
-            const payload: InspirationPayload = {
-                version: INSPIRATION_PAYLOAD_VERSION,
-                exportedAt: new Date().toISOString(),
-                custom: state.custom,
-                overrides: state.overrides,
-                hidden: state.hidden,
-                favorites: state.favorites,
-            };
-            return JSON.stringify(payload, null, 2);
-        },
-
-        importPayload: (text) => {
-            if (!canManageLibrary()) {
-                warnBlocked("导入灵感");
-                return { created: 0, updated: 0, skipped: 0 };
-            }
-            let parsed: unknown;
-            try {
-                parsed = JSON.parse(text);
-            } catch {
-                throw new Error("文件不是合法的 JSON");
-            }
-            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("文件结构不是灵感导出格式");
-            const raw = parsed as Record<string, unknown>;
-            if (raw.version !== INSPIRATION_PAYLOAD_VERSION) throw new Error(`不支持的文件版本：${String(raw.version)}，当前支持 ${INSPIRATION_PAYLOAD_VERSION}`);
-            if (!Array.isArray(raw.custom)) throw new Error("文件缺少 custom 列表");
-
-            const incoming = raw.custom.map(normalizeImportedEntry);
-            const entries = incoming.filter((item): item is CreationInspiration => item !== null);
-            const skipped = incoming.length - entries.length;
-            const existing = new Map(get().custom.map((item) => [catalogIdOf(item), item]));
-            let created = 0;
-            let updated = 0;
-            for (const entry of entries) {
-                if (existing.has(entry.id!)) updated += 1;
-                else created += 1;
-            }
-
-            const overrides = raw.overrides && typeof raw.overrides === "object" && !Array.isArray(raw.overrides) ? (raw.overrides as Record<string, InspirationOverride>) : {};
-            const hidden = Array.isArray(raw.hidden) ? raw.hidden.filter((item): item is string => typeof item === "string" && Boolean(item.trim())) : [];
-            const favorites = Array.isArray(raw.favorites) ? raw.favorites.filter((item): item is string => typeof item === "string" && Boolean(item.trim())) : [];
-
-            set((state) => ({
-                custom: [...entries, ...state.custom.filter((item) => !entries.some((incomingItem) => incomingItem.id === catalogIdOf(item)))],
-                overrides: { ...state.overrides, ...overrides },
-                hidden: Array.from(new Set([...state.hidden, ...hidden])),
-                favorites: Array.from(new Set([...state.favorites, ...favorites])),
-            }));
-            return { created, updated, skipped };
-        },
-
-        resetCustomizations: () => {
-            if (!canManageLibrary()) {
-                warnBlocked("重置灵感库改动");
-                return;
-            }
-            set({ custom: [], overrides: {}, hidden: [], favorites: [] });
-        },
-
-        markHydrated: () => setInspirationMemory({ hydrated: true, hydrationScope: currentInspirationScope(), hydrationError: "" }),
     }),
     {
         name: INSPIRATION_STORE_KEY,
-        storage: createJSONStorage(() => localForageStorageForScope()),
-        partialize: (state) => ({ custom: state.custom, overrides: state.overrides, hidden: state.hidden, favorites: state.favorites }),
+        version: INSPIRATION_STORE_VERSION,
+        storage: createJSONStorage(inspirationScopedStorage),
+        partialize: (state) => ({ ...state.preservedData, favorites: state.favorites, externalFavorites: state.externalFavorites }),
+        migrate: () => {
+            throw new Error("本地收藏版本不受支持");
+        },
+        merge: (persisted, current) => {
+            // 合并前复核读取会话，避免已失效账号的归档进入当前内存。
+            if (!hydrationSession) throw new Error("本地收藏会话尚未就绪");
+            assertCurrentUserSession(hydrationSession, true);
+            return { ...current, ...onlineFavorites(persisted) };
+        },
         onRehydrateStorage: () => {
             const scope = currentInspirationScope();
+            hydrationSession = captureUserSession(true);
             clearInspirationMemory();
             return (state, error) => {
                 if (error || !state || !scope || currentInspirationScope() !== scope) {
-                    clearInspirationMemory("本地灵感记录暂不可用，当前仅展示公共目录，收藏和管理操作已暂停。");
-                    if (error) console.warn("本地灵感记录读取失败", error);
+                    clearInspirationMemory("本地收藏记录暂不可用，收藏操作已暂停，原记录未删除。请重试读取。");
+                    if (error) console.warn("本地灵感记录读取或清理失败", error);
                     return;
                 }
                 setInspirationMemory({ hydrated: true, hydrationScope: scope, hydrationError: "" });

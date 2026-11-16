@@ -399,6 +399,10 @@ export default function DramaCreatePage() {
             return draftId ? saveDramaDraft(draftId, input) : createDrama(input);
         },
         onSuccess: async (summary, start) => {
+            const ownerId = summary.project.userId;
+            if (ownerId && ownerId === useUserStore.getState().user?.id) {
+                void queryClient.invalidateQueries({ queryKey: ["my-dramas-recent", ownerId] });
+            }
             const canvasId = linkCanvasRef.current;
             if (canvasId) {
                 linkCanvasRef.current = undefined;

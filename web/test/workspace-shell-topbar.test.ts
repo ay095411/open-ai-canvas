@@ -12,9 +12,21 @@ describe("responsive workspace shell", () => {
         expect(shell).toContain("useState(readWorkspaceSidebarCollapsed)");
         expect(shell).toContain("writeWorkspaceSidebarCollapsed(next)");
         expect(shell).toContain("setMobileSidebarExpanded((current) => !current)");
-        expect(shell).toContain("if (isMobileViewport()) setMobileSidebarExpanded(false)");
+        expect(shell).toContain("if (isMobileViewport) setMobileSidebarExpanded(false)");
         expect(shell).toContain('aria-label={t("shell.collapseSidebar")} onClick={() => setMobileSidebarExpanded(false)}');
         expect(zhCN.shell.collapseSidebar).toBe("收起侧栏");
+    });
+
+    test("mobile drawer never inherits the desktop collapsed label or width", () => {
+        const shell = read("app-top-nav.tsx");
+        expect(shell).toContain("const sidebarCollapsed = !isMobileViewport && desktopSidebarCollapsed");
+        expect(shell).toContain("collapsed={sidebarCollapsed}");
+        expect(shell).toContain('sidebarCollapsed && "is-collapsed"');
+        expect(shell).toContain('media.addEventListener("change", updateViewport)');
+        expect(shell).toContain('media.removeEventListener("change", updateViewport)');
+        expect(shell).toContain("onCollapse={isMobileViewport ? () => setMobileSidebarExpanded(false) : collapseDesktopSidebar}");
+        const css = readFileSync(resolve(import.meta.dir, "../src/styles/workspace-product.css"), "utf8");
+        expect(css).toMatch(/\.app-workspace-nav-link\.is-collapsed \.app-workspace-nav-title\s*\{[^}]*white-space:\s*normal;[^}]*text-overflow:\s*clip;/s);
     });
 
     test("shell keeps navigation and overlay hosts mounted with the page stage", () => {
@@ -58,7 +70,7 @@ describe("responsive workspace shell", () => {
         const css = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
 
         expect(sidebar).toContain('to="/login" onClick={(event) => interceptAuthLink(event)}');
-        expect(sidebar).toContain('aria-label="登录" title="登录"');
+        expect(sidebar).toContain('aria-label="登录/注册" title="登录/注册"');
         expect(sidebar).toMatch(/className="app-workspace-sidebar-profile-avatar">\s*<CoalAvatar/);
         expect(sidebar).toMatch(/!collapsed\s*\?\s*\(?\s*<span className="app-workspace-sidebar-profile-copy"/);
         expect(css).toContain(".app-workspace-sidebar-profile");

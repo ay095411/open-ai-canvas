@@ -378,21 +378,19 @@ HTTP 请求 -> handler -> service（稳定导入面 / 别名）-> app（组合�
 
 `skill_curation_roots.go` 扩展动态根维护、有效根查询和空表回落；数据库迁移 47 接续 46。
 
-## 创作首页纵深画廊与灵感库
+## 创作首页与在线灵感大厅
 
-- `web/src/pages/create/creation-inspiration-tunnel.tsx`、`creation-inspiration-tunnel.css`：纵深画廊的排布、随机取样、封面就绪门控与样式。
-- `web/src/pages/inspirations/`：灵感页（`index.tsx`）、详情弹窗、编辑弹窗与 `inspirations.css`。
-- `web/src/lib/inspirations/catalog.ts`、`resolve.ts`、`source-revisions.ts`、`daily-order.ts`：来源登记表、条目类型与解析、原创条目、上游版本号、灵感大厅的每日推荐顺序。
-- `web/src/services/inspiration-catalog.ts`：全量目录与画廊池的运行时加载、内存缓存与失败退回。
-- `web/src/stores/use-inspiration-store.ts`：自建／覆盖／隐藏／收藏的本地持久化与导入导出。
-- `web/scripts/import-inspirations.mjs`：外部来源同步、等距抽取、缩略图生成与画廊池落盘；产物在 `web/public/inspirations/` 与 `web/public/inspiration-thumbs/`。
-- 灵感上新：`backend/internal/inspirations/`（`sources.go` 上游解析，与导入脚本同一套 ID 规则；`sync.go` 定时与手动同步；`feed.go` 公开接口与后台状态）、`app/inspiration_feed_bridge.go`、`handler/inspiration_feed.go`、`repository/inspiration_feed.go`；前端 `services/api/inspiration-feed.ts`、`services/inspiration-catalog.ts`（合并去重）、`pages/admin/components/inspiration-feed-row.tsx`（功能开放页的开关与立即同步）。
+- `web/src/components/layout/workspace-creation-records.tsx` / `.css`：由 `workspace-sidebar-nav.tsx` 挂载到侧栏菜单滚动内容中、插件所在资源与工具分组之后，分别展示当前账号最近三个画布与短剧的名称、更新时间、详情/草稿续编及全部入口；记录列表自然展开，无内部滚动容器。负责折叠/游客/功能开关边界、独立错误重试与账号隔离。复用 `listRemoteCanvasProjectsPage`、`listDramas`，查询前缀为 `canvas-library`、`my-dramas-recent`；`pages/projects/create.tsx` 在创建或保存成功且账号仍匹配时失效近期短剧查询，画布沿用同步服务的失效机制。
+- `web/src/pages/create/creation-showcase-band.tsx`：首页默认混合图片/视频在线摘要，每页 21 条、底部游标加载更多；独立媒体、分类、上游模型标注、排序与关键词筛选（300ms debounce）提交服务端查询整个在线目录，支持清除筛选。查询按组合分桶，新组合从首游标查询，已缓存组合可复用自身页缓存，不沿用其他组合游标；布局按筛选重建。与上方创作类型/模型解耦，保留跨页去重、重复游标防循环、失败重试和账号隔离，不使用旧精选补位；按媒体类型读取 facets，失败时仍可搜索/浏览并重试选项。原始筛选意图变化同步取消待完成旧详情，已打开的详情不强制关闭。
+- `web/src/pages/create/creation-inspiration-dialog.tsx`：单层大厅/详情弹窗，账号隔离、关闭后回填及本地记录失败重试。
+- `web/src/pages/inspirations/index.tsx`、`zzai-gallery.tsx`、`inspiration-detail-modal.tsx`：仅在线游标浏览、筛选、正文和本地收藏。
+- `web/src/lib/inspirations/catalog.ts`、`resolve.ts`、`zzai-gallery.ts`、`external-favorites.ts`：条目类型、中性来源说明、填词、上游转换和完整快照校验，无旧精选数据；`zzai-gallery.ts` 按首次出现优先（first-wins）跨页去重，保留已加载条目的顺序、内容与尺寸。
+- `web/src/lib/inspirations/masonry.ts`：固定封面展示比例与最短列纯算法；容器几何和旧卡片高度不变时，追加条目不改变已有前缀坐标，不随远程图片加载结果修改占位比例。
+- `web/src/components/inspirations/inspiration-masonry.tsx`：首页与大厅共用布局，保留原始 DOM 顺序，以未受弹窗 scale 动画变换的布局宽高测量容器与卡片，使用 `ResizeObserver` 响应真实尺寸变化；大厅隐藏时保留有效几何，返回后恢复原布局。布局样式由组件独立加载，页面可覆盖最小列宽。
+- `web/src/stores/use-inspiration-store.ts`：本地记录版本 0→1 清理旧自建/改写/隐藏/非在线收藏，保留在线快照；读写与迁移校验会话，固定账号 scope，迁移成功写回后就绪。会话初始化在 `user-session.ts` 清内存并重新读取，不参与远端数据同步。
 
-## 画布外观
+## 社区在线提示词
 
-`web/src/lib/canvas/canvas-appearance.ts` 管理预设快照、浅深记忆与默认偏好；`web/src/components/canvas/canvas-appearance-controls.tsx` 管理展开与微调；`web/src/components/canvas/canvas-toolbar.tsx` 限制外观和添加节点浮层尺寸。`web/src/stores/canvas/use-canvas-store.ts` 在创建时写入实际外观与线网格默认值，后续沿用画布持久化。
+`handler/inspiration_gallery.go` → `service/aliases_inspiration_gallery.go` → `app/inspiration_gallery_bridge.go` → `inspirations/gallery*.go`：固定外站的匿名只读列表、详情与分类，复用出站 SSRF 与有界读取缓存，不持久化整库。前端 `services/api/zzai-gallery.ts` 通过本站 API 按需读取。
 
-
-### 参考素材发送方式
-
-`backend/internal/app/media_transport.go` 管理渠道策略的事务保存、配置继承和请求兼容校验；`provider_media_hydration.go` 按图片、视频、音频分别准备归属校验后的签名 URL 或 Base64。`web/src/pages/admin/components/media-transport-fields.tsx` 提供渠道默认及模型覆盖的共同设置控件。
+旧静态目录、专用示例媒体、导入脚本及旧目录加载器已移除。旧 Feed 的生产路由注册与 `startInspirationFeedWorker` 启动已停止；原域、仓储、数据表与历史迁移仍保留，未自动删除数据库记录。

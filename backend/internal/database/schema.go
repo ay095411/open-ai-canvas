@@ -147,6 +147,7 @@ func Models() []any {
 		&model.PoseLibrarySource{},
 		&model.PoseLibraryItem{},
 		&model.InspirationFeedEntry{},
+		&model.InspirationLibraryEntry{},
 		&model.CanvasShare{},
 		&model.PromptTemplate{},
 		&model.UserPromptCustomization{},

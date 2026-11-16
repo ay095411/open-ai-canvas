@@ -6,7 +6,6 @@ import { Switch } from "@/pages/admin/ui/controls";
 import { cn } from "@/lib/utils";
 import type { FeatureAvailability, FeatureAvailabilityKey } from "@/stores/use-user-store";
 import { AdminStatusBadge } from "./admin-ui";
-import { InspirationFeedRow } from "./inspiration-feed-row";
 import { additionalTaskRows, featureByKey, featureGroups, featureRowState, missingFeatureRequirements, type FeatureRow } from "./feature-availability-catalog";
 import { useFeatureAvailabilityEditor } from "./use-feature-availability-editor";
 import "./feature-availability-panel.css";
@@ -91,7 +90,6 @@ export default function FeatureAvailabilityPanel() {
             {featureGroups.map((group) => (
                 <FeatureGroup key={group.title} title={group.title} description={group.description} icon={<group.icon className="size-4" aria-hidden="true" />}>
                     {group.rows.map(row)}
-                    {group.title === "页面辅助" ? <InspirationFeedRow /> : null}
                 </FeatureGroup>
             ))}
             <details className="afp-group afp-legacy">

@@ -66,8 +66,6 @@ beforeEach(() => {
             if (request.method === "patch") serverFeatures = { ...serverFeatures, ...(request.body as Partial<FeatureAvailability>) };
             else if (request.method !== "get") throw new Error(`Unexpected features method: ${request.method}`);
             data = { features: { ...serverFeatures } };
-        } else if (request.url === "/admin/settings/inspiration-feed" && request.method === "get") {
-            data = { status: { enabled: false, intervalHours: 6, sources: [], total: 3, bySource: {} } };
         } else if (request.url === "/ecommerce/agent-setting" && request.method === "get") {
             data = serverAgentSetting;
         } else throw new Error(`Unexpected request: ${request.method} ${request.url}`);
@@ -199,8 +197,8 @@ test("the panel exposes both studio switches independently and only collapses ec
     expect(toggle("ecommerceVideoEnabled").disabled).toBe(true);
     expect(view.host.textContent).toContain("创作影棚与电商Agent是独立入口");
     expect(view.host.textContent).not.toContain("已下线");
-    expect(view.host.querySelector("#admin-feature-inspirationFeed")?.textContent).toContain("已收录 3 条");
-    expect(requests.some((request) => request.url === "/admin/settings/inspiration-feed")).toBe(true);
+    expect(view.host.querySelector("#admin-feature-inspirationFeed")).toBeNull();
+    expect(requests.some((request) => request.url.includes("inspiration-feed"))).toBe(false);
 });
 
 test("studio tabs can toggle while ecommerce is off and each write only updates its own switch", async () => {

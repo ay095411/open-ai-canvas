@@ -1,0 +1,109 @@
+.inspiration-library-note {
+    margin: 4px 0;
+    color: var(--admin-text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+}
+.inspiration-library-source {
+    overflow-wrap: anywhere;
+}
+.inspiration-library-source p {
+    margin: 4px 0 0;
+    color: var(--admin-text-secondary);
+    font-size: 0.8125rem;
+}
+.inspiration-review,
+.inspiration-library-import {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--admin-space) * 2);
+}
+.inspiration-review-heading,
+.inspiration-review-actions,
+.inspiration-library-import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--admin-space);
+}
+.inspiration-review-heading h2 {
+    margin: 0;
+    font-size: 1.125rem;
+}
+.inspiration-review-metadata {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: var(--admin-space);
+    margin: 0;
+    font-size: 0.8125rem;
+}
+.inspiration-review-metadata dt {
+    color: var(--admin-text-secondary);
+}
+.inspiration-review-metadata dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.inspiration-review-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--admin-space);
+    min-width: 0;
+    margin: 0;
+    padding: calc(var(--admin-space) * 2) 0;
+    border: 0;
+    border-top: 1px solid var(--admin-divider);
+}
+.inspiration-review-section legend,
+.inspiration-review-section h3 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+.inspiration-review-section pre {
+    margin: 0;
+    font: inherit;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.inspiration-review-description {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.inspiration-review-form .ant-form-item {
+    margin-bottom: var(--admin-space);
+}
+.inspiration-review-checks {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--admin-space);
+}
+.inspiration-review-preview img,
+.inspiration-review-preview video {
+    display: block;
+    width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    background: var(--admin-surface-2);
+}
+.inspiration-library-file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--admin-space);
+    font-size: 0.8125rem;
+}
+.inspiration-library-import textarea {
+    font-family: var(--admin-font-mono);
+}
+@media (max-width: 640px) {
+    .inspiration-review-metadata {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    .inspiration-review-metadata dd {
+        margin-bottom: var(--admin-space);
+    }
+}

@@ -1,87 +1,78 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-
-import { canManageInspirations } from "../src/lib/inspirations/permissions";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import type { CreationInspiration } from "../src/lib/inspirations/catalog";
+import { getActiveUserScope, setActiveUserScope } from "../src/lib/user-scope";
 import { useInspirationStore } from "../src/stores/use-inspiration-store";
 import { useUserStore } from "../src/stores/use-user-store";
 
-const admin = { id: "u-admin", username: "admin", displayName: "管理员", role: "admin", status: "active" } as const;
-const normal = { id: "u-normal", username: "creator", displayName: "创作者", role: "user", status: "active" } as const;
+const originalState = useInspirationStore.getState();
+const originalStorage = useInspirationStore.persist.getOptions().storage;
+const originalUser = useUserStore.getState();
+const originalScope = getActiveUserScope();
+const emptyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+const item: CreationInspiration = {
+    id: "zzai-gallery:permission-probe",
+    sourceId: "zzai-gallery",
+    title: "权限探针",
+    description: "",
+    image: "https://example.com/cover.png",
+    mode: "image",
+    prompt: "A complete original prompt for permission checks.",
+    galleryUrl: "https://api.seedance.nz/prompt-gallery/permission-probe",
+};
 
-const draft = { title: "探针条目", description: "", image: "/inspirations/probe.webp", mode: "text" as const, prompt: "这是一条用于验证权限守卫的探针提示词，长度足够通过校验。" };
-
-const payload = JSON.stringify({
-    version: 1,
-    exportedAt: "2026-10-10T00:00:00.000Z",
-    custom: [{ title: "导入探针", image: "/x.webp", mode: "text", prompt: "导入探针的提示词正文，长度足够通过校验。" }],
-    overrides: {},
-    hidden: [],
-    favorites: [],
-});
-
-/** 直接把用户塞进 store，绕开真实的会话拉取。 */
-function signIn(user: unknown) {
-    useUserStore.setState({ user: user as never, hydrated: true });
+function signIn(role: "user" | "admin", id = "current-user") {
+    setActiveUserScope(id);
+    useUserStore.setState({ user: { id, username: id, displayName: id, role, status: "active" }, hydrated: true });
 }
 
-describe("灵感库权限判定", () => {
-    test("只有管理员能改库", () => {
-        expect(canManageInspirations(admin)).toBe(true);
-        expect(canManageInspirations(normal)).toBe(false);
-    });
-
-    test("游客 / 未 hydrate 出用户时按不允许处理", () => {
-        expect(canManageInspirations(null)).toBe(false);
-        expect(canManageInspirations(undefined)).toBe(false);
-        expect(canManageInspirations({})).toBe(false);
-    });
+beforeEach(async () => {
+    useInspirationStore.persist.setOptions({ storage: emptyStorage });
+    signIn("user");
+    await useInspirationStore.persist.rehydrate();
 });
 
-describe("灵感库写操作守卫", () => {
-    beforeEach(() => {
-        useInspirationStore.setState({ custom: [], overrides: {}, hidden: [], favorites: [] });
+afterEach(async () => {
+    useInspirationStore.persist.setOptions({ storage: emptyStorage });
+    await useInspirationStore.persist.rehydrate();
+    useInspirationStore.setState(originalState);
+    useInspirationStore.persist.setOptions({ storage: originalStorage });
+    useUserStore.setState(originalUser);
+    setActiveUserScope(originalScope);
+});
+
+describe("仅在线画廊的个人收藏权限", () => {
+    test("已登录普通用户能收藏完整在线详情", async () => {
+        await useInspirationStore.getState().toggleFavorite(item.id!, item);
+        expect(useInspirationStore.getState().favorites).toEqual([item.id!]);
+        expect(useInspirationStore.getState().externalFavorites).toEqual([item]);
     });
 
-    test("普通用户的新建 / 编辑 / 删除 / 导入一律不生效", () => {
-        signIn(normal);
-        const state = () => useInspirationStore.getState();
-
-        expect(state().createEntry(draft)).toBe("");
-        expect(state().custom).toHaveLength(0);
-
-        expect(state().importPayload(payload).created).toBe(0);
-        expect(state().custom).toHaveLength(0);
-
-        state().removeEntry("seedance:probe");
-        expect(state().hidden).toHaveLength(0);
-
-        state().updateEntry("seedance:probe", { title: "改过的标题" });
-        expect(state().overrides).toEqual({});
-
-        state().restoreEntry("seedance:probe");
-        expect(state().hidden).toHaveLength(0);
+    test("管理员同样只能维护自己的在线收藏，没有旧改库入口", async () => {
+        signIn("admin");
+        await useInspirationStore.persist.rehydrate();
+        await useInspirationStore.getState().toggleFavorite(item.id!, item);
+        expect(useInspirationStore.getState().favorites).toEqual([item.id!]);
+        for (const key of ["createEntry", "updateEntry", "removeEntry", "restoreEntry", "importPayload", "exportPayload", "resetCustomizations", "custom", "overrides", "hidden"]) expect(useInspirationStore.getState()).not.toHaveProperty(key);
     });
 
-    test("普通用户仍然可以收藏 —— 收藏是个人书签，不改库内容", async () => {
-        signIn(normal);
-        await useInspirationStore.getState().toggleFavorite("seedance:probe");
-        expect(useInspirationStore.getState().favorites).toEqual(["seedance:probe"]);
+    test("旧精选来源以及自建ID都不能再收藏", async () => {
+        for (const id of ["seedance:probe", "youmind:probe", "original:probe", "custom:probe", ""]) await expect(useInspirationStore.getState().toggleFavorite(id, item)).rejects.toThrow();
+        expect(useInspirationStore.getState().favorites).toEqual([]);
     });
 
-    test("管理员的新建 / 导入仍然生效", () => {
-        signIn(admin);
-        const state = () => useInspirationStore.getState();
-
-        const id = state().createEntry(draft);
-        expect(id.startsWith("custom:")).toBe(true);
-        expect(state().custom).toHaveLength(1);
-
-        expect(state().importPayload(payload)).toEqual({ created: 1, updated: 0, skipped: 0 });
-        expect(state().custom).toHaveLength(2);
+    test("游客不能写入在线收藏", async () => {
+        setActiveUserScope(null);
+        useUserStore.setState({ user: null, hydrated: true });
+        await useInspirationStore.persist.rehydrate();
+        await expect(useInspirationStore.getState().toggleFavorite(item.id!, item)).rejects.toThrow();
+        expect(useInspirationStore.getState().externalFavorites).toEqual([]);
     });
 
-    test("未登录时写操作同样被拦住", () => {
-        signIn(null);
-        expect(useInspirationStore.getState().createEntry(draft)).toBe("");
-        expect(useInspirationStore.getState().custom).toHaveLength(0);
+    test("本地未就绪或scope不是当前登录账号时必须拒绝", async () => {
+        useInspirationStore.setState({ hydrated: false });
+        await expect(useInspirationStore.getState().toggleFavorite(item.id!, item)).rejects.toThrow();
+        useInspirationStore.setState({ hydrated: true, hydrationScope: "other-user" });
+        await expect(useInspirationStore.getState().toggleFavorite(item.id!, item)).rejects.toThrow();
+        expect(useInspirationStore.getState().favorites).toEqual([]);
     });
 });

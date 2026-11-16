@@ -1,0 +1,264 @@
+.workspace-creation-records {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: var(--space-2);
+    color: var(--workspace-sidebar-ink);
+}
+
+.workspace-creation-records h2,
+.workspace-creation-records h3,
+.workspace-creation-records p {
+    margin: 0;
+}
+
+.workspace-creation-records-heading {
+    padding: 0 var(--space-2-half) var(--space-1);
+    color: var(--workspace-sidebar-muted);
+    font-size: var(--fs-label);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.workspace-creation-records svg {
+    width: var(--space-4);
+    height: var(--space-4);
+    flex-shrink: 0;
+}
+
+.workspace-creation-records-groups {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.workspace-creation-records-group {
+    min-width: 0;
+}
+
+.workspace-creation-records-group > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 0 var(--space-2-half) var(--space-1);
+}
+
+.workspace-creation-records h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.workspace-creation-records h3 > svg {
+    color: var(--workspace-sidebar-muted);
+}
+
+.workspace-creation-records-all {
+    display: inline-flex;
+    min-height: var(--space-6);
+    align-items: center;
+    gap: var(--space-half);
+    border-radius: var(--r-sm);
+    color: var(--workspace-sidebar-muted);
+    font-size: var(--fs-label);
+    text-decoration: none;
+}
+
+.workspace-creation-records-all:hover {
+    color: var(--workspace-sidebar-ink);
+}
+
+.workspace-creation-records-all > svg {
+    width: var(--space-3);
+    height: var(--space-3);
+}
+
+.workspace-creation-records-list ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-half);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.workspace-creation-records-link {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: var(--space-4) minmax(0, 1fr) var(--space-3);
+    align-items: center;
+    gap: var(--space-2);
+    border-radius: var(--r-md);
+    padding: var(--space-1-half) var(--space-2-half);
+    color: var(--workspace-sidebar-ink);
+    text-decoration: none;
+    transition: background-color var(--motion-state) ease;
+}
+
+.workspace-creation-records-link:hover {
+    background: var(--workspace-sidebar-hover);
+}
+
+.workspace-creation-records-link[aria-current="page"] {
+    background: var(--workspace-sidebar-selected);
+}
+
+.workspace-creation-records-marker {
+    width: var(--space-1);
+    height: var(--space-1);
+    justify-self: center;
+    border-radius: var(--r-full);
+    background: var(--workspace-sidebar-muted);
+    opacity: 0.45;
+}
+
+.workspace-creation-records-link[aria-current="page"] .workspace-creation-records-marker {
+    background: currentColor;
+    opacity: 1;
+}
+
+.workspace-creation-records-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-half);
+}
+
+.workspace-creation-records-copy strong {
+    overflow: hidden;
+    font-size: var(--fs-body);
+    font-weight: 500;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-creation-records-time {
+    color: var(--workspace-sidebar-muted);
+    font-size: var(--fs-label);
+    line-height: 1.4;
+}
+
+.workspace-creation-records-link > .workspace-creation-records-open {
+    width: var(--space-3);
+    height: var(--space-3);
+    color: var(--workspace-sidebar-muted);
+    opacity: 0;
+    transition: opacity var(--motion-state) ease;
+}
+
+.workspace-creation-records-link:hover > .workspace-creation-records-open,
+.workspace-creation-records-link:focus-visible > .workspace-creation-records-open,
+.workspace-creation-records-link[aria-current="page"] > .workspace-creation-records-open {
+    opacity: 1;
+}
+
+.workspace-creation-records-state {
+    padding: var(--space-2) var(--space-2-half);
+    color: var(--workspace-sidebar-muted);
+    font-size: var(--fs-caption);
+    line-height: 1.6;
+}
+
+.workspace-creation-records-state.is-empty {
+    padding-left: calc(var(--space-2-half) + var(--space-4) + var(--space-2));
+    font-size: var(--fs-label);
+}
+
+.workspace-creation-records-state.is-error {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    border-radius: var(--r-md);
+    background: var(--workspace-sidebar-hover);
+    font-size: var(--fs-label);
+}
+
+.workspace-creation-records-state button {
+    border: 0;
+    border-radius: var(--r-sm);
+    padding: 0;
+    background: transparent;
+    color: var(--workspace-sidebar-ink);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: var(--space-half);
+    cursor: pointer;
+}
+
+.workspace-creation-records-state button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.workspace-creation-records-guest {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    border: 1px solid var(--workspace-sidebar-border);
+    border-radius: var(--r-md);
+    padding: var(--space-3);
+    background: var(--workspace-sidebar-hover);
+}
+
+.workspace-creation-records-guest > strong {
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.workspace-creation-records-guest > p {
+    color: var(--workspace-sidebar-muted);
+    font-size: var(--fs-label);
+    line-height: 1.6;
+}
+
+.workspace-creation-records a:focus-visible,
+.workspace-creation-records button:focus-visible > span {
+    outline: var(--focus-ring-width) solid var(--control-focus-ring);
+    outline-offset: var(--space-half);
+}
+
+.workspace-creation-records.is-collapsed {
+    align-items: center;
+}
+
+.workspace-creation-records-expand {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    border: 0;
+    border-radius: var(--r-md);
+    padding: var(--space-2) 0;
+    background: transparent;
+    color: var(--workspace-sidebar-muted);
+    font-size: var(--fs-label);
+    cursor: pointer;
+}
+
+.workspace-creation-records-expand:hover {
+    background: var(--workspace-sidebar-hover);
+    color: var(--workspace-sidebar-ink);
+}
+
+@media (hover: none) {
+    .workspace-creation-records-link > .workspace-creation-records-open {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .workspace-creation-records-link,
+    .workspace-creation-records-link > .workspace-creation-records-open {
+        transition: none;
+    }
+}

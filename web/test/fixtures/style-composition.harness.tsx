@@ -48,6 +48,8 @@ mock.module("../../src/pages/projects/step-settings", () => ({ DramaAssetImageMo
 mock.module("../../src/pages/projects/storyboard-rules", () => ({ EpisodeDurationInput: () => null, StoryboardRules: () => null }));
 const { default: DramaCreatePage } = await import("../../src/pages/projects/create");
 const api = await import("../../src/services/api/drama");
+const { useUserStore } = await import("../../src/stores/use-user-store");
+const originalUserState = useUserStore.getState();
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 let client: InstanceType<typeof QueryClient>;
@@ -63,6 +65,7 @@ afterEach(async () => {
     host.remove();
     client.clear();
     mock.restore();
+    useUserStore.setState(originalUserState, true);
 });
 afterAll(() => {
     dom.happyDOM.abort();
@@ -213,13 +216,14 @@ function savedDraft(styleId: string): DramaDraft {
         form: { sourceText, styleId },
     };
 }
-async function renderDraft(draft: DramaDraft) {
+async function renderDraft(draft: DramaDraft, isNew = false) {
     client.setQueryData(["drama-draft", draft.projectId], draft);
+    spyOn(api, "listDramas").mockResolvedValue({ items: [], page: 1, pageSize: 6, total: 0, hasMore: false, statusCounts: {} });
     spyOn(api, "estimateDrama").mockResolvedValue({ episodes: 1, shots: 6, images: 0, videos: 0, textCalls: 1, minMicrocredits: 0, maxMicrocredits: 0, sampleMicrocredits: 0, priced: false, note: "", durationMinutes: 1 });
     await act(async () =>
         root.render(
             <QueryClientProvider client={client}>
-                <MemoryRouter initialEntries={[`/projects/new?draft=${draft.projectId}`]}>
+                <MemoryRouter initialEntries={[isNew ? { pathname: "/projects/new", state: { prefill: { name: draft.name, text: draft.form.sourceText, sourceFormat: draft.sourceFormat } } } : `/projects/new?draft=${draft.projectId}`]}>
                     <App>
                         <DramaCreatePage />
                     </App>
@@ -229,15 +233,30 @@ async function renderDraft(draft: DramaDraft) {
     );
 }
 
+const recordOwnerId = "record-owner";
+const otherRecordOwnerId = "other-record-owner";
+const recordKey = (userId: string) => ["my-dramas-recent", userId, "sidebar", 6];
+function seedCreationRecords() {
+    useUserStore.setState({ hydrated: true, user: { id: recordOwnerId, username: "record-owner", displayName: "Record Owner", role: "user", status: "active" } });
+    client.setQueryData(recordKey(recordOwnerId), { items: [] });
+    client.setQueryData(recordKey(otherRecordOwnerId), { items: [] });
+}
+function expectOnlyOwnerRecordsInvalidated() {
+    expect(client.getQueryState(recordKey(recordOwnerId))?.isInvalidated).toBe(true);
+    expect(client.getQueryState(recordKey(otherRecordOwnerId))?.isInvalidated).toBe(false);
+}
+
 test("create page hydrates a composed draft and persists both style settings and id", async () => {
+    seedCreationRecords();
     const original = savedDraft(composeDramaStyleId("3d", "xuanhuan"));
-    const save = spyOn(api, "saveDramaDraft").mockResolvedValue({ project: { id: original.projectId } } as DramaSummary);
+    const save = spyOn(api, "saveDramaDraft").mockResolvedValue({ project: { id: original.projectId, userId: recordOwnerId } } as DramaSummary);
     await renderDraft(original);
     expect(axisButton("表现形式", "3D 动画").getAttribute("aria-pressed")).toBe("true");
     expect(axisButton("题材", "玄幻").getAttribute("aria-pressed")).toBe("true");
     await pressAxis("题材", "都市");
     await click("保存为草稿");
     expect(save).toHaveBeenCalledTimes(1);
+    expectOnlyOwnerRecordsInvalidated();
     const [projectId, input] = save.mock.calls[0];
     const id = composeDramaStyleId("3d", "urban");
     expect(projectId).toBe(original.projectId);
@@ -258,15 +277,49 @@ test("create page hydrates a composed draft and persists both style settings and
 });
 
 test("starting a restored draft uses the composition in settings", async () => {
+    seedCreationRecords();
     const draft = savedDraft(composeDramaStyleId("semi-realistic", "apocalypse"));
-    const save = spyOn(api, "saveDramaDraft").mockResolvedValue({ project: { id: draft.projectId } } as DramaSummary);
+    const save = spyOn(api, "saveDramaDraft").mockResolvedValue({ project: { id: draft.projectId, userId: recordOwnerId } } as DramaSummary);
     await renderDraft(draft);
     await click("开始改编剧本与分镜");
     expect(save).toHaveBeenCalledTimes(1);
+    expectOnlyOwnerRecordsInvalidated();
     const input = save.mock.calls[0][1];
     expect(input.start).toBe(true);
     expect(input.draft).toBeUndefined();
     expect(input.settings.styleName).toBe("半写实 · 末日");
     expect(input.settings.stylePrompt).toBe(findDramaStyle(draft.form.styleId!)?.prompt);
     expect(parseDramaStyleId(draft.form.styleId!)).toEqual({ formId: "semi-realistic", themeId: "apocalypse" });
+});
+
+test("creating a new draft refreshes only its owner's creation records", async () => {
+    seedCreationRecords();
+    const draft = savedDraft(composeDramaStyleId("3d", "urban"));
+    const create = spyOn(api, "createDrama").mockResolvedValue({ project: { id: draft.projectId, userId: recordOwnerId } } as DramaSummary);
+    await renderDraft(draft, true);
+    await click("保存为草稿");
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][0].start).toBe(false);
+    expectOnlyOwnerRecordsInvalidated();
+});
+
+test("a late save result does not refresh creation records after an account switch", async () => {
+    seedCreationRecords();
+    const draft = savedDraft(composeDramaStyleId("3d", "urban"));
+    let resolveSave!: (summary: DramaSummary) => void;
+    const save = spyOn(api, "saveDramaDraft").mockImplementation(
+        () =>
+            new Promise<DramaSummary>((resolve) => {
+                resolveSave = resolve;
+            }),
+    );
+    await renderDraft(draft);
+    await click("保存为草稿");
+    expect(save).toHaveBeenCalledTimes(1);
+    await act(async () => {
+        useUserStore.setState({ user: { id: otherRecordOwnerId, username: "other-owner", displayName: "Other Owner", role: "user", status: "active" } });
+        resolveSave({ project: { id: draft.projectId, userId: recordOwnerId } } as DramaSummary);
+    });
+    expect(client.getQueryState(recordKey(recordOwnerId))?.isInvalidated).toBe(false);
+    expect(client.getQueryState(recordKey(otherRecordOwnerId))?.isInvalidated).toBe(false);
 });

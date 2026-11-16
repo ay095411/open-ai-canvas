@@ -128,6 +128,11 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 		if snapshotErr != nil {
 			return snapshotErr
 		}
+		libraryReferences, err := s.repo.InspirationLibraryResourceReferences(ownedIDs)
+		if err != nil {
+			return err
+		}
+		snapshot.Direct = append(snapshot.Direct, libraryReferences...)
 		sharedAssetResourceIDs := map[string]struct{}{}
 		for _, reference := range snapshot.Direct {
 			if _, exists := ownedIDSet[reference.ResourceID]; exists {
@@ -135,7 +140,7 @@ func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, pur
 					sharedAssetResourceIDs[reference.ResourceID] = struct{}{}
 					continue
 				}
-				if reference.Kind == "素材" || reference.Kind == repository.DramaResourceReferenceKind {
+				if reference.Kind == "素材" || reference.Kind == repository.DramaResourceReferenceKind || reference.Kind == repository.InspirationLibraryResourceReferenceKind {
 					sharedAssetResourceIDs[reference.ResourceID] = struct{}{}
 					continue
 				}

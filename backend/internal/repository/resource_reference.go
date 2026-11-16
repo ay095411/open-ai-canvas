@@ -141,6 +141,11 @@ func (r *Repository) ResourceReferenceSnapshotExcludingAssets(userID string, exc
 		return snapshot, err
 	}
 	snapshot.Direct = append(snapshot.Direct, history...)
+	libraryReferences, err := r.InspirationLibraryResourceReferences(resourceIDs)
+	if err != nil {
+		return snapshot, err
+	}
+	snapshot.Direct = append(snapshot.Direct, libraryReferences...)
 	var links []model.CreationConversationResource
 	if err := r.db.Where("user_id = ? AND resource_id IN ?", userID, resourceIDs).Find(&links).Error; err != nil {
 		return snapshot, err
@@ -486,6 +491,12 @@ func (r *Repository) DeleteAssetAndResources(userID string, assetID string, reso
 
 func (r *Repository) DeleteAssetsAndResources(userID string, assetIDs []string, resourceIDs []string, deletionJobs []model.ResourceDeletionJob, deleteReferencedResources bool) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if _, err := New(tx).lockInspirationLibraryResourceRows(resourceIDs); err != nil {
+			return err
+		}
+		if err := New(tx).RequireNoInspirationLibraryReferences(resourceIDs); err != nil {
+			return err
+		}
 		logReferences, err := New(tx).APICallLogResourceReferences(userID, resourceIDs)
 		if err != nil {
 			return err

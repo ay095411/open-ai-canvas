@@ -124,6 +124,7 @@ const adminNavigation: AdminNavigationGroup[] = [
         items: [
             { path: "/admin/workbench-tools", keywords: "工作台 工具 首页", label: "工作台工具", shortLabel: "工具", icon: <Shapes className="size-4" /> },
             { path: "/admin/prompt-templates", keywords: "提示词 模板 分镜 prompt", label: "提示词模板", shortLabel: "模板", icon: <MessageSquareText className="size-4" /> },
+            { path: "/admin/inspiration-library", keywords: "素材 授权 审核 白名单 许可 转载 商用 inspiration license", label: "素材授权审核", shortLabel: "授权", icon: <ShieldCheck className="size-4" /> },
             { path: "/admin/pose-library", keywords: "姿势 动作 pose", label: "姿势库", shortLabel: "姿势", icon: <PersonStanding className="size-4" /> },
             { path: "/admin/settings/drawing-engine", keywords: "绘图 画板 引擎", label: "绘图工具", shortLabel: "绘图", icon: <Paintbrush className="size-4" /> },
             { path: "/admin/plugins", keywords: "插件 扩展 协议 plugin", label: "插件管理", shortLabel: "插件", icon: <PlugZap className="size-4" /> },

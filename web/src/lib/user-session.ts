@@ -17,6 +17,7 @@ import { imageSizeConfigWithPresets } from "@/lib/image-size-presets";
 import { useUserStore } from "@/stores/use-user-store";
 import { PLUGIN_STORE_KEY, usePluginStore } from "@/stores/use-plugin-store";
 import { useGlobalAgentStore } from "@/stores/use-global-agent-store";
+import { useInspirationStore } from "@/stores/use-inspiration-store";
 import { initializeRemoteUserDataSession, installRemoteUserDataAutoSync, resetRemoteUserDataSync, withRemoteUserDataSyncExclusive } from "@/services/user-data-sync";
 import { clearResourceAccessCache } from "@/services/api/resources";
 import { clearResourceBlobCache } from "@/services/resource-blob-cache";
@@ -96,6 +97,7 @@ function resetUserScopedMemory() {
     useConfigStore.setState({ config: normalizeConfigSnapshot({ config: defaultConfig }).config });
     usePluginStore.setState({ hydrated: false, installations: [], runtimeStatuses: {}, pluginStates: {} });
     useCreationPreferencesStore.setState({ hydrated: false, preferences: {} });
+    useInspirationStore.setState({ hydrated: false, hydrationScope: null, hydrationError: "", favorites: [], externalFavorites: [] });
     // 全局 Agent 的开合与待投递消息属于账号会话，切换账号必须清空。
     useGlobalAgentStore.getState().reset();
 }
@@ -119,6 +121,7 @@ async function hydrateUserSessionData(payload: AuthSessionPayload, generation: n
         useConfigStore.persist.rehydrate(),
         usePluginStore.persist.rehydrate(),
         useCreationPreferencesStore.persist.rehydrate(),
+        useInspirationStore.persist.rehydrate(),
     ]);
     if (!isCurrentSession(generation, userId)) return;
     // Zustand 在目标 scope 没有快照时会保留旧内存，必须显式恢复该 scope 的空状态。

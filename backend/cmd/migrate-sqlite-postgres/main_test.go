@@ -37,6 +37,15 @@ func TestMigrationListCoversSchemaModels(t *testing.T) {
 	}
 }
 
+func TestMigrationListIncludesInspirationLibrary(t *testing.T) {
+	for _, migration := range migrations() {
+		if migration.name == "inspiration_library_entries" {
+			return
+		}
+	}
+	t.Fatal("migration list must include inspiration_library_entries")
+}
+
 func TestCanvasHistoryCompositeKeyMigration(t *testing.T) {
 	source, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:history-migration-source?mode=memory&cache=shared"})
 	if err != nil {

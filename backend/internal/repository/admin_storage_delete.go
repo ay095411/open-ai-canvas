@@ -49,6 +49,12 @@ func (r *Repository) DeleteAdminResources(resources []model.Resource, deletionJo
 		resourceIDs = append(resourceIDs, resource.ID)
 	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if _, err := New(tx).lockInspirationLibraryResourceRows(resourceIDs); err != nil {
+			return err
+		}
+		if err := New(tx).RequireNoInspirationLibraryReferences(resourceIDs); err != nil {
+			return err
+		}
 		if err := New(tx).RequireNoCanvasHistoryReferences(resourceIDs); err != nil {
 			return err
 		}

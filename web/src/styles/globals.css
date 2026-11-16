@@ -26867,14 +26867,16 @@ html:not(.dark) .home-background {
     /* 氛围底片以本元素为定位上下文（见 .creation-home-ambient），
        绝对定位的子元素在滚动容器里会随内容一起滚走，正好符合首屏舞台的语义。 */
     position: relative !important;
-    width: min(1440px, calc(100% - 40px)) !important;
+    /* 限宽交给内边距，滚动容器覆盖两侧留白，避免鼠标滚轮落入外边距死区。 */
+    box-sizing: border-box;
+    width: 100% !important;
     height: 100% !important;
     max-width: none !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior: contain;
     scrollbar-width: none;
-    padding: calc(var(--workspace-topbar-clearance, 0px) + 28px) 0 56px !important;
+    padding: calc(var(--workspace-topbar-clearance, 0px) + 28px) max(var(--space-5), calc((100% - 1440px) / 2)) 56px !important;
     scroll-padding-top: var(--workspace-topbar-clearance, 0px);
 }
 .app-user-workspace .creation-home > .creation-empty-workspace::-webkit-scrollbar {
@@ -27207,7 +27209,7 @@ html:not(.dark) .home-background {
 
 @media (max-width: 1100px) {
     .app-user-workspace .creation-home > .creation-empty-workspace {
-        width: calc(100% - 32px) !important;
+        padding-inline: var(--space-4) !important;
     }
 }
 @media (max-width: 680px) {
@@ -27219,7 +27221,7 @@ html:not(.dark) .home-background {
         width: 180px !important;
     }
     .app-user-workspace .creation-home > .creation-empty-workspace {
-        width: calc(100% - 24px) !important;
+        padding-inline: var(--space-3) !important;
         padding-top: calc(var(--workspace-topbar-clearance, 0px) + 28px) !important;
         padding-bottom: 40px !important;
     }

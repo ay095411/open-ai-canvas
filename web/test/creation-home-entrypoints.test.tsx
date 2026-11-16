@@ -21,7 +21,15 @@ test("home retains Agent collaboration without creation chooser or resource tool
     for (const removed of ["选择创作方式", "资源与工具", 'href="/toolbox/image"', 'href="/projects"', 'href="/assets"', 'href="/skills"', 'href="/plugins"', "<video", "<img"]) expect(html).not.toContain(removed);
     const page = readFileSync(new URL("../src/pages/create/index.tsx", import.meta.url), "utf8");
     expect(page).toContain("<CreationHomeAgentEntry");
-    expect(page).toContain("<CreationRecentProjects");
+    expect(page).not.toContain("CreationRecentProjects");
+    expect(page).not.toContain("creation-recent-canvases");
+    const sidebar = readFileSync(new URL("../src/components/layout/workspace-sidebar-nav.tsx", import.meta.url), "utf8");
+    const recordsIndex = sidebar.indexOf("<WorkspaceCreationRecords");
+    expect(recordsIndex).toBeGreaterThan(sidebar.indexOf("{groups.map"));
+    expect(recordsIndex).toBeLessThan(sidebar.indexOf("</LayoutGroup>"));
+    expect(recordsIndex).toBeLessThan(sidebar.indexOf("<WorkspaceSidebarProfile collapsed={collapsed} user={user}"));
+    expect(sidebar).toContain("<WorkspaceCreationRecords collapsed={collapsed} onExpand={onExpand} onNavigate={onNavigate}");
+    expect(page).toContain("<CreationShowcaseBand onStartPrompt={startPrompt}");
     expect(page).not.toContain('aria-label="查看历史对话"');
     expect(page).toContain("onOpenHistory={() => setHistoryOpen(true)}");
     expect(page).toContain("<CreationHistoryDrawer");
@@ -35,7 +43,9 @@ test("home content band stays independent of composer width", () => {
     const dashboard = css.split(".creation-home-dashboard {")[1].split("}")[0];
     expect(dashboard).toContain("width: 100%;");
     expect(dashboard).not.toContain("--creation-stage-max-width");
-    expect(globalCss).toContain("width: min(1440px, calc(100% - 40px)) !important;");
+    const viewport = globalCss.match(/\.app-user-workspace \.creation-home > \.creation-empty-workspace\s*\{([^}]+)\}/)?.[1];
+    expect(viewport).toContain("max(var(--space-5), calc((100% - 1440px) / 2))");
+    expect(globalCss).toContain("--creation-stage-max-width: 960px;");
     expect(globalCss).toContain("width: min(100%, var(--creation-stage-max-width));");
     const collaboration = css.split(".creation-home-agent-entry {")[1].split("}")[0];
     expect(collaboration).toContain("width: min(100%, var(--creation-stage-max-width));");

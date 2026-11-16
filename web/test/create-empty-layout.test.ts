@@ -19,3 +19,41 @@ test("create empty state keeps the intro and composer in document flow", () => {
     expect(layout).not.toContain("margin: 26px auto auto;");
     expect(layout).not.toContain(".creation-empty-art");
 });
+
+test("home scroll viewport covers the side gutters without widening its content", () => {
+    const styles = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
+    const viewport = styles.match(/\.app-user-workspace \.creation-home > \.creation-empty-workspace\s*\{([^}]+)\}/)?.[1];
+
+    expect(viewport).toBeDefined();
+    expect(viewport).toMatch(/^\s*width:\s*100%\s*!important;/m);
+    expect(viewport).toMatch(/box-sizing:\s*border-box;/);
+    expect(viewport).toMatch(/overflow-y:\s*auto\s*!important;/);
+    expect(viewport).toMatch(/overflow-x:\s*hidden\s*!important;/);
+    expect(viewport).toContain("max(var(--space-5), calc((100% - 1440px) / 2))");
+    expect(viewport).toContain("scroll-padding-top: var(--workspace-topbar-clearance, 0px);");
+});
+
+test.each([
+    [1100, "--space-4"],
+    [680, "--space-3"],
+] as const)("home keeps the scroll viewport full width below %ipx", (breakpoint, gutter) => {
+    const styles = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
+    const mediaStart = styles.lastIndexOf(`@media (max-width: ${breakpoint}px) {`);
+    expect(mediaStart).toBeGreaterThanOrEqual(0);
+    const responsive = styles.slice(mediaStart);
+    const viewport = responsive.match(/\.app-user-workspace \.creation-home > \.creation-empty-workspace\s*\{([^}]+)\}/)?.[1];
+
+    expect(viewport).toBeDefined();
+    expect(viewport).toContain(`padding-inline: var(${gutter}) !important;`);
+    expect(viewport).not.toMatch(/\b(?:width|max-width):/);
+});
+
+test("home retains its native scroll owner for the floating composer and scroll-to-top actions", () => {
+    const page = readFileSync(resolve(import.meta.dir, "../src/pages/create/index.tsx"), "utf8");
+    const viewport = page.match(/<main\b[^>]*className="creation-empty-workspace creation-scrollbar"[^>]*>/)?.[0];
+
+    expect(viewport).toBeDefined();
+    expect(viewport).toContain("ref={threadScrollRef}");
+    expect(viewport).toContain("onScroll={handleThreadScroll}");
+    expect(viewport).not.toContain("onWheel");
+});

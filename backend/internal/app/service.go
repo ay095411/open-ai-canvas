@@ -215,7 +215,6 @@ func (s *Service) StartWorker() {
 	s.startBillingAutoRefundWorker()
 	s.startArkPortraitWorker()
 	s.startDramaScheduler()
-	s.startInspirationFeedWorker()
 	s.startConsumptionReportWorker()
 	s.startFeishuFeedbackWorker()
 	go s.syncAgentSessionLimit()

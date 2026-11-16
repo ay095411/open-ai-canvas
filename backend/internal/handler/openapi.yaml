@@ -38,7 +38,7 @@ tags:
   - name: referral
     description: 推广中心：推广码、邀请记录与返佣
   - name: inspirations
-    description: 灵感大厅上新（定时同步的上游中文提示词）
+    description: 外部在线提示词画廊与独立的本站人工审核素材库
   - name: pose-library
     description: 站点姿势库：浏览、选用，管理员导入与图片同步
 paths:
@@ -2053,53 +2053,313 @@ paths:
           description: 信封 data 仅包含 welcomeEnabled 布尔值，默认 true；Cache-Control 为 no-store
         "500":
           description: 配置读取失败
-  /public/inspirations/feed:
+  /public/inspirations/zzai-gallery/prompts:
     get:
       tags: [inspirations]
       security: []
-      summary: 读取灵感上新条目（匿名可读）
-      description: 后端定时从 YouMind、awesome-seedance 同步的中文条目，按首次收录时间倒序，最多 3000 条；进程内缓存 5 分钟。按 IP 每分钟 120 次。
+      summary: 按需浏览 ZZAI 外部提示词画廊
+      description: 固定上游 api.seedance.nz，只读且不导入数据库、不转发凭据。按 IP 每分钟 60 次；有界进程缓存 2 分钟（128 键、16 MiB、8 个同时回源）。上游出处与许可未核实，模型名为上游元数据；不自动套用生成参数。拒绝未知、重复、非法查询参数。
+      parameters:
+        - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
+        - { name: category, in: query, schema: { type: string, maxLength: 32 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: model, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: tag, in: query, schema: { type: string, maxLength: 32 } }
+        - { name: sort, in: query, description: 默认 latest；有 search 时默认 relevance, schema: { type: string, enum: [latest, popular, featured, random, relevance] } }
+        - { name: seed, in: query, description: 仅允许与 random 排序一起使用, schema: { type: integer, minimum: 1, maximum: 2147483646 } }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 2048 } }
+        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 50 } }
       responses:
-        "200": { description: "data={enabled,entries[{id,title,description,image,mode,prompt,category?,tags?,sourceId,credit?,sourceUrl?,addedAt,publishedAt?}],categories{来源:{分类码:名称}},syncedAt?}；enabled=false 时 entries 为空" }
+        "200": { description: "data={items[{id,slug,sourceId,title,description,image,mode,featured,category?,tags?,width?,height?,ratio?,model?,credit?,sourceUrl?,galleryUrl,videoUrl?,publishedAt?}],total,nextCursor?}；id 为 zzai-gallery:<slug>；featured 为上游精选标记，中文标题优先；不返回完整 prompt" }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+  /public/inspirations/zzai-gallery/prompts/{slug}:
+    get:
+      tags: [inspirations]
+      security: []
+      summary: 读取外部画廊提示词详情
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, maxLength: 191, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$' }
+      description: 同列表的只读、限流和缓存边界。不接受查询参数。完整正文保留原语言，不自动翻译；缺少原作者链接不补造出处。
+      responses:
+        "200": { description: "data 为列表条目加 {prompt,promptZh?,usageNotes?,requiresReference?}；requiresReference 提醒用户提供参考图或视频，不自动发送上游参考素材" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+  /public/inspirations/zzai-gallery/facets:
+    get:
+      tags: [inspirations]
+      security: []
+      summary: 读取外部画廊的分类、模型和标签
+      parameters:
+        - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
+      responses:
+        "200": { description: "data={categories[],models[],tags[],total}；仅支持 media_type 查询；共用每 IP 每分钟 60 次限制" }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+  /public/inspirations/library/prompts:
+    get:
+      tags: [inspirations]
+      security: []
+      summary: 浏览本站人工审核库
+      description: 仅返回当前 approved 且通过许可与内容版本核验的摘要，不返回完整提示词。与外部在线图库分离，sourceId 固定为 authorized-library。公开库路由共用每 IP 每分钟 60 次限制，响应 Cache-Control 为 no-store。拒绝未知或重复参数；目录、筛选或 limit 改变后旧游标返回 409/library_cursor_stale，须从第一页重读。
+      parameters:
+        - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
+        - { name: category, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: model, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: sort, in: query, schema: { type: string, enum: [latest, featured], default: latest }, description: featured 仅返回精选条目 }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 2048 }, description: 上次响应的 nextCursor；不透明游标，不能与外部图库游标互换 }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        "200":
+          description: 当前已批准目录摘要；policyVersion 固定为 licensed-v1
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryPage" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
         "500": { $ref: "#/components/responses/Error" }
-  /admin/settings/inspiration-feed:
+  /public/inspirations/library/prompts/{slug}:
     get:
-      tags: [inspirations, admin]
-      summary: 灵感上新状态（管理员）
+      tags: [inspirations]
+      security: []
+      summary: 读取当前已批准的完整提示词
+      description: 不接受查询参数。每次按当前发布状态、内容哈希与许可核验，未批准、已下架或核验失败均返回 404；本地收藏快照不能替代本接口。共用公开库每 IP 每分钟 60 次限制，Cache-Control 为 no-store。
+      parameters:
+        - { $ref: "#/components/parameters/InspirationLibrarySlug" }
       responses:
-        "200": { description: "data.status={enabled,intervalHours,lastAttemptAt?,lastSuccessAt?,nextSyncAt?,lastError?,trigger?,sources[{sourceId,upstream,accepted,created,updated,error?}],total,bySource}" }
-        "401": { $ref: "#/components/responses/Error" }
-        "403": { $ref: "#/components/responses/Error" }
-    patch:
-      tags: [inspirations, admin]
-      summary: 开启或关闭灵感上新（管理员）
-      description: 关闭后停止同步，公开接口不再返回已收录条目；写入管理员审计。
+        "200":
+          description: 摘要、授权署名与完整提示词；不公开内部证据正文或审核操作人
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryDetail" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /public/inspirations/library/facets:
+    get:
+      tags: [inspirations]
+      security: []
+      summary: 读取本站审核库分类、模型标注与标签
+      description: 仅支持 media_type，不接受未知或重复参数；仅统计当前已批准条目。目录读取期间变化返回 409/library_cursor_stale。共用公开库每 IP 每分钟 60 次限制，Cache-Control 为 no-store。
+      parameters:
+        - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
+      responses:
+        "200":
+          description: 筛选项、总数与授权策略版本
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryFacets" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /public/inspirations/library/resolve:
+    post:
+      tags: [inspirations]
+      security: []
+      summary: 按收藏 ID 复核当前审核库摘要
+      description: 只读，不修改收藏。不接受查询参数；JSON 最多 32 KiB且拒绝未知字段。ids 必填但允许空数组；非 authorized-library 前缀忽略，属于本库的非法 slug 拒绝。去重并保留输入顺序，只返回仍已批准且核验通过的条目，已下架或不存在的 ID 省略。共用公开库每 IP 每分钟 60 次限制，Cache-Control 为 no-store。
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [enabled]
-              properties:
-                enabled: { type: boolean }
+            schema: { $ref: "#/components/schemas/InspirationLibraryResolveInput" }
       responses:
-        "200": { description: data.status 为最新状态 }
+        "200":
+          description: 当前摘要与授权策略版本；不是完整提示词快照
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryResolved" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /public/inspirations/library/prompts/{slug}/media:
+    get:
+      tags: [inspirations]
+      security: []
+      summary: 读取已批准固定版本的本站媒体
+      description: 仅接受 kind、hash、revision，拒绝未知或重复参数。不重定向到资源地址，不抓取外站；校验当前 approved 状态、revision、导入哈希和实际本地文件内容。旧版本、已下架或实际内容改变返回 404。图片仅 PNG/JPEG/GIF/WebP 且最多 32 MiB，视频仅 MP4/WebM 且最多 128 MiB。共用公开库每 IP 每分钟 60 次限制；成功为原始字节而非 JSON 信封。
+      parameters:
+        - { $ref: "#/components/parameters/InspirationLibrarySlug" }
+        - { $ref: "#/components/parameters/InspirationLibraryMediaKind" }
+        - { $ref: "#/components/parameters/InspirationLibraryMediaHash" }
+        - { $ref: "#/components/parameters/InspirationLibraryMediaRevision" }
+        - { in: header, name: Range, schema: { type: string }, description: HTTP 字节范围，例如 bytes=0-1023 }
+      responses:
+        "200": { $ref: "#/components/responses/InspirationLibraryMedia" }
+        "206": { $ref: "#/components/responses/InspirationLibraryMediaRange" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "416": { description: HTTP Range 不合法或超出媒体长度；由媒体处理器直接返回，不使用业务 JSON 信封 }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /admin/inspirations/library:
+    get:
+      tags: [admin, inspirations]
+      security: [{ sessionCookie: [] }]
+      summary: 管理员分页查看人工审核候选
+      description: 仅登录管理员可用，Cache-Control 为 no-store。省略或留空 status 查看全部状态。只接受 status、page、limit，拒绝未知或重复参数；返回候选正文、内部许可证据与审核元数据，不自动加载媒体。
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: ["", pending, approved, rejected] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200":
+          description: 候选审核记录分页
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryReviewPage" }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
-  /admin/settings/inspiration-feed/sync:
-    post:
-      tags: [inspirations, admin]
-      summary: 立即同步灵感上新（管理员）
-      description: 同步与请求解绑，最长约 8 分钟；部分来源失败仍返回 200，失败原因在 status.lastError 与 sources[].error。
+        "500": { $ref: "#/components/responses/Error" }
+  /admin/inspirations/library/{slug}:
+    get:
+      tags: [admin, inspirations]
+      security: [{ sessionCookie: [] }]
+      summary: 管理员读取候选与审核证据
+      description: 仅登录管理员可用，不接受查询参数，Cache-Control 为 no-store；包含未发布条目及内部许可证据。
+      parameters:
+        - { $ref: "#/components/parameters/InspirationLibrarySlug" }
       responses:
-        "200": { description: data.status 为同步后的状态 }
+        "200":
+          description: 候选完整内容与当前审核版本
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryRecord" }
+        "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
-        "409": { description: 上新已关闭，或另一实例/请求正在同步 }
-        "502": { description: 全部来源都同步失败 }
+        "404": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /admin/inspirations/library/import:
+    post:
+      tags: [admin, inspirations]
+      security: [{ sessionCookie: [] }]
+      summary: 管理员批量导入或更新待审候选
+      description: 仅登录管理员可用，不接受查询参数。JSON 最多 2 MiB，拒绝未知字段；每批 1–100 条且 slug 不可重复。媒体必须为已就绪的本站 local 资源 resource:ID，不接受远程热链。整批校验后连同审计原子提交；同内容与媒体哈希计入 unchanged，否则新建或递增版本并回到 pending、撤下旧发布。不能导入批准状态、审核人或 revision，也不会自动批准。Cache-Control 为 no-store。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InspirationLibraryImportInput" }
+      responses:
+        "200":
+          description: 新增、更新待审与未变化条目数量
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryImportResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /admin/inspirations/library/{slug}/review:
+    post:
+      tags: [admin, inspirations]
+      security: [{ sessionCookie: [] }]
+      summary: 管理员批准、拒绝或下架当前候选版本
+      description: 仅登录管理员可用，不接受查询参数。JSON 最多 8 KiB且拒绝未知字段。revision 必须等于当前版本，冲突返回 409/library_revision_conflict。approve 需要提示词和媒体分别具备允许商用展示及再分发的许可、至少 12 字具体证据、人工媒体确认；竞争关联条目还需明确例外与至少 12 字证据，并复核实际媒体哈希。reject 可直接下架。成功操作递增 revision 并与审计原子提交，Cache-Control 为 no-store。
+      parameters:
+        - { $ref: "#/components/parameters/InspirationLibrarySlug" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InspirationLibraryReviewInput" }
+      responses:
+        "200":
+          description: 新审核版本；损坏候选仍可拒绝，此时正文、许可与哈希可能为空，只保证标识和审核结果
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/Envelope" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/InspirationLibraryRecord" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+  /admin/inspirations/library/{slug}/media:
+    get:
+      tags: [admin, inspirations]
+      security: [{ sessionCookie: [] }]
+      summary: 管理员显式预览候选固定版本媒体
+      description: 仅登录管理员可用，可读取 pending 或 rejected 候选的当前固定版本，不代表已获发布批准。仅接受 kind、hash、revision，拒绝未知或重复参数；版本与本地实际媒体哈希不符返回 404。不重定向、不抓取外站、不返回对象路径。图片最多 32 MiB、视频最多 128 MiB，格式限制与公开媒体相同；成功直接返回原始媒体字节。
+      parameters:
+        - { $ref: "#/components/parameters/InspirationLibrarySlug" }
+        - { $ref: "#/components/parameters/InspirationLibraryMediaKind" }
+        - { $ref: "#/components/parameters/InspirationLibraryMediaHash" }
+        - { $ref: "#/components/parameters/InspirationLibraryMediaRevision" }
+        - { in: header, name: Range, schema: { type: string }, description: HTTP 字节范围，例如 bytes=0-1023 }
+      responses:
+        "200": { $ref: "#/components/responses/InspirationLibraryMedia" }
+        "206": { $ref: "#/components/responses/InspirationLibraryMediaRange" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "416": { description: HTTP Range 不合法或超出媒体长度；由媒体处理器直接返回，不使用业务 JSON 信封 }
+        "500": { $ref: "#/components/responses/Error" }
   /agent/capabilities:
     get:
       tags: [agent]
@@ -4669,6 +4929,27 @@ paths:
           description: 持久化失败，客户端保留本机数据并可重试
 components:
   parameters:
+    InspirationLibrarySlug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, maxLength: 191, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$' }
+    InspirationLibraryMediaKind:
+      name: kind
+      in: query
+      required: true
+      schema: { type: string, enum: [image, video] }
+    InspirationLibraryMediaHash:
+      name: hash
+      in: query
+      required: true
+      description: 当前记录对应媒体的 SHA256，不是整个候选的 contentHash
+      schema: { type: string, pattern: '^[a-f0-9]{64}$' }
+    InspirationLibraryMediaRevision:
+      name: revision
+      in: query
+      required: true
+      schema: { type: integer, format: int64, minimum: 1, maximum: 9007199254740991 }
     MCPResourceID:
       name: id
       in: path
@@ -4693,6 +4974,208 @@ components:
       in: cookie
       name: open_ai_canvas_session
   schemas:
+    InspirationLibraryLicenseInput:
+      type: object
+      additionalProperties: false
+      required: [name, url, attribution, rightsholder, commercialUse, redistribution]
+      description: 导入可保存未完成的证据供人工补充；批准时 evidence 至少 12 字且两个许可标志都必须为 true。文本上限按 UTF-8 字节计。
+      properties:
+        name: { type: string, minLength: 1, maxLength: 500 }
+        url: { type: string, format: uri, maxLength: 4096, description: 不含凭据或敏感查询参数的 HTTPS 许可或证据地址 }
+        attribution: { type: string, minLength: 1, maxLength: 2000 }
+        evidence: { type: string, maxLength: 16384 }
+        rightsholder: { type: string, minLength: 1, maxLength: 500 }
+        commercialUse: { type: boolean }
+        redistribution: { type: boolean }
+    InspirationLibraryStoredLicense:
+      type: object
+      description: 管理记录内的许可和证据；损坏候选的拒绝结果允许空文本与 null 许可标志。
+      properties:
+        name: { type: string }
+        url: { type: string }
+        attribution: { type: string }
+        evidence: { type: string }
+        rightsholder: { type: string }
+        commercialUse: { type: boolean, nullable: true }
+        redistribution: { type: boolean, nullable: true }
+    InspirationLibraryCandidate:
+      type: object
+      additionalProperties: false
+      required: [slug, title, prompt, image, mode, sourceUrl, author, promptLicense, mediaLicense]
+      description: 人工提供的候选内容，不含发布或审核元数据。文本上限按 UTF-8 字节计；媒体必须引用已上传、ready、local 的本站资源。
+      properties:
+        slug: { type: string, maxLength: 191, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$' }
+        title: { type: string, minLength: 1, maxLength: 500 }
+        description: { type: string, maxLength: 16384 }
+        prompt: { type: string, minLength: 1, maxLength: 200000 }
+        promptZh: { type: string, maxLength: 200000 }
+        image: { type: string, pattern: '^resource:[A-Za-z0-9][A-Za-z0-9_-]{0,79}$' }
+        videoUrl: { type: string, pattern: '^resource:[A-Za-z0-9][A-Za-z0-9_-]{0,79}$', description: video 模式必填；image 模式不得提供非空值 }
+        mode: { type: string, enum: [image, video] }
+        category: { type: string, maxLength: 128 }
+        tags: { type: array, maxItems: 50, items: { type: string, minLength: 1, maxLength: 128 } }
+        model: { type: string, maxLength: 128, description: 素材模型标注，不表示本站已配置该生成模型 }
+        width: { type: integer, minimum: 0, maximum: 20000 }
+        height: { type: integer, minimum: 0, maximum: 20000 }
+        featured: { type: boolean, default: false }
+        sourceUrl: { type: string, format: uri, maxLength: 4096, description: 不含凭据或敏感查询参数的 HTTPS 原始出处 }
+        author: { type: string, minLength: 1, maxLength: 500 }
+        promptLicense: { $ref: "#/components/schemas/InspirationLibraryLicenseInput" }
+        mediaLicense: { $ref: "#/components/schemas/InspirationLibraryLicenseInput" }
+        competitorException: { type: boolean, default: false }
+        competitorAssociation: { type: boolean, default: false, description: 人工标记；服务端还会从内容与来源独立识别关联 }
+        competitorEvidence: { type: string, maxLength: 16384 }
+        mediaReviewed: { type: boolean, default: false }
+    InspirationLibraryRecord:
+      type: object
+      required: [slug, revision, status, reviewReason]
+      description: 候选正文、媒体哈希和审核元数据。正常记录包含完整候选；为保证损坏数据仍可下架，拒绝结果可能含空正文、空哈希和零时间。
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        prompt: { type: string }
+        promptZh: { type: string }
+        image: { type: string, description: 本站资源引用，不是可公开展示的媒体地址 }
+        videoUrl: { type: string }
+        mode: { type: string }
+        category: { type: string }
+        tags: { type: array, items: { type: string } }
+        model: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        featured: { type: boolean }
+        sourceUrl: { type: string }
+        author: { type: string }
+        promptLicense: { $ref: "#/components/schemas/InspirationLibraryStoredLicense" }
+        mediaLicense: { $ref: "#/components/schemas/InspirationLibraryStoredLicense" }
+        competitorException: { type: boolean }
+        competitorAssociation: { type: boolean }
+        competitorEvidence: { type: string }
+        mediaReviewed: { type: boolean }
+        contentHash: { type: string, description: 正常记录为规范化候选与实际媒体哈希共同计算的 SHA256 }
+        imageHash: { type: string }
+        videoHash: { type: string }
+        revision: { type: integer, format: int64, minimum: 1, maximum: 9007199254740991 }
+        status: { type: string, enum: [pending, approved, rejected] }
+        reviewReason: { type: string }
+        reviewedBy: { type: string }
+        reviewedAt: { type: string, format: date-time }
+        publishedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    InspirationLibraryReviewPage:
+      type: object
+      required: [items, total, page, limit]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/InspirationLibraryRecord" } }
+        total: { type: integer, format: int64, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+    InspirationLibraryImportInput:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, minItems: 1, maxItems: 100, items: { $ref: "#/components/schemas/InspirationLibraryCandidate" } }
+    InspirationLibraryImportResult:
+      type: object
+      required: [created, updated, unchanged]
+      properties:
+        created: { type: integer, minimum: 0 }
+        updated: { type: integer, minimum: 0 }
+        unchanged: { type: integer, minimum: 0 }
+    InspirationLibraryReviewInput:
+      type: object
+      additionalProperties: false
+      required: [revision, action, reason]
+      properties:
+        revision: { type: integer, format: int64, minimum: 1, maximum: 9007199254740990, description: 当前已读取的记录版本；成功审核会递增版本 }
+        action: { type: string, enum: [approve, reject] }
+        reason: { type: string, minLength: 1, maxLength: 2000, description: 去除首尾空白后非空；最多 2000 UTF-8 字节 }
+    InspirationLibraryPublishedLicense:
+      type: object
+      required: [name, url, attribution, rightsholder]
+      properties:
+        name: { type: string }
+        url: { type: string, format: uri }
+        attribution: { type: string }
+        rightsholder: { type: string }
+    InspirationLibraryAuthorization:
+      type: object
+      required: [policyVersion, contentHash, revision, promptLicense, mediaLicense]
+      properties:
+        policyVersion: { type: string, enum: [licensed-v1] }
+        contentHash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        revision: { type: integer, format: int64, minimum: 1, maximum: 9007199254740991 }
+        promptLicense: { $ref: "#/components/schemas/InspirationLibraryPublishedLicense" }
+        mediaLicense: { $ref: "#/components/schemas/InspirationLibraryPublishedLicense" }
+    InspirationLibrarySummary:
+      type: object
+      required: [id, slug, sourceId, title, description, image, mode, featured, galleryUrl, authorization]
+      properties:
+        id: { type: string, pattern: '^authorized-library:[A-Za-z0-9][A-Za-z0-9._-]{0,190}$' }
+        slug: { type: string, maxLength: 191, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$' }
+        sourceId: { type: string, enum: [authorized-library] }
+        title: { type: string }
+        description: { type: string }
+        image: { type: string, description: 同源公开媒体端点，携带 image kind、实际媒体 hash 与 revision }
+        mode: { type: string, enum: [image, video] }
+        category: { type: string }
+        tags: { type: array, items: { type: string } }
+        width: { type: integer, minimum: 1, maximum: 20000 }
+        height: { type: integer, minimum: 1, maximum: 20000 }
+        ratio: { type: string, description: 有宽高时返回约分后的宽高比，例如 16:9 }
+        model: { type: string }
+        featured: { type: boolean }
+        credit: { type: string, description: 原作者署名 }
+        sourceUrl: { type: string, format: uri }
+        galleryUrl: { type: string, format: uri, description: 已审核候选的原始出处，不伪造聚合站链接 }
+        videoUrl: { type: string, description: 视频条目的同源公开媒体端点，携带 kind、hash 与 revision }
+        publishedAt: { type: string, format: date-time }
+        authorization: { $ref: "#/components/schemas/InspirationLibraryAuthorization" }
+    InspirationLibraryDetail:
+      allOf:
+        - { $ref: "#/components/schemas/InspirationLibrarySummary" }
+        - type: object
+          required: [prompt]
+          properties:
+            prompt: { type: string }
+            promptZh: { type: string }
+    InspirationLibraryPage:
+      type: object
+      required: [items, total, policyVersion]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/InspirationLibrarySummary" } }
+        total: { type: integer, format: int64, minimum: 0 }
+        nextCursor: { type: string, maxLength: 2048 }
+        policyVersion: { type: string, enum: [licensed-v1] }
+    InspirationLibraryFacets:
+      type: object
+      required: [categories, models, tags, total, policyVersion]
+      properties:
+        categories: { type: array, items: { type: string } }
+        models: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+        total: { type: integer, format: int64, minimum: 0 }
+        policyVersion: { type: string, enum: [licensed-v1] }
+    InspirationLibraryResolveInput:
+      type: object
+      additionalProperties: false
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          minItems: 0
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 220 }
+          description: 本库 ID 为 authorized-library:slug；其他非空来源 ID 忽略，不接受超过 220 字节的 ID
+    InspirationLibraryResolved:
+      type: object
+      required: [items, policyVersion]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/InspirationLibrarySummary" } }
+        policyVersion: { type: string, enum: [licensed-v1] }
     CreationHistoryMessage:
       type: object
       required: [id, revision]
@@ -5911,6 +6394,8 @@ components:
                 - conflict
                 - project_name_conflict
                 - skill_version_conflict
+                - library_revision_conflict
+                - library_cursor_stale
                 - failed_precondition
                 - quota_exceeded
                 - storage_capacity_exceeded
@@ -5928,6 +6413,34 @@ components:
                 - model_catalog_mismatch
                 - invalid_model_selection
   responses:
+    InspirationLibraryMedia:
+      description: 固定审核版本的完整本地媒体；原始二进制，不使用 JSON 信封
+      headers:
+        Cache-Control: { schema: { type: string, enum: [no-store] } }
+        X-Content-Type-Options: { schema: { type: string, enum: [nosniff] } }
+        Accept-Ranges: { schema: { type: string, enum: [bytes] } }
+      content:
+        image/png: { schema: { type: string, format: binary } }
+        image/jpeg: { schema: { type: string, format: binary } }
+        image/gif: { schema: { type: string, format: binary } }
+        image/webp: { schema: { type: string, format: binary } }
+        video/mp4: { schema: { type: string, format: binary } }
+        video/webm: { schema: { type: string, format: binary } }
+    InspirationLibraryMediaRange:
+      description: 固定审核版本的媒体字节范围；多范围使用 multipart/byteranges
+      headers:
+        Cache-Control: { schema: { type: string, enum: [no-store] } }
+        X-Content-Type-Options: { schema: { type: string, enum: [nosniff] } }
+        Accept-Ranges: { schema: { type: string, enum: [bytes] } }
+        Content-Range: { schema: { type: string }, description: 单范围响应的字节位置 }
+      content:
+        image/png: { schema: { type: string, format: binary } }
+        image/jpeg: { schema: { type: string, format: binary } }
+        image/gif: { schema: { type: string, format: binary } }
+        image/webp: { schema: { type: string, format: binary } }
+        video/mp4: { schema: { type: string, format: binary } }
+        video/webm: { schema: { type: string, format: binary } }
+        multipart/byteranges: { schema: { type: string, format: binary } }
     MCPCatalog:
       description: MCP 市场条目列表；空列表返回 items 数组
       content:

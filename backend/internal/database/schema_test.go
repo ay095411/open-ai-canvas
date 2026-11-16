@@ -69,3 +69,12 @@ func TestModelsIncludeCloudAgentCanvasMutation(t *testing.T) {
 	}
 	t.Fatal("Models must include CloudAgentCanvasMutation")
 }
+
+func TestModelsIncludeInspirationLibraryEntry(t *testing.T) {
+	for _, item := range Models() {
+		if _, ok := item.(*model.InspirationLibraryEntry); ok {
+			return
+		}
+	}
+	t.Fatal("Models must include InspirationLibraryEntry")
+}

@@ -8,6 +8,7 @@ import { BrandLogoFrame } from "@/components/brand/brand-logo";
 import { CoalAvatar } from "@/components/brand/coal-avatar";
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { UserGroupAvatarRing } from "@/components/layout/user-group-badge";
+import { WorkspaceCreationRecords } from "@/components/layout/workspace-creation-records";
 import { Kbd } from "@/components/ui/base/kbd";
 import { navigationBadges, type WorkspaceNavBadge } from "@/constant/navigation-badges";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
@@ -101,13 +102,13 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
                     斜箭头保留「这是一次跳转」的语义（中键 / 新标签页仍走 `/login` 深链），
                     但左键点击会被拦截成就地开弹窗 —— 真跳 `/login` 会让整页卸载重建、闪一下。
                     折叠态只留头像：文字和箭头会挤爆 42px 的方框。 */}
-                <Link to="/login" onClick={(event) => interceptAuthLink(event)} className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录" title="登录">
+                <Link to="/login" onClick={(event) => interceptAuthLink(event)} className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="登录/注册" title="登录/注册">
                     <span className="app-workspace-sidebar-profile-avatar">
                         <CoalAvatar />
                     </span>
                     {!collapsed ? (
                         <span className="app-workspace-sidebar-profile-copy">
-                            <strong>登录</strong>
+                            <strong>登录/注册</strong>
                         </span>
                     ) : null}
                     {!collapsed ? <ArrowUpRight className="app-workspace-sidebar-profile-arrow" /> : null}
@@ -195,7 +196,7 @@ function WorkspaceSwitcher({ collapsed, onNavigate, onExpand, onCollapse }: { co
 }
 
 /**
- * 折叠态窄轨里的两字标题。
+ * 折叠态窄轨里的紧凑导航标题。
  *
  * 带独立语义的菜单统一在这里登记，没登记的才退回前两字。
  * 「电商Agent」在窄轨中显示为「电商」。
@@ -442,6 +443,7 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
                     {groups.map((group, index) => (
                         <NavGroup key={index} group={group} activeId={activeId} onNavigate={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
                     ))}
+                    <WorkspaceCreationRecords collapsed={collapsed} onExpand={onExpand} onNavigate={onNavigate} />
                 </div>
             </LayoutGroup>
 

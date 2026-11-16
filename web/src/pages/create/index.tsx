@@ -87,7 +87,6 @@ import {
 } from "./creation-conversations";
 import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
 import { CreationHomeAgentEntry } from "./creation-home-feature-matrix";
-import { CreationRecentProjects } from "./creation-recent-canvases";
 import { CreationShowcaseBand } from "./creation-showcase-band";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig, creationVideoSettings } from "./creation-generation-config";
@@ -1675,10 +1674,7 @@ export default function CreatePage() {
                             </section>
                             <div className="creation-home-dashboard">
                                 <CreationHomeAgentEntry openingAgentCanvas={openingAgentCanvas} onOpenHistory={() => setHistoryOpen(true)} onOpenAgentNewCanvas={startAgentNewCanvas} />
-                                {/* 顺序是「输入框 → Agent 提示 → 作品带 → 继续创作」。
-                        游客没有「继续创作」（组件自己返回 null），所以作品带自然落到页面最下面。 */}
-                                <CreationShowcaseBand mode={mode} onStartPrompt={startPrompt} sourcesVisible={inspirationSourcesVisible} />
-                                <CreationRecentProjects />
+                                <CreationShowcaseBand onStartPrompt={startPrompt} sourcesVisible={inspirationSourcesVisible} />
                             </div>
                         </main>
                     </>

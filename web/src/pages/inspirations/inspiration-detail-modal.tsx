@@ -1,11 +1,16 @@
 import { Button } from "antd";
-import { Copy, ExternalLink, Heart, Pencil, Trash2, Wand2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Copy, ExternalLink, Heart, Wand2 } from "lucide-react";
 
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { AppModal } from "@/components/ui/product/app-modal";
-import { catalogIdOf, inspirationSourceOf, type CreationInspiration } from "@/lib/inspirations/catalog";
-import { isCustomInspiration } from "@/lib/inspirations/resolve";
+import { inspirationSourceOf, type CreationInspiration } from "@/lib/inspirations/catalog";
+import { normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
 import { modeLabels } from "@/pages/create/creation-types";
+import { INSPIRATION_POLICY_VERSION } from "@/services/api/zzai-gallery";
+import { getInspirationPrompt } from "@/services/api/online-gallery";
+import { useUserStore } from "@/stores/use-user-store";
+import { InspirationAuthorizationNotice } from "./inspiration-authorization-notice";
 
 // 弹窗的样式（.inspiration-detail* / .inspiration-prompt-block / .inspiration-icon-button / 标签 chip）
 // 都在灵感库样式表里，和画廊共用同一套 token 与视觉语言。
@@ -26,30 +31,48 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 /**
  * 灵感详情弹窗。
  *
- * 两种用法：灵感页给全量能力（收藏 / 编辑 / 删除都是库管理动作）；
- * 首页瀑布流只借它做「看一眼完整提示词」，所以那一组按钮与分类行都是可选的，
- * 不传就不渲染——首页不该出现改库的入口。
+ * 灵感大厅与首页共用在线正文；收藏按钮和分类行按调用方能力展示。
  */
 export function InspirationDetailModal({ item, afterClose, ...props }: Omit<Parameters<typeof InspirationDetailContent>[0], "item"> & { item: CreationInspiration | null; afterClose?: () => void }) {
+    const scope = useUserStore((state) => state.user?.id ?? "guest");
+    const licensed = item?.sourceId === "authorized-library";
+    const detail = useQuery({
+        queryKey: ["public", "inspirations", licensed ? "authorized-library" : "zzai-gallery", licensed ? INSPIRATION_POLICY_VERSION : "online-v1", "detail", scope, item?.id],
+        queryFn: ({ signal }) => {
+            if (!item?.id) throw new Error("缺少示例标识");
+            return getInspirationPrompt(item.id, signal);
+        },
+        enabled: Boolean(item),
+        retry: false,
+        staleTime: 0,
+        refetchOnMount: "always",
+        refetchOnWindowFocus: "always",
+        refetchInterval: 60_000,
+    });
     return (
         <AppModal open={Boolean(item)} onCancel={props.onClose} afterClose={afterClose} width={1080} title={null} footer={null} flush closable={false}>
-            {item ? <InspirationDetailContent item={item} {...props} /> : null}
+            {item && detail.isSuccess && detail.isFetchedAfterMount ? <InspirationDetailContent {...props} item={detail.data} videoUrl={detail.data.videoUrl} /> : null}
+            {item && !detail.isError && (!detail.isSuccess || !detail.isFetchedAfterMount) ? <p role="status">{licensed ? "正在核验授权素材…" : "正在读取在线示例…"}</p> : null}
+            {item && detail.isError ? (
+                <p role="alert">
+                    当前素材不可用，正文和媒体已隐藏。<Button onClick={() => void detail.refetch()}>重试核验</Button>
+                </p>
+            ) : null}
         </AppModal>
     );
 }
 
 /** 大厅在同一弹窗里切换列表与详情，复用正文而不再叠一层 Modal。 */
 export function InspirationDetailContent({
-    item,
+    item: candidate,
     categoryLabel,
     favorite = false,
+    favoriteDisabled = false,
     onClose,
     onUse,
-    onEdit,
-    onDelete,
     onToggleFavorite,
     onCopy,
-    videoUrl,
+    videoUrl = candidate.videoUrl,
     closeLabel = "关闭",
     useLabel = "用这个创意创作",
     useDisabled = false,
@@ -57,10 +80,9 @@ export function InspirationDetailContent({
     item: CreationInspiration;
     categoryLabel?: (item: CreationInspiration) => string;
     favorite?: boolean;
+    favoriteDisabled?: boolean;
     onClose: () => void;
     onUse: (item: CreationInspiration) => void;
-    onEdit?: (item: CreationInspiration) => void;
-    onDelete?: (item: CreationInspiration) => void;
     onToggleFavorite?: (item: CreationInspiration) => void;
     onCopy: (text: string, label: string) => void;
     videoUrl?: string;
@@ -68,9 +90,18 @@ export function InspirationDetailContent({
     useLabel?: string;
     useDisabled?: boolean;
 }) {
+    let item: CreationInspiration;
+    try {
+        item = normalizeExternalFavorite(candidate);
+    } catch {
+        return (
+            <p role="alert">
+                历史素材未通过当前授权核验，已隐藏。<Button onClick={onClose}>{closeLabel}</Button>
+            </p>
+        );
+    }
     const source = inspirationSourceOf(item);
-    const custom = isCustomInspiration(catalogIdOf(item));
-    const hasLibraryActions = Boolean(onToggleFavorite || onEdit || onDelete);
+    const hasLibraryActions = Boolean(onToggleFavorite);
 
     return (
         /* 左图右文：图片按原图比例完整显示（不裁切、不放大超过原图），
@@ -88,10 +119,8 @@ export function InspirationDetailContent({
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <MetaRow label="来源">
-                            {source?.name ?? "原创"}
-                            {item.credit ? ` · ${item.credit}` : ""}
-                        </MetaRow>
+                        <MetaRow label="来源">{source.name}</MetaRow>
+                        {item.model ? <MetaRow label="模型">{item.model}（上游标注）</MetaRow> : null}
                         {categoryLabel ? <MetaRow label="分类">{categoryLabel(item)}</MetaRow> : null}
                         <MetaRow label="类型">
                             {modeLabels[item.mode]}
@@ -117,6 +146,16 @@ export function InspirationDetailContent({
                         ) : null}
                     </div>
 
+                    <InspirationAuthorizationNotice item={item} />
+                    {item.sourceId === "authorized-library" || item.sourceId === "zzai-gallery" ? (
+                        <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs leading-5 text-foreground/65">
+                            {!item.sourceUrl ? <p>上游未标注原始出处，不能视为原创。</p> : null}
+                            <p>{source.notice}</p>
+                            {item.requiresReference ? <p className="mt-1 font-medium">此案例需要参考素材；带入提示词后，请自行添加相应图片或视频，不会自动复用上游人物素材。</p> : null}
+                            {item.usageNotes ? <p className="mt-1 whitespace-pre-wrap">{item.usageNotes}</p> : null}
+                        </div>
+                    ) : null}
+
                     <PromptSection label={item.promptZh ? "提示词 · 中文" : "提示词"} text={item.promptZh || item.prompt} onCopy={onCopy} />
                     {item.promptZh && item.prompt !== item.promptZh ? <PromptSection label="提示词 · 原文" text={item.prompt} onCopy={onCopy} /> : null}
                 </div>
@@ -127,22 +166,8 @@ export function InspirationDetailContent({
                         <div className="flex items-center gap-1.5">
                             {onToggleFavorite ? (
                                 <Tooltip title={favorite ? "取消收藏" : "收藏"}>
-                                    <button type="button" className="inspiration-icon-button" aria-pressed={favorite} onClick={() => onToggleFavorite(item)}>
+                                    <button type="button" className="inspiration-icon-button" aria-label={favorite ? "取消收藏" : "收藏"} aria-pressed={favorite} disabled={favoriteDisabled} onClick={() => onToggleFavorite(item)}>
                                         <Heart className="size-4" fill={favorite ? "currentColor" : "none"} />
-                                    </button>
-                                </Tooltip>
-                            ) : null}
-                            {onEdit ? (
-                                <Tooltip title="编辑">
-                                    <button type="button" className="inspiration-icon-button" onClick={() => onEdit(item)}>
-                                        <Pencil className="size-4" />
-                                    </button>
-                                </Tooltip>
-                            ) : null}
-                            {onDelete ? (
-                                <Tooltip title={custom ? "删除" : "从库中隐藏"}>
-                                    <button type="button" className="inspiration-icon-button" onClick={() => onDelete(item)}>
-                                        <Trash2 className="size-4" />
                                     </button>
                                 </Tooltip>
                             ) : null}

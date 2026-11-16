@@ -50,6 +50,7 @@ const ResponseInterceptionSettingsPage = lazyAdminPage(() => import("@/pages/adm
 const ThirdPartySettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/libtv-settings-page"));
 const WorkbenchToolsPage = lazyAdminPage(() => import("@/pages/admin/workbench-tools/workbench-tools-page"));
 const PoseLibraryAdminPage = lazyAdminPage(() => import("@/pages/admin/pose-library/pose-library-page"));
+const InspirationLibraryAdminPage = lazyAdminPage(() => import("@/pages/admin/inspiration-library/inspiration-library-page"));
 const SystemUpdatePage = lazyAdminPage(() => import("@/pages/admin/settings/system-update-page"));
 const SystemPerformancePage = lazyAdminPage(() => import("@/pages/admin/settings/system-performance-page"));
 const StoryboardPromptsPage = lazyAdminPage(() => import("@/pages/admin/storyboard-prompts/storyboard-prompts-page"));
@@ -267,6 +268,7 @@ export const router = createBrowserRouter([
                     { path: "mcp", element: <AdminMCPPage /> },
                     { path: "workbench-tools", element: <WorkbenchToolsPage /> },
                     { path: "pose-library", element: <PoseLibraryAdminPage /> },
+                    { path: "inspiration-library", element: <InspirationLibraryAdminPage /> },
                     { path: "skills", element: <AdminSkillsPage /> },
                     { path: "skills/:skillId/edit", element: <AdminSkillWorkbenchPage /> },
                     { path: "skill-curation", element: <SkillCurationPage /> },

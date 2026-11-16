@@ -1,315 +1,345 @@
-import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Popover } from "antd";
-import { ArrowUpRight, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Button, Input, Popover } from "antd";
+import { ArrowDown, ArrowUpRight, Images, Info, RefreshCw, Search, SearchX, SlidersHorizontal, WifiOff, X } from "lucide-react";
 
-import { catalogIdOf, curatedInspirations, declaredInspirationSources, inspirationCategoryLabel, inspirationSourceOf, type CreationInspiration, type InspirationCategoryLabels, type InspirationSourceInfo } from "@/lib/inspirations/catalog";
-import { localDayKey, orderInspirationsByLatest } from "@/lib/inspirations/daily-order";
-import { getPublicInspirationFeed, publicInspirationFeedQueryKey } from "@/services/api/inspiration-feed";
-import { inspirationFeedEntries } from "@/services/inspiration-catalog";
+import { InspirationMasonry } from "@/components/inspirations/inspiration-masonry";
+import { SegmentedControl } from "@/components/ui/base/segmented-control";
+import { Select } from "@/components/ui/base/select";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { inspirationSources, type InspirationGallerySource } from "@/lib/inspirations/catalog";
+import { mergeZzaiGalleryPages, zzaiCategoryLabel } from "@/lib/inspirations/zzai-gallery";
+import { ApiError } from "@/services/api/request";
+import { INSPIRATION_POLICY_VERSION, getZzaiGalleryFacets, getZzaiGalleryPrompts, type ZzaiGalleryQuery, type ZzaiGallerySort } from "@/services/api/zzai-gallery";
+import { getOnlineGalleryFacets, getOnlineGalleryPrompts, type InspirationGalleryFacets, type InspirationGalleryPage, type InspirationGallerySummary } from "@/services/api/online-gallery";
+import { useUserStore } from "@/stores/use-user-store";
 
 import CreationInspirationDialog from "./creation-inspiration-dialog";
+import { CreationShowcaseCard } from "./creation-showcase-card";
 import type { CreationMode } from "./creation-types";
 import "./creation-showcase-band.css";
 
-/** 首页作品带优先展示后台上新，未满一组时补内置示例；两份等宽集合用于无缝滚动。 */
+type ShowcaseFilters = { search: string; media: "all" | "image" | "video"; category: string; model: string; sort: ZzaiGallerySort };
+const DEFAULT_FILTERS: ShowcaseFilters = { search: "", media: "all", category: "", model: "", sort: "latest" };
 
-type ShowcaseEntry = {
-    id: string;
-    title: string;
-    genre: string;
-    mode: CreationMode;
-    /** 封面；有视频时同时作为 `<video>` 的 poster。 */
-    poster: string;
-    /** 悬停才播放的示例片段。 */
-    video?: string;
-    /** 详情中可复制或带进创作区的提示词。 */
-    prompt: string;
-    source?: InspirationSourceInfo;
-    credit?: string;
-    sourceUrl?: string;
-    isFeed?: boolean;
-    inspiration?: CreationInspiration;
-};
-
-const SHOWCASE: ShowcaseEntry[] = [
-    {
-        id: "qipao",
-        title: "雨巷旗袍",
-        genre: "民国 · 年代",
-        mode: "image",
-        poster: "/showcase/qipao.webp",
-        prompt: "中近景：民国时期雨后的青石板巷子，一位穿墨绿提花旗袍的年轻女人撑黑伞站立，侧身回望镜头。旗袍高领盘扣，发鬓盘起，耳坠是小只珍珠。伞沿的水滴成串落下，身后是湿漉漉的白墙黑瓦与一盏昏黄壁灯，雨水在青石板上积成倒影。冷调环境配暖色灯光，浅景深，胶片质感。",
-    },
-    {
-        id: "ghibli-hill",
-        title: "风起青麦",
-        genre: "动画 · 宫崎骏风",
-        mode: "image",
-        poster: "/showcase/ghibli-hill.webp",
-        prompt: "2D 手绘动画镜头：风把整片青麦压出一道道波纹的山坡，坡顶站着一个穿白色棉布连衣裙的少女，回头看向镜头，头发和裙摆被吹向一侧。远景是堆到天上的巨大积云和淡蓝色远山，阳光从云缝里斜着落下来，麦穗边缘透光。近景有零星白色小野花。柔和的暖调，边缘柔软不锐利，云是水彩笔触。吉卜力式（宫崎骏）手绘赛璐璐动画质感，不要 3D，不要写实人脸。",
-    },
-    {
-        id: "neon-girl",
-        title: "霓虹雨夜",
-        genre: "都市 · 赛博",
-        mode: "image",
-        poster: "/showcase/neon-girl.webp",
-        prompt: "中近景半身人像：雨夜霓虹街头，一位短发年轻女人靠在瓷砖墙边，转头看向镜头。穿黑色皮外套和高领毛衣。左半边脸被青色霓虹照亮，右半边是暖紫色招牌的反光，发梢湿了贴在脸侧。背景虚化的汉字招牌、雨水和水幕。冷紫主调，浅景深，脸要清楚。",
-    },
-    {
-        id: "xianxia-cliff",
-        title: "剑立云海",
-        genre: "仙侠 · 2D 漫剧",
-        mode: "image",
-        poster: "/showcase/xianxia-cliff.webp",
-        prompt: "2D 国漫漫剧镜头：白衣剑修立于断裂的悬崖之上，脚下是翻涌的云海与远处的浮空山峰。他一手抬起，一柄青玉长剑横悬在掌心旁，长发和宽袖被山风吹开。天光从云海深处透上来，是浅金色，云层亮边描得很细，空气里有微小的光点。水墨背景配干净的赛璐璐人物上色，配色只留白、青玉绿、浅金三色。画面要静，不要战斗感；不要 3D，不要写实人脸。",
-    },
-    {
-        id: "swordswoman",
-        title: "竹林剑客",
-        genre: "武侠 · 古装",
-        mode: "image",
-        poster: "/showcase/swordswoman.webp",
-        prompt: "中近景：竹林中，一位年轻女剑客侧身站立，手执长剑垂在体侧，转头看向镜头。穿深青色窄袖劲装，长发用木簪束起，颊侧有一道浅疤。竹叶被风扰动，阳光从竹梢筛下来在她脸和肩头打成斑驳。背景是密集竹干与薄雾，地上有落叶。浅景深，冷绿调，武侠电影剧照。",
-    },
-    {
-        id: "ghibli-tram",
-        title: "雨后的电车",
-        genre: "动画 · 宫崎骏风",
-        mode: "video",
-        poster: "/showcase/ghibli-tram.webp",
-        video: "/showcase/ghibli-tram.mp4",
-        prompt: "2D 手绘动画镜头：雨后初晴的海边铁路，一列单节蒸汽小火车沿铁轨从远处驶近，车头灯亮着，暖黄的车窗灯光一格格滑过。站台上戴草帽的女孩转头看向列车，裙摆和帽带被海风吹起；铁轨之间和站前的积水映着天空与车灯的倒影。远处是堆到天上的积云和一条很平的海平线。\n\n运镜：低机位贴着铁轨固定，极缓慢向前推，列车始终朝镜头方向来。\n声音：铁轨接缝的轻微撞击、蒸汽泄压的嘶声、海风和远处的蝉，无人声。",
-    },
-    {
-        id: "guqin",
-        title: "月下抚琴",
-        genre: "东方 · 古典",
-        mode: "image",
-        poster: "/showcase/guqin.webp",
-        prompt: "中近景：夜晚的中式卧室，一位穿素白长衣的年轻女人坐在古琴前，手指按在弦上，侧脸低垂。窗外一轮清冷的月光从右后方打进来，把她的轮廓和琴身照出一条亮边，室内只有一盏烛火在桌面跳动。深色木质家具、纱帐、淡淡的烟。低饱和、冷暖对比，东方古典美学。",
-    },
-    {
-        id: "wheat-mecha",
-        title: "麦田里的机甲",
-        genre: "废土 · 奇幻",
-        mode: "video",
-        poster: "/showcase/wheat-mecha.webp",
-        video: "/showcase/wheat-mecha.mp4",
-        prompt: "黄昏的金色麦田，麦浪被风压出一道道弧线。画面中景：一台半跪着的锈蚀人形机甲，胸口装甲裂开，露出缠绕的线束。一个穿褪色棉裙的少女站在它膝前，踮脚用一块布擦掉装甲上的泥。光线从左后方压低射入，麦穗边缘发亮，机甲金属只反射出一线暖色。空气里有细小的浮尘。35mm 胶片质感，浅景深，颗粒克制。\n\n运镜：缓慢横移半米，从麦穗前景摇到人物侧面，最后停在机甲眼睛特写的前一帧。\n声音：麦浪摩擦声、远处金属热胀的咔哒声，无人声。",
-    },
-    {
-        id: "desert-red",
-        title: "风起沙丘",
-        genre: "时尚 · 西部",
-        mode: "image",
-        poster: "/showcase/desert-red.webp",
-        prompt: "中近景：黄昏的沙丘顶，一位年轻女人穿长红裙站立，风把裙摆和头发向一侧吹开，她一手压住帽檐，侧脸对着落日。沙面上有风纹和她身后的脚印，远处是层层叠叠的暖橙色沙丘。逆光，人物边缘发光，红裙在暖色沙上很跳。暖调、高对比、胶片质感。",
-    },
-    {
-        id: "xianxia-slash",
-        title: "一剑断云",
-        genre: "仙侠 · 2D 漫剧",
-        mode: "video",
-        poster: "/showcase/xianxia-slash.webp",
-        video: "/showcase/xianxia-slash.mp4",
-        prompt: "2D 国漫漫剧镜头：暴雨中的黑云海，被一道巨大的蓝白半月剑光横扫而过。云层沿切线被劈开、翻卷出一条发亮的口子，碎石和雨滴被气流带着往上飘。画面左下角是持剑者的小剪影，衣袂被冲击波掀起，人不动。水墨笔触的云 + 赛璐璐上色的剑光，高对比，冷蓝与纯白。\n\n运镜：固定机位，极缓慢推近；剑光保持完整并缓缓向右下扫过画面。\n声音：低频爆鸣的余响、风压、碎石摩擦，无人声。",
-    },
-    {
-        id: "rooftop",
-        title: "天台夜色",
-        genre: "时尚 · 都市",
-        mode: "image",
-        poster: "/showcase/rooftop.webp",
-        prompt: "中近景：城市天台的夜晚，一位年轻女人穿米色风衣，靠在水泥围栏边侧头看向远处的楼群灯光，风吹起她的头发。前景是虚化的绿色铁丝网，背景是颗粒感的城市夜景与零星亮窗。她的脸被一侧的广告牌霓虹打亮，轮廓清晰，其余部分沉入暗调。写实时尚摄影质感，浅景深。",
-    },
-    {
-        id: "mystery-corridor",
-        title: "走廊尽头",
-        genre: "悬疑 · 惊悚",
-        mode: "image",
-        poster: "/showcase/mystery-corridor.webp",
-        prompt: "写实电影镜头，悬疑惊悚：凌晨三点的老公寓走廊。顶上只有一根闪烁的日光灯管，墙纸起皮发黄，两侧是几扇一模一样的防盗门。走廊尽头那扇门虚掩着，一道暖黄色的光从门缝里斜切到地板上，光斑边缘停着一个不动的影子。广角轻微畸变，冷青绿调，暗部保留细节，颗粒明显。别拍血腥，靠空间和光说话。",
-    },
-    {
-        id: "snow-train",
-        title: "雪原列车",
-        genre: "年代 · 公路",
-        mode: "video",
-        poster: "/showcase/snow-train.webp",
-        video: "/showcase/snow-train.mp4",
-        prompt: "冬季雪原，一列老式绿皮火车在画面中横穿。远景：列车在纯白地平线上拉出一条深绿的长线，蒸汽和雪雾混在一起。切到车厢内中景：靠窗座位，窗外雪光把两个人的脸照得很白，一人坐在过道另一侧，正侧头看过来，视线在半空相遇。车窗玻璃上有手指擦过的雾痕。胶片颗粒，暖色车厢与冷色窗外对比。\n\n运镜：先航拍远景跟随列车横移，再硬切到车厢内固定机位，靠窗人的视线转向时轻微推近。\n声音：铁轨接缝的规律撞击、车厢连接处的金属摩擦、很轻的手风琴。",
-    },
-    {
-        id: "ice-lake",
-        title: "冰湖破晓",
-        genre: "自然 · 诗意",
-        mode: "image",
-        poster: "/showcase/ice-lake.webp",
-        prompt: "中近景：一个人跪在冰封湖面的冰上，手掌贴在冰面，掌心下的白色裂纹向四周发散。人物占据画面右侧三分之一，穿深色厚外套，呼出的白气很明显，脸被晨光照亮。背景虚化的冰面延伸到远处，天边是极浅的青灰到暖白。贴冰面的低机位，浅景深，冰层内部有气泡和幽蓝反光。电影剧照。",
-    },
-    {
-        id: "disaster-wave",
-        title: "浪过堤",
-        genre: "灾难 · 巨浪",
-        mode: "video",
-        poster: "/showcase/disaster-wave.webp",
-        video: "/showcase/disaster-wave.mp4",
-        prompt: "写实电影镜头，灾难片体量：黎明，一道比防波堤还高的海啸巨浪正在卷过来，浪尖碎成大片水雾。浪脚下是一条沿海高架公路，几辆车停在原地、车灯亮着，桥上有人正朝反方向狂奔，远处城市天际线有一半化在雾里。天光是冷灰蓝，云层里开了一道暖口子。\n\n运镜：轻微手持晃动，缓慢向前推；浪继续压下来，水雾逐渐吞掉桥面。\n声音：低频轰鸣越来越实、水雾的嘶声、远处的汽车喇叭，无人声。",
-    },
-    {
-        id: "hive-apartment",
-        title: "蜂巢公寓",
-        genre: "反乌托邦 · 科幻",
-        mode: "image",
-        poster: "/showcase/hive-apartment.webp",
-        prompt: "中近景：从室内拍一个蜂巢集合住宅的六边形窗户，一个中年女人站在窗前向外看，窗帘半拉，室内只有一盏台灯。她的侧脸占画面左侧，窗外是密集重复的脏水泥六边形窗格，大部分是黑的，远处一两格亮着。玻璃上有手印和灰尘。压迫感、冷调室内与暗橙室外对比。电影剧照。",
-    },
-    {
-        id: "ancestral-candles",
-        title: "祠堂烛火",
-        genre: "中式民俗 · 悬疑",
-        mode: "image",
-        poster: "/showcase/ancestral-candles.webp",
-        prompt: "老祠堂内部，昏暗。画面正中是一张深色供桌，上面并排立着十几块牌位，字迹被烟熏得发暗。供桌前缘一排红烛，烛火被穿堂风吹得齐齐向左压。空气中有香灰的悬浮颗粒。唯独最里面那一支烛火笔直不动。右侧一根门柱切进画面，边缘一点冷蓝的天光。低饱和，暗部保留细节，不要恐怖跳吓风格。",
-    },
-    {
-        id: "disaster-rift",
-        title: "地裂",
-        genre: "灾难 · 末日",
-        mode: "image",
-        poster: "/showcase/disaster-rift.webp",
-        prompt: "写实电影镜头，灾难片：黄昏，一条城市街道被一道极深的地裂撕成两半，柏油路板翘起、翻着土，一辆出租车停在裂口最边缘，车头灯直直照进下面的黑里，看不到底。两侧楼房朝裂口微微倾斜，远处红色应急灯在闪，地面冒着白汽，空气里全是浮尘。低机位贴地，冷蓝基调配暖车灯，颗粒重。",
-    },
-    {
-        id: "elevator-abyss",
-        title: "深海电梯",
-        genre: "科幻 · 惊悚",
-        mode: "image",
-        poster: "/showcase/elevator-abyss.webp",
-        prompt: "中近景：深海里一双手紧紧抓着老旧铁栅电梯的门，指节泛白，门撬开一道缝，暖黄色灯光从缝里泄出来，照亮了手背上的水珠和周围的悬浮颗粒。背景是浑浊的墨绿水体与锈蚀铁架。灯光只照亮手和门缝周围一小块，其余全暗。水下摄影质感，可见悬浮物。",
-    },
-    {
-        id: "pharmacy",
-        title: "药房夜班",
-        genre: "悬疑 · 都市",
-        mode: "image",
-        poster: "/showcase/pharmacy.webp",
-        prompt: "中近景：深夜药店，店员的脸紧贴在玻璃柜台内侧，眼睛看着柜外，白色工作服。柜台玻璃上有一层手印和反光，映出身后空荡的货架。冷绿色主调，一道暖黄照明从上方打在他脸上，脸上有一半在阴影里。表情平静但不对劲。写实电影质感，浅景深。",
-    },
-    {
-        id: "night-market",
-        title: "夜市收摊",
-        genre: "都市 · 生活流",
-        mode: "image",
-        poster: "/showcase/night-market.webp",
-        prompt: "凌晨的街边夜市，摊主在收摊。近景：一双湿手把蓝白条纹塑料布从铁架上扯下来，布角挂着的水珠沿着褶皱往下滑。地上积水映着还没关的两盏灯，一盏偏暖一盏偏青。背景虚化的塑料凳和泡沫箱。空气潮湿，有薄雾。写实电影质感，冷调，高光不过曝。",
-    },
-];
-
-const MODE_LABELS: Record<CreationMode, string> = { text: "文本", image: "图片", video: "视频" };
-const SHOWCASE_LIMIT = 21;
-
-function showcaseEntryOf(item: CreationInspiration, labels: InspirationCategoryLabels = {}): ShowcaseEntry {
-    return {
-        id: catalogIdOf(item),
-        title: item.title,
-        genre: `${MODE_LABELS[item.mode]} · ${item.category ? inspirationCategoryLabel(item, labels) : item.description || "创作灵感"}`,
-        mode: item.mode,
-        poster: item.image,
-        prompt: item.prompt,
-        source: item.sourceId && item.sourceId !== "original" ? inspirationSourceOf(item) : undefined,
-        credit: item.credit,
-        sourceUrl: item.sourceUrl,
-        isFeed: Boolean(item.addedAt),
-        inspiration: item,
-    };
+function showcaseFailureMessage(error: unknown, nextPage: boolean): string {
+    if (error instanceof ApiError) {
+        if (error.status === 404 && error.reason === "not_found") return "在线示例接口尚未就绪，请确认后端已更新并重启后再试。";
+        if (error.reason === "library_cursor_stale") return "素材目录已更新，需要从第一页重新加载，不能继续使用旧分页位置。";
+        if (error.status === 429) return "请求过于频繁，请稍后重新加载。";
+        if (error.status === undefined || error.status >= 500) return "暂时无法连接在线示例服务，请稍后重新加载。";
+    }
+    return nextPage ? "更多示例加载失败，已暂时隐藏旧内容；请从第一页重新核验。" : "在线示例暂不可用或未通过内容核验，请重新加载。";
 }
 
-const BUILTIN_SHOWCASE = [...SHOWCASE, ...curatedInspirations.map((item) => showcaseEntryOf(item))];
-
-export function CreationShowcaseBand({ mode, onStartPrompt, sourcesVisible = false }: { mode: CreationMode; onStartPrompt: (mode: CreationMode, prompt: string) => void; sourcesVisible?: boolean }) {
-    const [dialog, setDialog] = useState<{ item?: CreationInspiration; video?: string } | null>(null);
+/** 首页只读摘要；弹窗负责唯一一次首次详情请求，复制与使用前仍分别核验。 */
+export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, initialSource = "zzai-gallery" }: { onStartPrompt: (mode: CreationMode, prompt: string) => void; sourcesVisible?: boolean; initialSource?: InspirationGallerySource }) {
+    const userScope = useUserStore((state) => state.user?.id ?? "guest");
+    const [source, setSource] = useState<InspirationGallerySource>(initialSource);
+    const licensed = source === "authorized-library";
+    const catalogVersion = licensed ? INSPIRATION_POLICY_VERSION : "online-v1";
+    const [reloadRevision, setReloadRevision] = useState(0);
+    const [filters, setFilters] = useState(DEFAULT_FILTERS);
+    const { search, media, category, model, sort } = filters;
+    const debouncedSearch = useDebouncedValue(search.trim(), 300);
+    const appliedSearch = search.trim() ? debouncedSearch : "";
+    const searchPending = search.trim() !== appliedSearch;
+    const hasFilters = Boolean(search.trim() || media !== "all" || category || model || sort !== "latest");
+    const query = useMemo<ZzaiGalleryQuery>(
+        () => ({ search: appliedSearch || undefined, mediaType: media === "all" ? undefined : media, category: category || undefined, model: model || undefined, sort, limit: 21 }),
+        [appliedSearch, category, media, model, sort],
+    );
+    const [dialog, setDialog] = useState<{ item?: Pick<InspirationGallerySummary, "id" | "sourceId"> } | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
-    const feed = useQuery({
-        queryKey: publicInspirationFeedQueryKey,
-        queryFn: ({ signal }) => getPublicInspirationFeed(signal),
-        staleTime: 60_000,
+    const [reducedMotion, setReducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+    useEffect(() => {
+        const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const update = () => setReducedMotion(preference.matches);
+        update();
+        preference.addEventListener("change", update);
+        return () => preference.removeEventListener("change", update);
+    }, []);
+
+    useEffect(() => {
+        setDialog(null);
+        setDialogOpen(false);
+    }, [userScope]);
+
+    const galleryKey = ["public", "inspirations", source, catalogVersion, "showcase", userScope, query, reloadRevision];
+    const gallery = useInfiniteQuery({
+        queryKey: galleryKey,
+        queryFn: ({ pageParam, signal }): Promise<InspirationGalleryPage> => (licensed ? getZzaiGalleryPrompts : getOnlineGalleryPrompts)({ ...query, cursor: pageParam || undefined }, signal),
+        initialPageParam: "",
+        getNextPageParam: (page, _pages, _lastPageParam, pageParams) => (page.nextCursor && !pageParams.includes(page.nextCursor) ? page.nextCursor : undefined),
+        // 换回缓存 key 也需重新读取，才能满足 isFetchedAfterMount 的核验门槛。
+        staleTime: 0,
         refetchOnMount: "always",
+        refetchOnWindowFocus: "always",
+        refetchInterval: 60_000,
         retry: false,
     });
-    const entries = useMemo(() => {
-        const latest = orderInspirationsByLatest(
-            inspirationFeedEntries(feed.data ?? null).filter((item) => item.mode === mode),
-            localDayKey(),
-        )
-            .slice(0, SHOWCASE_LIMIT)
-            .map((item) => showcaseEntryOf(item, feed.data?.categories));
-        const seen = new Set<string>();
-        return [...latest, ...BUILTIN_SHOWCASE.filter((item) => item.mode === mode)]
-            .filter((item) => {
-                if (seen.has(item.id)) return false;
-                seen.add(item.id);
-                return true;
-            })
-            .slice(0, SHOWCASE_LIMIT);
-    }, [feed.data, mode]);
+    const facets = useQuery({
+        queryKey: ["public", "inspirations", `${source}-facets`, catalogVersion, userScope, query.mediaType],
+        queryFn: ({ signal }): Promise<InspirationGalleryFacets> => (licensed ? getZzaiGalleryFacets : getOnlineGalleryFacets)(query.mediaType, signal),
+        staleTime: 60_000,
+        refetchOnWindowFocus: "always",
+        refetchOnMount: "always",
+        refetchInterval: 60_000,
+        retry: false,
+    });
+    const galleryReady = gallery.isSuccess && gallery.isFetchedAfterMount;
+    const verifyingGallery = gallery.isPending || (!gallery.isFetchedAfterMount && gallery.isFetching);
+    const entries = useMemo(() => (gallery.isSuccess && gallery.isFetchedAfterMount ? mergeZzaiGalleryPages<InspirationGallerySummary>(gallery.data.pages) : []), [gallery.data, gallery.isSuccess, gallery.isFetchedAfterMount]);
+    const nextCursor = gallery.data?.pages.at(-1)?.nextCursor;
+    const cursorStalled = Boolean(nextCursor && gallery.data?.pageParams.includes(nextCursor));
 
-    const previewEntry = (entry: ShowcaseEntry) => {
-        setDialog({
-            item: entry.inspiration ?? { id: entry.id, title: entry.title, description: entry.genre, image: entry.poster, mode: entry.mode, prompt: entry.prompt, sourceId: "original" },
-            video: entry.video,
-        });
+    const reloadGallery = () => {
+        // 新查询从首屏核验；不 reset 旧查询的更新计数，否则缓存回访时无法判定核验完成。
+        setReloadRevision((revision) => revision + 1);
+        if (facets.isError) void facets.refetch();
+    };
+    const clearFilters = () => setFilters(DEFAULT_FILTERS);
+    const previewEntry = (entry: InspirationGallerySummary) => {
+        setDialog({ item: { id: entry.id, sourceId: entry.sourceId } });
+        setDialogOpen(true);
+    };
+    const openHall = () => {
+        setDialog({});
         setDialogOpen(true);
     };
 
     return (
-        <section className="creation-showcase" aria-labelledby="creation-showcase-title" data-preview-open={dialogOpen || undefined}>
+        <section className="creation-showcase" aria-labelledby="creation-showcase-title">
             <header className="creation-showcase-head">
                 <div className="creation-showcase-heading">
-                    <h2 id="creation-showcase-title">看看能拍成什么样</h2>
-                    {sourcesVisible ? <ShowcaseSources key={mode} entries={entries} /> : null}
+                    <span className="creation-showcase-eyebrow">在线示例</span>
+                    <div className="creation-showcase-title-row">
+                        <h2 id="creation-showcase-title">看看能拍成什么样</h2>
+                        {sourcesVisible ? <ShowcaseSources entries={entries} /> : null}
+                    </div>
+                    <p className="creation-showcase-description">浏览作品，查看提示词，再带入你的创作。</p>
                 </div>
-                <button
-                    type="button"
-                    className="creation-showcase-hall-entry"
-                    onClick={() => {
-                        setDialog({});
-                        setDialogOpen(true);
-                    }}
-                >
+                <button type="button" className="creation-showcase-hall-entry" onClick={openHall}>
                     灵感大厅 <ArrowUpRight size={14} aria-hidden="true" />
                 </button>
             </header>
-            {feed.isError ? (
-                <p className="creation-showcase-status" role="status">
-                    灵感上新暂时无法加载{feed.data ? "，当前保留已加载内容" : "，当前展示内置示例"}。
-                    <button type="button" onClick={() => void feed.refetch()} disabled={feed.isFetching}>
-                        重新加载
+            <CreationShowcaseFilters
+                source={source}
+                onSourceChange={(next) => {
+                    setSource(next);
+                    setFilters((previous) => ({ ...previous, category: "", model: "", sort: "latest" }));
+                }}
+                filters={filters}
+                onChange={setFilters}
+                onClear={clearFilters}
+                hasFilters={hasFilters}
+                facets={facets.isSuccess ? facets.data : undefined}
+                facetsPending={facets.isPending}
+            />
+            {facets.isError && !gallery.isError ? (
+                <p className="creation-showcase-status" role="alert">
+                    分类与模型选项暂不可用，仍可搜索和浏览在线示例。
+                    <button type="button" onClick={() => void facets.refetch()} disabled={facets.isFetching}>
+                        重试筛选选项
                     </button>
                 </p>
             ) : null}
-            <div key={mode} className="creation-showcase-viewport" aria-label={`${MODE_LABELS[mode]}灵感作品`}>
-                <div className="creation-showcase-track" style={{ "--showcase-entry-count": entries.length } as CSSProperties}>
-                    <ShowcaseSet entries={entries} onPreview={previewEntry} />
-                    {/* 第二份只为了无缝衔接：不参与无障碍树，也不抢 Tab 焦点。 */}
-                    <ShowcaseSet entries={entries} onPreview={previewEntry} clone />
-                </div>
+            <div className="creation-showcase-context">
+                <p className="creation-showcase-license-note">
+                    <Info size={14} aria-hidden="true" />
+                    <span>{inspirationSources[source].notice}</span>
+                </p>
+                <p className="creation-showcase-query-status" role="status" aria-atomic="true">
+                    {searchPending ? "正在应用关键词筛选…" : galleryReady ? `共 ${gallery.data.pages[0].total} 个${hasFilters ? "匹配" : "在线"}示例` : ""}
+                </p>
             </div>
-            {dialog ? <CreationInspirationDialog open={dialogOpen} initialItem={dialog.item} initialVideo={dialog.video} onClose={() => setDialogOpen(false)} afterClose={() => setDialog(null)} onUse={onStartPrompt} /> : null}
+            {verifyingGallery ? (
+                <div className="creation-showcase-loading" role="status" aria-busy="true">
+                    <p className="creation-showcase-status">{gallery.data ? "正在核验在线示例…" : "正在加载在线提示词示例…"}</p>
+                    <div className="creation-showcase-skeletons" aria-hidden="true">
+                        {Array.from({ length: 4 }, (_, index) => (
+                            <div className="creation-showcase-skeleton" key={index}>
+                                <span className="creation-showcase-skeleton-cover" />
+                                <span className="creation-showcase-skeleton-title" />
+                                <span className="creation-showcase-skeleton-meta" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+            {gallery.isError ? (
+                <div className="creation-showcase-feedback" role="alert">
+                    <span className="creation-showcase-feedback-icon">
+                        <WifiOff size={22} aria-hidden="true" />
+                    </span>
+                    <strong>在线示例暂不可用</strong>
+                    <p>{showcaseFailureMessage(gallery.error, gallery.isFetchNextPageError)}</p>
+                    <Button icon={<RefreshCw size={14} aria-hidden="true" />} onClick={reloadGallery} disabled={gallery.isFetching || searchPending}>
+                        重新加载
+                    </Button>
+                </div>
+            ) : null}
+            {galleryReady && !entries.length && !searchPending ? (
+                <div className="creation-showcase-feedback" role="status">
+                    <span className="creation-showcase-feedback-icon">{hasFilters ? <SearchX size={22} aria-hidden="true" /> : <Images size={22} aria-hidden="true" />}</span>
+                    <strong>{hasFilters ? "没有找到匹配的示例" : "示例正在准备中"}</strong>
+                    <p>
+                        {licensed
+                            ? hasFilters
+                                ? "没有符合当前筛选的已核验素材。试试其他关键词，或放宽筛选条件。"
+                                : "尚未发布已核验素材。发布后会在这里展示。"
+                            : hasFilters
+                              ? "没有符合当前筛选的在线示例。试试其他关键词，或放宽筛选条件。"
+                              : "在线图库暂未返回示例，请稍后重新加载。"}
+                    </p>
+                    {hasFilters ? <Button onClick={clearFilters}>清除筛选</Button> : null}
+                </div>
+            ) : null}
+            {entries.length ? (
+                <InspirationMasonry
+                    key={JSON.stringify([userScope, source, query])}
+                    className="creation-showcase-waterfall"
+                    ariaLabel="图片与视频在线灵感作品"
+                    items={entries}
+                    busy={gallery.isFetchingNextPage || searchPending}
+                    renderItem={(entry) => <CreationShowcaseCard entry={entry} disabled={searchPending} reducedMotion={reducedMotion} onPreview={() => previewEntry(entry)} />}
+                />
+            ) : null}
+            {galleryReady && (entries.length > 0 || gallery.hasNextPage || cursorStalled) ? (
+                <footer className="creation-showcase-pagination">
+                    {cursorStalled ? (
+                        <p className="creation-showcase-status" role="alert">
+                            在线目录未返回新的分页位置，已停止重复加载。
+                            <button type="button" onClick={reloadGallery} disabled={gallery.isFetching || searchPending}>
+                                重新加载
+                            </button>
+                        </p>
+                    ) : null}
+                    {gallery.hasNextPage ? (
+                        <button type="button" className="creation-showcase-load-more" disabled={gallery.isFetching || searchPending} aria-busy={gallery.isFetchingNextPage} onClick={() => void gallery.fetchNextPage({ cancelRefetch: false })}>
+                            <span>{gallery.isFetchingNextPage ? "正在加载更多…" : "加载更多"}</span>
+                            <ArrowDown size={14} aria-hidden="true" />
+                        </button>
+                    ) : entries.length && !cursorStalled ? (
+                        <p className="creation-showcase-status" role="status">
+                            已展示全部示例
+                        </p>
+                    ) : null}
+                    <span className="creation-showcase-status" role="status">
+                        已展示 {entries.length} 个示例
+                    </span>
+                </footer>
+            ) : null}
+            {dialog ? <CreationInspirationDialog key={dialog.item?.id ?? "hall"} open={dialogOpen} initialItem={dialog.item} initialSource={source} onClose={() => setDialogOpen(false)} afterClose={() => setDialog(null)} onUse={onStartPrompt} /> : null}
         </section>
     );
 }
 
-function ShowcaseSources({ entries }: { entries: ShowcaseEntry[] }) {
+function CreationShowcaseFilters({
+    source,
+    onSourceChange,
+    filters,
+    onChange,
+    onClear,
+    hasFilters,
+    facets,
+    facetsPending,
+}: {
+    source: InspirationGallerySource;
+    onSourceChange: (source: InspirationGallerySource) => void;
+    filters: ShowcaseFilters;
+    onChange: (next: ShowcaseFilters) => void;
+    onClear: () => void;
+    hasFilters: boolean;
+    facets?: InspirationGalleryFacets;
+    facetsPending: boolean;
+}) {
+    return (
+        <div className="creation-showcase-filters" role="group" aria-label="首页在线示例筛选">
+            <div className="creation-showcase-filter-primary">
+                <SegmentedControl
+                    value={filters.media}
+                    onChange={(media) => onChange({ ...filters, media, category: "", model: "" })}
+                    ariaLabel="首页示例媒体类型"
+                    options={[
+                        { value: "all", label: "全部" },
+                        { value: "image", label: "图片" },
+                        { value: "video", label: "视频" },
+                    ]}
+                />
+                <Input
+                    value={filters.search}
+                    onChange={(event) => onChange({ ...filters, search: event.target.value })}
+                    allowClear
+                    prefix={<Search size={16} aria-hidden="true" />}
+                    placeholder="搜索作品、风格或关键词"
+                    aria-label="搜索首页在线示例"
+                    className="creation-showcase-search"
+                />
+            </div>
+            <div className="creation-showcase-filter-secondary">
+                <span className="creation-showcase-filter-label">
+                    <SlidersHorizontal size={14} aria-hidden="true" />
+                    筛选
+                </span>
+                <Select
+                    value={source}
+                    onChange={onSourceChange}
+                    ariaLabel="首页示例来源"
+                    className="creation-showcase-filter-select"
+                    options={[
+                        { value: "zzai-gallery", label: "在线图库" },
+                        { value: "authorized-library", label: "本站审核库" },
+                    ]}
+                />
+                <Select
+                    value={filters.category}
+                    onChange={(category) => onChange({ ...filters, category })}
+                    ariaLabel="首页示例分类"
+                    className="creation-showcase-filter-select"
+                    loading={facetsPending}
+                    disabled={!facets}
+                    showSearch
+                    optionFilterProp="label"
+                    options={[{ value: "", label: "全部分类" }, ...(facets?.categories ?? []).map((value) => ({ value, label: zzaiCategoryLabel(value) }))]}
+                />
+                <Select
+                    value={filters.model}
+                    onChange={(model) => onChange({ ...filters, model })}
+                    ariaLabel="首页示例模型标注"
+                    className="creation-showcase-filter-select"
+                    loading={facetsPending}
+                    disabled={!facets}
+                    showSearch
+                    optionFilterProp="label"
+                    options={[{ value: "", label: "全部模型标注" }, ...(facets?.models ?? []).map((value) => ({ value, label: value }))]}
+                />
+                <Select
+                    value={filters.sort}
+                    onChange={(sort) => onChange({ ...filters, sort })}
+                    ariaLabel="首页示例排序"
+                    className="creation-showcase-filter-sort"
+                    options={[
+                        { value: "latest", label: "最新发布" },
+                        { value: "featured", label: "精选" },
+                    ]}
+                />
+                <Button type="text" className="creation-showcase-clear" icon={<X size={13} aria-hidden="true" />} disabled={!hasFilters} onClick={onClear}>
+                    清除筛选
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function ShowcaseSources({ entries }: { entries: InspirationGallerySummary[] }) {
     const [open, setOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const close = () => {
         setOpen(false);
         triggerRef.current?.focus();
     };
-    const credited = entries.filter((entry) => entry.source);
 
     return (
         <span
@@ -340,31 +370,28 @@ function ShowcaseSources({ entries }: { entries: ShowcaseEntry[] }) {
                             </button>
                         </header>
                         <div className="creation-inspiration-credit-scroll">
-                            {declaredInspirationSources().map((source) => (
-                                <p key={source.name ?? source.label}>
-                                    {source.notice}{" "}
-                                    {source.repository ? (
-                                        <a href={source.repository} target="_blank" rel="noreferrer">
-                                            {source.name} · {source.license}
-                                        </a>
-                                    ) : null}
-                                </p>
-                            ))}
-                            {credited.length ? (
+                            <p>保留每条示例的原始出处与署名；外部在线示例不等于已获授权，本站审核库另行标注已核验许可。</p>
+                            {entries.length ? (
                                 <section className="creation-inspiration-credit-works" aria-label="当前作品署名">
                                     <h3>当前作品署名</h3>
                                     <ul>
-                                        {credited.map((entry) => (
+                                        {entries.map((entry) => (
                                             <li key={entry.id}>
-                                                <a href={entry.sourceUrl || entry.source?.repository} target="_blank" rel="noreferrer">
-                                                    {entry.title}
-                                                </a>
-                                                <span>{[entry.credit, entry.source?.name, entry.source?.license].filter(Boolean).join(" · ")}</span>
+                                                {entry.sourceUrl ? (
+                                                    <a href={entry.sourceUrl} target="_blank" rel="noreferrer">
+                                                        {entry.title}
+                                                    </a>
+                                                ) : (
+                                                    <span>{entry.title}</span>
+                                                )}
+                                                <span>{entry.credit || (entry.sourceUrl ? "原始出处未标注署名" : "原始出处未标注")}</span>
                                             </li>
                                         ))}
                                     </ul>
                                 </section>
-                            ) : null}
+                            ) : (
+                                <p>当前没有在线条目。</p>
+                            )}
                         </div>
                     </section>
                 }
@@ -374,58 +401,5 @@ function ShowcaseSources({ entries }: { entries: ShowcaseEntry[] }) {
                 </button>
             </Popover>
         </span>
-    );
-}
-
-function ShowcaseSet({ entries, onPreview, clone = false }: { entries: ShowcaseEntry[]; onPreview: (entry: ShowcaseEntry) => void; clone?: boolean }) {
-    return (
-        <ul className="creation-showcase-set" aria-hidden={clone || undefined}>
-            {entries.map((entry) => (
-                <ShowcaseCard key={entry.id} entry={entry} clone={clone} onPreview={() => onPreview(entry)} />
-            ))}
-        </ul>
-    );
-}
-
-function ShowcaseCard({ entry, onPreview, clone }: { entry: ShowcaseEntry; onPreview: () => void; clone: boolean }) {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [failedPoster, setFailedPoster] = useState<string | null>(null);
-
-    // 只在悬停 / 聚焦时播放：十几张卡同时解码会把首屏拖死，静音预览本来也只是「看一眼运镜」。
-    const start = () => {
-        const video = videoRef.current;
-        if (!video) return;
-        video.currentTime = 0;
-        void video.play().catch(() => {
-            /* 自动播放被拦时保持封面，不打扰用户 */
-        });
-    };
-    const stop = () => {
-        const video = videoRef.current;
-        if (!video) return;
-        video.pause();
-        video.currentTime = 0;
-    };
-
-    return (
-        <li className="creation-showcase-item">
-            <button type="button" className="creation-showcase-card" tabIndex={clone ? -1 : undefined} aria-label={`预览灵感：${entry.title}`} onClick={onPreview} onPointerEnter={start} onPointerLeave={stop} onFocus={start} onBlur={stop}>
-                <span className="creation-showcase-cover">
-                    {entry.video ? (
-                        <video ref={videoRef} src={entry.video} poster={entry.poster} muted loop playsInline preload="none" aria-hidden="true" tabIndex={-1} />
-                    ) : failedPoster === entry.poster ? (
-                        <span className="creation-showcase-unavailable">封面暂不可用</span>
-                    ) : (
-                        <img src={entry.poster} alt="" width={1280} height={720} loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} onError={() => setFailedPoster(entry.poster)} />
-                    )}
-                    {entry.video ? <span className="creation-showcase-badge">示例片段</span> : null}
-                    {entry.isFeed ? <span className="creation-showcase-badge">灵感上新</span> : null}
-                </span>
-                <span className="creation-showcase-copy">
-                    <strong title={entry.title}>{entry.title}</strong>
-                    <span>{entry.genre}</span>
-                </span>
-            </button>
-        </li>
     );
 }

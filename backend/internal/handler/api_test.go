@@ -57,3 +57,58 @@ func TestRegisterCanvasAPIExposesOpenAPIAndProjects(t *testing.T) {
 		t.Fatalf("skills presets status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
+
+func TestRegisterCanvasAPIRetiresLegacyInspirationFeed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	RegisterCanvasAPI(router.Group("/api"), &service.Service{})
+
+	legacy := map[string]bool{
+		"GET /api/public/inspirations/feed":              true,
+		"GET /api/admin/settings/inspiration-feed":       true,
+		"PATCH /api/admin/settings/inspiration-feed":     true,
+		"POST /api/admin/settings/inspiration-feed/sync": true,
+	}
+	wanted := map[string]bool{
+		"GET /api/public/inspirations/zzai-gallery/prompts":        false,
+		"GET /api/public/inspirations/zzai-gallery/prompts/:slug":  false,
+		"GET /api/public/inspirations/zzai-gallery/facets":         false,
+		"GET /api/public/inspirations/library/prompts":             false,
+		"GET /api/public/inspirations/library/prompts/:slug":       false,
+		"GET /api/public/inspirations/library/prompts/:slug/media": false,
+		"GET /api/public/inspirations/library/facets":              false,
+		"POST /api/public/inspirations/library/resolve":            false,
+		"GET /api/admin/inspirations/library":                      false,
+		"GET /api/admin/inspirations/library/:slug":                false,
+		"GET /api/admin/inspirations/library/:slug/media":          false,
+		"POST /api/admin/inspirations/library/import":              false,
+		"POST /api/admin/inspirations/library/:slug/review":        false,
+	}
+	for _, route := range router.Routes() {
+		key := route.Method + " " + route.Path
+		if legacy[key] {
+			t.Fatalf("retired inspiration feed route is still registered: %s", key)
+		}
+		if _, exists := wanted[key]; exists {
+			wanted[key] = true
+		}
+	}
+	for route, found := range wanted {
+		if !found {
+			t.Errorf("inspiration route is not registered: %s", route)
+		}
+	}
+	for route := range legacy {
+		method, path, _ := strings.Cut(route, " ")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, httptest.NewRequest(method, path, nil))
+		if response.Code != http.StatusNotFound {
+			t.Errorf("retired route %s returned %d, want 404", route, response.Code)
+		}
+	}
+	for _, path := range []string{"/public/inspirations/feed:", "/admin/settings/inspiration-feed:", "/admin/settings/inspiration-feed/sync:"} {
+		if strings.Contains(string(openAPISpec), path) {
+			t.Errorf("retired inspiration feed path remains in OpenAPI: %s", path)
+		}
+	}
+}

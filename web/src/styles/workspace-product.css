@@ -1685,6 +1685,10 @@
 .app-user-workspace .app-workspace-sidebar-nav.is-collapsed .app-workspace-nav-link.is-collapsed .app-workspace-nav-title {
     display: block !important;
     max-width: 100%;
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+    text-align: center;
     color: var(--workspace-sidebar-ink);
     font-size: 10px;
     line-height: 1.1;

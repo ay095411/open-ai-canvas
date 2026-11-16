@@ -48,6 +48,14 @@ func (r *Repository) CreateAnnouncementWithImage(announcement *model.Announcemen
 
 func (r *Repository) UpdateAnnouncementWithImage(announcement *model.Announcement, draftUserID string, newDraftResourceID string, oldResource *model.Resource, deletionJob *model.ResourceDeletionJob) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if oldResource != nil {
+			if _, err := New(tx).lockInspirationLibraryResourceRows([]string{oldResource.ID}); err != nil {
+				return err
+			}
+			if err := New(tx).RequireNoInspirationLibraryReferences([]string{oldResource.ID}); err != nil {
+				return err
+			}
+		}
 		if err := consumeAnnouncementImageDraft(tx, draftUserID, newDraftResourceID); err != nil {
 			return err
 		}
@@ -106,6 +114,12 @@ func (r *Repository) DiscardAnnouncementImageDraft(userID string, resource *mode
 		return gorm.ErrRecordNotFound
 	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if _, err := New(tx).lockInspirationLibraryResourceRows([]string{resource.ID}); err != nil {
+			return err
+		}
+		if err := New(tx).RequireNoInspirationLibraryReferences([]string{resource.ID}); err != nil {
+			return err
+		}
 		var draft model.AnnouncementImageDraft
 		if err := tx.First(&draft, "resource_id = ? AND user_id = ?", resource.ID, userID).Error; err != nil {
 			return err

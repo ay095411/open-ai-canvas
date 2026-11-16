@@ -15,7 +15,7 @@ import (
 
 // 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
 // 因此上游 78-104 顺延为 79-105，保留既有迁移的名称、校验值和执行记录。
-const CurrentSchemaVersion int64 = 105
+const CurrentSchemaVersion int64 = 106
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -366,6 +366,9 @@ var schemaMigrations = []migration{
 	}},
 	{version: 104, name: "mcp_tenant_boundaries", checksum: "sha256:mcp-tenant-boundaries-v103", apply: migrateMCPTenantBoundaries},
 	{version: 105, name: "agent_storage_limits", checksum: "sha256:agent-storage-limits-v104", apply: migrateAgentStorageLimits},
+	{version: 106, name: "authorized_inspiration_library", checksum: "sha256:authorized-inspiration-library-v106", apply: func(tx *gorm.DB) error {
+		return tx.AutoMigrate(&model.InspirationLibraryEntry{})
+	}},
 }
 
 func migrateAPILogGenerationContent(tx *gorm.DB) error {

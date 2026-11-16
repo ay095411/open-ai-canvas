@@ -63,6 +63,7 @@ type Service struct {
 	client        *http.Client
 	sources       []source
 	now           func() time.Time
+	gallery       *Gallery
 
 	cacheMu  sync.Mutex
 	cached   *Feed
@@ -86,6 +87,7 @@ func New(repo *repository.Repository, admin AdminGate, lock Locker, runWorkerLoo
 		client:        outbound.OutboundHTTPClient(fetchTimeout),
 		sources:       defaultSources(),
 		now:           time.Now,
+		gallery:       NewGallery(),
 	}
 }
 

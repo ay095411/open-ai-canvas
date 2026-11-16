@@ -36,6 +36,7 @@ const { createInstance } = await import("i18next");
 const { I18nextProvider } = await import("react-i18next");
 const { apiClient } = await import("@/services/api/request");
 const { defaultFeatureAvailability, useUserStore } = await import("@/stores/use-user-store");
+const { WORKSPACE_AUTH_OPEN_EVENT } = await import("@/lib/workspace-auth");
 const { WorkspaceSidebarNav } = await import("@/components/layout/workspace-sidebar-nav");
 const { WorkspaceCommandPalette } = await import("@/components/layout/workspace-command-palette");
 const i18n = createInstance();
@@ -55,6 +56,10 @@ beforeEach(() => {
         features: { ...defaultFeatureAvailability, creditsEnabled: false },
     });
     apiClient.defaults.adapter = async (config) => {
+        if (config.method === "get" && (config.url === "/canvas-projects" || config.url === "/dramas")) {
+            const data = config.url === "/canvas-projects" ? { projects: [], page: 1, pageSize: 3, total: 0, hasMore: false } : { items: [], page: 1, pageSize: 3, total: 0 };
+            return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };
+        }
         if (config.url !== "/announcements" || config.method !== "get") {
             unexpectedRequests.push(`${config.method} ${config.url}`);
             throw new Error(`Unexpected navigation request: ${config.url}`);
@@ -142,6 +147,39 @@ function assertRoute(path: string, id: string) {
     expect(Array.from(view!.host.querySelectorAll('[data-sidebar] a[aria-current="page"]'), (link) => link.getAttribute("data-nav-id"))).toEqual([id]);
 }
 
+for (const collapsed of [false, true]) {
+    test(`guest sidebar keeps one accessible login/register entry and opens shared auth without navigation, collapsed=${collapsed}`, async () => {
+        useUserStore.setState({ user: null, hydrated: true });
+        view = await mount({}, { collapsed });
+        const sidebar = view.host.querySelector("[data-sidebar]")!;
+        const login = sidebar.querySelector<HTMLAnchorElement>(".app-workspace-sidebar-footer .app-workspace-sidebar-profile")!;
+        expect(login).not.toBeNull();
+        expect(login.getAttribute("href")).toBe("/login");
+        expect(login.getAttribute("aria-label")).toBe("登录/注册");
+        expect(login.getAttribute("title")).toBe("登录/注册");
+        expect(sidebar.querySelectorAll('a[href="/login"], a[href="/register"]')).toHaveLength(1);
+        const copy = login.querySelector(".app-workspace-sidebar-profile-copy");
+        if (collapsed) expect(copy).toBeNull();
+        else expect(copy?.querySelector("strong")?.textContent).toBe("登录/注册");
+        expect(sidebar.querySelector(".workspace-creation-records-login")).toBeNull();
+        if (!collapsed) {
+            const guest = sidebar.querySelector(".workspace-creation-records-guest")!;
+            expect(guest.textContent).toContain("登录后查看已有画布与短剧记录");
+            expect(guest.querySelector("button, a, [role='button'], [role='link']")).toBeNull();
+        }
+        const authEvents: unknown[] = [];
+        const listener = (event: Event) => authEvents.push((event as CustomEvent).detail);
+        window.addEventListener(WORKSPACE_AUTH_OPEN_EVENT, listener);
+        try {
+            await act(async () => login.click());
+        } finally {
+            window.removeEventListener(WORKSPACE_AUTH_OPEN_EVENT, listener);
+        }
+        expect(authEvents).toEqual([{}]);
+        assertRoute("/", "home");
+    });
+}
+
 for (const imageWorkbenchEnabled of [false, true]) {
     for (const videoWorkbenchEnabled of [false, true]) {
         for (const ecommerceEnabled of [false, true]) {
@@ -162,6 +200,19 @@ for (const imageWorkbenchEnabled of [false, true]) {
                 expect(Boolean(paletteButton("创作影棚"))).toBe(hasStudio);
                 expect(Boolean(sidebarLink("ecommerce"))).toBe(ecommerceEnabled);
                 expect(Boolean(paletteButton("电商Agent"))).toBe(ecommerceEnabled);
+
+                for (const [id, title, path] of [
+                    ["canvas", "自由画布", "/canvas"],
+                    ["projects", "短剧 Agent", "/projects"],
+                ]) {
+                    const link = sidebarLink(id);
+                    expect(link?.textContent).toContain(title);
+                    expect(link?.getAttribute("href")).toBe(path);
+                    expect(view.host.querySelectorAll(`[data-sidebar] a[data-nav-id][href="${path}"]`).length).toBe(1);
+                    await act(async () => link!.click());
+                    assertRoute(path, id);
+                }
+                await act(async () => sidebarLink("home")!.click());
 
                 if (hasStudio) {
                     expect(sidebarLink("toolbox")?.getAttribute("href")).toBe(studioPath);
@@ -213,6 +264,17 @@ test("collapsed navigation keeps independent studio and ecommerce labels and hig
     expect(sidebarLink("ecommerce")?.getAttribute("aria-label")).toContain("新上线");
     expect(sidebarLink("ecommerce")?.querySelector(".app-workspace-nav-badge-dot.is-new")).not.toBeNull();
     expect(sidebarLink("ecommerce")?.querySelector(".app-workspace-nav-badge")).toBeNull();
+    for (const [id, shortTitle, fullTitle, path] of [
+        ["canvas", "画布", "自由画布", "/canvas"],
+        ["projects", "短剧", "短剧 Agent", "/projects"],
+    ]) {
+        const link = sidebarLink(id);
+        expect(link?.querySelector(".app-workspace-nav-title")?.textContent).toBe(shortTitle);
+        expect(link?.getAttribute("aria-label")).toContain(fullTitle);
+        expect(link?.getAttribute("title")).toContain(fullTitle);
+        await act(async () => link!.click());
+        assertRoute(path, id);
+    }
     await act(async () => sidebarLink("ecommerce")!.click());
     assertRoute("/ecommerce", "ecommerce");
 });
@@ -224,7 +286,35 @@ test("short drama visibility stays consistent across the sidebar and command pal
     expect(Array.from(view.host.querySelectorAll('[data-nav-group-heading=""] [data-nav-id]'), (link) => link.getAttribute("data-nav-id"))).toEqual(["home", "toolbox", "canvas", "ecommerce"]);
     await act(async () => useUserStore.setState({ features: { ...useUserStore.getState().features, shortDramaEnabled: true } }));
     expect(sidebarLink("projects")).not.toBeNull();
+    expect(sidebarLink("projects")?.textContent).toContain("短剧 Agent");
+    expect(sidebarLink("projects")?.getAttribute("href")).toBe("/projects");
     expect(paletteButton("短剧 Agent")).toBeDefined();
     await act(async () => paletteButton("短剧 Agent")!.click());
     assertRoute("/projects", "projects");
 });
+
+for (const pluginCenterEnabled of [false, true]) {
+    test(`creation records follow resource tools inside the shared menu scroll area P=${pluginCenterEnabled}`, async () => {
+        view = await mount({ pluginCenterEnabled });
+        const scrollArea = view.host.querySelector("[data-sidebar] .app-workspace-sidebar-scroll-area")!;
+        const resources = view.host.querySelector('[data-sidebar] [data-nav-group-heading="资源与工具"]')!;
+        const records = view.host.querySelector("[data-sidebar] .workspace-creation-records")!;
+        const footer = view.host.querySelector("[data-sidebar] .app-workspace-sidebar-footer")!;
+        expect(scrollArea).not.toBeNull();
+        expect(resources).not.toBeNull();
+        expect(records).not.toBeNull();
+        expect(records.querySelector("h2")?.textContent).toContain("创作记录");
+        expect(resources.parentElement).toBe(scrollArea);
+        expect(records.parentElement).toBe(scrollArea);
+        expect(resources.nextElementSibling).toBe(records);
+        expect(scrollArea.lastElementChild).toBe(records);
+        expect(Array.from(resources.querySelectorAll("[data-nav-id]")).at(-1)?.getAttribute("data-nav-id")).toBe(pluginCenterEnabled ? "plugins" : "skills");
+        expect(Boolean(sidebarLink("plugins"))).toBe(pluginCenterEnabled);
+        expect(scrollArea.contains(footer)).toBe(false);
+        await act(async () => useUserStore.setState({ features: { ...useUserStore.getState().features, pluginCenterEnabled: !pluginCenterEnabled } }));
+        expect(Boolean(sidebarLink("plugins"))).toBe(!pluginCenterEnabled);
+        expect(records.parentElement).toBe(scrollArea);
+        expect(resources.nextElementSibling).toBe(records);
+        expect(records.querySelector("h2")?.textContent).toContain("创作记录");
+    });
+}

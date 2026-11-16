@@ -60,6 +60,10 @@ func storageReadOnlyExempt(method, fullPath string) bool {
 		// 未匹配路由交给 404 处理。
 		return true
 	}
+	// Resolving approved favorites is a public read, even though its bounded IDs use POST.
+	if route == "/public/inspirations/library/resolve" {
+		return true
+	}
 	if _, ok := storageReadOnlyExemptRoutes[route]; ok {
 		return true
 	}
