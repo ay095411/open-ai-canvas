@@ -6,6 +6,31 @@ import type { OnlineGalleryDetail, OnlineGallerySummary } from "@/services/api/o
 import type { ZzaiGalleryDetail, ZzaiGalleryPage, ZzaiGallerySummary } from "@/services/api/zzai-gallery";
 import { authorizedEntry, authorizedMedia, authorizedSummary, policyVersion } from "./authorized-inspirations";
 
+type StubObserverCallback = (records: Array<{ isIntersecting: boolean; target: Element }>) => void;
+const stubObservers = new Set<{ callback: StubObserverCallback; targets: Set<Element> }>();
+// Happy DOM 没有 IntersectionObserver：这里给组件的触底续页一个可手动触发的替身，
+// 测试通过 loadMore() 模拟哨兵进入视口，等价于真实滚动到列表底部。
+class StubIntersectionObserver {
+    private readonly entry: { callback: StubObserverCallback; targets: Set<Element> };
+    constructor(callback: StubObserverCallback) {
+        this.entry = { callback, targets: new Set() };
+        stubObservers.add(this.entry);
+    }
+    observe(target: Element) {
+        this.entry.targets.add(target);
+    }
+    unobserve(target: Element) {
+        this.entry.targets.delete(target);
+    }
+    disconnect() {
+        this.entry.targets.clear();
+        stubObservers.delete(this.entry);
+    }
+    takeRecords() {
+        return [];
+    }
+}
+
 const dom = new Window({ url: "http://localhost/create" });
 const originals = new Map<string, PropertyDescriptor | undefined>();
 for (const [key, value] of Object.entries({
@@ -23,6 +48,7 @@ for (const [key, value] of Object.entries({
     SVGElement: dom.SVGElement,
     ShadowRoot: dom.ShadowRoot,
     ResizeObserver: dom.ResizeObserver,
+    IntersectionObserver: StubIntersectionObserver,
     MouseEvent: dom.MouseEvent,
     KeyboardEvent: dom.KeyboardEvent,
     getComputedStyle: dom.getComputedStyle.bind(dom),
@@ -198,6 +224,7 @@ beforeEach(async () => {
 afterEach(async () => {
     await view?.dispose();
     view = undefined;
+    stubObservers.clear();
     for (const restore of previewCleanups.splice(0).reverse()) restore();
     apiClient.defaults.adapter = originalAdapter;
     globalThis.fetch = originalFetch;
@@ -303,6 +330,17 @@ function buttonNamed(container: ParentNode, name: string) {
 }
 async function click(node: HTMLElement) {
     await act(async () => node.click());
+    await settle();
+}
+/** 触发作品带的触底哨兵，等价于把列表滚到底部。 */
+async function loadMore() {
+    const sentinel = view!.host.querySelector(".creation-showcase-sentinel");
+    expect(sentinel).not.toBeNull();
+    await act(async () => {
+        for (const observer of [...stubObservers]) {
+            if (observer.targets.has(sentinel!)) observer.callback([{ isIntersecting: true, target: sentinel! }]);
+        }
+    });
     await settle();
 }
 async function previewFirst() {
@@ -415,7 +453,7 @@ test("the default homepage browses the live online source with real filter param
     const expected = { url: "/public/inspirations/zzai-gallery/prompts", mediaType: "video", category: "story", model: "社区视频模型", sort: "featured", search: "电影关键词", limit: 21 };
     expect(calls.at(-1)).toMatchObject(expected);
     const firstPage = cards();
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 24);
     expect(calls.at(-1)).toMatchObject({ ...expected, cursor: "21" });
     expect(cards().slice(0, 21)).toEqual(firstPage);
@@ -450,7 +488,7 @@ test("switching homepage sources keeps the approved library available without mi
     onlineItems = Array.from({ length: 24 }, (_, index) => onlineEntry(`same-slug-${index}`));
     items = [entry("same-slug-0", { title: "本站核验作品" })];
     view = await mount("image", false, true);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 24);
     await chooseSelect("首页示例来源", "本站审核库");
     await until(() => cards().length === 1 && Boolean(cards()[0].textContent?.includes("本站核验作品")));
@@ -862,7 +900,7 @@ test("the homepage loads bounded pages and deduplicates online cards without bui
     items = [entry("same"), entry("same"), ...Array.from({ length: 25 }, (_, n) => entry(`remote-${n}`))];
     view = await mount();
     expect(cards()).toHaveLength(20);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 26);
     expect(new Set(cards().map((card) => card.getAttribute("aria-label"))).size).toBe(26);
     expect(view.host.textContent).not.toContain("雨巷旗袍");
@@ -873,28 +911,28 @@ test("homepage load more appends multiple cursor pages, retains existing cards a
     view = await mount();
     const firstCards = cards();
     expect(firstCards).toHaveLength(21);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 42);
     expect(cards().slice(0, 21)).toEqual(firstCards);
     await view.setMode("video");
     expect(cards()).toHaveLength(42);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 45);
     expect(cards().slice(0, 21)).toEqual(firstCards);
     expect(calls.filter((call) => call.url.endsWith("/prompts")).map((call) => call.cursor)).toEqual([undefined, "21", "42"]);
     expect(view.host.textContent).toContain("已展示全部示例");
     expect(view.host.textContent).toContain("已展示 45 个示例");
-    expect(view.host.querySelector(".creation-showcase-load-more")).toBeNull();
+    expect(view.host.querySelector(".creation-showcase-sentinel")).toBeNull();
 });
 
 test("failed next pages hide unverified cards and retry from the first page", async () => {
     items = Array.from({ length: 45 }, (_, n) => entry(`retry-${n}`));
     view = await mount();
     expect(cards()).toHaveLength(21);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 42);
     failList = true;
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => Boolean(view!.host.querySelector('[role="alert"]')));
     expect(cards()).toHaveLength(0);
     expect(view.host.textContent).not.toContain("没有可展示的在线示例");
@@ -903,7 +941,7 @@ test("failed next pages hide unverified cards and retry from the first page", as
     await click(buttonNamed(view.host, "重新加载"));
     await until(() => cards().length === 21);
     expect(listCalls().map((call) => call.cursor)).toEqual([undefined, "21", "42", undefined]);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 42);
     expect(listCalls().map((call) => call.cursor)).toEqual([undefined, "21", "42", undefined, "21"]);
 });
@@ -913,18 +951,18 @@ test("a stale library cursor requires a first-page refresh instead of retrying t
     view = await mount();
     failList = true;
     listFailure = new ApiError("素材已更新", { status: 409, code: 409, reason: "library_cursor_stale" });
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => Boolean(view!.host.textContent?.includes("素材目录已更新")));
     expect(cards()).toHaveLength(0);
     expect(view.host.textContent).not.toContain("已展示全部示例");
-    expect(view.host.querySelector(".creation-showcase-load-more")).toBeNull();
+    expect(view.host.querySelector(".creation-showcase-sentinel")).toBeNull();
     failList = false;
     await click(buttonNamed(view.host, "重新加载"));
     await until(() => cards().length === 21);
     expect(listCalls().map((call) => call.cursor)).toEqual([undefined, "21", undefined]);
 });
 
-test("repeated load-more clicks do not start concurrent cursor requests", async () => {
+test("repeated sentinel hits do not start concurrent cursor requests", async () => {
     items = Array.from({ length: 24 }, (_, n) => entry(`busy-${n}`));
     view = await mount();
     const adapter = apiClient.defaults.adapter as AxiosAdapter;
@@ -940,15 +978,18 @@ test("repeated load-more clicks do not start concurrent cursor requests", async 
         }
         return adapter(config);
     };
-    const loadMore = buttonNamed(view.host, "加载更多");
+    const sentinel = view.host.querySelector(".creation-showcase-sentinel");
+    expect(sentinel).not.toBeNull();
     await act(async () => {
-        loadMore.click();
-        loadMore.click();
+        for (const observer of [...stubObservers]) {
+            if (!observer.targets.has(sentinel!)) continue;
+            observer.callback([{ isIntersecting: true, target: sentinel! }]);
+            observer.callback([{ isIntersecting: true, target: sentinel! }]);
+        }
     });
     await settle();
     expect(nextRequests).toBe(1);
-    expect(loadMore.disabled).toBe(true);
-    expect(loadMore.textContent).toContain("正在加载更多");
+    expect(view.host.textContent).toContain("正在加载更多");
     expect(cards()).toHaveLength(21);
     await act(async () => release());
     await until(() => cards().length === 24);
@@ -967,7 +1008,7 @@ test("an old account's late cursor response cannot enter the new account's homep
         if (config.params?.cursor) await wait;
         return response;
     };
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     items = [entry("new-user")];
     await act(async () => signIn("new-account"));
     await until(() => cards().length === 1 && Boolean(cards()[0].textContent?.includes("new-user")));
@@ -985,14 +1026,14 @@ test("overlapping pages keep first-seen covers and a repeated cursor never claim
     };
     view = await mount();
     const first = cards()[0];
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 2);
     expect(cards()[0]).toBe(first);
     expect(first.textContent).not.toContain("Changed duplicate");
     expect(Number.parseFloat(first.querySelector<HTMLElement>(".creation-showcase-cover")!.style.aspectRatio)).toBe(500 / 900);
     expect(view.host.textContent).toContain("已停止重复加载");
     expect(view.host.textContent).not.toContain("已展示全部示例");
-    expect(view.host.querySelector(".creation-showcase-load-more")).toBeNull();
+    expect(view.host.querySelector(".creation-showcase-sentinel")).toBeNull();
 });
 
 test("empty intermediate pages keep the next-cursor action available", async () => {
@@ -1002,7 +1043,7 @@ test("empty intermediate pages keep the next-cursor action available", async () 
     };
     view = await mount();
     expect(cards()).toHaveLength(0);
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 1);
     expect(view.host.textContent).toContain("已展示全部示例");
 });
@@ -1211,13 +1252,16 @@ test("homepage independent filters serialize real upstream params and preserve t
     await chooseSelect("首页示例排序", "精选");
     await enterSearch("  电影关键词  ");
     expect(cards().every((card) => card.disabled)).toBe(true);
-    expect(buttonNamed(view.host, "加载更多").disabled).toBe(true);
+    // 搜索尚未落地时触底也不应发分页请求（原先由禁用按钮保证）。
+    const callsBeforeSearch = calls.length;
+    await loadMore();
+    expect(calls).toHaveLength(callsBeforeSearch);
     await until(() => lastListCall().search === "电影关键词" && cards().length === 21);
     const expectedFilters = { mediaType: "video", category: "story", model: "筛选视频模型", sort: "featured", search: "电影关键词", limit: 21 };
     expect(lastListCall()).toMatchObject(expectedFilters);
     expect(lastListCall().cursor).toBeUndefined();
     const firstPageCards = cards();
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 24);
     expect(lastListCall()).toMatchObject({ ...expectedFilters, cursor: "21" });
     expect(cards().slice(0, 21)).toEqual(firstPageCards);
@@ -1299,7 +1343,7 @@ test("a late homepage cursor response cannot mix old examples into a new filter 
         }
         return response;
     };
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await started;
     items = [entry("new-filter-video", { mode: "video", category: "story", model: "新筛选模型" })];
     await chooseMedia("视频");
@@ -1314,7 +1358,7 @@ test("a late homepage cursor response cannot mix old examples into a new filter 
             .filter((call) => call.mediaType === "video")
             .map((call) => call.cursor),
     ).toEqual([undefined]);
-    expect(view.host.querySelector(".creation-showcase-load-more")).toBeNull();
+    expect(view.host.querySelector(".creation-showcase-sentinel")).toBeNull();
 });
 
 test("homepage no-results clear action resets every filter and starts again without the old cursor", async () => {
@@ -1412,7 +1456,7 @@ test("a cached homepage can recover from a later pagination failure with a verif
     await until(() => view!.client.isFetching() === 0 && cards().length === 21);
     expect(listCalls()).toHaveLength(2);
     failList = true;
-    await click(buttonNamed(view.host, "加载更多"));
+    await loadMore();
     await until(() => cards().length === 0 && Boolean(view!.host.querySelector('[role="alert"]')));
     failList = false;
     await click(buttonNamed(view.host, "重新加载"));

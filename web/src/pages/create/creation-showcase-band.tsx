@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Button, Input, Popover } from "antd";
-import { ArrowDown, ArrowUpRight, Images, Info, RefreshCw, Search, SearchX, SlidersHorizontal, WifiOff, X } from "lucide-react";
+import { ArrowUpRight, Images, Info, RefreshCw, Search, SearchX, SlidersHorizontal, WifiOff, X } from "lucide-react";
 
 import { InspirationMasonry } from "@/components/inspirations/inspiration-masonry";
 import { SegmentedControl } from "@/components/ui/base/segmented-control";
@@ -93,6 +93,25 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
     const entries = useMemo(() => (gallery.isSuccess && gallery.isFetchedAfterMount ? mergeZzaiGalleryPages<InspirationGallerySummary>(gallery.data.pages) : []), [gallery.data, gallery.isSuccess, gallery.isFetchedAfterMount]);
     const nextCursor = gallery.data?.pages.at(-1)?.nextCursor;
     const cursorStalled = Boolean(nextCursor && gallery.data?.pageParams.includes(nextCursor));
+    // 目录没有新的分页位置时不再自动续拉，否则会对着同一个游标无限请求。
+    const canLoadMore = gallery.hasNextPage && !cursorStalled;
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const loadNextPage = useCallback(() => {
+        if (!gallery.hasNextPage || gallery.isFetching || searchPending) return;
+        void gallery.fetchNextPage({ cancelRefetch: false });
+    }, [gallery.fetchNextPage, gallery.hasNextPage, gallery.isFetching, searchPending]);
+
+    // 触底自动续页：哨兵进入视口（提前 400px）就请求下一页。依赖变化会重建观察器，
+    // 上一页落地后若哨兵仍在视口内会继续续拉，直到填满视口或目录取完。
+    useEffect(() => {
+        const node = sentinelRef.current;
+        if (!galleryReady || !canLoadMore || !node || typeof IntersectionObserver === "undefined") return;
+        const observer = new IntersectionObserver((records) => {
+            if (records.some((record) => record.isIntersecting)) loadNextPage();
+        }, { rootMargin: "400px 0px" });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [canLoadMore, galleryReady, loadNextPage]);
 
     const reloadGallery = () => {
         // 新查询从首屏核验；不 reset 旧查询的更新计数，否则缓存回访时无法判定核验完成。
@@ -113,7 +132,6 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
         <section className="creation-showcase" aria-labelledby="creation-showcase-title">
             <header className="creation-showcase-head">
                 <div className="creation-showcase-heading">
-                    <span className="creation-showcase-eyebrow">在线示例</span>
                     <div className="creation-showcase-title-row">
                         <h2 id="creation-showcase-title">看看能拍成什么样</h2>
                         {sourcesVisible ? <ShowcaseSources entries={entries} /> : null}
@@ -206,6 +224,7 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
                     renderItem={(entry) => <CreationShowcaseCard entry={entry} disabled={searchPending} reducedMotion={reducedMotion} onPreview={() => previewEntry(entry)} />}
                 />
             ) : null}
+            {galleryReady && canLoadMore ? <div ref={sentinelRef} className="creation-showcase-sentinel" aria-hidden="true" /> : null}
             {galleryReady && (entries.length > 0 || gallery.hasNextPage || cursorStalled) ? (
                 <footer className="creation-showcase-pagination">
                     {cursorStalled ? (
@@ -215,13 +234,11 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
                                 重新加载
                             </button>
                         </p>
-                    ) : null}
-                    {gallery.hasNextPage ? (
-                        <button type="button" className="creation-showcase-load-more" disabled={gallery.isFetching || searchPending} aria-busy={gallery.isFetchingNextPage} onClick={() => void gallery.fetchNextPage({ cancelRefetch: false })}>
-                            <span>{gallery.isFetchingNextPage ? "正在加载更多…" : "加载更多"}</span>
-                            <ArrowDown size={14} aria-hidden="true" />
-                        </button>
-                    ) : entries.length && !cursorStalled ? (
+                    ) : canLoadMore ? (
+                        <p className="creation-showcase-status" role="status" aria-live="polite">
+                            {gallery.isFetchingNextPage ? "正在加载更多…" : "滚动到底部自动加载更多"}
+                        </p>
+                    ) : entries.length ? (
                         <p className="creation-showcase-status" role="status">
                             已展示全部示例
                         </p>

@@ -21,13 +21,6 @@
     gap: var(--space-2);
 }
 
-.creation-showcase-eyebrow {
-    color: var(--user-ink-muted);
-    font-size: var(--fs-label);
-    font-weight: 500;
-    letter-spacing: 0.08em;
-}
-
 .creation-showcase-title-row {
     display: flex;
     flex-wrap: wrap;
@@ -55,22 +48,23 @@
     min-height: var(--user-control-height);
     align-items: center;
     gap: var(--space-2);
-    border: 1px solid var(--user-border);
-    border-radius: var(--user-radius-control);
-    padding: var(--space-2) var(--space-3);
-    background: var(--user-surface);
-    color: var(--user-ink);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--user-ink-muted);
     font-size: var(--fs-caption);
     line-height: 1.5;
     white-space: nowrap;
     cursor: pointer;
+    transition: color 0.16s ease-out;
 }
 
 .creation-showcase-hall-entry:hover {
-    background: var(--user-surface-hover);
+    background: transparent;
+    color: var(--user-ink);
 }
 
-.creation-showcase :is(.creation-showcase-hall-entry, .creation-showcase-load-more):focus-visible,
+.creation-showcase .creation-showcase-hall-entry:focus-visible,
 .creation-showcase-status button:focus-visible {
     outline: 2px solid var(--control-focus-ring);
     outline-offset: 3px;
@@ -278,28 +272,10 @@
     padding-top: var(--space-6);
 }
 
-.creation-showcase-load-more {
-    display: inline-flex;
-    min-height: var(--user-control-height);
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    border: 1px solid var(--user-border);
-    border-radius: var(--user-radius-control);
-    padding: var(--space-2) var(--space-6);
-    background: var(--user-surface);
-    color: var(--user-ink);
-    font-size: var(--fs-caption);
-    cursor: pointer;
-}
-
-.creation-showcase-load-more:hover:not(:disabled) {
-    background: var(--user-surface-hover);
-}
-
-.creation-showcase-load-more:disabled {
-    color: var(--user-ink-muted);
-    cursor: wait;
+/* 触底续页的哨兵：不占视觉空间，只用来判定列表尾部是否进入视口。 */
+.creation-showcase-sentinel {
+    width: 100%;
+    height: 1px;
 }
 
 .creation-showcase-item {
