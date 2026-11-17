@@ -15,11 +15,17 @@ func TestAuthorizedInspirationLibraryMigrationCreatesEmptyReviewTable(t *testing
 	}
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
-	latest := schemaMigrations[len(schemaMigrations)-1]
-	if latest.version != 106 || latest.name != "authorized_inspiration_library" {
-		t.Fatal("unexpected latest migration")
+	var target migration
+	for _, item := range schemaMigrations {
+		if item.version == 106 {
+			target = item
+			break
+		}
 	}
-	if err := latest.apply(db); err != nil {
+	if target.version != 106 || target.name != "authorized_inspiration_library" || target.checksum != "sha256:authorized-inspiration-library-v106" || target.apply == nil {
+		t.Fatalf("missing or changed authorized inspiration migration: version=%d name=%q checksum=%q", target.version, target.name, target.checksum)
+	}
+	if err := target.apply(db); err != nil {
 		t.Fatal(err)
 	}
 	if !db.Migrator().HasTable(&model.InspirationLibraryEntry{}) {
@@ -29,7 +35,7 @@ func TestAuthorizedInspirationLibraryMigrationCreatesEmptyReviewTable(t *testing
 	if err := db.Model(&model.InspirationLibraryEntry{}).Count(&count).Error; err != nil || count != 0 {
 		t.Fatalf("migration must not seed or auto-approve: %d %v", count, err)
 	}
-	if err := latest.apply(db); err != nil {
+	if err := target.apply(db); err != nil {
 		t.Fatal("migration not idempotent", err)
 	}
 }

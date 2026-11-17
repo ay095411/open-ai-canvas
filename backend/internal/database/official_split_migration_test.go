@@ -54,9 +54,14 @@ func TestSplitOfficialMigrationLedger(t *testing.T) {
 			if err != nil || !status.Ready || status.Current != CurrentSchemaVersion || status.YingceCurrent != 4 || status.YingceExpected != 4 {
 				t.Fatalf("bad status: %#v %v", status, err)
 			}
-			var row schemaMigration
-			if err = db.First(&row, "version = ?", 78).Error; err != nil || row.Name != "drama_cast_voice_looks" {
-				t.Fatalf("upstream migration missing: %#v %v", row, err)
+			for _, expected := range []schemaMigration{
+				{Version: 78, Name: "video_remake", Checksum: "sha256:video-remake-v78"},
+				{Version: 79, Name: "drama_cast_voice_looks", Checksum: "sha256:drama-cast-voice-looks-v78-20261101"},
+			} {
+				var row schemaMigration
+				if err = db.First(&row, "version = ?", expected.Version).Error; err != nil || row.Name != expected.Name || row.Checksum != expected.Checksum || row.AppliedAt.IsZero() {
+					t.Fatalf("migration v%d missing or changed: %#v %v", expected.Version, row, err)
+				}
 			}
 			var count int64
 			db.Model(&yingceSchemaMigration{}).Count(&count)
