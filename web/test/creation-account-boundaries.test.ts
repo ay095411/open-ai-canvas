@@ -67,6 +67,8 @@ test.each(["runtime", "skills"] as const)("%s 准备期间切换账号时不再�
                 return runtime;
             },
             expandCreationPrompt: (value: string) => value,
+            // 提交时按技能库权限决定是否携带技能引用；本用例只关心账号边界，固定为有权限。
+            hasSkillLibraryAccess: () => true,
             toast: { error: (value: string) => errors.push(value) },
         });
         await submit(undefined, "retry");

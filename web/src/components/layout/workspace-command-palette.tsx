@@ -12,6 +12,7 @@ import { openWorkspaceSettings } from "@/lib/workspace-settings";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 import { workbenchEntryPath } from "@/lib/workbench-navigation";
 import { useUserStore } from "@/stores/use-user-store";
+import { useSkillLibraryAccess } from "@/lib/skill-access";
 
 type PaletteEntry = {
     id: string;
@@ -25,6 +26,7 @@ type PaletteEntry = {
 export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
     const navigate = useNavigate();
     const features = useUserStore((state) => state.features);
+    const canUseSkills = useSkillLibraryAccess();
     const [query, setQuery] = useState("");
     const [highlight, setHighlight] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -42,11 +44,11 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
             ...(features.ecommerceEnabled ? [toolEntry("ecommerce", "/ecommerce")] : []),
             ...(features.taskCenterEnabled ? [toolEntry("tasks", "/tasks")] : []),
             toolEntry("assets", "/assets"),
-            toolEntry("skills", "/skills"),
+            ...(canUseSkills ? [toolEntry("skills", "/skills")] : []),
             ...(features.creditsEnabled ? [{ ...toolEntry("wallet"), run: () => openWorkspaceWallet() }] : []),
             { ...toolEntry("settings"), run: () => openWorkspaceSettings() },
         ];
-    }, [features]);
+    }, [features, canUseSkills]);
 
     const filtered = useMemo(() => {
         const keyword = query.trim().toLowerCase();

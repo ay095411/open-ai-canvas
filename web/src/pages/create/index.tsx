@@ -1,3 +1,4 @@
+import { captureSkillLibraryAccess, hasSkillLibraryAccess, isSkillLibraryAccessCurrent, useSkillLibraryAccess } from "@/lib/skill-access";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { App, Spin } from "antd";
 import { Tooltip } from "@/components/ui/base/tooltip";
@@ -199,6 +200,7 @@ export default function CreatePage() {
     const promptRef = useRef(prompt);
     const attachmentsRef = useRef(attachments);
     const [draftReferences, setDraftReferences] = useState<CreationReference[]>([]);
+    const canUseSkills = useSkillLibraryAccess();
     const [addedSkills, setAddedSkills] = useState<Skill[]>([]);
     const addedSkillsRequestedRef = useRef(false);
     const [ratio, setRatio] = useState("16:9");
@@ -322,7 +324,15 @@ export default function CreatePage() {
         if (typeof width !== "number" || typeof height !== "number" || width <= 0 || height <= 0) return undefined;
         return { width, height };
     }, [attachments]);
-    const mentionReferences = useMemo(() => buildCreationMentionReferences(addedSkills, attachments, draftReferences), [addedSkills, attachments, draftReferences]);
+    const mentionReferences = useMemo(
+        () =>
+            buildCreationMentionReferences(
+                canUseSkills ? addedSkills : [],
+                attachments,
+                draftReferences.filter((reference) => canUseSkills || (reference.kind !== "skill" && !reference.skill)),
+            ),
+        [addedSkills, attachments, draftReferences, canUseSkills],
+    );
     const isEmpty = !activeConversation?.messages.length;
 
     // 空首页从顶部开始；有消息的对话由跟随消息逻辑管理滚动。
@@ -497,14 +507,20 @@ export default function CreatePage() {
         [],
     );
 
+    useEffect(() => {
+        setAddedSkills([]);
+        addedSkillsRequestedRef.current = false;
+    }, [canUseSkills, userId]);
     const loadAddedSkills = useCallback(() => {
-        // 技能列表接口需要登录；游客聚焦输入框时不发无效请求。
-        if (!useUserStore.getState().user) return;
-        if (addedSkillsRequestedRef.current) return;
+        // 技能列表接口需要登录：游客拿不到访问快照，直接跳过；回调里再校验快照是否过期。
+        const access = captureSkillLibraryAccess();
+        if (!access || addedSkillsRequestedRef.current) return;
         addedSkillsRequestedRef.current = true;
         void import("@/services/api/skills")
             .then(({ listAddedSkills }) => listAddedSkills())
-            .then(({ skills }) => setAddedSkills(skills))
+            .then(({ skills }) => {
+                if (isSkillLibraryAccessCurrent(access)) setAddedSkills(skills);
+            })
             .catch(() => setAddedSkills([]));
     }, []);
 
@@ -990,7 +1006,7 @@ export default function CreatePage() {
             audioCount: referenceAudios.length,
             characterCount: 0,
         });
-        const skillReferences = references.flatMap((reference) => (reference.skill ? [reference.skill] : []));
+        const skillReferences = hasSkillLibraryAccess() ? references.flatMap((reference) => (reference.skill ? [reference.skill] : [])) : [];
         let runtime: CreationRuntime;
         try {
             runtime = await loadCreationRuntime();

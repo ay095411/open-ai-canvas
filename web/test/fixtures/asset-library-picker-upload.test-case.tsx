@@ -19,6 +19,7 @@ for (const [key, value] of Object.entries({
     SVGElement: dom.SVGElement,
     ShadowRoot: dom.ShadowRoot,
     ResizeObserver: dom.ResizeObserver,
+    MutationObserver: dom.MutationObserver,
     getComputedStyle: dom.getComputedStyle.bind(dom),
     localStorage: dom.localStorage,
     sessionStorage: dom.sessionStorage,

@@ -19,6 +19,7 @@ import { interceptAuthLink } from "@/lib/workspace-auth";
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 import { workbenchEntryPath } from "@/lib/workbench-navigation";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
+import { useSkillLibraryAccess } from "@/lib/skill-access";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { WorkspaceAccountCard } from "./workspace-account-card";
 import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
@@ -58,7 +59,7 @@ function toolItem(slug: NavigationToolSlug, to: string): WorkspaceNavItem {
     return { id: slug, title: tool?.label ?? slug, icon: sidebarIcons[slug] ?? tool?.icon, to };
 }
 
-function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[]; footer: WorkspaceNavItem[] } {
+function buildNav(features: FeatureAvailability, canUseSkills: boolean): { groups: WorkspaceNavGroup[]; footer: WorkspaceNavItem[] } {
     const groups: WorkspaceNavGroup[] = [
         {
             items: [
@@ -74,7 +75,7 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
             items: [
                 { ...toolItem("assets", "/assets"), title: "资产" },
                 ...(features.taskCenterEnabled ? [{ ...toolItem("tasks", "/tasks"), title: "创作历史" }] : []),
-                { ...toolItem("skills", "/skills"), title: "Skills" },
+                ...(canUseSkills ? [{ ...toolItem("skills", "/skills"), title: "Skills" }] : []),
                 ...(features.pluginCenterEnabled ? [{ ...toolItem("plugins", "/plugins"), title: "插件" }] : []),
             ],
         },
@@ -405,7 +406,8 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
     const features = useUserStore((state) => state.features);
     const user = useUserStore((state) => state.user);
     const { handleLogout } = useWorkspaceLogout();
-    const { groups, footer } = useMemo(() => buildNav(features), [features]);
+    const canUseSkills = useSkillLibraryAccess();
+    const { groups, footer } = useMemo(() => buildNav(features, canUseSkills), [features, canUseSkills]);
 
     const section = searchParams.get("section");
     const activeId = workspaceNavActiveId(pathname, section);

@@ -35,7 +35,9 @@ describe("authentication follows the application theme", () => {
         expect(scene).toContain("auth-scene-hero");
         expect(scene).toContain('className="auth-scene-brand-logo"');
         expect(scene).toContain('className="auth-scene-muted');
-        expect(source("components/layout/app-providers.tsx")).toContain("getAntThemeConfig(dark, appearance.activeSkin)");
+        const provider = source("components/layout/app-providers.tsx");
+        expect(provider).toContain("const skin = useEffectiveSkin()");
+        expect(provider).toContain("getAntThemeConfig(dark, skin)");
     });
 
     test("merged login/register form keeps theme-aware text and inline signup", () => {
