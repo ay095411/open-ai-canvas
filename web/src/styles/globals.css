@@ -3835,18 +3835,7 @@
         color: #747b85;
     }
 
-    .creation-ratio-preview {
-        display: grid;
-        width: 28px;
-        height: 19px;
-        place-items: center;
-    }
 
-    .creation-ratio-preview > span {
-        display: block;
-        border: 1.5px solid currentColor;
-        border-radius: 3px;
-    }
 
     .creation-segmented-grid.is-resolution button,
     .creation-segmented-grid.is-count button {
@@ -4637,81 +4626,7 @@
         width: 292px;
         padding: 12px;
     }
-    .creation-parameter-section + .creation-parameter-section {
-        margin-top: 14px;
-    }
-    .creation-parameter-section h3 {
-        margin: 0 0 8px;
-        color: #858c97;
-        font-size: 11px;
-        font-weight: 500;
-    }
-    .creation-choice-grid {
-        display: grid;
-        gap: 4px;
-    }
-    .creation-choice-grid.is-ratio {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-    .creation-choice-grid.is-resolution {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .creation-choice-grid.is-quality,
-    .creation-choice-grid.is-count {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .creation-choice-grid button {
-        display: flex;
-        min-width: 0;
-        min-height: 42px;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        border-radius: 8px;
-        color: #cdd1d7;
-        font-size: 11px;
-        transition:
-            background-color 140ms ease,
-            color 140ms ease;
-    }
-    .creation-choice-grid button:hover {
-        background: rgba(255, 255, 255, 0.055);
-    }
-    .creation-choice-grid button small {
-        display: none;
-    }
-    .creation-choice-grid.is-resolution button,
-    .creation-choice-grid.is-count button {
-        min-height: 34px;
-        font-size: 12px;
-    }
-    .creation-choice-grid .creation-ratio-preview {
-        width: 24px;
-        height: 15px;
-    }
-    .creation-choice-grid .creation-ratio-preview > span {
-        border-width: 1px;
-        border-radius: 2px;
-    }
 
-    .creation-duration-menu {
-        width: 250px;
-        padding: 12px 14px;
-    }
-    .creation-duration-menu > div:first-child {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        color: #858c97;
-        font-size: 11px;
-    }
-    .creation-duration-menu strong {
-        color: #f3f4f6;
-        font-size: 12px;
-        font-weight: 600;
-    }
     .creation-range-wrap input {
         height: 18px;
     }
@@ -4739,16 +4654,6 @@
     html:not(.dark) .creation-control-popover-surface {
         background: #fff !important;
         box-shadow: 0 14px 34px rgba(20, 26, 35, 0.14) !important;
-    }
-    html:not(.dark) .creation-parameter-section h3,
-    html:not(.dark) .creation-duration-menu > div:first-child {
-        color: #7b8490;
-    }
-    html:not(.dark) .creation-choice-grid button {
-        color: #4d5661;
-    }
-    html:not(.dark) .creation-duration-menu strong {
-        color: #20242a;
     }
 
     @keyframes creation-intro-mark {
@@ -16118,96 +16023,9 @@ html:not(.dark) .creation-chat-control.is-thinking[aria-pressed="true"] > svg {
     width: 274px;
     padding: 10px 12px 12px;
 }
-.creation-parameter-section {
-    display: grid;
-    grid-template-columns: 38px minmax(0, 1fr);
-    align-items: start;
-    gap: 8px;
-}
-.creation-parameter-section + .creation-parameter-section {
-    margin-top: 12px;
-}
-.creation-parameter-section h3 {
-    margin: 7px 0 0;
-    color: var(--creation-muted);
-    font-size: 10px;
-    font-weight: 500;
-}
-.creation-choice-grid {
-    display: grid;
-    gap: 2px;
-}
-.creation-choice-grid.is-ratio {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-.creation-choice-grid.is-resolution {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.creation-choice-grid.is-quality,
-.creation-choice-grid.is-count {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
 
-.creation-choice-grid button {
-    display: flex;
-    min-width: 0;
-    min-height: 36px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    border: 0;
-    border-radius: 5px;
-    background: transparent;
-    color: #989ea7;
-    font-size: 10px;
-    line-height: 1;
-    transition:
-        color 120ms ease,
-        background-color 120ms ease;
-}
 
-.creation-choice-grid button:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #e9ebed;
-}
-.creation-choice-grid button small {
-    display: none;
-}
-.creation-choice-grid.is-resolution button,
-.creation-choice-grid.is-count button {
-    min-height: 30px;
-    font-size: 11px;
-}
-.creation-choice-grid .creation-ratio-preview {
-    width: 20px;
-    height: 13px;
-}
-.creation-choice-grid .creation-ratio-preview > span {
-    border-width: 1px;
-    border-radius: 2px;
-}
 
-.creation-duration-menu {
-    display: flex;
-    width: 212px;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-}
-.creation-duration-menu > div:first-child {
-    display: flex;
-    flex: 0 0 auto;
-    flex-direction: column;
-    gap: 2px;
-    color: var(--creation-muted);
-    font-size: 10px;
-}
-.creation-duration-menu strong {
-    color: #f1f2f3;
-    font-size: 12px;
-    font-weight: 600;
-}
 .creation-range-wrap {
     min-width: 0;
     flex: 1;
@@ -16289,20 +16107,6 @@ html:not(.dark) .creation-new-button:hover {
 html:not(.dark) .creation-control-popover-surface {
     background: rgba(255, 255, 255, 0.94) !important;
     box-shadow: 0 16px 38px rgba(28, 32, 37, 0.12) !important;
-}
-html:not(.dark) .creation-parameter-section h3,
-html:not(.dark) .creation-duration-menu > div:first-child {
-    color: #727980 !important;
-}
-html:not(.dark) .creation-choice-grid button {
-    color: #737a82;
-}
-html:not(.dark) .creation-choice-grid button:hover {
-    background: rgba(28, 32, 37, 0.06);
-    color: #25292e;
-}
-html:not(.dark) .creation-duration-menu strong {
-    color: #20242a;
 }
 
 @keyframes creation-composer-arrive {
@@ -17599,90 +17403,10 @@ html:not(.dark) .creation-home .creation-reference-add-button:hover:not(:disable
     }
 }
 
-.creation-custom-value {
-    display: flex;
-    height: 28px;
-    align-items: center;
-    gap: 6px;
-    margin-top: 5px;
-    padding: 0 7px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.045);
-    color: var(--creation-faint);
-    font-size: 10px;
-}
 
-.creation-custom-value span {
-    flex: 0 0 auto;
-}
-.creation-custom-value input {
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: #edf0f2;
-    font-size: 11px;
-    line-height: 1;
-}
 
-.creation-custom-value input::-webkit-inner-spin-button,
-.creation-custom-value input::-webkit-outer-spin-button {
-    margin: 0;
-}
-.creation-custom-value em {
-    font-style: normal;
-}
 
-.creation-duration-menu {
-    display: grid;
-    width: 224px;
-    grid-template-columns: 36px minmax(0, 1fr);
-    align-items: center;
-    gap: 7px 8px;
-    padding: 10px 11px;
-}
 
-.creation-duration-heading {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    color: var(--creation-muted);
-    font-size: 10px;
-}
-.creation-duration-heading strong {
-    color: #f1f2f3;
-    font-size: 12px;
-    font-weight: 600;
-}
-.creation-duration-choices {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 2px;
-}
-.creation-duration-choices button {
-    height: 26px;
-    min-width: 0;
-    flex: 1;
-    border: 0;
-    border-radius: 5px;
-    background: transparent;
-    color: #969ca5;
-    font-size: 10px;
-    transition:
-        color 120ms ease,
-        background-color 120ms ease;
-}
-.creation-duration-choices button:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #eef0f2;
-}
-.creation-custom-value.is-duration {
-    grid-column: 2;
-    width: 100%;
-    margin-top: 0;
-}
 
 html:not(.dark) .creation-chat-reference.is-paper {
     border-color: rgba(28, 32, 37, 0.1);
@@ -17692,17 +17416,6 @@ html:not(.dark) .creation-chat-reference.is-paper {
 html:not(.dark) .creation-chat-reference.is-paper:hover:not(:disabled) {
     background: #dfe3e6;
     color: #1c2025;
-}
-html:not(.dark) .creation-custom-value {
-    background: rgba(28, 32, 37, 0.055);
-}
-html:not(.dark) .creation-custom-value input,
-html:not(.dark) .creation-duration-heading strong {
-    color: #23272c;
-}
-html:not(.dark) .creation-duration-choices button:hover {
-    background: rgba(28, 32, 37, 0.06);
-    color: #23272c;
 }
 
 @keyframes creation-intro-arrive {
@@ -18241,189 +17954,24 @@ html:not(.dark) .creation-media-preview-modal .ant-modal-container {
         padding: 13px 14px 14px;
     }
 
-    .creation-parameter-section {
-        display: block;
-        margin: 0;
-    }
 
-    .creation-parameter-section + .creation-parameter-section {
-        margin-top: 16px;
-    }
-    .creation-parameter-section h3 {
-        margin: 0 0 8px;
-        color: var(--creation-muted);
-        font-size: 11px;
-        font-weight: 500;
-    }
 
     .creation-parameter-content {
         min-width: 0;
     }
-    .creation-choice-grid {
-        gap: 3px;
-    }
-    .creation-choice-grid.is-ratio {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-    .creation-choice-grid button {
-        min-height: 46px;
-        border: 0;
-        border-radius: 6px;
-        background: transparent;
-        color: #959ca5;
-        font-size: 10px;
-    }
 
-    .creation-choice-grid button:hover {
-        background: rgba(255, 255, 255, 0.055);
-        color: #edf0f2;
-    }
-    .creation-choice-grid .creation-ratio-preview {
-        width: 25px;
-        height: 17px;
-    }
-    .creation-choice-grid .creation-ratio-preview > span {
-        border-width: 1px;
-    }
-    .creation-choice-grid.is-resolution button,
-    .creation-choice-grid.is-count button {
-        min-height: 32px;
-        font-size: 11px;
-    }
 
-    .creation-custom-trigger {
-        display: inline-flex;
-        height: 27px;
-        align-items: center;
-        border: 0;
-        background: transparent;
-        color: #8bcfe0;
-        padding: 0 4px;
-        font-size: 10px;
-    }
 
-    .creation-custom-trigger:hover {
-        color: #c4edf6;
-    }
-    .creation-custom-value {
-        display: flex;
-        width: 100%;
-        height: 32px;
-        align-items: center;
-        gap: 7px;
-        margin-top: 7px;
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.055);
-        padding: 0 9px;
-        color: var(--creation-muted);
-        font-size: 11px;
-    }
 
-    .creation-custom-value input {
-        min-width: 0;
-        border: 0;
-        outline: 0;
-        background: transparent;
-        color: #edf0f2;
-        font-size: 12px;
-    }
 
-    .creation-duration-menu {
-        display: block;
-        width: 270px;
-        padding: 13px 14px 14px;
-    }
 
-    .creation-duration-heading {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        color: var(--creation-muted);
-        font-size: 11px;
-    }
 
-    .creation-duration-heading strong {
-        color: #f1f3f4;
-        font-size: 13px;
-        font-weight: 600;
-    }
-    .creation-duration-choices {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 3px;
-    }
-    .creation-duration-choices button {
-        height: 30px;
-        border: 0;
-        border-radius: 6px;
-        background: transparent;
-        color: #969ca5;
-        font-size: 11px;
-    }
 
-    .creation-duration-choices button:hover {
-        background: rgba(255, 255, 255, 0.055);
-        color: #eff1f2;
-    }
-    .creation-custom-value.is-duration {
-        width: 100%;
-        grid-column: auto;
-        margin-top: 7px;
-    }
 }
 
-/* 解除旧版参数侧栏 Grid，Popover 必须是纵向信息分组。 */
-.creation-parameter-section {
-    display: block !important;
-    grid-template-columns: none !important;
-    gap: 0 !important;
-}
 
-.creation-parameter-section h3 {
-    margin: 0 0 8px !important;
-}
 .creation-parameter-content {
     min-width: 0;
-}
-.creation-choice-grid {
-    gap: 3px;
-}
-.creation-choice-grid.is-ratio {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-.creation-choice-grid button {
-    min-height: 46px;
-}
-.creation-choice-grid.is-resolution button,
-.creation-choice-grid.is-count button {
-    min-height: 32px;
-}
-.creation-duration-menu {
-    display: block !important;
-    width: 270px !important;
-    grid-template-columns: none !important;
-    padding: 13px 14px 14px !important;
-}
-.creation-duration-heading {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 8px;
-}
-.creation-duration-choices {
-    display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 3px;
-}
-.creation-duration-choices button {
-    height: 30px;
-}
-.creation-custom-value.is-duration {
-    grid-column: auto !important;
-    width: 100%;
-    margin-top: 7px;
 }
 
 /* 创作参数是即时选择，不使用后台式表单控件。 */
@@ -18439,155 +17987,21 @@ html:not(.dark) .creation-media-preview-modal .ant-modal-container {
     padding: 12px !important;
 }
 
-.creation-parameter-section,
-.creation-parameter-section + .creation-parameter-section {
-    display: block !important;
-    margin: 0 !important;
-}
 
-.creation-parameter-section + .creation-parameter-section {
-    margin-top: 14px !important;
-}
 
-.creation-parameter-section > header,
-.creation-duration-heading {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between;
-    min-height: 18px;
-    margin: 0 2px 7px !important;
-}
 
-.creation-parameter-section h3,
-.creation-duration-heading > span {
-    margin: 0 !important;
-    color: var(--creation-muted) !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0 !important;
-}
 
-.creation-parameter-section > header > span,
-.creation-duration-heading strong {
-    color: var(--creation-text) !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-}
 
-.creation-choice-grid {
-    gap: 3px !important;
-}
-.creation-choice-grid.is-ratio {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-}
-.creation-choice-grid.is-resolution {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-}
 
-.creation-choice-grid.is-ratio button,
-.creation-choice-grid.is-resolution button,
-.creation-choice-grid.is-quality button,
-.creation-choice-grid.is-count button {
-    display: flex !important;
-    min-height: 34px !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 7px;
-    border: 0 !important;
-    border-radius: 6px !important;
-    background: transparent !important;
-    color: var(--creation-muted) !important;
-    font-size: 11px !important;
-    font-weight: 500;
-    transition:
-        background-color 160ms var(--motion-ease-out),
-        color 160ms var(--motion-ease-out),
-        transform 160ms var(--motion-ease-out) !important;
-}
 
-.creation-choice-grid button:hover {
-    background: rgba(255, 255, 255, 0.055) !important;
-    color: var(--creation-text) !important;
-}
 
-.creation-choice-grid button.is-selected {
-    background: var(--control-selected-bg) !important;
-    color: var(--control-selected-fg) !important;
-}
 
-.creation-choice-grid .creation-ratio-preview {
-    display: grid;
-    width: 18px !important;
-    height: 14px !important;
-    flex: 0 0 18px;
-    place-items: center;
-}
 
-.creation-choice-grid .creation-ratio-preview > span {
-    max-width: 18px;
-    max-height: 14px;
-    border-width: 1px !important;
-    border-radius: 2px !important;
-}
 
-.creation-custom-trigger {
-    display: inline-flex !important;
-    height: 26px !important;
-    align-items: center;
-    gap: 4px;
-    margin: 3px 0 0 2px;
-    border: 0 !important;
-    border-radius: 4px;
-    background: transparent !important;
-    padding: 0 2px !important;
-    color: var(--creation-muted) !important;
-    font-size: 10px !important;
-    transition:
-        color 160ms var(--motion-ease-out),
-        background-color 160ms var(--motion-ease-out) !important;
-}
 
-.creation-custom-trigger svg {
-    width: 12px;
-    height: 12px;
-}
-.creation-custom-trigger:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: var(--creation-text) !important;
-}
 
-.creation-custom-value,
-.creation-custom-value.is-duration {
-    display: flex !important;
-    width: 100% !important;
-    height: 32px !important;
-    align-items: center;
-    gap: 8px;
-    margin-top: 5px !important;
-    border: 0 !important;
-    border-radius: 6px !important;
-    background: rgba(255, 255, 255, 0.055) !important;
-    padding: 0 9px !important;
-    color: var(--creation-muted) !important;
-    font-size: 10px !important;
-}
 
-.creation-custom-value input {
-    min-width: 0;
-    flex: 1;
-    border: 0 !important;
-    outline: 0 !important;
-    background: transparent !important;
-    color: var(--creation-text) !important;
-    font-size: 11px !important;
-}
 
-.creation-custom-value em {
-    color: var(--creation-muted);
-    font-size: 11px;
-    font-style: normal;
-}
 
 /* 首页图像参数保持紧凑，避免比例预设把弹层撑成整屏高度。 */
 .creation-parameter-menu .image-size-picker {
@@ -18605,75 +18019,16 @@ html:not(.dark) .creation-media-preview-modal .ant-modal-container {
     padding: 5px;
 }
 
-.creation-duration-custom-field {
-    display: inline-flex;
-    min-width: 64px;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 3px;
-    margin-left: auto;
-    color: var(--creation-text);
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-}
 
-.creation-custom-value .creation-duration-custom-field input {
-    width: 42px;
-    flex: 0 0 42px;
-    padding: 0;
-    text-align: right;
-}
 
-.creation-duration-custom-field em {
-    color: currentColor;
-}
 
-.creation-duration-menu {
-    display: block !important;
-    width: 262px !important;
-    padding: 12px !important;
-}
 
-.creation-duration-choices {
-    display: grid !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    gap: 3px !important;
-}
 
-.creation-duration-choices button {
-    height: 32px !important;
-    min-width: 0;
-    border: 0 !important;
-    border-radius: 6px !important;
-    background: transparent !important;
-    color: var(--creation-muted) !important;
-    font-size: 11px !important;
-    font-weight: 500;
-    transition:
-        background-color 160ms var(--motion-ease-out),
-        color 160ms var(--motion-ease-out) !important;
-}
 
-.creation-duration-choices button:hover {
-    background: rgba(255, 255, 255, 0.055) !important;
-    color: var(--creation-text) !important;
-}
-.creation-duration-choices button.is-selected {
-    background: var(--control-selected-bg) !important;
-    color: var(--control-selected-fg) !important;
-}
 
 html:not(.dark) .creation-control-popover-surface {
     background: rgba(255, 255, 255, 0.98) !important;
     box-shadow: 0 20px 48px rgba(25, 29, 35, 0.14) !important;
-}
-html:not(.dark) .creation-choice-grid button:hover,
-html:not(.dark) .creation-duration-choices button:hover,
-html:not(.dark) .creation-custom-trigger:hover {
-    background: rgba(28, 32, 37, 0.055) !important;
-}
-html:not(.dark) .creation-custom-value {
-    background: rgba(28, 32, 37, 0.055) !important;
 }
 
 /* 历史对话是按更新时间倒序排列的普通记录列表，不使用时间轴视觉。 */

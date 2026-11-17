@@ -3,7 +3,11 @@ import { readFileSync } from "node:fs";
 
 test("home thinking is directly draggable without opening a menu", () => {
     const source = readFileSync(new URL("../src/pages/create/creation-workspace.tsx", import.meta.url), "utf8");
-    const control = source.slice(source.indexOf("function ThinkingControl("), source.indexOf("function DurationMenu("));
+    // 切片边界用下一个顶层函数，避免依赖某个具体组件是否还存在。
+    const start = source.indexOf("function ThinkingControl(");
+    const rest = source.slice(start + 1);
+    const nextFunction = rest.indexOf("\nfunction ");
+    const control = nextFunction === -1 ? source.slice(start) : source.slice(start, start + 1 + nextFunction);
     expect(control).toContain("<ThinkingLevelSlider");
     expect(control).toContain("onChange={onChange}");
     expect(control).not.toContain("<Popover");

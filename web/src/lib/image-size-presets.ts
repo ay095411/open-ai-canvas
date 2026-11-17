@@ -187,6 +187,32 @@ export function imagePresetValue(profile: ImageCapabilityConfig, preset: ImageRe
     return profile.size.parameter === "aspect_ratio" ? preset.ratio : preset.size;
 }
 
+export type ImagePresetSelection = { size: string; quality?: string; imageResolution?: string };
+
+/** 选中一个尺寸预设后要写回的配置；分辨率与质量哪个承载档位由能力配置决定。 */
+export function imagePresetSelectionPatch(profile: ImageCapabilityConfig, preset: ImageResolutionOption): ImagePresetSelection {
+    return {
+        size: imagePresetValue(profile, preset),
+        quality: profile.resolution.supported ? undefined : profile.size.parameter === "aspect_ratio" ? imageQualityForSelection(profile, preset.tier) : undefined,
+        imageResolution: profile.resolution.supported ? profile.resolution.values.find((value) => value.toLowerCase() === preset.tier) || preset.tier : undefined,
+    };
+}
+
+/**
+ * 当前配置是否正落在该预设上。
+ * 比例、分辨率档位与质量映射的匹配规则只在这里维护，尺寸面板和创作参数面板共用。
+ */
+export function imagePresetSelected(profile: ImageCapabilityConfig, preset: ImageResolutionOption, current: ImagePresetSelection & { tiers: readonly string[] }): boolean {
+    if (imagePresetValue(profile, preset) !== current.size) return false;
+    if (profile.size.parameter !== "aspect_ratio") return true;
+    const tierOf = (value?: string) => (value ? (current.tiers.find((item) => item === value.toLowerCase()) as ImageResolutionTier | undefined) : undefined);
+    const resolutionTier = tierOf(current.imageResolution);
+    if (profile.resolution.supported) return !resolutionTier || resolutionTier === preset.tier;
+    if (imageResolutionUsesQuality(profile)) return imageQualityForTier(profile, preset.tier) === (current.quality || profile.quality.default);
+    const qualityTier = tierOf(current.quality);
+    return !qualityTier || qualityTier === preset.tier;
+}
+
 export function imageSizeConfigWithPresets(profile: ImageCapabilityConfig, presets: ImageResolutionOption[]): ImageCapabilityConfig["size"] {
     const values = [...new Set(presets.map((preset) => (profile.size.parameter === "aspect_ratio" ? preset.ratio : preset.size || preset.ratio)))];
     if (profile.size.values.includes("auto")) values.unshift("auto");

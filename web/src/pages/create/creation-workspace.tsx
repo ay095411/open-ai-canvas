@@ -1,8 +1,9 @@
-import { ImageSizePicker } from "@/components/image-size-picker";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
-import { imageResolutionUsesQuality } from "@/lib/image-size-presets";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
+import { formatVideoResolutionLabel as videoResolutionLabel } from "@/lib/video-generation-options";
+import { buildImageResolutionOptions, formatImageResolutionSize, supportsImageResolutionPresets } from "@/lib/image-resolution-tiers";
+import { imageQualityLabel } from "@/lib/image-quality";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { Button, Popover } from "antd";
 import { useWorkspaceTopBarMount } from "@/components/layout/workspace-top-bar-extension";
@@ -10,9 +11,8 @@ import { Tooltip } from "@/components/ui/base/tooltip";
 import { type ThinkingLevel, type ThinkingRequest } from "@/lib/text-thinking";
 import { ThinkingLevelSlider } from "@/components/thinking-level-slider";
 import { Reorder, LayoutGroup, motion } from "motion/react";
-import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Clock3, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, PenLine, Plus, SlidersHorizontal, Trash2, Waves, X } from "lucide-react";
+import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Film, History, Image as ImageIcon, LoaderCircle, Maximize2, MessageSquareText, Minimize2, PenLine, Plus, SlidersHorizontal, Trash2, Waves, X } from "lucide-react";
 
-import { formatVideoResolutionLabel as videoResolutionLabel } from "@/lib/video-generation-options";
 import { CanvasResourceMentionTextarea } from "@/components/canvas/canvas-resource-mention-textarea";
 import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
 import { SpotlightSurface } from "@/components/ui/aceternity/spotlight-surface";
@@ -20,13 +20,10 @@ import { ModelPicker } from "@/components/model-picker";
 import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { ASSET_CATEGORY_LABELS } from "@/lib/asset-category";
 import { formatShotOrdinal } from "@/lib/shot-label";
-import { buildImageResolutionOptions, formatImageResolutionSize, supportsImageResolutionPresets } from "@/lib/image-resolution-tiers";
-import { videoDurationOptions, type ImageCapabilityConfig, type VideoCapabilityConfig } from "@/lib/model-capabilities";
-import { preserveVideoSettings as normalizeVideoValue } from "@/lib/media-settings";
+import { type ImageCapabilityConfig, type VideoCapabilityConfig } from "@/lib/model-capabilities";
 import { mediaSettingIssues } from "@/lib/media-settings";
 import { MediaSettingsNotice } from "@/components/media-settings-notice";
 import { mergedImageCapabilityConfig, type ModelRequirements } from "@/lib/model-selection";
-import { imageQualityLabel } from "@/lib/image-quality";
 import { modelQuoteDescription, modelQuoteRequest } from "@/lib/model-pricing";
 import { quoteModel, type LogicalModelQuote } from "@/services/api/logical-models";
 import { modelOptionName, resolveModelChannel, resolveModelRequestConfig, type AiConfig } from "@/stores/use-config-store";
@@ -35,11 +32,12 @@ import { useGenerationBatchLimit, batchQuoteTotal } from "@/lib/generation-batch
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { type CreationReference } from "./creation-references";
 import { creationAttachmentKind, type CreationAttachment, type CreationMode } from "./creation-assets";
-import { countOptions, modeLabels, qualityOptions, resolutionOptions, type CreationShotRailEntry } from "./creation-types";
+import { modeLabels, qualityOptions, type CreationShotRailEntry } from "./creation-types";
 import { creationMessageNeedsResultSync } from "./creation-conversations";
 import "./creation-product.css";
 import "./creation-scrollbars.css";
 import { CreationAttachmentThumbnail, CreationMediaPreviewModal } from "./creation-workspace-messages";
+import { CreationSettingsPanel, type CreationSettingsPatch } from "./creation-settings-panel";
 
 export { CreationHistoryDrawer } from "./creation-workspace-history";
 export { CreationMessageView } from "./creation-workspace-messages";
@@ -542,9 +540,12 @@ export function CreationComposer(props: ComposerProps) {
                             showOptionPrices
                             variant="creation"
                         />
-                        {props.mode === "video" || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
-                        {props.mode === "video" && props.videoProfile.durationSupported !== false ? (
-                            <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} protocol={resolveModelRequestConfig(props.config, props.model).interfaceType} />
+                        {props.mode === "video" || (props.mode === "image" && imageSettingsSupported) ? (
+                            <GenerationSettingsMenu
+                                {...props}
+                                costLabel={showCost ? `${routeQuote?.estimated ? "预估 " : ""}${formattedCredits} 积分` : undefined}
+                                costTitle={routeQuote ? modelQuoteDescription(routeQuote) : undefined}
+                            />
                         ) : null}
                         {props.mode === "text" ? (
                             <>
@@ -726,143 +727,37 @@ function ModePicker({ mode, onModeChange }: { mode: CreationMode; onModeChange: 
     );
 }
 
-function GenerationSettingsMenu(props: ComposerProps) {
-    const [open, setOpen] = useState(false);
-    // 张数上限与发送时的实际单数保持一致。
-    const imageBatchLimit = Math.min(15, useGenerationBatchLimit());
+/** 触发器上的参数摘要（纯函数，无交互）：图片「比例 · 清晰度 · 张数」、视频「画幅 · 清晰度 · 时长」。 */
+function composerSettingsSummary(props: ComposerProps, imageBatchLimit: number) {
     const activeQualityOptions = props.imageProfile.quality.values.map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
     const qualityLabel = activeQualityOptions.find((item) => item.value === props.quality)?.label || qualityOptions.find((item) => item.value === props.quality)?.label || props.quality || "自动";
     // 尺寸/比例/分辨率选项取同显示名分组内全部模型的并集，路由模型只决定发送参数。
     const mergedProfile = mergedImageCapabilityConfig(props.config, props.model || props.config.imageModel);
     const usesImageResolutionPicker = props.mode === "image" && supportsImageResolutionPresets(mergedProfile.size);
     const imageResolutionOptions = usesImageResolutionPicker ? buildImageResolutionOptions(mergedProfile.size.values) : [];
-    const ratios = props.videoProfile.ratios;
     const referenceImageSize = props.mode === "image" && mergedProfile.size.allowCustom ? props.referenceImageSize : undefined;
     const referenceImageSizeValue = referenceImageSize ? String(referenceImageSize.width) + "x" + String(referenceImageSize.height) : "";
     const referenceImageSizeLabel = referenceImageSize ? String(referenceImageSize.width) + " × " + String(referenceImageSize.height) : "";
     const referenceImageSizeSelected = Boolean(referenceImageSizeValue && props.ratio === referenceImageSizeValue);
-    const resolutions = props.mode === "video" ? props.videoProfile.resolutions.map((value) => ({ value: value.replace(/p$/i, ""), label: videoResolutionLabel(value) })) : resolutionOptions;
-    const selectReferenceImageSize = () => {
-        if (!referenceImageSizeValue) return;
-        props.setRatio(referenceImageSizeValue);
-    };
-    const videoResolutionSupported = props.mode === "video" && resolutions.length > 0;
+    const videoResolutionSupported = props.mode === "video" && props.videoProfile.resolutions.length > 0;
     const imageSummary = [
         ...(mergedProfile.size.parameter !== "none" ? [referenceImageSizeSelected ? referenceImageSizeLabel : usesImageResolutionPicker ? formatImageResolutionSize(props.ratio, imageResolutionOptions) : props.ratio] : []),
         ...(props.imageProfile.quality.supported ? [qualityLabel] : []),
         ...(imageBatchLimit > 1 ? [props.count] : []),
     ].join(" · ");
-    const videoRatioSupported = props.mode === "video" && ratios.length > 0;
-    const summary = props.mode === "video" ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : [])].join(" · ") : imageSummary;
-    const panel =
-        props.mode === "image" && props.imageProfile.parameters ? (
-            <div className="creation-parameter-menu max-h-[65vh] overflow-y-auto">
-                <ImageParameterFields
-                    profile={props.imageProfile}
-                    countLimit={imageBatchLimit}
-                    config={{ ...props.config, model: props.model, size: props.ratio, quality: props.quality, imageResolution: props.imageResolution, imageParameters: props.imageParameters, count: props.count }}
-                    onChange={(key, value) => {
-                        const setters = {
-                            size: props.setRatio,
-                            quality: props.setQuality,
-                            imageResolution: props.setImageResolution,
-                            imageParameters: props.setImageParameters,
-                            count: props.setCount,
-                            transparentBackground: props.setTransparentBackground,
-                        };
-                        setters[key](value);
-                    }}
-                />
-            </div>
-        ) : (
-            <div className="creation-parameter-menu">
-                {props.mode === "image" ? (
-                    <ImageSizePicker
-                        profile={mergedProfile}
-                        size={props.ratio}
-                        quality={props.quality}
-                        imageResolution={props.imageResolution}
-                        onChange={(size, quality, resolution) => {
-                            props.setRatio(size);
-                            if (quality) props.setQuality(quality);
-                            if (resolution) props.setImageResolution(resolution);
-                        }}
-                    />
-                ) : videoRatioSupported ? (
-                    <SettingSection title="画幅" value={props.ratio}>
-                        <div className="creation-choice-grid is-ratio">
-                            {ratios.map((value) => (
-                                <button key={value} type="button" aria-pressed={value === props.ratio} className={value === props.ratio ? "is-selected" : ""} onClick={() => props.setRatio(value)}>
-                                    <span className="creation-ratio-preview">
-                                        <span style={ratioPreviewStyle(value)} />
-                                    </span>
-                                    <span>{value}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </SettingSection>
-                ) : null}
-                {props.mode === "image" && referenceImageSizeValue ? (
-                    <button type="button" className="creation-custom-trigger" onClick={selectReferenceImageSize}>
-                        使用参考图尺寸 · {referenceImageSizeLabel}
-                    </button>
-                ) : null}
-                {props.mode === "video" ? (
-                    videoResolutionSupported ? (
-                        <SettingSection title="清晰度" value={videoResolutionLabel(props.videoQuality)}>
-                            <div className="creation-choice-grid is-resolution">
-                                {resolutions.map((option) => (
-                                    <button key={option.value} type="button" aria-pressed={option.value === props.videoQuality} className={option.value === props.videoQuality ? "is-selected" : ""} onClick={() => props.setVideoQuality(option.value)}>
-                                        {option.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </SettingSection>
-                    ) : null
-                ) : (
-                    <>
-                        {props.imageProfile.quality.supported && !imageResolutionUsesQuality(mergedProfile) ? (
-                            <SettingSection title={activeQualityOptions.some((item) => item.value === "1k" || item.value === "2k") ? "分辨率" : "图片质量"} value={qualityLabel}>
-                                <div className="creation-choice-grid is-quality">
-                                    {activeQualityOptions.map((option) => (
-                                        <button key={option.value} type="button" aria-pressed={option.value === props.quality} className={option.value === props.quality ? "is-selected" : ""} onClick={() => props.setQuality(option.value)}>
-                                            <span>{option.label}</span>
-                                            <small>{option.description}</small>
-                                        </button>
-                                    ))}
-                                </div>
-                            </SettingSection>
-                        ) : null}
-                        {imageBatchLimit > 1 ? (
-                            <SettingSection title="生成张数" value={`${props.count} 张`}>
-                                <div className="creation-parameter-content">
-                                    <div className="creation-choice-grid is-count">
-                                        {countOptions
-                                            .filter((option) => Number(option) <= imageBatchLimit)
-                                            .map((option) => (
-                                                <button key={option} type="button" aria-pressed={option === props.count} className={option === props.count ? "is-selected" : ""} onClick={() => props.setCount(option)}>
-                                                    {option}
-                                                </button>
-                                            ))}
-                                    </div>
-                                    <label className="creation-custom-value">
-                                        <span>自定义</span>
-                                        <input
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            value={props.count}
-                                            onChange={(event) => props.setCount(String(Math.max(1, Math.min(imageBatchLimit, Number(event.target.value) || 1))))}
-                                            aria-label={`生成张数，范围 1 到 ${imageBatchLimit}`}
-                                        />
-                                        <em>张</em>
-                                    </label>
-                                </div>
-                            </SettingSection>
-                        ) : null}
-                    </>
-                )}
-            </div>
-        );
+    const videoRatioSupported = props.mode === "video" && props.videoProfile.ratios.length > 0;
+    // 视频摘要带上时长，时长不再单独占一个入口。
+    const videoDurationSupported = props.mode === "video" && props.videoProfile.durationSupported !== false && Boolean(props.seconds);
+    return props.mode === "video"
+        ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : []), ...(videoDurationSupported ? [`${props.seconds}s`] : [])].join(" · ")
+        : imageSummary;
+}
+
+/** 输入坞里的「生成设置」入口：触发按钮显示当前参数摘要，面板走独立浮层（不塞进模型弹窗）。 */
+function GenerationSettingsMenu({ costLabel, costTitle, ...props }: ComposerProps & { costLabel?: string; costTitle?: string }) {
+    const [open, setOpen] = useState(false);
+    const imageBatchLimit = Math.min(15, useGenerationBatchLimit());
+    const summary = composerSettingsSummary(props, imageBatchLimit);
     return (
         <Popover
             open={open}
@@ -871,7 +766,7 @@ function GenerationSettingsMenu(props: ComposerProps) {
             placement="bottom"
             arrow={false}
             classNames={{ root: "creation-control-popover", container: "creation-control-popover-surface", content: "creation-control-popover-content" }}
-            content={panel}
+            content={<ComposerSettingsPanel {...props} costLabel={costLabel} costTitle={costTitle} />}
         >
             <button type="button" className="creation-chat-control" aria-label={`生成设置：${summary}`}>
                 <SlidersHorizontal />
@@ -882,15 +777,61 @@ function GenerationSettingsMenu(props: ComposerProps) {
     );
 }
 
-function SettingSection({ title, value, children }: { title: string; value?: string; children: ReactNode }) {
+/** 生成参数面板本体：由「生成设置」按钮弹出。 */
+function ComposerSettingsPanel({ costLabel, costTitle, ...props }: ComposerProps & { costLabel?: string; costTitle?: string }) {
+    // 张数上限与发送时的实际单数保持一致。
+    const imageBatchLimit = Math.min(15, useGenerationBatchLimit());
+    // 尺寸/比例/分辨率选项取同显示名分组内全部模型的并集，路由模型只决定发送参数。
+    const mergedProfile = mergedImageCapabilityConfig(props.config, props.model || props.config.imageModel);
+    const referenceImageSize = props.mode === "image" && mergedProfile.size.allowCustom ? props.referenceImageSize : undefined;
+    const applySettings = (patch: CreationSettingsPatch) => {
+        if (patch.ratio !== undefined) props.setRatio(patch.ratio);
+        if (patch.quality !== undefined) props.setQuality(patch.quality);
+        if (patch.imageResolution !== undefined) props.setImageResolution(patch.imageResolution);
+        if (patch.count !== undefined) props.setCount(String(patch.count));
+        if (patch.videoQuality !== undefined) props.setVideoQuality(patch.videoQuality);
+        if (patch.seconds !== undefined) props.setSeconds(String(patch.seconds));
+    };
+    // 声明式参数模型里本面板没有覆盖的字段（画面质感、种子等）追加在面板末尾，不能因为改版丢字段。
+    const declaredExtras = (props.imageProfile.parameters || []).filter((field) => field.enabled !== false && !["size", "imageResolution", "count"].includes(field.name));
+    const extraFields = declaredExtras.length ? (
+        <ImageParameterFields
+            profile={{ ...props.imageProfile, parameters: declaredExtras, size: { ...props.imageProfile.size, parameter: "none" }, resolution: { ...props.imageProfile.resolution, supported: false } }}
+            countLimit={imageBatchLimit}
+            showCount={false}
+            showSize={false}
+            config={{ ...props.config, model: props.model, size: props.ratio, quality: props.quality, imageResolution: props.imageResolution, imageParameters: props.imageParameters, count: props.count }}
+            onChange={(key, value) => {
+                const setters = {
+                    size: props.setRatio,
+                    quality: props.setQuality,
+                    imageResolution: props.setImageResolution,
+                    imageParameters: props.setImageParameters,
+                    count: props.setCount,
+                    transparentBackground: props.setTransparentBackground,
+                };
+                setters[key](value);
+            }}
+        />
+    ) : undefined;
     return (
-        <section className="creation-parameter-section">
-            <header>
-                <h3>{title}</h3>
-                {value ? <span>{value}</span> : null}
-            </header>
-            {children}
-        </section>
+        <CreationSettingsPanel
+            mode={props.mode === "video" ? "video" : "image"}
+            imageProfile={mergedProfile}
+            videoProfile={props.videoProfile}
+            ratio={props.ratio}
+            quality={props.quality}
+            imageResolution={props.imageResolution}
+            videoQuality={props.videoQuality}
+            count={Number(props.count) || 1}
+            countLimit={imageBatchLimit}
+            seconds={Number(props.seconds) || 0}
+            referenceImageSize={referenceImageSize}
+            costLabel={costLabel}
+            costTitle={costTitle}
+            extra={extraFields}
+            onChange={applySettings}
+        />
     );
 }
 
@@ -903,81 +844,3 @@ function ThinkingControl({ levels, value, resolvedLevel, onChange, disabled }: {
     );
 }
 
-function DurationMenu({ profile, seconds, onChange, protocol }: { profile: VideoCapabilityConfig; seconds: string; onChange: (value: string) => void; protocol?: string }) {
-    const [open, setOpen] = useState(false);
-    const value = Number(normalizeVideoValue(profile, { seconds }, protocol).seconds);
-    const presets = profile.duration.selection === "enum" ? videoDurationOptions(profile) : [];
-    const fallbackPreset = presets.length ? presets : [profile.duration.default];
-    const min = profile.duration.selection === "range" ? profile.duration.min || 1 : Math.min(...fallbackPreset);
-    const max = profile.duration.selection === "range" ? Math.max(min, profile.duration.max || min) : Math.max(...fallbackPreset);
-    const step = Math.max(1, profile.duration.step || 1);
-    const durationControl =
-        profile.duration.selection === "range" ? (
-            <>
-                <input className="h-8 w-full" style={{ accentColor: "var(--creation-text)" }} type="range" min={min} max={max} step={step} value={value} aria-label="视频时长（秒）" onChange={(event) => onChange(event.target.value)} />
-                <div className="flex justify-between px-0.5 text-[var(--fs-tiny)] text-[var(--creation-muted)]">
-                    <span>{min}s</span>
-                    <span>{max}s</span>
-                </div>
-                <label className="creation-custom-value is-duration">
-                    <span>自定义时长</span>
-                    <span className="creation-duration-custom-field">
-                        <input
-                            type="number"
-                            min={min}
-                            max={max}
-                            step={step}
-                            inputMode="numeric"
-                            value={seconds}
-                            onFocus={(event) => event.currentTarget.select()}
-                            onBlur={() => onChange(String(value))}
-                            onChange={(event) => onChange(event.target.value)}
-                            aria-label="自定义视频时长，单位秒"
-                        />
-                        <em>秒</em>
-                    </span>
-                </label>
-            </>
-        ) : (
-            <div className="creation-duration-choices">
-                {presets.map((item) => (
-                    <button key={item} type="button" className={item === value ? "is-selected" : ""} onClick={() => onChange(String(item))}>
-                        {item}s
-                    </button>
-                ))}
-            </div>
-        );
-    return (
-        <Popover
-            open={open}
-            onOpenChange={setOpen}
-            trigger="click"
-            placement="bottom"
-            arrow={false}
-            classNames={{ root: "creation-control-popover", container: "creation-control-popover-surface", content: "creation-control-popover-content" }}
-            content={
-                <div className="creation-duration-menu">
-                    <div className="creation-duration-heading">
-                        <span>时长</span>
-                        <strong>{value} 秒</strong>
-                    </div>
-                    {durationControl}
-                </div>
-            }
-        >
-            <button type="button" className="creation-chat-control is-duration" aria-label={`视频时长：${value}秒`}>
-                <Clock3 />
-                <span>{value}s</span>
-                <ChevronDown className={open ? "is-open" : ""} />
-            </button>
-        </Popover>
-    );
-}
-
-function ratioPreviewStyle(value: string) {
-    const [width, height] = value.replace("x", ":").split(":").map(Number);
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return { width: 10, height: 10 };
-    // 画幅容器的可用空间是 14×10；同时计算宽高，避免 CSS 的 max-width/max-height 把宽银幕比例压扁。
-    const scale = Math.min(14 / width, 10 / height);
-    return { width: Math.max(4, Math.round(width * scale)), height: Math.max(4, Math.round(height * scale)) };
-}

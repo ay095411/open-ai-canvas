@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./image-size-picker.css";
 import { Input, Button } from "antd";
 import type { ImageCapabilityConfig } from "@/lib/model-capabilities";
-import { imageResolutionTiers, imagePresetForRatio, imagePresetValue, imageQualityForSelection, imageQualityForTier, imageResolutionUsesQuality, imageSizePresets, imageTierAvailable, imageDeclaredSizePresets } from "@/lib/image-size-presets";
+import { imageResolutionTiers, imagePresetForRatio, imagePresetSelected, imagePresetSelectionPatch, imagePresetValue, imageQualityForTier, imageResolutionUsesQuality, imageSizePresets, imageTierAvailable, imageDeclaredSizePresets } from "@/lib/image-size-presets";
 import { buildImageResolutionOptions, type ImageResolutionOption, type ImageResolutionTier } from "@/lib/image-resolution-tiers";
 
 import { resolveImageRequestSize, validateImageSize } from "@/services/api/image-validation";
@@ -40,13 +40,7 @@ export function ImageSizePicker({
     const qualityTier = IMAGE_RESOLUTIONS.find((value) => value === (quality || "").toLowerCase());
     const resolutionTier = IMAGE_RESOLUTIONS.find((value) => value === (imageResolution || "").toLowerCase());
     const selectedTier = profile.resolution.supported ? resolutionTier : qualityTier;
-    const matches = (preset: ImageResolutionOption) => {
-        if (imagePresetValue(profile, preset) !== size) return false;
-        if (profile.size.parameter !== "aspect_ratio") return true;
-        if (profile.resolution.supported) return !resolutionTier || resolutionTier === preset.tier;
-        if (imageResolutionUsesQuality(profile)) return imageQualityForTier(profile, preset.tier) === (quality || profile.quality.default);
-        return !qualityTier || qualityTier === preset.tier;
-    };
+    const matches = (preset: ImageResolutionOption) => imagePresetSelected(profile, preset, { size, quality, imageResolution, tiers: IMAGE_RESOLUTIONS });
     let resolvedLegacySize: string | undefined;
     if (profile.size.parameter === "size" && size.includes(":")) {
         try {
@@ -86,15 +80,11 @@ export function ImageSizePicker({
     const select = (preset: ImageResolutionOption) => {
         if (!available(preset.tier)) return;
         if (profile.resolution.supported && canSelectResolution && !canSelectResolution(preset.tier)) return;
-        const resolution = profile.resolution.values.find((value) => value.toLowerCase() === preset.tier);
         setChosenTier(preset.tier);
         setCustomPreset(preset);
         setError("");
-        onChange(
-            imagePresetValue(profile, preset),
-            profile.resolution.supported ? undefined : profile.size.parameter === "aspect_ratio" ? imageQualityForSelection(profile, preset.tier) : undefined,
-            profile.resolution.supported ? resolution || preset.tier : undefined,
-        );
+        const patch = imagePresetSelectionPatch(profile, preset);
+        onChange(patch.size, patch.quality, patch.imageResolution);
     };
     const makeCustom = (next: ImageResolutionTier, ratio: string) => {
         const preset = imagePresetForRatio(next, ratio);

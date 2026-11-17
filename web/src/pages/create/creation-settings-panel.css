@@ -1,0 +1,405 @@
+/*
+ * 创作输入坞的生成参数面板。
+ * 图片与视频共用同一套行结构、尺寸和选中态；不再为每种模式各写一份覆盖。
+ */
+
+.creation-settings-menu {
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    color: var(--creation-text, var(--foreground));
+    padding: 12px;
+}
+
+.creation-settings-row + .creation-settings-row {
+    margin-top: 16px;
+}
+
+.creation-settings-row > header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 16px;
+    margin: 0 2px 7px;
+}
+
+.creation-settings-row > header > h3 {
+    margin: 0;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.creation-settings-row > header > span {
+    color: var(--creation-text, var(--foreground));
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 只有一行值时（单档分辨率/清晰度）不留出控件本该占的间距。 */
+.creation-settings-row > header:last-child {
+    margin-bottom: 0;
+}
+
+/* 分段控件：等宽分段，选中用中性填充 + 描边，与比例格同一套选中态。 */
+.creation-settings-segmented {
+    display: grid;
+    gap: 6px;
+}
+
+.creation-settings-segment,
+.creation-settings-chip,
+.creation-settings-ratio {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 140ms cubic-bezier(0.32, 0.72, 0, 1),
+        color 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.creation-settings-segment {
+    height: 32px;
+}
+
+.creation-settings-chip {
+    height: 30px;
+}
+
+.creation-settings-segment:hover,
+.creation-settings-chip:hover,
+.creation-settings-ratio:hover {
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    color: var(--creation-text, var(--foreground));
+}
+
+.creation-settings-segment[aria-pressed="true"],
+.creation-settings-chip[aria-pressed="true"],
+.creation-settings-ratio[aria-pressed="true"] {
+    border-color: var(--control-selected-border, color-mix(in srgb, currentColor 18%, transparent));
+    background: var(--control-selected-bg, color-mix(in srgb, currentColor 8%, transparent));
+    color: var(--control-selected-fg, var(--creation-text, var(--foreground)));
+}
+
+.creation-settings-segment:focus-visible,
+.creation-settings-chip:focus-visible,
+.creation-settings-ratio:focus-visible,
+.creation-settings-inline-action:focus-visible {
+    outline: 2px solid var(--control-selected-border, var(--workspace-accent));
+    outline-offset: 1px;
+}
+
+.creation-settings-ratios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.creation-settings-ratio {
+    flex-direction: column;
+    gap: 3px;
+    height: 58px;
+    padding: 0 4px;
+}
+
+.creation-settings-ratio.is-compact {
+    height: 44px;
+    flex-direction: row;
+    gap: 6px;
+}
+
+.creation-settings-ratio-box {
+    display: block;
+    min-width: 5px;
+    min-height: 5px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    opacity: 0.8;
+}
+
+.creation-settings-ratio-label {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.creation-settings-ratio-pixels {
+    /* 像素副标是 11px 小字，不能再叠透明度压低对比度，层级交给字号与字重。 */
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 11px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.creation-settings-count {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+
+/* 自定义数量：输入框和胶囊同一行高，避免出现第二个“第 4 格是步进器”的控件。 */
+.creation-settings-custom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    margin-top: 6px;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 8px;
+    padding: 0 9px;
+    background: color-mix(in srgb, currentColor 4%, transparent);
+    font-size: 11px;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+}
+
+.creation-settings-custom > span {
+    flex: 0 0 auto;
+}
+
+.creation-settings-custom > input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: var(--creation-text, var(--foreground));
+    font: inherit;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    outline: none;
+}
+
+.creation-settings-custom > em {
+    flex: 0 0 auto;
+    font-style: normal;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+}
+
+.creation-settings-custom > button {
+    flex: 0 0 auto;
+    height: 22px;
+    border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--creation-text, var(--foreground));
+    font-size: 11px;
+    padding: 0 8px;
+    cursor: pointer;
+}
+
+.creation-settings-inline-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 26px;
+    margin: 3px 0 0 2px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 11px;
+    padding: 0 4px;
+    cursor: pointer;
+}
+
+.creation-settings-inline-action:hover {
+    color: var(--creation-text, var(--foreground));
+    background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.creation-settings-inline-action[aria-pressed="true"] {
+    color: var(--control-selected-fg, var(--creation-text, var(--foreground)));
+}
+
+.creation-settings-inline-action > svg {
+    width: 12px;
+    height: 12px;
+    transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.creation-settings-inline-action > svg.is-open {
+    transform: rotate(180deg);
+}
+
+.creation-settings-custom-ratio {
+    margin-top: 12px;
+}
+
+.creation-settings-range {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.creation-settings-range-track {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+}
+
+.creation-settings-range-track > input[type="range"] {
+    width: 100%;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--workspace-accent, currentColor);
+    cursor: pointer;
+}
+
+.creation-settings-stepper {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    height: 28px;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 8px;
+    padding: 0 8px;
+    background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.creation-settings-stepper > input {
+    width: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--creation-text, var(--foreground));
+    font: inherit;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    outline: none;
+    appearance: textfield;
+}
+
+.creation-settings-stepper > input::-webkit-inner-spin-button,
+.creation-settings-stepper > input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+}
+
+.creation-settings-stepper > em {
+    margin-left: 2px;
+    font-style: normal;
+    font-size: 11px;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+}
+
+.creation-settings-range-scale {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 2px 0;
+    font-size: 11px;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+}
+
+.creation-settings-footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.creation-settings-footer-label {
+    font-size: 11px;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+}
+
+.creation-settings-cost {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: #946900;
+}
+
+.dark .creation-settings-cost {
+    color: #e8c45a;
+}
+
+.creation-settings-error {
+    margin: 8px 2px 0;
+    font-size: 11px;
+    color: var(--status-danger, #d14343);
+}
+
+/* 声明式参数模型遗留字段：沿用同一套 12px 控件与选中态，不另起一套外观。 */
+.creation-settings-extra {
+    margin-top: 16px;
+    color: var(--creation-text, var(--foreground));
+}
+
+.creation-settings-extra .text-xs.font-medium {
+    margin-bottom: 7px;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.creation-settings-extra .image-size-tiers,
+.creation-settings-extra .image-size-ratios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.creation-settings-extra .image-size-tiers button,
+.creation-settings-extra .image-size-ratios button {
+    min-height: 32px;
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.creation-settings-extra .image-size-ratios button {
+    min-height: 44px;
+    gap: 4px;
+}
+
+.creation-settings-extra .image-size-tiers button:hover,
+.creation-settings-extra .image-size-ratios button:hover {
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    color: var(--creation-text, var(--foreground));
+}
+
+.creation-settings-extra .image-size-tiers button[aria-pressed="true"],
+.creation-settings-extra .image-size-ratios button[aria-pressed="true"] {
+    border-color: var(--control-selected-border, color-mix(in srgb, currentColor 18%, transparent));
+    background: var(--control-selected-bg, color-mix(in srgb, currentColor 8%, transparent));
+    box-shadow: none;
+    color: var(--control-selected-fg, var(--creation-text, var(--foreground)));
+}
+
+.creation-settings-extra .image-size-ratio-icon {
+    width: 18px;
+    opacity: 0.8;
+}
+
+.creation-settings-extra p {
+    margin: 0;
+    color: var(--creation-muted, color-mix(in srgb, currentColor 62%, transparent));
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.creation-settings-extra .ant-input,
+.creation-settings-extra .ant-input-number,
+.creation-settings-extra .w-full {
+    width: 100%;
+}
