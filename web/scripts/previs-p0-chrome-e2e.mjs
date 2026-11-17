@@ -76,8 +76,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** 启动 Vite DEV，等待 ready 行或 TCP 可连接；超时即抛。 */
 async function launchVite(port) {
     // 直接运行本地入口，避免 bunx 中间进程在 Windows 退出后留下占用端口和管道的 Vite 子进程。
+    // Windows 的 Bun 1.4 下 Vite CLI 会卡在启动；Vite 使用 Node，测试编排仍支持 Bun/Node。
     const viteEntry = join(process.cwd(), "node_modules", "vite", "bin", "vite.js");
-    const child = spawn(process.execPath, [viteEntry, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
+    const viteRuntime = process.versions.bun ? "node" : process.execPath;
+    const child = spawn(viteRuntime, [viteEntry, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
         cwd: process.cwd(),
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
