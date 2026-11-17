@@ -1,7 +1,7 @@
 // 创作页历史会话抽屉、导出与时间格式化。
 
 import { conversationTimeFormatter, type CreationConversation, type CreationMessage, historyDayFormatter, modeLabels } from "./creation-types";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { App, Dropdown } from "antd";
@@ -51,6 +51,7 @@ export function CreationHistoryDrawer({
     onSelect,
     onDelete,
     onRename,
+    recoveryActions,
 }: {
     open: boolean;
     conversations: CreationConversation[];
@@ -60,6 +61,7 @@ export function CreationHistoryDrawer({
     onSelect: (conversation: CreationConversation) => void;
     onDelete: (conversation: CreationConversation) => void;
     onRename: (conversation: CreationConversation, title: string) => void;
+    recoveryActions?: ReactNode;
 }) {
     const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
@@ -278,6 +280,7 @@ export function CreationHistoryDrawer({
                         </div>
                     )}
                 </div>
+                {recoveryActions ? <div className="mt-3 flex shrink-0 justify-end text-xs text-foreground/60">{recoveryActions}</div> : null}
             </div>
         </AppDrawer>
     );
