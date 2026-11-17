@@ -2,7 +2,18 @@ import { useState } from "react";
 import "./image-size-picker.css";
 import { Input, Button } from "antd";
 import type { ImageCapabilityConfig } from "@/lib/model-capabilities";
-import { imageResolutionTiers, imagePresetForRatio, imagePresetSelected, imagePresetSelectionPatch, imagePresetValue, imageQualityForTier, imageResolutionUsesQuality, imageSizePresets, imageTierAvailable, imageDeclaredSizePresets } from "@/lib/image-size-presets";
+import {
+    imageResolutionTiers,
+    imagePresetForRatio,
+    imagePresetSelected,
+    imagePresetSelectionPatch,
+    imagePresetValue,
+    imageQualityForTier,
+    imageResolutionUsesQuality,
+    imageSizePresets,
+    imageTierAvailable,
+    imageDeclaredSizePresets,
+} from "@/lib/image-size-presets";
 import { buildImageResolutionOptions, type ImageResolutionOption, type ImageResolutionTier } from "@/lib/image-resolution-tiers";
 
 import { resolveImageRequestSize, validateImageSize } from "@/services/api/image-validation";

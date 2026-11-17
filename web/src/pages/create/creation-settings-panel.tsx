@@ -158,11 +158,13 @@ function ImageSettingsBody({ imageProfile, ratio, quality, imageResolution, coun
             {countLimit > 1 ? (
                 <CreationSettingRow title="生成张数" value={`${count} 张`}>
                     <div className="creation-settings-count">
-                        {[1, 2, 3, 4].filter((value) => value <= countLimit).map((value) => (
-                            <button key={value} type="button" className="creation-settings-chip" aria-pressed={count === value} onClick={() => onChange({ count: value })}>
-                                {value}
-                            </button>
-                        ))}
+                        {[1, 2, 3, 4]
+                            .filter((value) => value <= countLimit)
+                            .map((value) => (
+                                <button key={value} type="button" className="creation-settings-chip" aria-pressed={count === value} onClick={() => onChange({ count: value })}>
+                                    {value}
+                                </button>
+                            ))}
                     </div>
                     {countLimit > 4 ? (
                         <label className="creation-settings-custom">

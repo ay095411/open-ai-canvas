@@ -106,9 +106,12 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
     useEffect(() => {
         const node = sentinelRef.current;
         if (!galleryReady || !canLoadMore || !node || typeof IntersectionObserver === "undefined") return;
-        const observer = new IntersectionObserver((records) => {
-            if (records.some((record) => record.isIntersecting)) loadNextPage();
-        }, { rootMargin: "400px 0px" });
+        const observer = new IntersectionObserver(
+            (records) => {
+                if (records.some((record) => record.isIntersecting)) loadNextPage();
+            },
+            { rootMargin: "400px 0px" },
+        );
         observer.observe(node);
         return () => observer.disconnect();
     }, [canLoadMore, galleryReady, loadNextPage]);

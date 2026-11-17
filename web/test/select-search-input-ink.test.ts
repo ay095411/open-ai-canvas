@@ -10,7 +10,5 @@ import { expect, test } from "bun:test";
 test("unified select search input falls back to theme ink", () => {
     const globals = readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8");
     expect(globals).toContain(".ant-select.app-unified-select:not(.ant-select-disabled) .ant-select-input");
-    expect(globals).toMatch(
-        /\.ant-select\.app-unified-select:not\(\.ant-select-disabled\) \.ant-select-input \{\s*color: var\(--user-ink, var\(--foreground\)\);/,
-    );
+    expect(globals).toMatch(/\.ant-select\.app-unified-select:not\(\.ant-select-disabled\) \.ant-select-input \{\s*color: var\(--user-ink, var\(--foreground\)\);/);
 });
