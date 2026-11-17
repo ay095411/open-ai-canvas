@@ -4,7 +4,7 @@ import type { CreationInspiration } from "@/lib/inspirations/catalog";
 import { authorizedEntry } from "./fixtures/authorized-inspirations";
 const dom = new Window({ url: "http://localhost/create" });
 const originals = new Map<string, PropertyDescriptor | undefined>();
-for (const [key, value] of Object.entries({ window: dom, document: dom.document, navigator: dom.navigator, localStorage: dom.localStorage, sessionStorage: dom.sessionStorage })) {
+for (const [key, value] of Object.entries({ window: dom, document: dom.document, navigator: dom.navigator, localStorage: dom.localStorage, sessionStorage: dom.sessionStorage, Event: dom.Event })) {
     originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
 }

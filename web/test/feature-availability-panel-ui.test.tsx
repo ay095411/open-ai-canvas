@@ -18,6 +18,7 @@ for (const [key, value] of Object.entries({
     SVGElement: dom.SVGElement,
     ShadowRoot: dom.ShadowRoot,
     ResizeObserver: dom.ResizeObserver,
+    Event: dom.Event,
     MouseEvent: dom.MouseEvent,
     BroadcastChannel: class {
         onmessage: (() => void) | null = null;

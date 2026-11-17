@@ -1,21 +1,37 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { CreationInspiration } from "../src/lib/inspirations/catalog";
-import { getActiveUserScope, setActiveUserScope } from "../src/lib/user-scope";
-import { useInspirationStore } from "../src/stores/use-inspiration-store";
-import { useUserStore } from "../src/stores/use-user-store";
+import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { Window } from "happy-dom";
+import type { OnlineInspirationDetail } from "../src/lib/inspirations/external-favorites";
+
+const dom = new Window({ url: "http://localhost/create" });
+const originals = new Map<string, PropertyDescriptor | undefined>();
+for (const [key, value] of Object.entries({ window: dom, document: dom.document, navigator: dom.navigator, localStorage: dom.localStorage, sessionStorage: dom.sessionStorage, Event: dom.Event })) {
+    originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+}
+const { getActiveUserScope, setActiveUserScope } = await import("../src/lib/user-scope");
+const { default: localforage } = await import("localforage");
+const { useInspirationStore } = await import("../src/stores/use-inspiration-store");
+const { useUserStore } = await import("../src/stores/use-user-store");
+const { apiClient } = await import("../src/services/api/request");
 
 const originalState = useInspirationStore.getState();
 const originalStorage = useInspirationStore.persist.getOptions().storage;
 const originalUser = useUserStore.getState();
 const originalScope = getActiveUserScope();
+const originalAdapter = apiClient.defaults.adapter;
 const emptyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
-const item: CreationInspiration = {
+let records: Map<string, string>;
+let readSpy: ReturnType<typeof spyOn<typeof localforage, "getItem">>;
+let writeSpy: ReturnType<typeof spyOn<typeof localforage, "setItem">>;
+const item: OnlineInspirationDetail = {
     id: "zzai-gallery:permission-probe",
+    slug: "permission-probe",
     sourceId: "zzai-gallery",
     title: "权限探针",
     description: "",
     image: "https://example.com/cover.png",
     mode: "image",
+    model: "权限测试模型",
     prompt: "A complete original prompt for permission checks.",
     galleryUrl: "https://api.seedance.nz/prompt-gallery/permission-probe",
 };
@@ -27,7 +43,18 @@ function signIn(role: "user" | "admin", id = "current-user") {
 
 beforeEach(async () => {
     useInspirationStore.persist.setOptions({ storage: emptyStorage });
+    records = new Map();
+    readSpy = spyOn(localforage, "getItem").mockImplementation(async <T>(key: string) => (records.get(key) ?? null) as T | null);
+    writeSpy = spyOn(localforage, "setItem").mockImplementation(async <T>(key: string, value: T) => {
+        records.set(key, value as string);
+        return value;
+    });
+    apiClient.defaults.adapter = async (config) => {
+        if (config.method !== "get" || config.url !== "/public/inspirations/zzai-gallery/prompts/permission-probe") throw new Error(`Unexpected detail request: ${config.method} ${config.url}`);
+        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: item, msg: "" } };
+    };
     signIn("user");
+    useInspirationStore.persist.setOptions({ storage: originalStorage });
     await useInspirationStore.persist.rehydrate();
 });
 
@@ -38,6 +65,17 @@ afterEach(async () => {
     useInspirationStore.persist.setOptions({ storage: originalStorage });
     useUserStore.setState(originalUser);
     setActiveUserScope(originalScope);
+    apiClient.defaults.adapter = originalAdapter;
+    readSpy.mockRestore();
+    writeSpy.mockRestore();
+});
+
+afterAll(() => {
+    dom.happyDOM.abort();
+    for (const [key, descriptor] of originals) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
+    }
 });
 
 describe("仅在线画廊的个人收藏权限", () => {

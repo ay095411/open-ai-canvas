@@ -200,6 +200,8 @@ for (const imageWorkbenchEnabled of [false, true]) {
                 expect(Boolean(paletteButton("创作影棚"))).toBe(hasStudio);
                 expect(Boolean(sidebarLink("ecommerce"))).toBe(ecommerceEnabled);
                 expect(Boolean(paletteButton("电商Agent"))).toBe(ecommerceEnabled);
+                expect(sidebarLink("skills")).toBeNull();
+                expect(paletteButton("技能库")).toBeUndefined();
 
                 for (const [id, title, path] of [
                     ["canvas", "自由画布", "/canvas"],
@@ -294,7 +296,8 @@ test("short drama visibility stays consistent across the sidebar and command pal
 });
 
 for (const pluginCenterEnabled of [false, true]) {
-    test(`creation records follow resource tools inside the shared menu scroll area P=${pluginCenterEnabled}`, async () => {
+    test(`admin creation records follow resource tools inside the shared menu scroll area P=${pluginCenterEnabled}`, async () => {
+        useUserStore.setState({ user: { ...useUserStore.getState().user!, role: "admin" } });
         view = await mount({ pluginCenterEnabled });
         const scrollArea = view.host.querySelector("[data-sidebar] .app-workspace-sidebar-scroll-area")!;
         const resources = view.host.querySelector('[data-sidebar] [data-nav-group-heading="资源与工具"]')!;
