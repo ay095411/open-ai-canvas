@@ -26868,6 +26868,16 @@ html:not(.dark) .home-background {
     box-shadow: none !important;
 }
 
+/* Ant Design 6.7 的 Select 把输入框文字色写成 `color: var(--ant-select-color)`，
+   但这个变量只在 `.ant-select-disabled` 分支里定义，正常态缺失（主题把 colorText
+   传成 undefined，--ant-color-text 也跟着空掉）。变量解析失败会让声明在计算值阶段
+   失效、退回继承；而单选 + showSearch 打字时 antd 会把
+   `.ant-select-content-has-search-value` 设成 `color: transparent`，
+   继承下来就是「在下拉里输入的文字透明、看不见」。这里补回正常态的文字色。 */
+.ant-select.app-unified-select:not(.ant-select-disabled) .ant-select-input {
+    color: var(--user-ink, var(--foreground));
+}
+
 .ant-select-dropdown {
     border: 0 !important;
     border-color: transparent !important;
