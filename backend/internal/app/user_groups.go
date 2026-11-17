@@ -655,7 +655,7 @@ func (s *Service) ModelCatalogForUser(user *model.User, intent *ModelRequestInte
 }
 
 // ModelCatalogForGuest 供未登录的首页模型目录使用：可见性与价格都按默认分组计算，
-// 不含任何用户维度，只能作为展示读模型，不能用于报价以外的账单或任务准入。
+// 不含任何用户维度，只能作为脱敏展示读模型，不能用作任务、报价或账单的身份上下文。
 func (s *Service) ModelCatalogForGuest(intent *ModelRequestIntent) (*ModelCatalogResponse, error) {
 	group, err := s.resolvedUserGroup(model.DefaultUserGroupCode)
 	if err != nil {

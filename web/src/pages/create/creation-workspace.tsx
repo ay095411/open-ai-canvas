@@ -222,7 +222,7 @@ export function CreationComposer(props: ComposerProps) {
     const canSubmit = Boolean(props.prompt.trim()) && !interactionBusy && !settingsError;
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     // 报价接口需要登录；游客态直接回退到本地积分估算，不发无效请求。
-    const authenticated = useUserStore((state) => Boolean(state.user));
+    const userId = useUserStore((state) => state.user?.id);
     const priceChannel = resolveModelChannel(props.config, props.model);
     // 实际提交单数与 index.tsx 的 taskCount 同样 clamp。
     const imageTaskCount = Math.max(1, Math.min(imageBatchLimit, Math.floor(Number(props.count)) || 1));
@@ -243,7 +243,7 @@ export function CreationComposer(props: ComposerProps) {
         requirements: props.modelRequirements,
     });
     useEffect(() => {
-        if (!authenticated || !creditsEnabled || !quoteRequest) {
+        if (!userId || !creditsEnabled || !quoteRequest) {
             setRouteQuote(null);
             return;
         }
@@ -255,11 +255,11 @@ export function CreationComposer(props: ComposerProps) {
                 if (!controller.signal.aborted) setRouteQuote(null);
             });
         return () => controller.abort();
-    }, [authenticated, creditsEnabled, quoteRequest]);
+    }, [creditsEnabled, quoteRequest, userId]);
     const generationCredits = routeQuote ? batchQuoteTotal(routeQuote.amountMicrocredits, props.mode === "image" ? imageTaskCount : 1) : credits;
     const showCost = creditsEnabled && generationCredits !== null && generationCredits !== undefined;
     const formattedCredits = generationCredits?.toLocaleString("zh-CN", { maximumFractionDigits: 6 });
-    const actionLabel = props.referenceReplacementBusy ? "正在替换参考图" : interactionBusy || (props.generationActive && !canSubmit) ? "生成中" : showCost ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，发送` : "发送";
+    const actionLabel = props.referenceReplacementBusy ? "正在替换参考图" : interactionBusy || (props.generationActive && !canSubmit) ? "生成中" : showCost ? `${!userId || routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，发送` : "发送";
     // Keep the working state throughout generation; typing a next prompt
     // restores the send action when another submission is allowed.
     const showWorkingSpinner = interactionBusy || (props.generationActive && !canSubmit);
@@ -541,11 +541,7 @@ export function CreationComposer(props: ComposerProps) {
                             variant="creation"
                         />
                         {props.mode === "video" || (props.mode === "image" && imageSettingsSupported) ? (
-                            <GenerationSettingsMenu
-                                {...props}
-                                costLabel={showCost ? `${routeQuote?.estimated ? "预估 " : ""}${formattedCredits} 积分` : undefined}
-                                costTitle={routeQuote ? modelQuoteDescription(routeQuote) : undefined}
-                            />
+                            <GenerationSettingsMenu {...props} costLabel={showCost ? `${!userId || routeQuote?.estimated ? "预估 " : ""}${formattedCredits} 积分` : undefined} costTitle={routeQuote ? modelQuoteDescription(routeQuote) : undefined} />
                         ) : null}
                         {props.mode === "text" ? (
                             <>
@@ -571,7 +567,7 @@ export function CreationComposer(props: ComposerProps) {
                         {showCost ? (
                             <span className="creation-submit-cost" title={routeQuote ? modelQuoteDescription(routeQuote) : undefined}>
                                 <CreditSymbol />
-                                <span>{routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits}</span>
+                                <span>{!userId || routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits}</span>
                             </span>
                         ) : null}
                         <button
@@ -748,9 +744,7 @@ function composerSettingsSummary(props: ComposerProps, imageBatchLimit: number) 
     const videoRatioSupported = props.mode === "video" && props.videoProfile.ratios.length > 0;
     // 视频摘要带上时长，时长不再单独占一个入口。
     const videoDurationSupported = props.mode === "video" && props.videoProfile.durationSupported !== false && Boolean(props.seconds);
-    return props.mode === "video"
-        ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : []), ...(videoDurationSupported ? [`${props.seconds}s`] : [])].join(" · ")
-        : imageSummary;
+    return props.mode === "video" ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : []), ...(videoDurationSupported ? [`${props.seconds}s`] : [])].join(" · ") : imageSummary;
 }
 
 /** 输入坞里的「生成设置」入口：触发按钮显示当前参数摘要，面板走独立浮层（不塞进模型弹窗）。 */
@@ -843,4 +837,3 @@ function ThinkingControl({ levels, value, resolvedLevel, onChange, disabled }: {
         </div>
     );
 }
-

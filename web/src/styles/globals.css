@@ -3835,8 +3835,6 @@
         color: #747b85;
     }
 
-
-
     .creation-segmented-grid.is-resolution button,
     .creation-segmented-grid.is-count button {
         min-height: 42px;
@@ -16024,8 +16022,6 @@ html:not(.dark) .creation-chat-control.is-thinking[aria-pressed="true"] > svg {
     padding: 10px 12px 12px;
 }
 
-
-
 .creation-range-wrap {
     min-width: 0;
     flex: 1;
@@ -17403,11 +17399,6 @@ html:not(.dark) .creation-home .creation-reference-add-button:hover:not(:disable
     }
 }
 
-
-
-
-
-
 html:not(.dark) .creation-chat-reference.is-paper {
     border-color: rgba(28, 32, 37, 0.1);
     background: #e9ebed;
@@ -17954,21 +17945,10 @@ html:not(.dark) .creation-media-preview-modal .ant-modal-container {
         padding: 13px 14px 14px;
     }
 
-
-
     .creation-parameter-content {
         min-width: 0;
     }
-
-
-
-
-
-
-
-
 }
-
 
 .creation-parameter-content {
     min-width: 0;
@@ -17987,22 +17967,6 @@ html:not(.dark) .creation-media-preview-modal .ant-modal-container {
     padding: 12px !important;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* 首页图像参数保持紧凑，避免比例预设把弹层撑成整屏高度。 */
 .creation-parameter-menu .image-size-picker {
     gap: 7px;
@@ -18018,13 +17982,6 @@ html:not(.dark) .creation-media-preview-modal .ant-modal-container {
     gap: 4px;
     padding: 5px;
 }
-
-
-
-
-
-
-
 
 html:not(.dark) .creation-control-popover-surface {
     background: rgba(255, 255, 255, 0.98) !important;
@@ -24811,6 +24768,8 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
 .workspace-wallet-tabs {
     display: flex;
     flex-shrink: 0;
+    max-width: calc(100% - 48px);
+    overflow-x: auto;
     gap: 4px;
     margin: 16px 24px 0;
     border-radius: 12px;
@@ -25034,6 +24993,11 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     border-bottom: 0;
 }
 
+.workspace-wallet-ledger-row.is-billing {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    padding-block: var(--space-3);
+}
+
 .workspace-wallet-ledger-icon {
     display: grid;
     width: 34px;
@@ -25081,6 +25045,11 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     font-weight: 600;
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+.workspace-wallet-ledger-row .workspace-wallet-ledger-detail {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .workspace-wallet-ledger-row b.is-income {
@@ -25246,6 +25215,7 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     }
     .workspace-wallet-tabs {
         margin: 8px 14px 0;
+        max-width: calc(100% - 28px);
     }
     .workspace-wallet-content {
         margin: 14px 14px 18px;
@@ -25268,6 +25238,10 @@ html[data-magicui-theme-vt="active"] .app-user-workspace * {
     }
     .workspace-wallet-ledger-row time {
         display: none;
+    }
+
+    .workspace-wallet-ledger-row.is-billing {
+        grid-template-columns: 34px minmax(0, 1fr);
     }
 }
 
