@@ -5,10 +5,12 @@ import { ConfigProvider } from "antd";
 import { AppWorkspaceShell } from "@/components/layout/app-top-nav";
 import { useAgentPanelDock } from "@/components/canvas/use-agent-panel-dock";
 import { cn } from "@/lib/utils";
-import { isSpatialWorkbenchPath } from "@/lib/workspace-routes";
+import { isSpatialWorkbenchPath, workspacePagePath } from "@/lib/workspace-routes";
 import { getWorkspaceAntThemeConfig } from "@/lib/app-theme";
 import { useGlobalAgentStore } from "@/stores/use-global-agent-store";
 import { useUserStore } from "@/stores/use-user-store";
+import { TeamInvitationCenter } from "@/components/layout/team-invitation-center";
+import { TeamSpaceDirectoryHost } from "@/components/layout/team-space-directory";
 import "@/styles/workspace-product.css";
 import "@/styles/workspace-menus.css";
 import { YoruWidget } from "@/components/layout/yoru-widget";
@@ -20,16 +22,21 @@ const GlobalAgentPanel = lazy(() => import("@/components/canvas/canvas-cloud-age
 export default function UserLayout({ children }: { children: ReactNode }) {
     const { pathname } = useLocation();
     const adminWorkspace = pathname === "/admin" || pathname.startsWith("/admin/");
+    const teamWorkspace = pathname.startsWith("/teams/");
     const spatialWorkbench = isSpatialWorkbenchPath(pathname);
-    const canvasEditor = /^\/canvas\/[^/]+(?:\/|$)/.test(pathname);
+    const canvasEditor = /^\/canvas\/[^/]+(?:\/|$)/.test(workspacePagePath(pathname));
     const productWorkspace = !adminWorkspace && !canvasEditor;
     const userId = useUserStore((state) => state.user?.id);
     const globalAgentEnabled = useUserStore((state) => state.features.globalAgentEnabled);
+    const teamsEnabled = useUserStore((state) => state.features.teamsEnabled);
     // Agent 停靠在画布右侧时，工作区让出同样的宽度，画布、顶栏和角落控件都不被遮挡。
     const agentDock = useAgentPanelDock();
     const agentDocked = Boolean(userId) && canvasEditor && agentDock.active;
     const creationWorkspace = pathname === "/" || pathname === "/create";
     const wasCanvasEditorRef = useRef(canvasEditor);
+    useLayoutEffect(() => {
+        if (teamWorkspace) useGlobalAgentStore.getState().reset();
+    }, [teamWorkspace]);
     // 从画布编辑器回到创作首页时收起 Agent：画布里停靠在右侧的面板到首页会变成浮窗，挡住首页。
     // 只收起面板，对话和运行照常继续；在绘制前收起，首页不会先闪出浮窗。
     useLayoutEffect(() => {
@@ -50,9 +57,9 @@ export default function UserLayout({ children }: { children: ReactNode }) {
         };
     }, [adminWorkspace, spatialWorkbench, productWorkspace]);
 
-    // 画布编辑器（/canvas/:id）内 Agent 始终保持开启；其他页面由后台功能开放开关 globalAgentEnabled 控制。
+    // 团队空间不复用个人 Agent；个人画布始终保留，其他页面继续遵循功能开关。
     const globalAgent =
-        userId && (canvasEditor || globalAgentEnabled) ? (
+        userId && !teamWorkspace && (canvasEditor || globalAgentEnabled) ? (
             <Suspense fallback={null}>
                 <GlobalAgentPanel key={userId} />
             </Suspense>
@@ -82,6 +89,12 @@ export default function UserLayout({ children }: { children: ReactNode }) {
             </div>
             <YoruWidget />
             {globalAgent}
+            {userId && teamsEnabled ? (
+                <>
+                    <TeamSpaceDirectoryHost key={`directory:${userId}`} userId={userId} />
+                    <TeamInvitationCenter key={userId} />
+                </>
+            ) : null}
         </ConfigProvider>
     );
 }

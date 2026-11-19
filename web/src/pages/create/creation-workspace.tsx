@@ -1,3 +1,4 @@
+import { workspaceTeamId } from "@/lib/workspace-routes";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
@@ -519,7 +520,7 @@ export function CreationComposer(props: ComposerProps) {
                 <footer className="creation-chat-dock">
                     <div className="creation-chat-controls">
                         {/* 模式切换固定在输入框左下角：首页与对话流共用同一位置，不再占用输入框上方的独立一行。 */}
-                        <ModePicker mode={props.mode} onModeChange={props.onModeChange} />
+                        {!workspaceTeamId && <ModePicker mode={props.mode} onModeChange={props.onModeChange} />}
                         {canOptimizePrompt ? (
                             <Tooltip title="用 AI 优化提示词">
                                 <button type="button" className="creation-chat-control" onClick={() => setPromptOptimizerOpen(true)} aria-label="优化提示词" aria-expanded={promptOptimizerOpen} aria-haspopup="dialog">

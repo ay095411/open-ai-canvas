@@ -1,5 +1,5 @@
 import { Popover } from "antd";
-import { ArrowUpRight, Bell, ChevronDown, ChevronRight, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { ArrowUpRight, Bell, ChevronDown, ChevronRight, Infinity as InfinityIcon, PanelLeftClose, PanelLeftOpen, Plus, Users, Wallet } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
@@ -26,6 +26,8 @@ import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 import { AssetsNavIcon, CanvasNavIcon, CreateNavIcon, HistoryNavIcon, PluginsNavIcon, ProjectNavIcon, SkillsNavIcon, ToolboxNavIcon } from "./workspace-sidebar-icons";
 import { trackSiteTrafficAction } from "@/services/site-traffic";
+import { TeamSpaceSwitcher } from "./team-space-switcher";
+import { teamIdFromPath } from "@/lib/team-query-keys";
 
 export type WorkspaceNavItem = {
     id: string;
@@ -66,6 +68,7 @@ function buildNav(features: FeatureAvailability, canUseSkills: boolean): { group
                 { ...toolItem("create", "/"), id: "home", title: "创作" },
                 ...(features.imageWorkbenchEnabled || features.videoWorkbenchEnabled ? [toolItem("toolbox", workbenchEntryPath(features))] : []),
                 { ...toolItem("canvas", "/canvas"), title: "自由画布" },
+                ...(features.teamsEnabled ? [{ id: "teams", title: "公司与团队", icon: Users, to: "/teams" }] : []),
                 ...(features.shortDramaEnabled ? [{ ...toolItem("projects", "/projects"), title: "短剧 Agent" }] : []),
                 ...(features.ecommerceEnabled ? [toolItem("ecommerce", "/ecommerce")] : []),
             ],
@@ -93,6 +96,7 @@ function buildNav(features: FeatureAvailability, canUseSkills: boolean): { group
 function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user: NonNullable<ReturnType<typeof useUserStore.getState>["user"]> | null }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const profileName = user?.displayName || user?.username || "未登录";
+    const teamId = teamIdFromPath(useLocation().pathname);
 
     if (!user) {
         // 游客态：登录入口 + 公告铃铛（公告列表对游客公开，查看不标记已读）。
@@ -131,7 +135,7 @@ function WorkspaceSidebarProfile({ collapsed, user }: { collapsed: boolean; user
 
     return (
         <div className={cn("app-workspace-sidebar-account", collapsed && "is-collapsed")}>
-            <WorkspaceSidebarCheckin collapsed={collapsed} />
+            {!teamId ? <WorkspaceSidebarCheckin collapsed={collapsed} /> : null}
             <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
                 <Popover open={menuOpen} onOpenChange={setMenuOpen} trigger="click" placement="topLeft" arrow={false} rootClassName="workspace-account-popover" content={content}>
                     <button type="button" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="打开账户菜单" title={profileName}>
@@ -320,6 +324,7 @@ function NavItem({
             {linkTo ? (
                 <Link
                     to={linkTo}
+                    viewTransition
                     className={rowClassName}
                     data-nav-id={item.id}
                     style={rowStyle}
@@ -407,10 +412,27 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
     const user = useUserStore((state) => state.user);
     const { handleLogout } = useWorkspaceLogout();
     const canUseSkills = useSkillLibraryAccess();
-    const { groups, footer } = useMemo(() => buildNav(features, canUseSkills), [features, canUseSkills]);
-
-    const section = searchParams.get("section");
-    const activeId = workspaceNavActiveId(pathname, section);
+    const personalNav = useMemo(() => buildNav(features, canUseSkills), [features, canUseSkills]);
+    const teamId = features.teamsEnabled ? teamIdFromPath(pathname) : undefined;
+    const base = teamId ? `/teams/${encodeURIComponent(teamId)}` : "";
+    const { groups, footer } = teamId
+        ? {
+              groups: [
+                  {
+                      items: [
+                          ...(features.creditsEnabled ? [{ ...toolItem("create", `${base}/create`), id: "home", title: "创作" }] : []),
+                          { ...toolItem("canvas", `${base}/canvas`), title: "自由画布" },
+                          { ...toolItem("assets", `${base}/assets`), title: "资产" },
+                          { id: "team-members", title: "成员与邀请", icon: Users, to: `${base}/members` },
+                          ...(features.creditsEnabled ? [{ id: "team-wallet", title: "团队积分", icon: Wallet, to: `${base}/wallet` }] : []),
+                      ],
+                  },
+              ],
+              footer: [],
+          }
+        : personalNav;
+    const section = pathname.slice(base.length).split("/")[1];
+    const activeId = teamId && (section === "members" || section === "wallet") ? `team-${section}` : pathname === "/teams" ? "teams" : workspaceNavActiveId(pathname.slice(base.length) || "/canvas", searchParams.get("section"));
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [scrollState, setScrollState] = useState({ hasTopFade: false, hasBottomFade: false });
@@ -430,6 +452,11 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
     return (
         <div className={cn("app-workspace-sidebar-nav flex h-full shrink-0 flex-col", collapsed && "is-collapsed")}>
             <WorkspaceSwitcher collapsed={collapsed} onNavigate={onNavigate} onExpand={onExpand} onCollapse={onCollapse} />
+            {user && features.teamsEnabled ? (
+                <div className="shrink-0 px-3 py-2">
+                    <TeamSpaceSwitcher collapsed={collapsed} onNavigate={onNavigate} />
+                </div>
+            ) : null}
 
             <LayoutGroup id="workspace-sidebar-nav">
                 <div
@@ -445,7 +472,7 @@ export function WorkspaceSidebarNav({ collapsed, onNavigate, onOpenSearch, onExp
                     {groups.map((group, index) => (
                         <NavGroup key={index} group={group} activeId={activeId} onNavigate={onNavigate} onOpenSearch={onOpenSearch} onLogout={() => void handleLogout()} collapsed={collapsed} />
                     ))}
-                    <WorkspaceCreationRecords collapsed={collapsed} onExpand={onExpand} onNavigate={onNavigate} />
+                    {!teamId ? <WorkspaceCreationRecords collapsed={collapsed} onExpand={onExpand} onNavigate={onNavigate} /> : null}
                 </div>
             </LayoutGroup>
 

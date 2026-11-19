@@ -21,6 +21,7 @@ const (
 	FeatureShortDrama            = "shortDrama"
 	FeatureTaskCenter            = "taskCenter"
 	FeatureCredits               = "credits"
+	FeatureTeams                 = "teams"
 	FeatureCustomChannels        = "customChannels"
 	FeatureFrontendModels        = "frontendModels"
 	FeaturePluginCenter          = "pluginCenter"
@@ -41,6 +42,7 @@ type FeatureAvailability struct {
 	ShortDramaEnabled            bool `json:"shortDramaEnabled"`
 	TaskCenterEnabled            bool `json:"taskCenterEnabled"`
 	CreditsEnabled               bool `json:"creditsEnabled"`
+	TeamsEnabled                 bool `json:"teamsEnabled"`
 	CustomChannelsEnabled        bool `json:"customChannelsEnabled"`
 	FrontendModelsEnabled        bool `json:"frontendModelsEnabled"`
 	PluginCenterEnabled          bool `json:"pluginCenterEnabled"`
@@ -117,6 +119,8 @@ func (p FeatureAvailabilityPatch) apply(value FeatureAvailability) (FeatureAvail
 			field = &value.TaskCenterEnabled
 		case "creditsEnabled":
 			field = &value.CreditsEnabled
+		case "teamsEnabled":
+			field = &value.TeamsEnabled
 		case "customChannelsEnabled":
 			field = &value.CustomChannelsEnabled
 		case "frontendModelsEnabled":
@@ -161,11 +165,13 @@ type PublicFeatureAvailability struct {
 func DefaultFeatureAvailability() FeatureAvailability {
 	// 缺少配置代表尚未由运维接管；前台模型需要明确配置后才开放。
 	// 首页素材来源署名默认不展示，署名义务仍由灵感库条目的来源标识承担，需要时由管理员开启。
+	// 团队空间须由管理员明确开启，不因旧配置缺失字段而自动开放。
 	return FeatureAvailability{
 		WelcomeEnabled:               true,
 		ShortDramaEnabled:            true,
 		TaskCenterEnabled:            true,
 		CreditsEnabled:               true,
+		TeamsEnabled:                 false,
 		CustomChannelsEnabled:        true,
 		FrontendModelsEnabled:        false,
 		PluginCenterEnabled:          true,
@@ -261,6 +267,8 @@ func (s *Service) FeatureEnabled(feature string) (bool, error) {
 		return value.TaskCenterEnabled, nil
 	case FeatureCredits:
 		return value.CreditsEnabled, nil
+	case FeatureTeams:
+		return value.TeamsEnabled, nil
 	case FeatureCustomChannels:
 		return value.CustomChannelsEnabled, nil
 	case FeatureFrontendModels:
@@ -307,6 +315,10 @@ func (s *Service) RequireFeature(feature string) error {
 		return kernel.Forbidden("任务中心暂未开放")
 	case FeatureCredits:
 		return kernel.Forbidden("积分功能暂未开放")
+	case FeatureTeams:
+		err := kernel.Forbidden("团队空间暂未开放")
+		err.Reason = "team_feature_disabled"
+		return err
 	case FeatureCustomChannels:
 		return kernel.Forbidden("自定义渠道暂未开放")
 	case FeatureFrontendModels:

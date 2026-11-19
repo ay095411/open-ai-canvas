@@ -15,7 +15,7 @@ import { WorkspaceWalletHost } from "@/components/layout/workspace-wallet-modal"
 import { GenerationSuccessNotifier } from "@/components/layout/generation-success-notifier";
 import { useWorkspaceDocumentTitle } from "@/hooks/use-workspace-document-title";
 import { cn } from "@/lib/utils";
-import { isSpatialWorkbenchPath } from "@/lib/workspace-routes";
+import { isSpatialWorkbenchPath, workspacePagePath } from "@/lib/workspace-routes";
 
 const WorkspaceCommandPalette = lazy(() => import("@/components/layout/workspace-command-palette").then((module) => ({ default: module.WorkspaceCommandPalette })));
 const ShapeGrid = lazy(() => import("@/components/layout/shape-grid"));
@@ -30,12 +30,13 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const [paletteOpen, setPaletteOpen] = useState(false);
     useWorkspaceDocumentTitle();
 
-    const hideChrome = pathname.startsWith("/admin") || /^\/canvas\/[^/]+/.test(pathname);
+    const pagePath = workspacePagePath(pathname);
+    const hideChrome = pathname.startsWith("/admin") || /^\/canvas\/[^/]+/.test(pagePath);
     const showGlobalTopBar = !hideChrome;
     const spatialWorkbench = isSpatialWorkbenchPath(pathname);
-    // 创作首页与短剧立项页共用同一套舞台背景（.home-background 的 ShapeGrid 动态网格 +
-    // .is-creation-workspace 的舞台底色），日/夜视觉保持一致。
-    const creationWorkspace = pathname === "/" || pathname === "/create" || pathname === "/projects";
+    // 创作首页与短剧立项页共用舞台背景，团队前缀不改变页面视觉。
+    const creationWorkspace = pagePath === "/" || pagePath === "/create" || pagePath === "/projects";
+    const teamWorkspace = pathname.startsWith("/teams/");
 
     const sidebarCollapsed = !isMobileViewport && desktopSidebarCollapsed;
 
@@ -76,6 +77,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     // ⌘K / Ctrl+K 全局呼出搜索面板。
     useEffect(() => {
         const handler = (event: KeyboardEvent) => {
+            if (teamWorkspace) return;
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
                 event.preventDefault();
                 setPaletteOpen((open) => !open);
@@ -83,7 +85,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, []);
+    }, [teamWorkspace]);
 
     useEffect(() => {
         const handleWorkspaceNavigation = (rawEvent: Event) => {
@@ -126,11 +128,11 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                                 </div>
                             ) : null}
                             {showGlobalTopBar ? <WorkspaceTopBar sidebarOpen={isMobileViewport ? mobileSidebarExpanded : !desktopSidebarCollapsed} onToggleSidebar={toggleSidebar} /> : null}
-                            <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>
+                            <div className={cn("relative min-h-0 min-w-0 flex-1 overflow-hidden", showGlobalTopBar && "workspace-route-content")}>{children}</div>
                         </div>
                     </div>
 
-                    {paletteOpen ? (
+                    {paletteOpen && !teamWorkspace ? (
                         <Suspense fallback={null}>
                             <WorkspaceCommandPalette open onClose={() => setPaletteOpen(false)} />
                         </Suspense>
@@ -142,7 +144,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
             <WorkspaceSettingsHost />
             <WorkspaceStorageLimitNotice />
             <GenerationSuccessNotifier />
-            <ModelSetupGuide hidden={pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin")} />
+            <ModelSetupGuide hidden={pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin") || pathname.startsWith("/teams")} />
         </>
     );
 }

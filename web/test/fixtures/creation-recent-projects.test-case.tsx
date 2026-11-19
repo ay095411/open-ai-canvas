@@ -247,7 +247,7 @@ describe("首页继续创作真实查询与交互", () => {
         await settle();
         expect(activeView.host.textContent).toContain("new-account");
         expect(activeView.host.textContent).not.toContain("old-account");
-        expect(activeView.client.getQueryData(["canvas-library", "user-b", "recent-updated", 6])).toBeDefined();
+        expect(activeView.client.getQueryData(["canvas-library", "personal", "user-b", "recent-updated", 6])).toBeDefined();
         await act(async () => session(null));
         expect(activeView.host.querySelector(".creation-recent-projects-state.is-guest button")?.textContent).toBe("登录 / 注册");
         expect(activeView.host.textContent).not.toContain("new-account");

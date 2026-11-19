@@ -67,6 +67,16 @@ describe("登录入口打开方式", () => {
         expect(source("components/layout/workspace-auth-modal.tsx")).toContain("useAuthDialogStore((state) => state.open)");
     });
 
+    test("工作区登录宿主保留路由上下文，空间切换重新建立隔离边界", () => {
+        const router = source("router.tsx");
+        expect(router).toContain("<Outlet />");
+        expect(source("components/layout/app-top-nav.tsx")).toContain("<WorkspaceAuthHost />");
+        expect(router).not.toContain("<AuthDialogHost />");
+        expect(router).toMatch(/createBrowserRouter\(\[\s*\{\s*element: <RootLayout \/>,\s*children: routes\b/);
+        expect(router).toContain("redirectDocument(request.url)");
+        expect(router).toContain("teamIdFromPath(nextUrl.pathname) !== workspaceTeamId");
+    });
+
     test("后台登录与注册页提供打开方式选择并保留原有分区", () => {
         const panel = source("pages/admin/components/access-settings-panel.tsx");
         expect(panel).toContain('title="5. 登录与注册的打开方式"');

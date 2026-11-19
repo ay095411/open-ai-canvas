@@ -1,4 +1,5 @@
 import { useId, useState, type KeyboardEvent } from "react";
+import { workspacePath, workspaceTeamId } from "@/lib/workspace-routes";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Clapperboard, Layers3, PanelsTopLeft } from "lucide-react";
 import { Link } from "react-router";
@@ -23,13 +24,13 @@ type RecentTab = "canvas" | "drama";
 export function CreationRecentProjects() {
     const userId = useUserStore((state) => state.user?.id);
     const hydrated = useUserStore((state) => state.hydrated);
-    const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled);
+    const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled) && !workspaceTeamId;
     // 未登录也保留这一块：藏起来会让首页少一整段、登录前后高度差很大；
     // 而且对游客来说「这里以后会有你的作品」比凭空少一块更能说明产品在干什么。
     if (!hydrated) return null;
 
     // 会话变化时卸载旧查询与媒体，既不读取本地画布，也不保留上一账号的卡片或选中项。
-    return <RecentProjects key={userId ?? "guest"} userId={userId} shortDramaEnabled={shortDramaEnabled} />;
+    return <RecentProjects key={`${workspaceTeamId || "personal"}:${userId ?? "guest"}`} userId={userId} shortDramaEnabled={shortDramaEnabled} />;
 }
 
 function RecentProjects({ userId, shortDramaEnabled }: { userId?: string; shortDramaEnabled: boolean }) {
@@ -38,14 +39,14 @@ function RecentProjects({ userId, shortDramaEnabled }: { userId?: string; shortD
     const tab = shortDramaEnabled && !guest ? selectedTab : "canvas";
     const id = useId();
     const canvasQuery = useQuery({
-        queryKey: ["canvas-library", userId, "recent-updated", RECENT_COUNT],
+        queryKey: ["canvas-library", workspaceTeamId || "personal", userId, "recent-updated", RECENT_COUNT],
         queryFn: ({ signal }) => listRemoteCanvasProjectsPage({ page: 1, pageSize: RECENT_COUNT, sort: "updated", signal }),
         // 游客没有会话，请求只会拿到 401，直接不发起。
         enabled: !guest && tab === "canvas",
         placeholderData: undefined,
     });
     const dramaQuery = useQuery({
-        queryKey: ["my-dramas-recent", userId, "home", RECENT_COUNT],
+        queryKey: ["my-dramas-recent", workspaceTeamId || "personal", userId, "home", RECENT_COUNT],
         // DramaProjectsPage 默认按 projects.updated_at desc 排序，摘要接口无需逐项加载详情。
         queryFn: ({ signal }) => listDramas({ page: 1, pageSize: RECENT_COUNT }, signal),
         enabled: !guest && shortDramaEnabled && tab === "drama",
@@ -72,7 +73,7 @@ function RecentProjects({ userId, shortDramaEnabled }: { userId?: string; shortD
                 {/* 游客不给「查看全部」：下面的空态已经有登录入口。 */}
                 {guest ? null : (
                     <div className="creation-recent-projects-actions">
-                        <Link to={tab === "canvas" ? "/canvas" : "/projects"}>
+                        <Link to={workspacePath(tab === "canvas" ? "/canvas" : "/projects")}>
                             查看全部
                             <ArrowUpRight aria-hidden="true" />
                         </Link>
@@ -144,7 +145,7 @@ function RecentCanvasCard({ project }: { project: CanvasLibrarySummary }) {
     };
     return (
         <li>
-            <Link to={`/canvas/${project.id}`} className="creation-recent-project-card" onPointerEnter={preload} onFocus={preload}>
+            <Link to={workspacePath(`/canvas/${project.id}`)} className="creation-recent-project-card" onPointerEnter={preload} onFocus={preload}>
                 <div className="creation-recent-project-cover canvas-collection-preview">
                     <div className="canvas-collection-preview-media" aria-hidden="true">
                         <ProjectPreview project={{ id: project.id, nodes: project.previewNodes }} preferLatestImage quiet mosaic />
@@ -175,7 +176,7 @@ function RecentDramaCard({ item }: { item: DramaListItem }) {
     const fallback = <Clapperboard className="creation-recent-drama-empty-icon" aria-hidden="true" />;
     return (
         <li>
-            <Link to={`/projects/${item.project.id}`} className={`creation-recent-drama-card is-${item.status}`} aria-label={`打开《${item.project.name}》，${DRAMA_STATUS_LABEL[item.status]}，${stage}`}>
+            <Link to={workspacePath(`/projects/${item.project.id}`)} className={`creation-recent-drama-card is-${item.status}`} aria-label={`打开《${item.project.name}》，${DRAMA_STATUS_LABEL[item.status]}，${stage}`}>
                 <span className={`creation-recent-drama-cover${covers.length ? ` is-${covers.length}` : " is-empty"}`} aria-hidden="true">
                     {covers.length ? (
                         covers.map((resourceId) => (

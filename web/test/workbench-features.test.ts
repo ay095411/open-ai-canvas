@@ -6,4 +6,5 @@ test("new workbench entries stay closed until the backend explicitly opens them"
     expect(defaultFeatureAvailability.imageWorkbenchEnabled).toBe(false);
     expect(defaultFeatureAvailability.videoWorkbenchEnabled).toBe(false);
     expect(defaultFeatureAvailability.globalAgentEnabled).toBe(false);
+    expect(defaultFeatureAvailability.teamsEnabled).toBe(false);
 });

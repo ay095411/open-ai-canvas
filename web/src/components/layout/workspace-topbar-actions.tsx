@@ -1,11 +1,16 @@
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, UserPlus } from "lucide-react";
+import { useLocation } from "react-router";
 
 import { WorkspaceCreditMark } from "@/components/layout/workspace-credit-mark";
 import { WorkspaceTopBarQQGroup } from "@/components/layout/workspace-topbar-qq-group";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { formatCredits } from "@/constant/credits";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useSpaceCreditOverview } from "@/hooks/use-space-credit-overview";
+import { teamIdFromPath } from "@/lib/team-query-keys";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
+import { openSpaceDirectory } from "./team-space-directory";
+import { openTeamInvitations } from "./team-invitation-center";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 
@@ -19,10 +24,17 @@ import { useUserStore } from "@/stores/use-user-store";
 export function WorkspaceTopBarActions() {
     const user = useUserStore((state) => state.user);
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
+    const teamsEnabled = useUserStore((state) => state.features.teamsEnabled);
+    const teamId = teamIdFromPath(useLocation().pathname);
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
     // 未登录不请求余额、不显示积分；主题切换不依赖登录，游客也保留。
-    const { availableMicrocredits, refreshing } = useWalletBalance(user?.id, creditsEnabled && Boolean(user));
+    const { availableMicrocredits, refreshing } = useWalletBalance(user?.id, creditsEnabled && Boolean(user) && !teamsEnabled);
+    const overview = useSpaceCreditOverview();
+    const data = overview.isError ? undefined : overview.data;
+    const spaceCredit = teamId ? data?.spaces.find((space) => space.teamId === teamId) : data?.personal;
+    const visibleBalance = teamsEnabled ? (spaceCredit?.availableMicrocredits ?? null) : availableMicrocredits;
+    const balanceRefreshing = teamsEnabled ? overview.isFetching : refreshing;
     // 必须在 themeToggler 之前声明：JSX 的属性在 `const themeToggler = (...)` 求值时就会读取
     // nextTheme，此时若它还在下面的 TDZ 里，整个顶栏会抛 ReferenceError 并把外壳整块打挂。
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -40,21 +52,42 @@ export function WorkspaceTopBarActions() {
         );
     }
 
-    const balanceLabel = availableMicrocredits === null ? "加载中" : formatCredits(availableMicrocredits, 2);
+    const balanceLabel = visibleBalance === null ? "加载中" : formatCredits(visibleBalance, 2);
+    const balanceTitle = teamId ? "本空间积分" : "个人积分";
+    const teamTotal =
+        teamsEnabled && !teamId && data?.spaces.length
+            ? `团队可用 ${formatCredits(
+                  data.spaces.reduce((sum, space) => sum + space.availableMicrocredits, 0),
+                  2,
+              )}`
+            : "";
+    const balanceDescription = teamsEnabled ? `${balanceTitle} ${balanceLabel}${teamTotal ? `，${teamTotal}` : ""}，查看各空间额度` : `可用积分 ${balanceLabel}，打开积分中心`;
 
     return (
         <div className="app-workspace-topbar-actions">
             <WorkspaceTopBarQQGroup />
             {creditsEnabled ? (
-                <button type="button" className="app-workspace-topbar-credit" title="可用积分 · 打开积分中心" aria-label={`可用积分 ${balanceLabel}，打开积分中心`} onClick={() => openWorkspaceWallet()}>
-                    {refreshing && availableMicrocredits === null ? <LoaderCircle className="app-workspace-topbar-credit-spinner" aria-hidden="true" /> : <WorkspaceCreditMark className="is-compact" />}
+                <button
+                    type="button"
+                    className="app-workspace-topbar-credit"
+                    title={balanceDescription}
+                    aria-label={balanceDescription}
+                    aria-haspopup={teamsEnabled ? "dialog" : undefined}
+                    onClick={() => (teamsEnabled ? openSpaceDirectory() : openWorkspaceWallet())}
+                >
+                    {balanceRefreshing && visibleBalance === null ? <LoaderCircle className="app-workspace-topbar-credit-spinner" aria-hidden="true" /> : <WorkspaceCreditMark className="is-compact" />}
                     <span className="app-workspace-topbar-credit-value" aria-hidden="true">
-                        {availableMicrocredits === null ? "--" : formatCredits(availableMicrocredits, 2)}
+                        {visibleBalance === null ? "--" : formatCredits(visibleBalance, 2)}
                     </span>
                     {/* 金币图标不足以说明数字含义，补一个「积分」单位；读屏仍读整句 aria-label。 */}
                     <span className="app-workspace-topbar-credit-unit" aria-hidden="true">
-                        积分
+                        {teamId ? "本空间积分" : "积分"}
                     </span>
+                </button>
+            ) : null}
+            {teamsEnabled ? (
+                <button type="button" className="app-workspace-topbar-icon-button" aria-label="团队邀请" title="团队邀请" onClick={openTeamInvitations}>
+                    <UserPlus className="size-4" aria-hidden="true" />
                 </button>
             ) : null}
             {themeToggler}

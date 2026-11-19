@@ -6,6 +6,7 @@ import { Check, ChevronDown, FileText, FolderOpen, HardDrive, Image as ImageIcon
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserStore } from "@/stores/use-user-store";
+import { workspaceTeamId } from "@/lib/workspace-routes";
 
 import { AssetMediaPreview } from "@/components/asset-media-preview";
 import { AudioPlayButton, AudioWaveArt, CharacterAssetCover } from "@/components/assets/asset-rich-cover";
@@ -224,7 +225,7 @@ export function AssetLibraryPickerModal({
     const [importedOfficialIds, setImportedOfficialIds] = useState<Set<string>>(new Set());
     const [importingOfficialId, setImportingOfficialId] = useState("");
     const remoteEnabled = (remoteLibrary || Boolean(projectId)) && Boolean(userId) && source === "local";
-    const officialEnabled = open && source === "official" && Boolean(userId);
+    const officialEnabled = open && source === "official" && Boolean(userId) && !workspaceTeamId;
     useEffect(() => {
         const timer = window.setTimeout(() => setRemoteKeyword(keyword.trim()), 250);
         return () => window.clearTimeout(timer);
@@ -449,7 +450,7 @@ export function AssetLibraryPickerModal({
     }, [mediaKind, mediaKindOptions]);
 
     const selectSource = (nextSource: "local" | "plugin" | "official") => {
-        if (working || (nextSource === "plugin" && !hasPluginSource)) return;
+        if (working || (workspaceTeamId && nextSource !== "local") || (nextSource === "plugin" && !hasPluginSource)) return;
         if (isRecycleBin) clearSelection();
         setSource(nextSource);
         setIsRecycleBin(false);
@@ -770,7 +771,7 @@ export function AssetLibraryPickerModal({
                 </span>
             ),
         },
-        ...(!projectId
+        ...(!projectId && !workspaceTeamId
             ? [
                   {
                       key: "official",
@@ -784,7 +785,7 @@ export function AssetLibraryPickerModal({
                   },
               ]
             : []),
-        ...(hasPluginSource
+        ...(hasPluginSource && !workspaceTeamId
             ? [
                   {
                       key: "plugin",
@@ -839,7 +840,7 @@ export function AssetLibraryPickerModal({
                     <div className="asset-picker-heading">
                         <div className="asset-picker-heading-copy">
                             <span>{eyebrow}</span>
-                            {projectId ? (
+                            {projectId || workspaceTeamId ? (
                                 <strong className="max-w-full truncate text-[var(--fs-heading)] font-semibold leading-[var(--lh-heading)] text-[var(--text-primary)]">{title}</strong>
                             ) : (
                                 <Dropdown
@@ -870,7 +871,7 @@ export function AssetLibraryPickerModal({
                 </header>
                 <div className="asset-picker-body">
                     <nav className="asset-picker-categories" aria-label="素材分类">
-                        {mediaKindOptions.length > 1 ? (
+                        {mediaKindOptions.length > 1 && !isRecycleBin ? (
                             <>
                                 <span className="asset-picker-nav-label">媒体类型</span>
                                 {(["all", ...mediaKindOptions] as const).map((value) => (

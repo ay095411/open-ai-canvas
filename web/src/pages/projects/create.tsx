@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { useUserStore } from "@/stores/use-user-store";
 import { RelativeTime } from "@/components/ui/product/relative-time";
 import { progressFillStyle } from "@/lib/progress-fill";
+import { dramaSummaryQuery } from "@/lib/drama/drama-summary-query";
+import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 
 import { EpisodeGroupField, formatCount, formatCredits, MEDIA_MODE_LABEL, MediaThumb, SOURCE_FORMAT_LABEL, SourceFormatPicker, STATUS_LABEL, VIDEO_CONTINUITY_LABEL } from "./drama-shared";
 import { AssetSchemePicker, defaultAssetSettings, useAssetSchemes } from "./asset-scheme";
@@ -1097,6 +1099,7 @@ function DramaCover({ item }: { item: DramaListItem }) {
 }
 
 function DramaHubCard({ item, managing = false, selected = false, onToggle }: { item: DramaListItem; managing?: boolean; selected?: boolean; onToggle?: () => void }) {
+    const queryClient = useQueryClient();
     const progress = item.episodeCount ? Math.round((item.doneCount / item.episodeCount) * 100) : 0;
     const stage = item.episodeCount ? `${item.doneCount}/${item.episodeCount} 集成片` : item.status === "running" ? "正在改编" : "准备中";
     const content = (
@@ -1152,9 +1155,13 @@ function DramaHubCard({ item, managing = false, selected = false, onToggle }: { 
     }
     // 未完成「立项表单」的项目（hasDraftForm）直接进草稿编辑器，避免先跳制作台再被 detail 重定向。
     const openHref = item.hasDraftForm ? `/projects/new?draft=${encodeURIComponent(item.project.id)}` : `/projects/${item.project.id}`;
+    const preload = () => {
+        preloadWorkspaceRoute(openHref);
+        if (!item.hasDraftForm) void queryClient.prefetchQuery(dramaSummaryQuery(item.project.id));
+    };
     return (
         <article className={`drama-library-card is-${item.status}`}>
-            <Link to={openHref} className="drama-library-open" aria-label={`打开《${item.project.name}》`}>
+            <Link to={openHref} viewTransition onPointerEnter={preload} onFocus={preload} onPointerDown={preload} className="drama-library-open" aria-label={`打开《${item.project.name}》`}>
                 {content}
             </Link>
         </article>

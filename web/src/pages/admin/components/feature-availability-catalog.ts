@@ -1,4 +1,4 @@
-import { Bot, Boxes, Clapperboard, Coins, ImageIcon, ListChecks, MessageCircleMore, MonitorCog, PlugZap, Quote, RadioTower, ShieldCheck, ShoppingBag, Video, type LucideIcon } from "lucide-react";
+import { Bot, Boxes, Clapperboard, Coins, ImageIcon, ListChecks, MessageCircleMore, MonitorCog, PlugZap, Quote, RadioTower, ShieldCheck, ShoppingBag, Users, Video, type LucideIcon } from "lucide-react";
 import type { FeatureAvailability, FeatureAvailabilityKey } from "@/stores/use-user-store";
 
 export type FeatureRow = {
@@ -41,6 +41,7 @@ export const featureGroups: { title: string; description: string; icon: LucideIc
                 link: { to: "/admin/ecommerce/agent", label: "配置电商Agent模型" },
             },
             { key: "shortDramaEnabled", title: "短剧创作", location: "侧栏 · 短剧创作", description: "开放短剧入口、项目列表与项目详情；关闭不删除已有项目。", icon: Clapperboard },
+            { key: "teamsEnabled", title: "公司与团队", location: "侧栏 · 公司与团队", description: "开放团队空间、成员邀请与共享素材；团队积分功能仍需开启积分计费。关闭不删除已有团队和历史。", icon: Users },
         ],
     },
     {

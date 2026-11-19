@@ -1,3 +1,4 @@
+import { workspacePath, workspaceTeamId } from "@/lib/workspace-routes";
 import { captureSkillLibraryAccess, hasSkillLibraryAccess, isSkillLibraryAccessCurrent, useSkillLibraryAccess } from "@/lib/skill-access";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { App, Spin } from "antd";
@@ -8,6 +9,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 
 import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-picker-modal";
+import { PersonalSpaceCreditOverview } from "@/components/layout/team-space-directory";
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { useGenerationBatchLimit } from "@/lib/generation-batch-limit";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
@@ -33,7 +35,7 @@ import { CreationHistorySync, CREATION_HISTORY_SYNC_KEY, type HistorySyncStatus 
 import { creationHistoryMedia, restoreHistoryMedia } from "@/services/creation-history-media";
 import { resolveModelChannel, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useCreationPreferencesStore } from "@/stores/use-creation-preferences-store";
-import { useAssetStore, type Asset } from "@/stores/use-asset-store";
+import { useAssetStore } from "@/stores/use-asset-store";
 import { loadAssetsForUse, saveRemoteUserDataNow } from "@/services/user-data-sync";
 import { canvasDraftNavigationState, useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
@@ -88,6 +90,7 @@ import {
 } from "./creation-conversations";
 import { CreationComposer, CreationHistoryDrawer, CreationMessageView, CreationWorkspaceToolbar, creationAssetCategoryLabels } from "./creation-workspace";
 import { CreationHomeAgentEntry } from "./creation-home-feature-matrix";
+import { CreationRecentProjects } from "./creation-recent-canvases";
 import { CreationShowcaseBand } from "./creation-showcase-band";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig, creationVideoSettings } from "./creation-generation-config";
@@ -227,7 +230,7 @@ export default function CreatePage() {
         if (!requireCreationLogin()) return;
         setLibraryOpen(true);
     };
-    const externalAssetSources = useExternalAssetSources(libraryOpen);
+    const externalAssetSources = useExternalAssetSources(libraryOpen && !workspaceTeamId);
     const abortRef = useRef<AbortController | null>(null);
     const composerFocusRef = useRef<HTMLTextAreaElement>(null);
     const threadScrollRef = useRef<HTMLElement>(null);
@@ -722,6 +725,7 @@ export default function CreatePage() {
     };
 
     const selectMode = (next: CreationMode) => {
+        if (workspaceTeamId && next !== "text") return;
         setMode(next);
         rememberMode(next);
         const nextModels = selectableModelsByCapability(config, next);
@@ -781,15 +785,16 @@ export default function CreatePage() {
     const libraryItems = useMemo<AssetLibraryPickerItem[]>(
         () => [
             ...assets
-                .filter((asset): asset is Extract<Asset, { kind: "image" | "video" | "audio" }> => asset.kind === "image" || asset.kind === "video" || asset.kind === "audio")
+                .filter((asset) => (workspaceTeamId ? asset.kind === "text" : asset.kind === "image" || asset.kind === "video" || asset.kind === "audio"))
                 .map((asset) => ({
                     id: asset.id,
                     title: asset.title,
                     category: asset.category || "other",
-                    kindLabel: asset.kind === "video" ? "视频" : asset.kind === "audio" ? "音频" : "图片",
+                    kindLabel: asset.kind === "text" ? t("library.picker.kind.text") : asset.kind === "video" ? t("create.kind.video") : asset.kind === "audio" ? t("create.kind.audio") : t("create.kind.image"),
+                    archived: asset.status === "archived",
                     asset,
                     searchText: (asset.tags || []).join(" "),
-                    disabledReason: creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits),
+                    disabledReason: creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits, Boolean(workspaceTeamId)),
                 })),
             ...externalLibraryItems,
         ],
@@ -841,6 +846,18 @@ export default function CreatePage() {
 
     const handleLibrarySelect = async (selectedIds: string[], pickedItems = libraryItems) => {
         if (!requireCreationLogin()) return;
+        if (workspaceTeamId) {
+            await loadAssetsForUse(selectedIds, { refresh: true });
+            const byId = new Map(useAssetStore.getState().assets.map((asset) => [asset.id, asset]));
+            const passages = selectedIds.map((id) => {
+                const asset = byId.get(id);
+                if (asset?.kind !== "text" || asset.status === "archived") throw new Error("请选择当前空间中未归档的文本素材");
+                return asset.data.content;
+            });
+            setPrompt((current) => [current, ...passages].filter(Boolean).join("\n\n"));
+            setLibraryOpen(false);
+            return;
+        }
         const next = creationLibrarySelectionToAttachments(selectedIds, pickedItems, mode, videoReferenceLimits);
         if (!next.length) return;
         const selected = new Set(selectedIds);
@@ -1327,7 +1344,7 @@ export default function CreatePage() {
                 params.set("mode", "handoff");
                 [...new Set(assetIds)].forEach((id) => params.append("asset", id));
             }
-            navigate(`/canvas/${result.id}?${params.toString()}`);
+            navigate(workspacePath(`/canvas/${result.id}?${params.toString()}`));
         } catch (cause) {
             if (isCurrentOwner()) toast.error(cause instanceof Error ? cause.message : "转入画布失败，原会话已保留");
         } finally {
@@ -1497,6 +1514,7 @@ export default function CreatePage() {
     };
 
     const startAgentNewCanvas = async () => {
+        if (workspaceTeamId) return;
         if (!requireCreationLogin()) return;
         if (openingAgentCanvasRef.current) return;
         const scope = getActiveUserScope();
@@ -1508,7 +1526,7 @@ export default function CreatePage() {
             trackSiteTrafficAction("new_canvas");
             const id = useCanvasStore.getState().createDraftProject("Agent 创作");
             if (!isCurrent()) return;
-            navigate(`/canvas/${encodeURIComponent(id)}?agent=1`, { state: canvasDraftNavigationState(id) });
+            navigate(workspacePath(`/canvas/${encodeURIComponent(id)}?agent=1`), { state: canvasDraftNavigationState(id) });
         } catch (error) {
             if (isCurrent()) toast.error(error instanceof Error ? error.message : "新建画布失败，请重试");
         } finally {
@@ -1684,10 +1702,17 @@ export default function CreatePage() {
                                     </div>
                                 </div>
                             </section>
+                            {!workspaceTeamId && <PersonalSpaceCreditOverview />}
                             <div className="creation-home-dashboard">
-                                <CreationHomeAgentEntry openingAgentCanvas={openingAgentCanvas} onOpenHistory={() => setHistoryOpen(true)} onOpenAgentNewCanvas={startAgentNewCanvas} />
-                                <CreationShowcaseBand onStartPrompt={startPrompt} sourcesVisible={inspirationSourcesVisible} />
+                                {!workspaceTeamId && <CreationHomeAgentEntry openingAgentCanvas={openingAgentCanvas} onOpenHistory={() => setHistoryOpen(true)} onOpenAgentNewCanvas={startAgentNewCanvas} />}
+                                {workspaceTeamId && (
+                                    <button type="button" className="creation-home-history-entry" onClick={() => setHistoryOpen(true)}>
+                                        历史对话
+                                    </button>
+                                )}
+                                {!workspaceTeamId && <CreationShowcaseBand onStartPrompt={startPrompt} sourcesVisible={inspirationSourcesVisible} />}
                             </div>
+                            {workspaceTeamId && <CreationRecentProjects />}
                         </main>
                     </>
                 ) : (
@@ -1747,19 +1772,32 @@ export default function CreatePage() {
                 <Suspense fallback={null}>
                     <AssetLibraryPickerModal
                         remoteLibrary
+                        remoteKind={workspaceTeamId ? "text" : undefined}
+                        confirmLabel={workspaceTeamId ? (count) => `插入文本（${count}）` : undefined}
                         acceptRemoteItems
-                        remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits)}
+                        remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits, Boolean(workspaceTeamId))}
                         open={libraryOpen}
                         items={libraryItems}
                         categoryLabels={{ ...creationAssetCategoryLabels, ...externalAssetSources.categoryLabels }}
                         folders={externalAssetSources.folders}
                         initialSelectedIds={attachments.flatMap((item) => (item.id.startsWith("asset:") ? [item.id.slice(6)] : item.id.startsWith("external:") ? [item.id] : []))}
-                        upload={{
-                            accept: creationUploadAccept(mode),
-                            description: mode === "text" ? "支持图片、视频、音频和常用文档；媒体会保存到素材库" : `支持图片${mode === "video" ? "、视频和音频" : ""}，上传后保存到素材库`,
-                            onUpload: uploadLibraryAssets,
-                            external: { accept: "image/*", description: "写入当前 Eagle 文件夹；Eagle 当前支持图片文件", onUpload: (files, folderId) => externalAssetSources.uploadExternalFiles(files, folderId) },
-                        }}
+                        upload={
+                            workspaceTeamId
+                                ? undefined
+                                : {
+                                      accept: creationUploadAccept(mode),
+                                      description: mode === "text" ? t("create.page.uploadHintText") : mode === "video" ? t("create.page.uploadHintVideo") : t("create.page.uploadHintImage"),
+                                      onUpload: uploadLibraryAssets,
+                                      external: {
+                                          accept: "image/*",
+                                          description: t("create.page.uploadHintEagle"),
+                                          onUpload: (files, folderId) => {
+                                              if (!requireCreationLogin()) return Promise.resolve([]);
+                                              return externalAssetSources.uploadExternalFiles(files, folderId);
+                                          },
+                                      },
+                                  }
+                        }
                         onClose={() => setLibraryOpen(false)}
                         onConfirm={handleLibrarySelect}
                     />

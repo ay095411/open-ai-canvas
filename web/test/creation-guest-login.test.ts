@@ -10,9 +10,10 @@ function callback(file: string, name: string, scope: Record<string, unknown>) {
     return new Function(...Object.keys(scope), js + "; return handler;")(...Object.values(scope));
 }
 
-function environment(user: unknown = null) {
+function environment(user: unknown = null, workspaceTeamId?: string) {
     const events: unknown[] = [];
     const scope = {
+        workspaceTeamId,
         useUserStore: { getState: () => ({ user }) },
         setLibraryOpen: (open: boolean) => events.push(["library", open]),
         openLogin: () => events.push(["auth"]),
@@ -44,4 +45,10 @@ test("游客启动 Agent 先登录，不创建画布或进入错误状态", asyn
     const env = environment();
     await callback("index.tsx", "startAgentNewCanvas", { ...env.scope, requireCreationLogin: env.requireCreationLogin })();
     expect(env.events).toEqual([["library", false], ["auth"]]);
+});
+
+test("团队空间不执行 Agent 新建入口", async () => {
+    const env = environment({ id: "team-user" }, "team-space");
+    await callback("index.tsx", "startAgentNewCanvas", { ...env.scope, requireCreationLogin: env.requireCreationLogin })();
+    expect(env.events).toEqual([]);
 });

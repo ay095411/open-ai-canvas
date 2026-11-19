@@ -15,7 +15,7 @@ import { WorkspaceTopBarExtensionSlot } from "@/components/layout/workspace-top-
 export function WorkspaceTopBar({ sidebarOpen, onToggleSidebar }: { sidebarOpen: boolean; onToggleSidebar: () => void }) {
     return (
         <header className="app-workspace-topbar">
-            <button type="button" className="app-workspace-mobile-menu app-workspace-topbar-icon-button" aria-label={sidebarOpen ? "收起侧栏" : "展开侧栏"} onClick={onToggleSidebar}>
+            <button type="button" className="app-workspace-mobile-menu app-workspace-topbar-icon-button" aria-expanded={sidebarOpen} aria-label={sidebarOpen ? "收起侧栏" : "展开侧栏"} onClick={onToggleSidebar}>
                 {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
             </button>
             <WorkspaceTopBarExtensionSlot />

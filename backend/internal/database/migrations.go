@@ -15,8 +15,8 @@ import (
 
 // 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
 // 因此上游 78-104 顺延为 79-105；fork 自有的 inspiration_library 已经占了 106，
-// 上游新加的 105（image_usage_billing）再顺延到 107。保留既有迁移的名称、校验值和执行记录。
-const CurrentSchemaVersion int64 = 107
+// 上游 105-108 顺延到 107-110。保留既有迁移的名称、校验值和执行记录。
+const CurrentSchemaVersion int64 = 110
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -377,6 +377,11 @@ var schemaMigrations = []migration{
 		return tx.AutoMigrate(&model.InspirationLibraryEntry{})
 	}},
 	{version: 107, name: "image_usage_billing", checksum: "sha256:image-usage-billing-v105", apply: migrateImageUsageBilling},
+	{version: 108, name: "team_workspaces", checksum: "sha256:team-workspaces-v106", apply: migrateTeamWorkspaces},
+	{version: 109, name: "company_workgroups", checksum: "sha256:company-workgroups-v107", apply: func(tx *gorm.DB) error {
+		return tx.AutoMigrate(&model.Team{})
+	}},
+	{version: 110, name: "shared_workspace_content", checksum: "sha256:shared-workspace-content-v108", apply: migrateSharedWorkspaceContent},
 }
 
 func migrateAPILogGenerationContent(tx *gorm.DB) error {

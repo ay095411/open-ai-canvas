@@ -1,3 +1,4 @@
+import { workspacePath } from "@/lib/workspace-routes";
 import { useSkillLibraryAccess } from "@/lib/skill-access";
 import { translate } from "@/i18n";
 import { markAgentCanvasEntrance } from "@/lib/canvas/agent-canvas-entrance";
@@ -198,7 +199,7 @@ export function useCanvasProjectLifecycle({
             const loadedProject = await waitForCanvasSync(loadCanvasProjectForEditing(projectId, { onLoad: applyRestoredProject }));
             if (cancelled) return;
             if (!loadedProject) {
-                if (!cachedProject) navigate("/canvas", { replace: true });
+                if (!cachedProject) navigate(workspacePath("/canvas"), { replace: true });
                 return;
             }
             const project = useCanvasStore.getState().projects.find((p) => p.id === projectId) || loadedProject;
@@ -462,7 +463,7 @@ export function useCanvasProjectLifecycle({
     const createAndOpenProject = useCallback(() => {
         trackSiteTrafficAction("new_canvas");
         const id = useCanvasStore.getState().createDraftProject(translate("canvasPage.lifecycle.defaultCanvasName", { index: useCanvasStore.getState().projects.length + 1 }));
-        navigate(`/canvas/${id}`, { state: canvasDraftNavigationState(id) });
+        navigate(workspacePath(`/canvas/${id}`), { state: canvasDraftNavigationState(id) });
     }, [message, navigate]);
 
     const deleteCurrentProject = useCallback(async () => {
@@ -477,7 +478,7 @@ export function useCanvasProjectLifecycle({
             void Promise.all(drawingIds.map((drawingId) => removeCanvasDrawing(projectId, drawingId))).catch(() => message.warning("项目已删除，但部分本地绘图缓存清理失败"));
         }
         cleanupAssetImages();
-        navigate("/canvas");
+        navigate(workspacePath("/canvas"));
     }, [cleanupAssetImages, message, navigate, nodesRef, projectId]);
 
     const renameCurrentProject = useCallback(

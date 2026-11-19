@@ -61,8 +61,24 @@ describe("responsive workspace shell", () => {
         expect(sidebar).toContain('<SystemAnnouncementCenter className="app-workspace-sidebar-notification" />');
         expect(sidebar).toContain('<SystemAnnouncementCenter userId={user.id} className="app-workspace-sidebar-notification" autoOpen />');
         expect(actions).toContain("creditsEnabled && Boolean(user)");
-        expect(actions).toContain("onClick={() => openWorkspaceWallet()}");
+        expect(actions).toContain("onClick={() => (teamsEnabled ? openSpaceDirectory() : openWorkspaceWallet())}");
         expect(actions).toContain("<AnimatedThemeToggler");
+    });
+
+    test("team spaces keep local chrome while using scoped balances and navigation", () => {
+        const sidebar = read("workspace-sidebar-nav.tsx");
+        const actions = read("workspace-topbar-actions.tsx");
+        expect(sidebar).toContain("<TeamSpaceSwitcher collapsed={collapsed} onNavigate={onNavigate} />");
+        expect(sidebar).toContain('toolItem("assets", `${base}/assets`)');
+        expect(sidebar).toContain("!teamId ? <WorkspaceCreationRecords");
+        expect(sidebar).toContain("!teamId ? <WorkspaceSidebarCheckin");
+        expect(actions).toContain("creditsEnabled && Boolean(user) && !teamsEnabled");
+        expect(actions).toContain("data?.spaces.find((space) => space.teamId === teamId) : data?.personal");
+        expect(actions).toContain("onClick={openTeamInvitations}");
+        expect(actions).toContain("<WorkspaceTopBarQQGroup />");
+        const userLayout = readFileSync(resolve(import.meta.dir, "../src/layouts/user-layout.tsx"), "utf8");
+        expect(userLayout).not.toContain('document.addEventListener("visibilitychange"');
+        expect(readFileSync(resolve(import.meta.dir, "../src/components/auth/auth-session-hydrator.tsx"), "utf8")).toContain("useFeatureAvailabilitySync();");
     });
 
     test("guest sidebar login retains an accessible entry in both widths", () => {

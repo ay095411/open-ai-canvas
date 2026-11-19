@@ -74,6 +74,12 @@
     display: block !important;
 }
 
+/* 交互期暂停背景动画，不和画布平移/缩放争抢合成。 */
+[data-canvas-viewport-interacting="true"] .canvas-empty-center-glow,
+[data-canvas-viewport-interacting="true"] .canvas-entry-ripple-ring {
+    animation-play-state: paused;
+}
+
 .canvas-entry-shell {
     position: relative;
     z-index: 2;

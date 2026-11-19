@@ -1,3 +1,4 @@
+import { workspacePath, workspaceTeamId } from "@/lib/workspace-routes";
 import { uploadImage } from "@/services/image-storage";
 import { assetStorageUsageQueryKey, AssetStorageUsage } from "./asset-storage-usage";
 import { readFileAsDataUrl, readImageMeta, formatBytes } from "@/lib/image-utils";
@@ -40,6 +41,7 @@ import { createAssetFolder, deleteAssetFolder, listAssetFolders, listRemoteAsset
 import { assetCountMap, assetSearchText, readAssetGridDensity, assetKindIcons, assetCategoryIcons } from "./asset-library-format";
 import { ASSET_GRID_DENSITY_KEY, type LibraryAsset } from "./asset-library-format";
 import { selectAssetIds } from "./asset-library-selection";
+import { TeamAssetShareModal } from "@/components/assets/team-asset-share-modal";
 
 export { ASSET_GRID_DENSITY_KEY, type LibraryAsset, assetKindIcons } from "./asset-library-format";
 
@@ -135,12 +137,13 @@ export default function AssetsPage() {
 
     const updateAsset = useAssetStore((state) => state.updateAsset);
     const userId = useUserStore((state) => state.user?.id || "");
-    const retentionDays = useUserStore((state) => state.runtimeLimits.recycleBinRetentionDays ?? 30);
+    const teamsEnabled = useUserStore((state) => state.features.teamsEnabled) && !workspaceTeamId;
+    const retentionDays = useUserStore((state) => (workspaceTeamId ? 0 : (state.runtimeLimits.recycleBinRetentionDays ?? 30)));
     // 方舟审核由服务端定时刷新；有审核中的素材时降频轮询概览，让认证角标跟上结果。
     const arkQuery = useQuery({
         queryKey: arkPortraitOverviewQueryKey,
         queryFn: ({ signal }) => getArkPortraitOverview(signal),
-        enabled: Boolean(userId),
+        enabled: Boolean(userId) && !workspaceTeamId,
         staleTime: 60_000,
         refetchInterval: (query) => (query.state.data?.groups.some((group) => group.owned && group.assets.some((asset) => asset.status === "processing")) ? 30_000 : false),
     });
@@ -162,6 +165,7 @@ export default function AssetsPage() {
     const [deletingAsset, setDeletingAsset] = useState<LibraryAsset | null>(null);
     const [archivingAsset, setArchivingAsset] = useState<LibraryAsset | null>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [teamShareIds, setTeamShareIds] = useState<string[] | null>(null);
     const [selecting, setSelecting] = useState(false);
     const selectionAnchor = useRef<string | undefined>(undefined);
     const [batchWorking, setBatchWorking] = useState(false);
@@ -741,9 +745,11 @@ export default function AssetsPage() {
                                             <Button icon={<Images />} onClick={() => setBatchUploadOpen(true)}>
                                                 {t("library.assets.page.uploadImages")}
                                             </Button>
-                                            <Button icon={<HardDrive />} onClick={() => openStoragePurchase()}>
-                                                空间扩容
-                                            </Button>
+                                            {!workspaceTeamId ? (
+                                                <Button icon={<HardDrive />} onClick={() => openStoragePurchase()}>
+                                                    空间扩容
+                                                </Button>
+                                            ) : null}
                                             {arkEnabled ? (
                                                 <Button icon={<ShieldCheck />} onClick={() => navigate("/settings?section=ark-assets")}>
                                                     {t("library.assets.page.ark")}
@@ -960,6 +966,7 @@ export default function AssetsPage() {
                                         selectionAnchor.current = undefined;
                                     }}
                                     onExport={() => void exportSelectedAssets()}
+                                    onShareTeam={userId && teamsEnabled ? () => setTeamShareIds([...selectedIds]) : undefined}
                                     onRestore={() => void changeAssetStatus(selectedIds, "confirmed")}
                                     onArchive={() => setBatchArchiveOpen(true)}
                                     onDelete={() => setBatchDeleteOpen(true)}
@@ -969,7 +976,7 @@ export default function AssetsPage() {
                                 viewMode === "trash" ? (
                                     <WorkspaceState icon="assets" compact title={t("library.picker.recycleBinEmpty")} description={t("library.assets.trash.emptyDescription")} />
                                 ) : (
-                                    <AssetsEmptyState onNew={openCreate} onImport={() => assetInputRef.current?.click()} onGoCanvas={() => navigate("/canvas")} />
+                                    <AssetsEmptyState onNew={openCreate} onImport={() => assetInputRef.current?.click()} onGoCanvas={() => navigate(workspacePath("/canvas"))} />
                                 )
                             ) : (
                                 <>
@@ -1008,11 +1015,15 @@ export default function AssetsPage() {
                                                     onDelete={() => setDeletingAsset(asset)}
                                                     folderOptions={folderSelectOptions}
                                                     onMoveToFolder={(folderId) => void moveAssetsToFolder([asset.id], folderId)}
-                                                    onRecommend={(candidate) => {
-                                                        setRecommendAsset(candidate);
-                                                        setRecommendNote("");
-                                                        setRecommendConsent(false);
-                                                    }}
+                                                    onRecommend={
+                                                        workspaceTeamId
+                                                            ? undefined
+                                                            : (candidate) => {
+                                                                  setRecommendAsset(candidate);
+                                                                  setRecommendNote("");
+                                                                  setRecommendConsent(false);
+                                                              }
+                                                    }
                                                     arkProgress={arkEnabled ? arkProgress.get(asset.id) : undefined}
                                                 />
                                             ))}
@@ -1333,6 +1344,7 @@ export default function AssetsPage() {
             >
                 {t("library.assets.delete.batchConfirm", { count: selectedIds.length })}
             </Modal>
+            {teamsEnabled && teamShareIds ? <TeamAssetShareModal key={userId} assetIds={teamShareIds} onClose={() => setTeamShareIds(null)} /> : null}
         </>
     );
 }

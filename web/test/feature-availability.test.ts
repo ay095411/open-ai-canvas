@@ -109,7 +109,9 @@ test("catalog exposes both studio tabs and separates the ecommerce-only video ta
         expect(featureByKey.get(key)?.parent).toBeUndefined();
     }
     expect(featureByKey.get("siteAssistantEnabled")?.link?.to).toBe("/admin/settings/yoru");
-    expect(featureByKey.size).toBe(14);
+    expect(featureByKey.size).toBe(15);
+    expect(featureByKey.get("teamsEnabled")?.title).toBe("公司与团队");
+    expect(featureByKey.get("teamsEnabled")?.requires).toBeUndefined();
     expect(featureByKey.get("imageWorkbenchEnabled")?.description).toContain("不影响电商Agent、首页或自由画布");
     expect(featureByKey.get("ecommerceEnabled")?.description).toContain("不依赖影棚开关");
     expect(featureByKey.get("ecommerceVideoEnabled")?.requires).toEqual(["ecommerceEnabled"]);

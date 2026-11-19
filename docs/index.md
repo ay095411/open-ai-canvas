@@ -13,6 +13,7 @@
 ## 设计沉淀
 
 - [一键复刻：参考视频复刻模块](design/video-remake-module-design.md)：独立一级菜单与复刻工作台；实现与验收状态见待测试记录，真实模型及媒体链路尚未完成端到端验收。
+- [团队空间、积分划拨与素材共享](design/team-workspace-design.md)：自由画布、创作页和素材库在个人与团队之间复用，按空间隔离作品与费用。使用入口见[功能清单](content/docs/overview/features.mdx)。
 
 - [资源访问与 OSS/CDN 分发架构重构](design/resource-delivery-architecture.md)：资源身份、场景授权与分发策略分离，统一访问合同、全入口迁移、旧实现退场及流量/安全验收门槛（核心代码已实施，待真实 OSS/CDN 链路验收）。
 
