@@ -11,6 +11,7 @@ type SkillCardProps = {
     categories: SkillCategory[];
     libraryCategories: SkillLibraryCategory[];
     canCategorize: boolean;
+    canManage: boolean;
     loading: boolean;
     onOpen: () => void;
     onAdd: () => void;
@@ -20,7 +21,7 @@ type SkillCardProps = {
     onSetLibraryCategory: (categoryId: string) => void;
 };
 
-export function SkillCard({ skill, rootLabel, categories, libraryCategories, canCategorize, loading, onOpen, onAdd, onLike, onEdit, onDelete, onSetLibraryCategory }: SkillCardProps) {
+export function SkillCard({ skill, rootLabel, categories, libraryCategories, canCategorize, canManage, loading, onOpen, onAdd, onLike, onEdit, onDelete, onSetLibraryCategory }: SkillCardProps) {
     const [failedImage, setFailedImage] = useState("");
     const cover = skill.showcaseMedia?.find((media) => media.type === "image" && media.showcaseUrl)?.showcaseUrl;
     const label = rootLabel || skillCategoryLabel(skill.tag, categories);
@@ -38,7 +39,7 @@ export function SkillCard({ skill, rootLabel, categories, libraryCategories, can
                   },
               ]
             : []),
-        ...(skill.isOwner
+        ...(canManage
             ? [
                   { key: "edit", label: "编辑技能" },
                   { key: "delete", label: "删除技能", danger: true },

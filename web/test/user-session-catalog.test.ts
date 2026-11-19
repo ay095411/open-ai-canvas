@@ -1,10 +1,11 @@
 import { afterEach, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-import { refreshSystemChannels } from "../src/lib/user-session";
+import { refreshSystemChannels, suspendUserSession } from "../src/lib/user-session";
 import { apiClient } from "../src/services/api/request";
 import { createModelChannel, defaultConfig, useConfigStore } from "../src/stores/use-config-store";
 import { useUserStore, type LocalUser } from "../src/stores/use-user-store";
+import { useModelCatalogStore } from "../src/stores/use-model-catalog-store";
 
 const originalRequest = apiClient.request;
 const previousUser = useUserStore.getState().user;
@@ -28,15 +29,15 @@ function setPersonalConfig() {
 }
 
 afterEach(() => {
+    suspendUserSession();
     apiClient.request = originalRequest;
     useUserStore.setState({ user: previousUser });
     useConfigStore.setState({ config: previousConfig });
 });
 
-test("guest refresh does not request the permission-scoped model catalog", async () => {
+test("guest refresh loads the public system catalog without losing personal channels", async () => {
     useUserStore.setState({ user: null });
     setPersonalConfig();
-    const config = useConfigStore.getState().config;
     let requests = 0;
     apiClient.request = (async () => {
         requests += 1;
@@ -45,8 +46,10 @@ test("guest refresh does not request the permission-scoped model catalog", async
 
     await refreshSystemChannels();
 
-    expect(requests).toBe(0);
-    expect(useConfigStore.getState().config).toBe(config);
+    expect(requests).toBe(1);
+    expect(useConfigStore.getState().config.channels.find((channel) => channel.id === "allowed-channel")?.scope).toBe("system");
+    expect(useConfigStore.getState().config.channels.some((channel) => channel.id === "personal-channel")).toBe(true);
+    expect(useModelCatalogStore.getState().status).toBe("ready");
 });
 
 test("authenticated refresh merges allowed system channels without losing personal channels", async () => {
@@ -73,12 +76,15 @@ test("catalog responses do not overwrite another account or a logged-out session
             })) as typeof apiClient.request;
 
         const pending = refreshSystemChannels();
+        const result = pending.catch((error) => error);
+        suspendUserSession();
         useUserStore.setState({ user: nextUser });
         respond(response());
-        await pending;
+        expect(await result).toMatchObject({ name: "AbortError" });
 
         expect(useConfigStore.getState().config).toBe(config);
         expect(config.channels.some((channel) => channel.id === "allowed-channel")).toBe(false);
+        expect(useModelCatalogStore.getState().status).toBe("idle");
     }
 });
 
@@ -97,10 +103,9 @@ test("catalog errors propagate without replacing local configuration", async () 
 test("session hydration fetches the guest catalog and keeps login-scoped hydration gated", () => {
     const source = readFileSync(new URL("../src/lib/user-session.ts", import.meta.url), "utf8");
     const hydration = source.split("async function hydrateUserSessionData")[1].split("function isCurrentSession")[0];
-    expect(hydration).toMatch(/if \(userId\) \{\s+void \(async \(\) => \{/);
-    // 游客分支：创作首页允许未登录看到模型目录（后端按默认分组返回）。
-    expect(hydration).toMatch(/else \{\s+\/\/ 创作首页对游客开放模型目录[\s\S]*?await getModelCatalog\(\)/);
-    expect(hydration).toContain('if (!isCurrentSession(generation, "")) return;');
-    // 登录分支的代次校验仍然存在，防止目录写回其他账号会话。
+    // 登录专属远端数据仍按 userId 隔离；模型目录统一走可重试刷新入口。
+    expect(hydration).toMatch(/if \(userId\) \{\s+await initializeRemoteUserDataSession\(userId\);\s+\} else \{\s+resetRemoteUserDataSync\(\);/);
+    expect(hydration).toContain("void refreshSystemChannels().catch(() => {});");
     expect(hydration).toContain("if (!isCurrentSession(generation, userId)) return;");
+    expect(hydration.indexOf("if (isCurrentSession(generation, userId))")).toBeLessThan(hydration.indexOf("void refreshSystemChannels()"));
 });

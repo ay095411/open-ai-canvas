@@ -27,6 +27,7 @@ function render(overrides: Partial<Skill> = {}, loading = false) {
             categories={fallbackSkillCategories}
             libraryCategories={[]}
             canCategorize={false}
+            canManage={false}
             loading={loading}
             onOpen={noop}
             onAdd={noop}
