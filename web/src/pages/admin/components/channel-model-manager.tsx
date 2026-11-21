@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { App, Button, Checkbox, Input, Popconfirm, Space } from "antd";
+import { App, Button, Checkbox, Grid, Input, Popconfirm, Space } from "antd";
 import { AdminModal } from "@/pages/admin/ui/overlays";
 import type { ColumnsType } from "antd/es/table";
 import { Plus, RefreshCw, Search, Trash2 } from "lucide-react";
@@ -31,7 +31,7 @@ import { ChannelModelDetailsCell } from "./channel-model-details-cell";
 import { ChannelModelRepriceDialog } from "./channel-model-reprice-dialog";
 import { ChannelModelBatchEditDialog } from "./channel-model-batch-edit-dialog";
 import { deselectVisibleModels, filterImportModels, normalizeFetchModelKey, selectExistingImportModels, selectVisibleModels } from "./channel-model-import-selection";
-import { duplicateChannelModelValues, type ChannelModelFormValues } from "./channel-model-editor-form";
+import { duplicateChannelModelValues, opensModelParameters, type ChannelModelFormValues } from "./channel-model-editor-form";
 import { Select } from "@/components/ui/base/select";
 
 export type ChannelModelFilters = {
@@ -64,6 +64,7 @@ export function ChannelModelManager({
     filters?: ChannelModelFilters;
 }) {
     const { message, modal } = App.useApp();
+    const screens = Grid.useBreakpoint();
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [items, setItems] = useState<ChannelModel[]>([]);
     const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
@@ -362,14 +363,14 @@ export function ChannelModelManager({
         { title: "状态", dataIndex: "enabled", width: 85, render: (enabled) => <AdminStatusBadge label={enabled ? "启用" : "停用"} tone={enabled ? "success" : "neutral"} /> },
         {
             title: "操作",
-            width: 206,
+            width: screens.md ? 248 : 148,
             fixed: "right",
             // 与其他后台表格统一走 AdminRowActions 的紧凑文本按钮：
             // 原来这里混用带边框的 small 按钮，四颗加起来 200px 撑爆固定列，
             // 最后一个图标会被挤出表格右缘。
             render: (_, item) => (
                 <AdminRowActions
-                    primary={{ label: "编辑", disabled: deletingSelected, onClick: () => startEdit(item) }}
+                    primary={{ label: opensModelParameters(item) ? "编辑参数" : "编辑", disabled: deletingSelected, onClick: () => startEdit(item) }}
                     actions={[
                         {
                             key: "toggle",
@@ -598,7 +599,7 @@ export function ChannelModelManager({
                     columns,
                     dataSource: pagedItems,
                     pagination: false,
-                    scroll: { x: 1520 },
+                    scroll: { x: 1650 },
                 }}
                 footer={
                     filteredItems.length > pageSize ? (

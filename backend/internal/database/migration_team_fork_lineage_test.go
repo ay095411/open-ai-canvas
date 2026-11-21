@@ -6,11 +6,11 @@ import (
 )
 
 func TestForkMigrationPlanAppendsTeamSchema(t *testing.T) {
-	if CurrentSchemaVersion != 110 {
-		t.Fatalf("fork schema version = %d, want 110", CurrentSchemaVersion)
+	if CurrentSchemaVersion != 111 {
+		t.Fatalf("fork schema version = %d, want 111", CurrentSchemaVersion)
 	}
 	// These identities have already been published by the fork. New upstream
-	// team migrations must append after them, never replace the same version.
+	// migrations must append after them, never replace the same version.
 	expected := []schemaMigration{
 		{Version: 78, Name: "video_remake", Checksum: "sha256:video-remake-v78"},
 		{Version: 103, Name: "wechat_oauth", Checksum: "sha256:wechat-oauth-v102"},
@@ -21,6 +21,7 @@ func TestForkMigrationPlanAppendsTeamSchema(t *testing.T) {
 		{Version: 108, Name: "team_workspaces", Checksum: "sha256:team-workspaces-v106"},
 		{Version: 109, Name: "company_workgroups", Checksum: "sha256:company-workgroups-v107"},
 		{Version: 110, Name: "shared_workspace_content", Checksum: "sha256:shared-workspace-content-v108"},
+		{Version: 111, Name: "model_protocol_releases", Checksum: "sha256:model-protocol-releases-v109"},
 	}
 	byVersion := make(map[int64]migration, len(schemaMigrations))
 	for _, step := range schemaMigrations {

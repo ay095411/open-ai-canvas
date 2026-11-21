@@ -15,8 +15,8 @@ import (
 
 // 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
 // 因此上游 78-104 顺延为 79-105；fork 自有的 inspiration_library 已经占了 106，
-// 上游 105-108 顺延到 107-110。保留既有迁移的名称、校验值和执行记录。
-const CurrentSchemaVersion int64 = 110
+// 上游 105-109 顺延到 107-111。保留既有迁移的名称、校验值和执行记录。
+const CurrentSchemaVersion int64 = 111
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -382,6 +382,23 @@ var schemaMigrations = []migration{
 		return tx.AutoMigrate(&model.Team{})
 	}},
 	{version: 110, name: "shared_workspace_content", checksum: "sha256:shared-workspace-content-v108", apply: migrateSharedWorkspaceContent},
+	{version: 111, name: "model_protocol_releases", checksum: "sha256:model-protocol-releases-v109", apply: func(tx *gorm.DB) error {
+		for _, column := range []struct {
+			entity any
+			name   string
+		}{{&model.ChannelModel{}, "ProtocolRelease"}, {&model.Task{}, "ProtocolBindingJSON"}, {&model.RouteAttempt{}, "ProtocolBindingJSON"}} {
+			if !tx.Migrator().HasTable(column.entity) || tx.Migrator().HasColumn(column.entity, column.name) {
+				continue
+			}
+			if err := tx.Migrator().AddColumn(column.entity, column.name); err != nil {
+				return err
+			}
+		}
+		if !tx.Migrator().HasTable(&model.ChannelModel{}) || tx.Migrator().HasIndex(&model.ChannelModel{}, "ProtocolRelease") {
+			return nil
+		}
+		return tx.Migrator().CreateIndex(&model.ChannelModel{}, "ProtocolRelease")
+	}},
 }
 
 func migrateAPILogGenerationContent(tx *gorm.DB) error {

@@ -25,7 +25,7 @@ export function AdminSwitch({
     "aria-label"?: string;
     "aria-describedby"?: string;
 }) {
-    return <AntSwitch {...props} size={size === "sm" ? "small" : "default"} className={cn("admin-switch", className)} onChange={(checked) => props.onChange?.(checked)} />;
+    return <AntSwitch {...props} aria-busy={props.loading || undefined} size={size === "sm" ? "small" : "default"} className={cn("admin-switch", className)} />;
 }
 
 export function Switch(props: Parameters<typeof AdminSwitch>[0]) {

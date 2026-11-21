@@ -44,6 +44,8 @@ test.each(["runtime", "skills"] as const)("%s 准备期间切换账号时不再�
             retryPreparingRef: { current: new Set(["retry"]) },
             prompt: "保留原账号的提示词",
             busy: false,
+            referenceReplacementBusy: false,
+            referenceDropLock: { current: false },
             activeConversation: { id: "conversation", messages: [] },
             conversationStorageReady: true,
             selectedModel: "model",

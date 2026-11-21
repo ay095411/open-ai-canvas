@@ -5,7 +5,8 @@ import { readFileAsDataUrl, readImageMeta, formatBytes } from "@/lib/image-utils
 import { uploadMediaFile } from "@/services/file-storage";
 import { exportAssets, readAssetPackage } from "./asset-transfer";
 import { WorkspacePage, PageHeader, CollectionGrid, PaginationBar } from "@/components/layout/workspace-page";
-import { Trash2, RotateCcw, Plus, Images, FolderOpen, FileUp, Upload, Download, MoreHorizontal, Search, LayoutGrid, FolderPlus, PencilLine, AlertTriangle, HardDrive, ShieldCheck } from "lucide-react";
+import { Trash2, RotateCcw, Plus, Images, FolderOpen, FileUp, Upload, Download, MoreHorizontal, LayoutGrid, FolderPlus, PencilLine, AlertTriangle, HardDrive, ShieldCheck } from "lucide-react";
+import { ListSearchInput } from "@/components/ui/base/list-search-input";
 import { openStoragePurchase } from "@/lib/workspace-storage";
 import { CollectionToolbar } from "@/components/layout/collection-toolbar";
 import { Select } from "@/components/ui/base/select";
@@ -784,15 +785,13 @@ export default function AssetsPage() {
                             setPage(1);
                         }}
                     >
-                        <Input
-                            allowClear
-                            className="w-full sm:w-80"
-                            prefix={<Search className="size-4 text-foreground/40" />}
+                        <ListSearchInput
+                            aria-label={t("library.assets.page.searchPlaceholder")}
                             value={keyword}
                             placeholder={t("library.assets.page.searchPlaceholder")}
-                            onChange={(event) => {
+                            onValueChange={(value) => {
                                 setPage(1);
-                                setKeyword(event.target.value);
+                                setKeyword(value);
                             }}
                         />
                         <Select

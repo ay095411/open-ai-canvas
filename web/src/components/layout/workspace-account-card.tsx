@@ -36,34 +36,86 @@ export function WorkspaceAccountCard({ onWallet, onNavigate }: { onWallet: () =>
     const setTheme = useThemeStore((state) => state.setTheme);
     if (!user) return null;
     const accountEmail = user.email?.trim() || "";
-    return <section className="workspace-account-card" aria-label="我的账户">
-        <header className="workspace-account-card-identity">
-            <UserGroupAvatarRing><UserAvatar user={user} className="workspace-account-card-avatar" /></UserGroupAvatarRing>
-            {/* 副标题从「@用户名」换成绑定邮箱：账号标识对用户没有信息量，邮箱才是他要核对的东西。
+    return (
+        <section className="workspace-account-card" aria-label="我的账户">
+            <header className="workspace-account-card-identity">
+                <UserGroupAvatarRing>
+                    <UserAvatar user={user} className="workspace-account-card-avatar" />
+                </UserGroupAvatarRing>
+                {/* 副标题从「@用户名」换成绑定邮箱：账号标识对用户没有信息量，邮箱才是他要核对的东西。
                 没绑邮箱的账号（如第三方登录）不占位 —— 回退成 @username 就退回了这次要去掉的那行。 */}
-            <div><strong className="workspace-account-card-name"><span>{user.displayName || user.username}</span><UserGroupBadge /></strong>{accountEmail ? <span title={accountEmail}>{accountEmail}</span> : null}</div>
-            <em>{user.role === "admin" ? "管理员" : "创作者"}</em>
-        </header>
-        {creditsEnabled ? <div className="workspace-account-card-wallet">
-            <div className="workspace-account-card-balance"><span><WorkspaceCreditMark className="is-compact" />可用积分</span><strong>{availableMicrocredits === null ? "—" : (availableMicrocredits / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}</strong></div>
-            {availableMicrocredits === null ? <Button size="small" loading={refreshing} icon={<RefreshCw />} onClick={() => void refresh()}>刷新余额</Button> : <button type="button" onClick={onWallet}>充值 / 兑换<ArrowUpRight /></button>}
-        </div> : null}
-        <div className="workspace-account-card-preferences">
-            <div className="workspace-account-card-theme">
-                {theme === "dark" ? <Moon /> : <Sun />}
-                <span>深色模式</span>
-                <Switch size="sm" checked={theme === "dark"} onChange={(checked) => setTheme(checked ? "dark" : "light")} aria-label="深色模式" />
+                <div>
+                    <strong className="workspace-account-card-name">
+                        <span>{user.displayName || user.username}</span>
+                        <UserGroupBadge />
+                    </strong>
+                    {accountEmail ? <span title={accountEmail}>{accountEmail}</span> : null}
+                </div>
+                <em>{user.role === "admin" ? "管理员" : "创作者"}</em>
+            </header>
+            {creditsEnabled ? (
+                <div className="workspace-account-card-wallet">
+                    <div className="workspace-account-card-balance">
+                        <span>
+                            <WorkspaceCreditMark className="is-compact" />
+                            可用积分
+                        </span>
+                        <strong>{availableMicrocredits === null ? "—" : (availableMicrocredits / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 2 })}</strong>
+                    </div>
+                    {availableMicrocredits === null ? (
+                        <Button size="small" loading={refreshing} icon={<RefreshCw />} onClick={() => void refresh()}>
+                            刷新余额
+                        </Button>
+                    ) : (
+                        <button type="button" onClick={onWallet}>
+                            充值 / 兑换
+                            <ArrowUpRight />
+                        </button>
+                    )}
+                </div>
+            ) : null}
+            <div className="workspace-account-card-preferences">
+                <div className="workspace-account-card-theme">
+                    {theme === "dark" ? <Moon /> : <Sun />}
+                    <span>深色模式</span>
+                    <Switch size="sm" checked={theme === "dark"} onChange={(checked) => setTheme(checked ? "dark" : "light")} aria-label="深色模式" />
+                </div>
+                {SHOW_CHANGELOG_ENTRY ? <AppChangelogButton className="workspace-account-card-changelog" showLabel showVersion versionClassName="workspace-account-card-changelog-version" /> : null}
             </div>
-            {SHOW_CHANGELOG_ENTRY ? <AppChangelogButton className="workspace-account-card-changelog" showLabel showVersion versionClassName="workspace-account-card-changelog-version" /> : null}
-        </div>
-        <nav className="workspace-account-card-actions" aria-label="账户操作">
-            {/* 账户与设置改成原地打开弹窗，不再跳转 /settings 页面；图标仍是斜箭头 ArrowUpRight
+            <nav className="workspace-account-card-actions" aria-label="账户操作">
+                {/* 账户与设置改成原地打开弹窗，不再跳转 /settings 页面；图标仍是斜箭头 ArrowUpRight
                 （和「管理员后台」同一枚），只有入口行为变了，观感不变。
                 main 的 /settings?section=profile 深链由设置弹窗承接（profile 已是弹窗分区）。 */}
-            <button type="button" className="workspace-account-card-entry" onClick={() => { onNavigate(); openWorkspaceSettings(); }}><Settings /><span>账户与设置</span><ArrowUpRight /></button>
-            {referralAvailable ? <Link to="/referral" onClick={onNavigate}><Gift /><span>推广中心</span><ArrowUpRight /></Link> : null}
-            {user.role === "admin" ? <Link to="/admin" onClick={onNavigate}><ShieldCheck /><span>管理员后台</span><ArrowUpRight /></Link> : null}
-            <Button danger type="text" icon={<LogOut />} loading={loggingOut} onClick={() => void handleLogout()}>退出登录</Button>
-        </nav>
-    </section>;
+                <button
+                    type="button"
+                    className="workspace-account-card-entry"
+                    onClick={() => {
+                        onNavigate();
+                        openWorkspaceSettings();
+                    }}
+                >
+                    <Settings />
+                    <span>账户与设置</span>
+                    <ArrowUpRight />
+                </button>
+                {referralAvailable ? (
+                    <Link to="/referral" onClick={onNavigate}>
+                        <Gift />
+                        <span>推广中心</span>
+                        <ArrowUpRight />
+                    </Link>
+                ) : null}
+                {user.role === "admin" ? (
+                    <Link to="/admin" onClick={onNavigate}>
+                        <ShieldCheck />
+                        <span>管理员后台</span>
+                        <ArrowUpRight />
+                    </Link>
+                ) : null}
+                <Button danger type="text" icon={<LogOut />} loading={loggingOut} onClick={() => void handleLogout()}>
+                    退出登录
+                </Button>
+            </nav>
+        </section>
+    );
 }
