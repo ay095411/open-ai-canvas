@@ -30,13 +30,19 @@ test("创作记录列表不再设置内部滚动或限高", () => {
 test("创作记录文字层级与游客卡片沿用侧栏主题，长标题截断不挤压时间", () => {
     expect(rule(".workspace-creation-records")).toMatch(/color:\s*var\(--workspace-sidebar-ink\)/);
     expect(rule(".workspace-creation-records-heading")).toMatch(/font-size:\s*var\(--fs-label\)/);
-    expect(rule(".workspace-creation-records h3")).toMatch(/font-size:\s*var\(--fs-caption\)/);
+    const subheading = rule(".workspace-creation-records h3");
+    expect(subheading).toMatch(/font-size:\s*var\(--fs-caption\)/);
+    expect(subheading).toMatch(/font-weight:\s*500/);
+    expect(subheading).toMatch(/color:\s*var\(--workspace-sidebar-muted\)/);
     const name = rule(".workspace-creation-records-copy strong");
-    expect(name).toMatch(/font-size:\s*var\(--fs-body\)/);
+    expect(name).toMatch(/font-size:\s*var\(--fs-caption\)/);
+    expect(name).toMatch(/font-weight:\s*400/);
     expect(name).toMatch(/text-overflow:\s*ellipsis/);
     expect(name).toMatch(/white-space:\s*nowrap/);
     expect(rule(".workspace-creation-records-copy")).toMatch(/min-width:\s*0/);
-    expect(rule(".workspace-creation-records-link")).toContain("minmax(0, 1fr)");
+    const link = rule(".workspace-creation-records-link");
+    expect(link).toContain("minmax(0, 1fr)");
+    expect(link).toMatch(/color:\s*color-mix\(in srgb,\s*var\(--workspace-sidebar-ink\)/);
     const time = rule(".workspace-creation-records-time");
     expect(time).toMatch(/font-size:\s*var\(--fs-label\)/);
     expect(time).toMatch(/color:\s*var\(--workspace-sidebar-muted\)/);

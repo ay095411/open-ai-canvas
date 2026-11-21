@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Button, Input, Popover } from "antd";
-import { ArrowUpRight, Images, Info, RefreshCw, Search, SearchX, SlidersHorizontal, WifiOff, X } from "lucide-react";
+import { ArrowUpRight, Images, Info, RefreshCw, Search, SearchX, WifiOff, X } from "lucide-react";
 
 import { InspirationMasonry } from "@/components/inspirations/inspiration-masonry";
 import { SegmentedControl } from "@/components/ui/base/segmented-control";
@@ -139,7 +139,6 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
                         <h2 id="creation-showcase-title">看看能拍成什么样</h2>
                         {sourcesVisible ? <ShowcaseSources entries={entries} /> : null}
                     </div>
-                    <p className="creation-showcase-description">浏览作品，查看提示词，再带入你的创作。</p>
                 </div>
                 <button type="button" className="creation-showcase-hall-entry" onClick={openHall}>
                     灵感大厅 <ArrowUpRight size={14} aria-hidden="true" />
@@ -282,6 +281,7 @@ function CreationShowcaseFilters({
                     value={filters.media}
                     onChange={(media) => onChange({ ...filters, media, category: "", model: "" })}
                     ariaLabel="首页示例媒体类型"
+                    className="creation-showcase-media-tabs"
                     options={[
                         { value: "all", label: "全部" },
                         { value: "image", label: "图片" },
@@ -292,22 +292,21 @@ function CreationShowcaseFilters({
                     value={filters.search}
                     onChange={(event) => onChange({ ...filters, search: event.target.value })}
                     allowClear
-                    prefix={<Search size={16} aria-hidden="true" />}
+                    prefix={<Search size={15} aria-hidden="true" />}
                     placeholder="搜索作品、风格或关键词"
                     aria-label="搜索首页在线示例"
                     className="creation-showcase-search"
                 />
             </div>
             <div className="creation-showcase-filter-secondary">
-                <span className="creation-showcase-filter-label">
-                    <SlidersHorizontal size={14} aria-hidden="true" />
-                    筛选
-                </span>
+                <span className="creation-showcase-filter-divider" aria-hidden="true" />
                 <Select
                     value={source}
                     onChange={onSourceChange}
                     ariaLabel="首页示例来源"
-                    className="creation-showcase-filter-select"
+                    appearance="field"
+                    popupMatchSelectWidth={false}
+                    className="creation-showcase-filter-select creation-showcase-filter-source"
                     options={[
                         { value: "zzai-gallery", label: "在线图库" },
                         { value: "authorized-library", label: "本站审核库" },
@@ -317,7 +316,9 @@ function CreationShowcaseFilters({
                     value={filters.category}
                     onChange={(category) => onChange({ ...filters, category })}
                     ariaLabel="首页示例分类"
-                    className="creation-showcase-filter-select"
+                    appearance="field"
+                    popupMatchSelectWidth={false}
+                    className="creation-showcase-filter-select creation-showcase-filter-category"
                     loading={facetsPending}
                     disabled={!facets}
                     showSearch
@@ -328,7 +329,9 @@ function CreationShowcaseFilters({
                     value={filters.model}
                     onChange={(model) => onChange({ ...filters, model })}
                     ariaLabel="首页示例模型标注"
-                    className="creation-showcase-filter-select"
+                    appearance="field"
+                    popupMatchSelectWidth={false}
+                    className="creation-showcase-filter-select creation-showcase-filter-model"
                     loading={facetsPending}
                     disabled={!facets}
                     showSearch
@@ -339,6 +342,8 @@ function CreationShowcaseFilters({
                     value={filters.sort}
                     onChange={(sort) => onChange({ ...filters, sort })}
                     ariaLabel="首页示例排序"
+                    appearance="field"
+                    popupMatchSelectWidth={false}
                     className="creation-showcase-filter-sort"
                     options={[
                         { value: "latest", label: "最新发布" },
