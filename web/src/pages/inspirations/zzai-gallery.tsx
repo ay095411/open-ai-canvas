@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/base/select";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { catalogIdOf, inspirationSources, type CreationInspiration, type InspirationGallerySource } from "@/lib/inspirations/catalog";
-import { normalizeOnlineFavorite } from "@/lib/inspirations/external-favorites";
+import { isIgnoredOnlineInspiration, normalizeOnlineFavorite } from "@/lib/inspirations/external-favorites";
 import { fillablePrompt } from "@/lib/inspirations/resolve";
 import { filterZzaiGalleryFavorites, mergeZzaiGalleryPages, toZzaiGalleryInspiration, zzaiCategoryLabel } from "@/lib/inspirations/zzai-gallery";
 import { inspirationCoverRatio } from "@/lib/inspirations/masonry";
@@ -49,7 +49,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
             // 外部收藏可读本地快照；旧格式或损坏数据只隐藏，不删除原记录。
             try {
                 const item = normalizeOnlineFavorite(raw);
-                if (item.id && favorites.includes(item.id)) current.set(item.id, item);
+                if (item.id && favorites.includes(item.id) && !isIgnoredOnlineInspiration(item)) current.set(item.id, item);
             } catch {
                 /* 授权库记录由服务端 resolve 单独核验。 */
             }

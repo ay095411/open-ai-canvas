@@ -33,6 +33,7 @@ const item: OnlineInspirationDetail = {
     mode: "image",
     model: "权限测试模型",
     prompt: "A complete original prompt for permission checks.",
+    sourceUrl: "https://example.com/works/permission-probe",
     galleryUrl: "https://api.seedance.nz/prompt-gallery/permission-probe",
 };
 

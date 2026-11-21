@@ -5,7 +5,7 @@ import { Copy, ExternalLink, Heart, Wand2 } from "lucide-react";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { inspirationSourceOf, type CreationInspiration } from "@/lib/inspirations/catalog";
-import { normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
+import { isIgnoredOnlineInspiration, normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
 import { modeLabels } from "@/pages/create/creation-types";
 import { INSPIRATION_POLICY_VERSION } from "@/services/api/zzai-gallery";
 import { getInspirationPrompt } from "@/services/api/online-gallery";
@@ -97,6 +97,13 @@ export function InspirationDetailContent({
         return (
             <p role="alert">
                 历史素材未通过当前授权核验，已隐藏。<Button onClick={onClose}>{closeLabel}</Button>
+            </p>
+        );
+    }
+    if (item.sourceId === "zzai-gallery" && isIgnoredOnlineInspiration(item)) {
+        return (
+            <p role="alert">
+                当前在线示例暂不展示，已隐藏。<Button onClick={onClose}>{closeLabel}</Button>
             </p>
         );
     }

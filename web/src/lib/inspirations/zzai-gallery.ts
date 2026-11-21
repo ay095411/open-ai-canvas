@@ -1,5 +1,5 @@
 import type { CreationInspiration } from "./catalog";
-import { normalizeAuthorizedSummary, normalizeExternalFavorite, normalizeOnlineSummary } from "./external-favorites";
+import { isIgnoredOnlineInspiration, normalizeAuthorizedSummary, normalizeExternalFavorite, normalizeOnlineSummary } from "./external-favorites";
 import type { InspirationGalleryDetail, InspirationGallerySummary } from "@/services/api/online-gallery";
 import type { ZzaiGalleryQuery } from "@/services/api/zzai-gallery";
 
@@ -45,8 +45,9 @@ export function filterZzaiGalleryFavorites<T extends InspirationGallerySummary |
     const filtered = entries.filter((item) => {
         try {
             if (item.sourceId === "authorized-library") normalizeAuthorizedSummary(item);
-            else if (item.sourceId === "zzai-gallery") normalizeOnlineSummary(item);
-            else return false;
+            else if (item.sourceId === "zzai-gallery") {
+                if (isIgnoredOnlineInspiration(normalizeOnlineSummary(item))) return false;
+            } else return false;
         } catch {
             // 本地历史快照可能缺失来源元数据；展示筛选不能将其当作可用条目。
             return false;

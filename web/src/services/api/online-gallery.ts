@@ -1,4 +1,4 @@
-import { normalizeOnlineFavorite, normalizeOnlineSummary, type OnlineInspirationDetail, type OnlineInspirationSummary } from "@/lib/inspirations/external-favorites";
+import { isIgnoredOnlineInspiration, isIgnoredOnlineModel, normalizeOnlineFavorite, normalizeOnlineSummary, type OnlineInspirationDetail, type OnlineInspirationSummary } from "@/lib/inspirations/external-favorites";
 import { compactApiParams, http } from "./request";
 import { getZzaiGalleryPrompt, type ZzaiGalleryDetail, type ZzaiGalleryFacets, type ZzaiGalleryPage, type ZzaiGalleryQuery, type ZzaiGallerySummary } from "./zzai-gallery";
 
@@ -29,7 +29,11 @@ function onlinePage(value: OnlineGalleryPage): OnlineGalleryPage {
         (value.nextCursor !== undefined && (typeof value.nextCursor !== "string" || value.nextCursor.length > 2048 || (value.nextCursor !== "" && !/^[A-Za-z0-9_+/=-]+$/.test(value.nextCursor))))
     )
         throw new Error("在线示例分页格式不正确");
-    return { items: value.items.map(normalizeOnlineSummary), total: value.total, ...(value.nextCursor !== undefined ? { nextCursor: value.nextCursor } : {}) };
+    const normalized = value.items.map(normalizeOnlineSummary);
+    const items = normalized.filter((item) => !isIgnoredOnlineInspiration(item));
+    const dropped = normalized.length - items.length;
+    const total = Math.max(items.length, value.total - dropped);
+    return { items, total: items.length === 0 && !value.nextCursor ? 0 : total, ...(value.nextCursor !== undefined ? { nextCursor: value.nextCursor } : {}) };
 }
 
 export function getOnlineGalleryPrompts(query: ZzaiGalleryQuery = {}, signal?: AbortSignal) {
@@ -46,6 +50,7 @@ export function getOnlineGalleryPrompt(slug: string, signal?: AbortSignal) {
     return http.get<OnlineGalleryDetail>(`${galleryPath}/prompts/${encodeURIComponent(slug)}`, { signal }).then((value) => {
         const detail = normalizeOnlineFavorite(value);
         if (detail.slug !== slug) throw new Error("在线示例与所选条目不一致");
+        if (isIgnoredOnlineInspiration(detail)) throw new Error("当前在线示例暂不展示");
         return detail;
     });
 }
@@ -60,7 +65,7 @@ export function getOnlineGalleryFacets(mediaType?: "image" | "video", signal?: A
         ] as const) {
             if (!Array.isArray(value[name]) || value[name].length > count || value[name].some((entry) => typeof entry !== "string" || !entry.trim() || entry.length > length)) throw new Error("在线示例筛选格式不正确");
         }
-        return { categories: value.categories, models: value.models, tags: value.tags, total: value.total };
+        return { categories: value.categories, models: value.models.filter((model) => !isIgnoredOnlineModel(model)), tags: value.tags, total: value.total };
     });
 }
 

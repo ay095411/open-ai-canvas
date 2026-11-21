@@ -245,7 +245,7 @@ func libraryCanApprove(candidate LibraryCandidate) error {
 	}
 	association := candidate.CompetitorAssociation
 	identity := strings.ToLower(strings.Join([]string{candidate.SourceURL, candidate.Author, candidate.Model, candidate.Title, candidate.Description, candidate.Prompt, candidate.PromptZH, candidate.PromptLicense.URL, candidate.PromptLicense.Rightsholder, candidate.PromptLicense.Attribution, candidate.MediaLicense.URL, candidate.MediaLicense.Rightsholder, candidate.MediaLicense.Attribution}, " "))
-	for _, marker := range []string{"seedance", "zzai", "youmind", "runninghub", "liblib", "lovart", "jimeng", "dreamina", "hailuo", "kling", "即梦", "海螺", "可灵"} {
+	for _, marker := range []string{"seedance", "zzai", "zhenzhen-", "youmind", "runninghub", "liblib", "lovart", "jimeng", "dreamina", "hailuo", "kling", "即梦", "海螺", "可灵"} {
 		if strings.Contains(identity, marker) {
 			association = true
 		}

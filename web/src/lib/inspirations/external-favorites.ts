@@ -25,6 +25,25 @@ const HASH = /^[a-f0-9]{64}$/i;
 export function isExternalInspiration(id: string): boolean {
     return id.startsWith("zzai-gallery:") || id.startsWith("authorized-library:");
 }
+
+export function isIgnoredOnlineModel(model?: string): boolean {
+    return typeof model === "string" && model.trim().toLocaleLowerCase().includes("zhenzhen-");
+}
+
+export function isIgnoredOnlineInspiration(entry: { model?: string; sourceUrl?: string; galleryUrl?: string }): boolean {
+    if (isIgnoredOnlineModel(entry.model)) return true;
+    // 无原始出处时卡片会回退展示 galleryUrl（api.seedance.nz），因此按实际展示的上游地址一并屏蔽。
+    const effectiveUpstreamUrl = typeof entry.sourceUrl === "string" && entry.sourceUrl.trim() ? entry.sourceUrl.trim() : typeof entry.galleryUrl === "string" ? entry.galleryUrl.trim() : "";
+    if (effectiveUpstreamUrl) {
+        try {
+            const parsed = new URL(effectiveUpstreamUrl);
+            if (parsed.hostname.toLocaleLowerCase() === "api.seedance.nz") return true;
+        } catch {
+            // 非法链接由上层校验处理
+        }
+    }
+    return false;
+}
 function text(value: unknown, limit: number, required = false): string | undefined {
     if (value === undefined || value === "") {
         if (required) throw new Error("授权素材缺少完整内容");

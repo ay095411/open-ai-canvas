@@ -1,16 +1,105 @@
 package inspirations
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"yingce/backend/internal/kernel"
 )
 
 const GallerySourceID = "zzai-gallery"
 const galleryOrigin = "https://api.seedance.nz"
+const galleryIgnoredModelMarker = "zhenzhen-"
+const galleryCursorPrefix = "yc1_"
+
+type galleryWrappedCursor struct {
+	Cursor string `json:"c,omitempty"`
+	Skip   int    `json:"s"`
+	Limit  int    `json:"l"`
+}
+
+func decodeGalleryCursor(raw string) (upstreamCursor string, skip int, fetchLimit int, err error) {
+	if !strings.HasPrefix(raw, galleryCursorPrefix) {
+		return raw, 0, 0, nil
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(raw, galleryCursorPrefix))
+	if err != nil {
+		return "", 0, 0, kernel.BadAuthRequest("画廊 cursor 无效")
+	}
+	var cursor galleryWrappedCursor
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&cursor); err != nil || decoder.More() {
+		return "", 0, 0, kernel.BadAuthRequest("画廊 cursor 无效")
+	}
+	if cursor.Cursor != "" && (len(cursor.Cursor) > 2048 || !galleryCursorPattern.MatchString(cursor.Cursor) || strings.HasPrefix(cursor.Cursor, galleryCursorPrefix)) {
+		return "", 0, 0, kernel.BadAuthRequest("画廊 cursor 无效")
+	}
+	if cursor.Skip < 1 || cursor.Skip >= galleryMaxUpstreamLimit || cursor.Limit < 1 || cursor.Limit > galleryMaxUpstreamLimit || cursor.Skip >= cursor.Limit {
+		return "", 0, 0, kernel.BadAuthRequest("画廊 cursor 无效")
+	}
+	return cursor.Cursor, cursor.Skip, cursor.Limit, nil
+}
+
+func encodeGalleryCursor(upstreamCursor string, skip, fetchLimit int) string {
+	encoded, err := json.Marshal(galleryWrappedCursor{Cursor: upstreamCursor, Skip: skip, Limit: fetchLimit})
+	if err != nil {
+		return ""
+	}
+	token := galleryCursorPrefix + base64.RawURLEncoding.EncodeToString(encoded)
+	if len(token) > 2048 {
+		return ""
+	}
+	return token
+}
+
+func galleryModelIgnored(model string) bool {
+	return strings.Contains(strings.ToLower(strings.TrimSpace(model)), galleryIgnoredModelMarker)
+}
+
+func gallerySourceURLIgnored(raw string) bool {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return false
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	origin, err := url.Parse(galleryOrigin)
+	if err != nil {
+		return false
+	}
+	return strings.EqualFold(parsed.Hostname(), origin.Hostname())
+}
+
+func galleryEffectiveUpstreamURL(entry GalleryEntry) string {
+	if source := strings.TrimSpace(entry.SourceURL); source != "" {
+		return source
+	}
+	return strings.TrimSpace(entry.GalleryURL)
+}
+
+func galleryEntryIgnored(entry GalleryEntry) bool {
+	return galleryModelIgnored(entry.Model) || gallerySourceURLIgnored(galleryEffectiveUpstreamURL(entry))
+}
+
+func filterGalleryModels(models []string) []string {
+	filtered := make([]string, 0, len(models))
+	for _, model := range models {
+		if !galleryModelIgnored(model) {
+			filtered = append(filtered, model)
+		}
+	}
+	return filtered
+}
 
 // GalleryEntry keeps the aggregator page separate from its claimed original source.
 // Model and media remain upstream metadata, not a promise about our available models.

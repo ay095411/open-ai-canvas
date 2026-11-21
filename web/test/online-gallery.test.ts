@@ -125,9 +125,12 @@ describe("在线聚合响应与授权库身份隔离", () => {
 
     test("收藏筛选接受合法在线快照但拒绝身份混淆，不用隐藏正文匹配关键词", () => {
         const online = onlineEntry("online", { featured: true });
+        const ignoredModel = onlineEntry("ignored-model", { model: "zhenzhen-image-muse" });
+        const ignoredOrigin = onlineEntry("ignored-origin", { sourceUrl: "https://api.seedance.nz/prompt-gallery/origin" });
+        const ignoredFallbackOrigin = onlineEntry("ignored-fallback", { model: "Google Nano Banana Pro", sourceUrl: undefined });
         const licensed = authorizedSummary(authorizedEntry("licensed"));
         expect(
-            filterZzaiGalleryFavorites([online, licensed], {})
+            filterZzaiGalleryFavorites([online, ignoredModel, ignoredOrigin, ignoredFallbackOrigin, licensed], {})
                 .map((item) => item.id)
                 .sort(),
         ).toEqual([licensed.id, online.id].sort());
@@ -135,6 +138,25 @@ describe("在线聚合响应与授权库身份隔离", () => {
         expect(filterZzaiGalleryFavorites([online], { mediaType: "video", search: "电影感" })).toEqual([online]);
         expect(filterZzaiGalleryFavorites([online], { search: "缓慢移动" })).toEqual([]);
         expect(filterZzaiGalleryFavorites([{ ...licensed, sourceId: "zzai-gallery" } as unknown as OnlineGalleryDetail], {})).toEqual([]);
+    });
+
+    test("在线接口过滤包含 zhenzhen- 模型及上游地址为 api.seedance.nz 的条目与筛选模型", async () => {
+        const valid = normalizeOnlineSummary(onlineEntry("kept", { model: "GPT Image 2.6" }));
+        const zhenzhen = normalizeOnlineSummary(onlineEntry("zz-model", { model: "zhenzhen-image-g-v2.6-lowprice" }));
+        const seedanceSource = normalizeOnlineSummary(onlineEntry("sd-source", { sourceUrl: "https://api.seedance.nz/prompt-gallery/sd-source" }));
+        const fallbackSeedanceSource = normalizeOnlineSummary(onlineEntry("sd-fallback", { model: "Google Nano Banana Pro", sourceUrl: undefined }));
+        serve({ items: [zhenzhen, valid, seedanceSource, fallbackSeedanceSource], total: 4 });
+        expect(await getOnlineGalleryPrompts()).toEqual({ items: [valid], total: 1 });
+
+        serve({ categories: ["story"], models: ["GPT Image 2.6", "zhenzhen-image-muse", "ZHENZHEN-video"], tags: [], total: 3 });
+        expect((await getOnlineGalleryFacets()).models).toEqual(["GPT Image 2.6"]);
+
+        serve(onlineEntry("zz-model", { model: "zhenzhen-image-muse" }));
+        await expect(getOnlineGalleryPrompt("zz-model")).rejects.toThrow("暂不展示");
+        serve(onlineEntry("sd-source", { sourceUrl: "https://api.seedance.nz/prompt-gallery/sd-source" }));
+        await expect(getOnlineGalleryPrompt("sd-source")).rejects.toThrow("暂不展示");
+        serve(onlineEntry("sd-fallback", { model: "Google Nano Banana Pro", sourceUrl: undefined }));
+        await expect(getOnlineGalleryPrompt("sd-fallback")).rejects.toThrow("暂不展示");
     });
 });
 
