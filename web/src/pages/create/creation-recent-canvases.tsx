@@ -141,7 +141,7 @@ function UpdatedTime({ value }: { value: string }) {
 
 function RecentCanvasCard({ project }: { project: CanvasLibrarySummary }) {
     const preload = () => {
-        void loadCanvasProjectPage();
+        void loadCanvasProjectPage().catch(() => undefined);
     };
     return (
         <li>

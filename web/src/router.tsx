@@ -9,6 +9,7 @@ import { RequireSkillAdmin } from "@/components/auth/require-skill-admin";
 import { FullScreenLoader, WorkspaceRouteLoader } from "@/components/ui/aceternity/full-screen-loader";
 import { StudioOpening } from "@/pages/projects/studio/studio-opening";
 import { workspaceRoutePages } from "@/lib/workspace-route-modules";
+import { preloadableLazy } from "@/lib/preloadable-lazy";
 import { CanvasRefreshShell } from "@/pages/canvas/canvas-refresh-shell";
 import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
@@ -17,7 +18,7 @@ import { useUserStore } from "@/stores/use-user-store";
 import { teamIdFromPath } from "@/lib/team-query-keys";
 import { workspacePagePath, workspaceTeamId } from "@/lib/workspace-routes";
 
-const AdminPage = lazy(() => import("@/pages/admin"));
+const AdminPage = preloadableLazy(() => import("@/pages/admin"));
 const EcommercePage = workspaceRoutePages.ecommerce;
 const ImageWorkbenchPage = workspaceRoutePages.imageWorkbench;
 const VideoWorkbenchPage = workspaceRoutePages.videoWorkbench;
@@ -67,10 +68,10 @@ const UserGroupsPage = lazyAdminPage(() => import("@/pages/admin/user-groups/use
 const AssetsPage = workspaceRoutePages.assets;
 const CanvasPage = workspaceRoutePages.canvas;
 const CanvasProjectPage = workspaceRoutePages.canvasProject;
-const SharedCanvasPage = lazy(() => import("@/pages/canvas/shared"));
+const SharedCanvasPage = preloadableLazy(() => import("@/pages/canvas/shared"));
+const ArkPortraitResultPage = preloadableLazy(() => import("@/pages/ark-portrait-result"));
 const CreatePage = workspaceRoutePages.create;
-const ArkPortraitResultPage = lazy(() => import("@/pages/ark-portrait-result"));
-const NotFound = lazy(() => import("@/pages/not-found"));
+const NotFound = preloadableLazy(() => import("@/pages/not-found"));
 const SkillsPage = workspaceRoutePages.skills;
 const SkillWorkbenchPage = workspaceRoutePages.skillWorkbench;
 const PluginsPage = workspaceRoutePages.plugins;
@@ -82,11 +83,11 @@ const ProjectCreatePage = workspaceRoutePages.projectCreate;
 const SettingsPage = workspaceRoutePages.settings;
 const ReferralPage = workspaceRoutePages.referral;
 const AdminReferralPage = lazyAdminPage(() => import("@/pages/admin/referral/referral-admin-page"));
-const UserLayout = lazy(() => import("@/layouts/user-layout"));
-const TeamsPage = lazy(() => import("@/pages/teams"));
-const TeamWorkspacePage = lazy(() => import("@/pages/teams").then((module) => ({ default: module.TeamWorkspacePage })));
-const TeamMembersPage = lazy(() => import("@/pages/teams/members").then((module) => ({ default: module.TeamMembersPane })));
-const TeamWalletPage = lazy(() => import("@/pages/teams/wallet").then((module) => ({ default: module.TeamWalletPane })));
+const UserLayout = preloadableLazy(() => import("@/layouts/user-layout"));
+const TeamsPage = preloadableLazy(() => import("@/pages/teams"));
+const TeamWorkspacePage = preloadableLazy<object>(() => import("@/pages/teams").then((module) => ({ default: module.TeamWorkspacePage })));
+const TeamMembersPage = preloadableLazy<object>(() => import("@/pages/teams/members").then((module) => ({ default: module.TeamMembersPane })));
+const TeamWalletPage = preloadableLazy<object>(() => import("@/pages/teams/wallet").then((module) => ({ default: module.TeamWalletPane })));
 
 function deferred(element: ReactNode, fallback: ReactNode = <WorkspaceRouteLoader />) {
     return <Suspense fallback={fallback}>{element}</Suspense>;
