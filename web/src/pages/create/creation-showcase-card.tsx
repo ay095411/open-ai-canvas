@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, ImageOff, Play } from "lucide-react";
 
-import { inspirationCoverRatio } from "@/lib/inspirations/masonry";
 import { zzaiCategoryLabel } from "@/lib/inspirations/zzai-gallery";
-import { InspirationAuthorizationNotice } from "@/pages/inspirations/inspiration-authorization-notice";
 import type { InspirationGallerySummary } from "@/services/api/online-gallery";
 
 /** 封面常驻；只有用户仍在预览且媒体实际播放时才显示视频。 */
@@ -15,7 +13,7 @@ export function CreationShowcaseCard({ entry, onPreview, disabled, reducedMotion
     const [playing, setPlaying] = useState(false);
     const [failedPoster, setFailedPoster] = useState<string | null>(null);
     const videoUrl = entry.mode === "video" ? entry.videoUrl : undefined;
-    const metadata = [entry.mode === "video" ? "视频" : "图片", zzaiCategoryLabel(entry.category), entry.model].filter(Boolean).join(" · ");
+    const metadata = [entry.mode === "video" ? "视频" : entry.mode === "text" ? "文本" : "图片", zzaiCategoryLabel(entry.category), entry.model].filter(Boolean).join(" · ");
 
     const stop = useCallback(() => {
         previewRequested.current = false;
@@ -68,7 +66,7 @@ export function CreationShowcaseCard({ entry, onPreview, disabled, reducedMotion
                 onFocus={start}
                 onBlur={stop}
             >
-                <span className="creation-showcase-cover" style={{ aspectRatio: inspirationCoverRatio(entry) }}>
+                <span className="creation-showcase-cover">
                     {failedPoster === entry.image ? (
                         <span className="creation-showcase-unavailable">
                             <ImageOff size={22} aria-hidden="true" />
@@ -106,7 +104,7 @@ export function CreationShowcaseCard({ entry, onPreview, disabled, reducedMotion
                     {entry.mode === "video" ? (
                         <span className="creation-showcase-badge">
                             <Play size={11} aria-hidden="true" />
-                            示例片段
+                            {videoUrl ? "示例片段" : "视频提示词"}
                         </span>
                     ) : null}
                     <span className="creation-showcase-preview-hint" aria-hidden="true">
@@ -118,7 +116,6 @@ export function CreationShowcaseCard({ entry, onPreview, disabled, reducedMotion
                     <span title={metadata}>{metadata}</span>
                 </span>
             </button>
-            <InspirationAuthorizationNotice item={entry} />
         </div>
     );
 }

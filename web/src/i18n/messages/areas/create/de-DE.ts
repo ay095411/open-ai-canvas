@@ -15,7 +15,7 @@ export const deDE: DeepStringRecord<typeof zhCN> = {
         preview: "{{count}} Nachrichten ansehen",
         mediaMessage: "Mediennachricht (vollständige Daten im Download)",
         restoredTitle: "{{title}} (wiederhergestellte Kopie)",
-        restoredNotice: "Auf diesem Gerät wiederhergestellt; Synchronisierung wird versucht. Beachte den Status oben. Originalgespräch und Kopie bleiben erhalten.",
+        restoredNotice: "Auf diesem Gerät wiederhergestellt; Synchronisierung wird versucht, die Speicherung in der Cloud ist noch nicht bestätigt. Originalgespräch und Kopie bleiben erhalten.",
         keptNotice: "Aktuelle Version behalten. Die Originalkopie kann weiterhin angesehen, wiederhergestellt und heruntergeladen werden.",
         resolveFailed: "Bearbeitung fehlgeschlagen. Die Kopie bleibt erhalten. Bitte erneut versuchen.",
         conflict: "Verlauf synchronisiert; Konfliktkopie verfügbar",

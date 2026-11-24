@@ -15,7 +15,7 @@ export const frFR: DeepStringRecord<typeof zhCN> = {
         preview: "Voir {{count}} messages",
         mediaMessage: "Message média (données complètes dans le téléchargement)",
         restoredTitle: "{{title}} (copie restaurée)",
-        restoredNotice: "Restauré sur cet appareil ; synchronisation en cours de tentative. Consultez l’état ci-dessus. La conversation et la copie originales sont conservées.",
+        restoredNotice: "Restauré sur cet appareil ; une synchronisation est tentée, mais l’enregistrement dans le cloud n’est pas encore confirmé. La conversation et la copie originales sont conservées.",
         keptNotice: "Version actuelle conservée. La copie originale peut toujours être consultée, restaurée et téléchargée.",
         resolveFailed: "Échec du traitement. La copie est conservée. Réessayez.",
         conflict: "Historique synchronisé ; copie en conflit disponible",

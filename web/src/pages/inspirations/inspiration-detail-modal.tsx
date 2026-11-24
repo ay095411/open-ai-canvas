@@ -4,13 +4,12 @@ import { Copy, ExternalLink, Heart, Wand2 } from "lucide-react";
 
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { AppModal } from "@/components/ui/product/app-modal";
-import { inspirationSourceOf, type CreationInspiration } from "@/lib/inspirations/catalog";
-import { isIgnoredOnlineInspiration, normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
+import { catalogIdOf, inspirationSourceOf, type CreationInspiration } from "@/lib/inspirations/catalog";
 import { modeLabels } from "@/pages/create/creation-types";
 import { INSPIRATION_POLICY_VERSION } from "@/services/api/zzai-gallery";
-import { getInspirationPrompt } from "@/services/api/online-gallery";
+import { getInspirationPrompt, normalizeInspirationDetail } from "@/services/api/online-gallery";
 import { useUserStore } from "@/stores/use-user-store";
-import { InspirationAuthorizationNotice } from "./inspiration-authorization-notice";
+import { InspirationDetailMedia } from "./inspiration-detail-media";
 
 // 弹窗的样式（.inspiration-detail* / .inspiration-prompt-block / .inspiration-icon-button / 标签 chip）
 // 都在灵感库样式表里，和画廊共用同一套 token 与视觉语言。
@@ -37,7 +36,7 @@ export function InspirationDetailModal({ item, afterClose, ...props }: Omit<Para
     const scope = useUserStore((state) => state.user?.id ?? "guest");
     const licensed = item?.sourceId === "authorized-library";
     const detail = useQuery({
-        queryKey: ["public", "inspirations", licensed ? "authorized-library" : "zzai-gallery", licensed ? INSPIRATION_POLICY_VERSION : "online-v1", "detail", scope, item?.id],
+        queryKey: ["public", "inspirations", licensed ? "authorized-library" : "official-catalog", licensed ? INSPIRATION_POLICY_VERSION : "official-v1", "detail", scope, item?.id],
         queryFn: ({ signal }) => {
             if (!item?.id) throw new Error("缺少示例标识");
             return getInspirationPrompt(item.id, signal);
@@ -52,7 +51,7 @@ export function InspirationDetailModal({ item, afterClose, ...props }: Omit<Para
     return (
         <AppModal open={Boolean(item)} onCancel={props.onClose} afterClose={afterClose} width={1080} title={null} footer={null} flush closable={false}>
             {item && detail.isSuccess && detail.isFetchedAfterMount ? <InspirationDetailContent {...props} item={detail.data} videoUrl={detail.data.videoUrl} /> : null}
-            {item && !detail.isError && (!detail.isSuccess || !detail.isFetchedAfterMount) ? <p role="status">{licensed ? "正在核验授权素材…" : "正在读取在线示例…"}</p> : null}
+            {item && !detail.isError && (!detail.isSuccess || !detail.isFetchedAfterMount) ? <p role="status">{licensed ? "正在核验授权素材…" : "正在读取官方目录…"}</p> : null}
             {item && detail.isError ? (
                 <p role="alert">
                     当前素材不可用，正文和媒体已隐藏。<Button onClick={() => void detail.refetch()}>重试核验</Button>
@@ -92,18 +91,11 @@ export function InspirationDetailContent({
 }) {
     let item: CreationInspiration;
     try {
-        item = normalizeExternalFavorite(candidate);
+        item = normalizeInspirationDetail(candidate);
     } catch {
         return (
             <p role="alert">
                 历史素材未通过当前授权核验，已隐藏。<Button onClick={onClose}>{closeLabel}</Button>
-            </p>
-        );
-    }
-    if (item.sourceId === "zzai-gallery" && isIgnoredOnlineInspiration(item)) {
-        return (
-            <p role="alert">
-                当前在线示例暂不展示，已隐藏。<Button onClick={onClose}>{closeLabel}</Button>
             </p>
         );
     }
@@ -114,9 +106,7 @@ export function InspirationDetailContent({
         /* 左图右文：图片按原图比例完整显示（不裁切、不放大超过原图），
                    右栏是弹窗里唯一的滚动区，提示词正文因此能整段铺开而不是塞在一个小框里。 */
         <div className="inspiration-detail">
-            <div className="inspiration-detail-media">
-                {videoUrl ? <video src={videoUrl} poster={item.image} controls playsInline preload="metadata" /> : <img src={item.image} alt={item.title} width={item.width} height={item.height} referrerPolicy="no-referrer" />}
-            </div>
+            <InspirationDetailMedia key={`${catalogIdOf(item)}:${videoUrl ?? ""}`} item={item} videoUrl={videoUrl} />
 
             <div className="inspiration-detail-main">
                 <div className="inspiration-detail-body">
@@ -126,7 +116,10 @@ export function InspirationDetailContent({
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <MetaRow label="来源">{source.name}</MetaRow>
+                        <MetaRow label="来源">
+                            {source.name ?? source.label}
+                            {item.credit && item.credit !== (source.name ?? source.label) ? ` · ${item.credit}` : ""}
+                        </MetaRow>
                         {item.model ? <MetaRow label="模型">{item.model}（上游标注）</MetaRow> : null}
                         {categoryLabel ? <MetaRow label="分类">{categoryLabel(item)}</MetaRow> : null}
                         <MetaRow label="类型">
@@ -151,10 +144,25 @@ export function InspirationDetailContent({
                                 </a>
                             </MetaRow>
                         ) : null}
+                        {item.authorization?.policyVersion === "licensed-v1"
+                            ? (
+                                  [
+                                      ["提示词许可", item.authorization.promptLicense],
+                                      ["媒体许可", item.authorization.mediaLicense],
+                                  ] as const
+                              ).map(([label, license]) => (
+                                  <MetaRow key={label} label={label}>
+                                      <a href={license.url} target="_blank" rel="noreferrer">
+                                          {license.name}
+                                      </a>
+                                      {` · ${license.attribution}`}
+                                      {license.rightsholder ? ` · 权利人：${license.rightsholder}` : ""}
+                                  </MetaRow>
+                              ))
+                            : null}
                     </div>
 
-                    <InspirationAuthorizationNotice item={item} />
-                    {item.sourceId === "authorized-library" || item.sourceId === "zzai-gallery" ? (
+                    {source.notice ? (
                         <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs leading-5 text-foreground/65">
                             {!item.sourceUrl ? <p>上游未标注原始出处，不能视为原创。</p> : null}
                             <p>{source.notice}</p>

@@ -6,21 +6,20 @@ import { fillablePrompt } from "../src/lib/inspirations/resolve";
 
 const source = (path: string) => readFileSync(new URL(`../src/${path}`, import.meta.url), "utf8");
 
-describe("在线提示词是唯一灵感目录", () => {
-    test("大厅直接使用在线画廊，不再加载旧精选、静态目录或管理入口", () => {
+describe("官方上游目录是默认灵感数据源", () => {
+    test("大厅保留真实画廊外壳，使用官方来源且不恢复旧改库管理入口", () => {
         const page = source("pages/inspirations/index.tsx");
         expect(page).toContain("<ZzaiGallery");
         for (const retired of ["精选与收藏", "loadInspirationCatalog", "InspirationEditorModal", "createEntry", "importPayload", "exportPayload"]) expect(page).not.toContain(retired);
-        expect(source("lib/inspirations/catalog.ts")).not.toContain("curatedWorks");
+        expect(page).toContain('initialSource = "official-catalog"');
+        expect(source("lib/inspirations/catalog.ts")).toContain("curatedWorks");
+        expect(source("lib/inspirations/catalog.ts")).toContain("c8262a2594277f1d75fe300e5aeac698ee8bdb6e");
     });
 
-    test("旧数据、加载器、专用媒体与导入脚本不再进入产品构建", () => {
+    test("官方静态目录及本地缩略图随产品发布，旧改库组件不恢复", () => {
+        for (const path of ["public/inspirations", "public/inspiration-thumbs", "src/services/inspiration-catalog.ts", "src/services/api/inspiration-feed.ts"]) expect(existsSync(resolve(import.meta.dir, "..", path))).toBe(true);
         for (const path of [
-            "public/inspirations",
-            "public/inspiration-thumbs",
             "public/showcase",
-            "src/services/inspiration-catalog.ts",
-            "src/services/api/inspiration-feed.ts",
             "src/pages/create/creation-inspirations.ts",
             "src/pages/create/creation-inspiration-waterfall.tsx",
             "src/pages/inspirations/inspiration-editor-modal.tsx",

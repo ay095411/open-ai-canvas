@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 
 import { inspirationCoverRatio, layoutInspirationMasonry } from "@/lib/inspirations/masonry";
 
-describe("inspiration cover presentation ratio", () => {
+describe("initial inspiration cover ratio estimates", () => {
     test("positive finite dimensions take precedence over ratio labels and media fallbacks", () => {
         expect(inspirationCoverRatio({ width: 768, height: 1024, ratio: "16:9", mode: "video" })).toBe(3 / 4);
         expect(inspirationCoverRatio({ width: 1920, height: 1080, mode: "image" })).toBe(16 / 9);
@@ -13,7 +14,7 @@ describe("inspiration cover presentation ratio", () => {
         expect(inspirationCoverRatio({ width: 0, height: 1024, ratio: "9:16", mode: "image" })).toBe(9 / 16);
     });
 
-    test("missing and invalid dimensions or labels use stable media-specific display boxes", () => {
+    test("missing and invalid dimensions use estimates only, not rendered fixed boxes", () => {
         for (const ratio of [undefined, "", "0:9", "16:0", "-4:3", "Infinity:9", "NaN/1", "4:3:2", "4/3px", "1e3:2e3"]) {
             expect(inspirationCoverRatio({ ratio, mode: "image" })).toBe(1);
             expect(inspirationCoverRatio({ width: Number.NaN, height: -1, ratio, mode: "video" })).toBe(16 / 9);
@@ -21,6 +22,23 @@ describe("inspiration cover presentation ratio", () => {
         expect(inspirationCoverRatio({ width: Number.POSITIVE_INFINITY, height: 1, ratio: "2:1", mode: "image" })).toBe(2);
         expect(inspirationCoverRatio({ width: Number.MAX_VALUE, height: Number.MIN_VALUE, mode: "image" })).toBe(1);
     });
+});
+
+test("大厅封面留在文档流且标题描述自然换行，不把尺寸估算写成固定卡片高度", () => {
+    const css = readFileSync(new URL("../src/pages/inspirations/inspirations.css", import.meta.url), "utf8");
+    const page = readFileSync(new URL("../src/pages/inspirations/zzai-gallery.tsx", import.meta.url), "utf8");
+    const coverRule = css.match(/\.inspiration-card-cover\s*\{([^}]*)\}/)?.[1] ?? "";
+    const imageRule = css.match(/\.inspiration-card-cover img\s*\{([^}]*)\}/)?.[1] ?? "";
+    const titleRule = css.match(/\.inspiration-card-title\s*\{([^}]*)\}/)?.[1] ?? "";
+    const descriptionRule = css.match(/\.inspiration-card-desc\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(coverRule).not.toContain("aspect-ratio");
+    expect(imageRule).toContain("width: 100%");
+    expect(imageRule).toContain("height: auto");
+    expect(imageRule).not.toContain("position: absolute");
+    expect(titleRule).not.toContain("nowrap");
+    expect(titleRule).not.toContain("ellipsis");
+    expect(descriptionRule).not.toContain("line-clamp");
+    expect(page).not.toContain("aspectRatio: inspirationCoverRatio");
 });
 
 describe("stable inspiration masonry geometry", () => {

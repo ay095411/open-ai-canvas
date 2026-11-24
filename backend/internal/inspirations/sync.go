@@ -47,7 +47,9 @@ func (s *Service) syncIfDue(ctx context.Context) {
 		slog.Warn("inspiration feed state load failed", "error", err)
 		return
 	}
-	if next := nextSyncAt(state); next != nil && s.now().Before(*next) {
+	// An older sync-state has not attempted video extraction yet. Bootstrap once;
+	// even a failed attempt persists a version marker, then uses normal retry timing.
+	if next := nextSyncAt(state); state.VideoLinks != nil && next != nil && s.now().Before(*next) {
 		return
 	}
 	syncCtx, cancel := context.WithTimeout(ctx, syncTimeout)
@@ -112,12 +114,20 @@ func (s *Service) sync(ctx context.Context, trigger string, actorID string) (*Sy
 		Trigger:       trigger,
 		Sources:       make([]SourceResult, 0, len(s.sources)),
 		Categories:    map[string]map[string]string{},
+		VideoLinks:    retainedVideoLinks(previous.VideoLinks),
 	}
 	for id, labels := range previous.Categories {
 		state.Categories[id] = labels
 	}
 	for _, src := range s.sources {
-		result, labels, err := s.syncSource(ctx, src, startedAt)
+		result, labels, videos, err := s.syncSource(ctx, src, startedAt)
+		if err == nil && len(videos) > 0 {
+			var merged *VideoLinks
+			merged, err = mergeVideoLinks(state.VideoLinks, videos, startedAt)
+			if err == nil {
+				state.VideoLinks = merged
+			}
+		}
 		if err != nil {
 			result.Error = clipText(err.Error(), 300)
 			if state.LastError == "" {
@@ -147,21 +157,23 @@ func (s *Service) sync(ctx context.Context, trigger string, actorID string) (*Sy
 	return state, true, nil
 }
 
-func (s *Service) syncSource(ctx context.Context, src source, seenAt time.Time) (SourceResult, map[string]string, error) {
+func (s *Service) syncSource(ctx context.Context, src source, seenAt time.Time) (SourceResult, map[string]string, []VideoLink, error) {
 	result := SourceResult{SourceID: src.id}
 	parsed, err := src.load(ctx, s.fetch)
 	if err != nil {
-		return result, nil, err
+		return result, nil, nil, err
 	}
 	result.Upstream = parsed.upstream
 	result.Accepted = len(parsed.entries)
+	result.VideoAccepted = len(parsed.videoLinks)
+	result.VideoRejected = parsed.videoRejected
 	ids := make([]string, len(parsed.entries))
 	for index := range parsed.entries {
 		ids[index] = parsed.entries[index].ID
 	}
 	hashes, err := s.repo.InspirationFeedContentHashes(ids)
 	if err != nil {
-		return result, nil, fmt.Errorf("读取已收录条目：%w", err)
+		return result, nil, nil, fmt.Errorf("读取已收录条目：%w", err)
 	}
 	var created, updated []model.InspirationFeedEntry
 	for _, entry := range parsed.entries {
@@ -176,10 +188,13 @@ func (s *Service) syncSource(ctx context.Context, src source, seenAt time.Time) 
 		}
 	}
 	if err := s.repo.SaveInspirationFeedEntries(created, updated); err != nil {
-		return result, nil, fmt.Errorf("保存条目：%w", err)
+		return result, nil, nil, fmt.Errorf("保存条目：%w", err)
 	}
 	result.Created, result.Updated = len(created), len(updated)
-	return result, parsed.categories, nil
+	if parsed.videoError != nil {
+		return result, parsed.categories, nil, parsed.videoError
+	}
+	return result, parsed.categories, parsed.videoLinks, nil
 }
 
 // fetch 经出站客户端下载上游文件；超过 maxBytes 视为异常，不截断使用。

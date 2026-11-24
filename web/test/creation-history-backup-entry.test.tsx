@@ -2,13 +2,13 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-test("历史副本管理留在历史抽屉，首页顶部只保留同步失败与重试", () => {
+test("首页顶部不显示历史同步失败与重试，历史副本管理留在历史抽屉", () => {
     const source = readFileSync(new URL("../src/pages/create/index.tsx", import.meta.url), "utf8");
     const top = source.slice(source.indexOf('<div className="creation-home'), source.indexOf("{conversationStorageError ?"));
-    expect(top).toContain('historySync.phase === "error"');
-    expect(top).toContain('t("create.historySync.error")');
-    expect(top).toContain('t("create.historySync.retry")');
-    expect(top).toContain("historySessionRef.current?.sync()");
+    expect(top).not.toContain("historySync");
+    expect(source).not.toContain('t("create.historySync.error")');
+    expect(source).not.toContain('t("create.historySync.retry")');
+    expect(top).not.toContain("historySessionRef.current?.sync()");
     expect(top).not.toContain("CreationHistoryConflicts");
     expect(top).not.toContain("historySync.backupCount");
 

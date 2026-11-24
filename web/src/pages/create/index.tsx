@@ -1696,15 +1696,6 @@ export default function CreatePage() {
     return (
         <>
             <div className="creation-home relative flex h-full min-h-0 flex-col overflow-hidden">
-                {historySync.phase === "error" ? (
-                    <div role="status" aria-live="polite" className="mx-auto px-4 py-1 text-xs text-foreground/55">
-                        <span>{t("create.historySync.error")}</span>
-                        {historySync.message ? <span> · {historySync.message}</span> : null}
-                        <button type="button" className="ml-2 underline" onClick={() => void historySessionRef.current?.sync()}>
-                            {t("create.historySync.retry")}
-                        </button>
-                    </div>
-                ) : null}
                 {conversationStorageError ? (
                     <p role="status" className="mx-auto mb-3 max-w-3xl px-4 text-xs text-foreground/55">
                         本地历史读取失败，当前会话仍保留。 {conversationStorageError}{" "}

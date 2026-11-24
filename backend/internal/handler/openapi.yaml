@@ -43,7 +43,7 @@ tags:
   - name: referral
     description: 推广中心：推广码、邀请记录与返佣
   - name: inspirations
-    description: 外部在线提示词画廊与独立的本站人工审核素材库
+    description: 官方内置灵感目录的定时上新与独立的本站人工审核素材库
   - name: pose-library
     description: 站点姿势库：浏览、选用，管理员导入与图片同步
 paths:
@@ -2334,75 +2334,67 @@ paths:
           description: 信封 data 仅包含 welcomeEnabled 布尔值，默认 true；Cache-Control 为 no-store
         "500":
           description: 配置读取失败
-  /public/inspirations/zzai-gallery/prompts:
+  /public/inspirations/feed:
     get:
       tags: [inspirations]
       security: []
-      summary: 按需浏览 ZZAI 外部提示词画廊
-      description: 固定上游 api.seedance.nz，只读且不导入数据库、不转发凭据。按 IP 每分钟 60 次；有界进程缓存 2 分钟（128 键、16 MiB、8 个同时回源）。上游出处与许可未核实，模型名为上游元数据；不自动套用生成参数。拒绝未知、重复、非法查询参数。
-      parameters:
-        - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
-        - { name: category, in: query, schema: { type: string, maxLength: 32 } }
-        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: model, in: query, schema: { type: string, maxLength: 128 } }
-        - { name: tag, in: query, schema: { type: string, maxLength: 32 } }
-        - { name: sort, in: query, description: 默认 latest；有 search 时默认 relevance, schema: { type: string, enum: [latest, popular, featured, random, relevance] } }
-        - { name: seed, in: query, description: 仅允许与 random 排序一起使用, schema: { type: integer, minimum: 1, maximum: 2147483646 } }
-        - { name: cursor, in: query, schema: { type: string, maxLength: 2048 } }
-        - { name: limit, in: query, schema: { type: integer, default: 20, minimum: 1, maximum: 50 } }
+      summary: 读取灵感上新条目（匿名可读）
+      description: 后端每 6 小时从 GitHub 上的 YouMind、awesome-seedance 同步中文条目并持久化；封面保留上游外链，不下载到本站。按首次收录时间倒序，最多 3000 条；进程内缓存 5 分钟。按 IP 每分钟 120 次。与随版本发布的静态目录按 ID 合并去重，静态目录优先。
       responses:
-        "200": { description: "data={items[{id,slug,sourceId,title,description,image,mode,featured,category?,tags?,width?,height?,ratio?,model?,credit?,sourceUrl?,galleryUrl,videoUrl?,publishedAt?}],total,nextCursor?}；id 为 zzai-gallery:<slug>；featured 为上游精选标记，中文标题优先；不返回完整 prompt" }
-        "400": { $ref: "#/components/responses/Error" }
+        "200": { description: "data={enabled,entries[{id,title,description,image,mode,prompt,category?,tags?,sourceId,credit?,sourceUrl?,videoUrl?,addedAt,publishedAt?}],categories{来源:{分类码:名称}},syncedAt?,videoLinks?:{version:1,entries[{id,sourceId,sourceUrl,videoUrl}],syncedAt?}}；视频映射与六小时上新同步，按ID和原始出处匹配；enabled=false 时 entries 为空且不返回动态videoLinks，前台仍使用静态目录和静态视频补充" }
         "429": { $ref: "#/components/responses/Error" }
-        "502": { $ref: "#/components/responses/Error" }
-        "503": { $ref: "#/components/responses/Error" }
-        "504": { $ref: "#/components/responses/Error" }
-  /public/inspirations/zzai-gallery/prompts/{slug}:
+        "500": { $ref: "#/components/responses/Error" }
+  /admin/settings/inspiration-feed:
     get:
-      tags: [inspirations]
-      security: []
-      summary: 读取外部画廊提示词详情
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string, maxLength: 191, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$' }
-      description: 同列表的只读、限流和缓存边界。不接受查询参数。完整正文保留原语言，不自动翻译；缺少原作者链接不补造出处。
+      tags: [inspirations, admin]
+      summary: 灵感上新状态（管理员）
+      description: 管理员读取开关、同步时间、各来源结果及已收录数量；缺省开启，正常同步间隔 6 小时。
       responses:
-        "200": { description: "data 为列表条目加 {prompt,promptZh?,usageNotes?,requiresReference?}；requiresReference 提醒用户提供参考图或视频，不自动发送上游参考素材" }
-        "400": { $ref: "#/components/responses/Error" }
-        "404": { $ref: "#/components/responses/Error" }
-        "429": { $ref: "#/components/responses/Error" }
-        "502": { $ref: "#/components/responses/Error" }
-        "503": { $ref: "#/components/responses/Error" }
-        "504": { $ref: "#/components/responses/Error" }
-  /public/inspirations/zzai-gallery/facets:
-    get:
-      tags: [inspirations]
-      security: []
-      summary: 读取外部画廊的分类、模型和标签
-      parameters:
-        - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
+        "200": { description: "data.status={enabled,intervalHours,lastAttemptAt?,lastSuccessAt?,nextSyncAt?,lastError?,trigger?,sources[{sourceId,upstream,accepted,created,updated,videoAccepted?,videoRejected?,error?}],total,bySource}" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [inspirations, admin]
+      summary: 开启或关闭灵感上新（管理员）
+      description: 管理员关闭后停止同步，公开接口不再返回已收录条目，但不删除数据库记录；写入管理员审计。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
       responses:
-        "200": { description: "data={categories[],models[],tags[],total}；仅支持 media_type 查询；共用每 IP 每分钟 60 次限制" }
+        "200": { description: data.status 为最新状态 }
         "400": { $ref: "#/components/responses/Error" }
-        "429": { $ref: "#/components/responses/Error" }
-        "502": { $ref: "#/components/responses/Error" }
-        "503": { $ref: "#/components/responses/Error" }
-        "504": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /admin/settings/inspiration-feed/sync:
+    post:
+      tags: [inspirations, admin]
+      summary: 立即同步灵感上新（管理员）
+      description: 管理员触发的同步与请求解绑，最长约 8 分钟；部分来源失败仍返回 200，失败原因在 status.lastError 与 sources[].error。
+      responses:
+        "200": { description: data.status 为同步后的状态 }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { description: 上新已关闭，或另一实例/请求正在同步 }
+        "502": { description: 全部来源都同步失败 }
   /public/inspirations/library/prompts:
     get:
       tags: [inspirations]
       security: []
       summary: 浏览本站人工审核库
-      description: 仅返回当前 approved 且通过许可与内容版本核验的摘要，不返回完整提示词。与外部在线图库分离，sourceId 固定为 authorized-library。公开库路由共用每 IP 每分钟 60 次限制，响应 Cache-Control 为 no-store。拒绝未知或重复参数；目录、筛选或 limit 改变后旧游标返回 409/library_cursor_stale，须从第一页重读。
+      description: 仅返回当前 approved 且通过许可与内容版本核验的摘要，不返回完整提示词。与官方静态目录及上新分离，sourceId 固定为 authorized-library。公开库路由共用每 IP 每分钟 60 次限制，响应 Cache-Control 为 no-store。拒绝未知或重复参数；目录、筛选或 limit 改变后旧游标返回 409/library_cursor_stale，须从第一页重读。
       parameters:
         - { name: media_type, in: query, schema: { type: string, enum: [all, image, video] } }
         - { name: category, in: query, schema: { type: string, maxLength: 128 } }
         - { name: model, in: query, schema: { type: string, maxLength: 128 } }
         - { name: search, in: query, schema: { type: string, maxLength: 200 } }
         - { name: sort, in: query, schema: { type: string, enum: [latest, featured], default: latest }, description: featured 仅返回精选条目 }
-        - { name: cursor, in: query, schema: { type: string, maxLength: 2048 }, description: 上次响应的 nextCursor；不透明游标，不能与外部图库游标互换 }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 2048 }, description: 上次响应的 nextCursor；仅用于本站人工审核库分页 }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
       responses:
         "200":

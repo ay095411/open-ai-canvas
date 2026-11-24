@@ -14,7 +14,7 @@ export const jaJP: DeepStringRecord<typeof zhCN> = {
         preview: "{{count}} 件のメッセージを確認",
         mediaMessage: "メディアメッセージ（完全なデータはダウンロード）",
         restoredTitle: "{{title}}（復元コピー）",
-        restoredNotice: "この端末に復元し、同期を試行中です。上部の同期状態をご確認ください。元の会話とコピーは保持されています。",
+        restoredNotice: "この端末に復元し、同期を試行中です。クラウドへの保存はまだ確認されていません。元の会話とコピーは保持されています。",
         keptNotice: "現在の内容を保持しました。元のコピーは引き続き確認、復元、ダウンロードできます。",
         resolveFailed: "処理できませんでした。コピーは保持されています。再試行してください。",
         conflict: "履歴を同期済み・競合のコピーがあります",

@@ -15,7 +15,7 @@ export const enUS: DeepStringRecord<typeof zhCN> = {
         preview: "View {{count}} messages",
         mediaMessage: "Media message (download the backup for complete data)",
         restoredTitle: "{{title}} (restored copy)",
-        restoredNotice: "Restored on this device; sync is being attempted. Check the sync status above. The original conversation and backup are retained.",
+        restoredNotice: "Restored on this device; sync is being attempted, but cloud saving is not yet confirmed. The original conversation and backup are retained.",
         keptNotice: "Current version kept. The original backup remains available to view, restore and download.",
         resolveFailed: "Couldn't resolve this backup. It has been retained; please retry.",
         conflict: "History synced; conflict backup available",

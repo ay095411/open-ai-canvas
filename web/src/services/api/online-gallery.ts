@@ -1,78 +1,85 @@
-import { isIgnoredOnlineInspiration, isIgnoredOnlineModel, normalizeOnlineFavorite, normalizeOnlineSummary, type OnlineInspirationDetail, type OnlineInspirationSummary } from "@/lib/inspirations/external-favorites";
-import { compactApiParams, http } from "./request";
-import { getZzaiGalleryPrompt, type ZzaiGalleryDetail, type ZzaiGalleryFacets, type ZzaiGalleryPage, type ZzaiGalleryQuery, type ZzaiGallerySummary } from "./zzai-gallery";
+import type { CreationMode } from "@/lib/creation-mode";
+import { isOfficialInspirationId, isOfficialInspirationSource, type CreationInspiration, type InspirationGallerySource } from "@/lib/inspirations/catalog";
+import { normalizeAuthorizedSummary, normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
+import { filterOfficialCatalog, normalizeOfficialInspiration, officialCategoryLabel, pageOfficialCatalog, type OfficialCatalogEntry, type OfficialCatalogQuery } from "@/lib/inspirations/official-catalog";
+import { inspirationCatalogForSignal } from "@/services/inspiration-catalog";
+import { getZzaiGalleryFacets, getZzaiGalleryPrompt, getZzaiGalleryPrompts, type ZzaiGalleryDetail, type ZzaiGalleryFacets, type ZzaiGalleryPage, type ZzaiGalleryQuery, type ZzaiGallerySummary } from "./zzai-gallery";
 
-export type OnlineGallerySummary = OnlineInspirationSummary;
-export type OnlineGalleryDetail = OnlineInspirationDetail;
+export type InspirationGalleryQuery = OfficialCatalogQuery;
+export type InspirationGalleryFacetQuery = Pick<InspirationGalleryQuery, "mediaType" | "mediaTypes">;
+export type OnlineGallerySummary = OfficialCatalogEntry;
+export type OnlineGalleryDetail = OfficialCatalogEntry;
 export type OnlineGalleryPage = { items: OnlineGallerySummary[]; total: number; nextCursor?: string };
-export type OnlineGalleryFacets = { categories: string[]; models: string[]; tags: string[]; total: number };
+export type OnlineGalleryFacets = { categories: string[]; models: string[]; tags: string[]; total: number; categoryLabels?: Record<string, string> };
 export type InspirationGallerySummary = ZzaiGallerySummary | OnlineGallerySummary;
 export type InspirationGalleryDetail = ZzaiGalleryDetail | OnlineGalleryDetail;
 export type InspirationGalleryPage = ZzaiGalleryPage | OnlineGalleryPage;
-export type InspirationGalleryFacets = ZzaiGalleryFacets | OnlineGalleryFacets;
+export type InspirationGalleryFacets = (ZzaiGalleryFacets | OnlineGalleryFacets) & { categoryLabels?: Record<string, string> };
 
-const galleryPath = "/public/inspirations/zzai-gallery";
-const slugPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$/;
-
-function validSlug(slug: string) {
-    if (typeof slug !== "string" || !slugPattern.test(slug)) throw new Error("在线示例条目标识无效");
-    return slug;
+export async function getOnlineGalleryPrompts(query: InspirationGalleryQuery = {}, signal?: AbortSignal): Promise<OnlineGalleryPage> {
+    return pageOfficialCatalog(await inspirationCatalogForSignal(signal), query);
 }
 
-function onlinePage(value: OnlineGalleryPage): OnlineGalleryPage {
-    if (
-        !value ||
-        !Array.isArray(value.items) ||
-        value.items.length > 50 ||
-        !Number.isSafeInteger(value.total) ||
-        value.total < 0 ||
-        (value.nextCursor !== undefined && (typeof value.nextCursor !== "string" || value.nextCursor.length > 2048 || (value.nextCursor !== "" && !/^[A-Za-z0-9_+/=-]+$/.test(value.nextCursor))))
-    )
-        throw new Error("在线示例分页格式不正确");
-    const normalized = value.items.map(normalizeOnlineSummary);
-    const items = normalized.filter((item) => !isIgnoredOnlineInspiration(item));
-    const dropped = normalized.length - items.length;
-    const total = Math.max(items.length, value.total - dropped);
-    return { items, total: items.length === 0 && !value.nextCursor ? 0 : total, ...(value.nextCursor !== undefined ? { nextCursor: value.nextCursor } : {}) };
+export async function getOnlineGalleryPrompt(id: string, signal?: AbortSignal): Promise<OnlineGalleryDetail> {
+    if (!isOfficialInspirationId(id)) throw new Error("官方目录条目标识无效，旧在线图库已停用");
+    const catalog = await inspirationCatalogForSignal(signal);
+    const item = catalog.entries.find((entry) => entry.id === id);
+    if (!item) throw new Error("官方目录中未找到该条目，原收藏记录保留");
+    return item;
 }
 
-export function getOnlineGalleryPrompts(query: ZzaiGalleryQuery = {}, signal?: AbortSignal) {
-    return http
-        .get<OnlineGalleryPage>(`${galleryPath}/prompts`, {
-            params: compactApiParams({ search: query.search?.trim(), media_type: query.mediaType, category: query.category, model: query.model, sort: query.sort, cursor: query.cursor, limit: query.limit }),
-            signal,
-        })
-        .then(onlinePage);
+export async function getOnlineGalleryFacets(query: CreationMode | InspirationGalleryFacetQuery = {}, signal?: AbortSignal): Promise<OnlineGalleryFacets> {
+    const catalog = await inspirationCatalogForSignal(signal);
+    const items = filterOfficialCatalog(catalog, typeof query === "string" ? { mediaType: query } : query);
+    const categories = [...new Set(items.map((item) => item.category).filter((value): value is string => Boolean(value)))];
+    return {
+        categories,
+        models: [...new Set(items.map((item) => item.model).filter(Boolean))],
+        tags: [...new Set(items.flatMap((item) => item.tags ?? []))],
+        total: items.length,
+        categoryLabels: Object.fromEntries(categories.map((category) => [category, officialCategoryLabel(catalog, category)])),
+    };
 }
 
-export function getOnlineGalleryPrompt(slug: string, signal?: AbortSignal) {
-    validSlug(slug);
-    return http.get<OnlineGalleryDetail>(`${galleryPath}/prompts/${encodeURIComponent(slug)}`, { signal }).then((value) => {
-        const detail = normalizeOnlineFavorite(value);
-        if (detail.slug !== slug) throw new Error("在线示例与所选条目不一致");
-        if (isIgnoredOnlineInspiration(detail)) throw new Error("当前在线示例暂不展示");
-        return detail;
-    });
+function licensedQuery(query: InspirationGalleryQuery): ZzaiGalleryQuery {
+    if (query.mediaType === "text") throw new Error("本站审核库不支持文本筛选");
+    if (query.mediaTypes !== undefined) throw new Error("本站审核库不支持多类型筛选");
+    if (query.sourceId) throw new Error("本站审核库不支持官方目录来源筛选");
+    return { ...query, mediaType: query.mediaType };
 }
 
-export function getOnlineGalleryFacets(mediaType?: "image" | "video", signal?: AbortSignal) {
-    return http.get<OnlineGalleryFacets>(`${galleryPath}/facets`, { params: compactApiParams({ media_type: mediaType }), signal }).then((value) => {
-        if (!value || !Number.isSafeInteger(value.total) || value.total < 0) throw new Error("在线示例筛选格式不正确");
-        for (const [name, count, length] of [
-            ["categories", 200, 128],
-            ["models", 500, 128],
-            ["tags", 1000, 128],
-        ] as const) {
-            if (!Array.isArray(value[name]) || value[name].length > count || value[name].some((entry) => typeof entry !== "string" || !entry.trim() || entry.length > length)) throw new Error("在线示例筛选格式不正确");
-        }
-        return { categories: value.categories, models: value.models.filter((model) => !isIgnoredOnlineModel(model)), tags: value.tags, total: value.total };
-    });
+/** Each source owns its contract; a failed licensed read never becomes official data. */
+export function getInspirationGalleryPrompts(source: InspirationGallerySource, query: InspirationGalleryQuery = {}, signal?: AbortSignal): Promise<InspirationGalleryPage> {
+    if (source === "official-catalog") return getOnlineGalleryPrompts(query, signal);
+    if (source === "authorized-library") return getZzaiGalleryPrompts(licensedQuery(query), signal);
+    throw new Error("灵感来源已停用");
 }
 
-/** 稳定 ID 决定详情端点；在线数据和人工授权库绝不互相兜底。 */
+export function getInspirationGalleryFacets(source: InspirationGallerySource, query: CreationMode | InspirationGalleryFacetQuery = {}, signal?: AbortSignal): Promise<InspirationGalleryFacets> {
+    if (source === "official-catalog") return getOnlineGalleryFacets(query, signal);
+    if (source === "authorized-library") {
+        const { mediaType, mediaTypes } = typeof query === "string" ? { mediaType: query } : query;
+        if (mediaType === "text") throw new Error("本站审核库不支持文本筛选");
+        if (mediaTypes !== undefined) throw new Error("本站审核库不支持多类型筛选");
+        return getZzaiGalleryFacets(mediaType, signal);
+    }
+    throw new Error("灵感来源已停用");
+}
+
+/** Stable IDs preserve upstream identity; old ZZAI IDs are archived, never queried or relabeled. */
 export function getInspirationPrompt(id: string, signal?: AbortSignal): Promise<InspirationGalleryDetail> {
     if (typeof id !== "string") throw new Error("素材条目标识无效");
-    if (id.startsWith("zzai-gallery:")) return getOnlineGalleryPrompt(validSlug(id.slice("zzai-gallery:".length)), signal);
-    if (id.startsWith("authorized-library:")) return getZzaiGalleryPrompt(validSlug(id.slice("authorized-library:".length)), signal);
-    throw new Error("素材来源不受支持");
+    if (isOfficialInspirationId(id)) return getOnlineGalleryPrompt(id, signal);
+    if (id.startsWith("authorized-library:")) {
+        const slug = id.slice("authorized-library:".length);
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,190}$/.test(slug)) throw new Error("授权素材条目标识无效");
+        return getZzaiGalleryPrompt(slug, signal);
+    }
+    throw new Error("旧在线图库来源已停用，历史收藏记录保留");
+}
+
+export function normalizeInspirationDetail(input: unknown): InspirationGalleryDetail {
+    if (input && typeof input === "object" && isOfficialInspirationSource((input as CreationInspiration).sourceId)) return normalizeOfficialInspiration(input);
+    const summary = normalizeAuthorizedSummary(input);
+    return { ...summary, ...normalizeExternalFavorite(input), slug: summary.slug } as ZzaiGalleryDetail;
 }

@@ -65,9 +65,10 @@ type Service struct {
 	now           func() time.Time
 	gallery       *Gallery
 
-	cacheMu  sync.Mutex
-	cached   *Feed
-	cachedAt time.Time
+	cacheMu         sync.Mutex
+	cached          *Feed
+	cachedAt        time.Time
+	cacheGeneration uint64
 }
 
 // New 由组合根注入仓储、管理员校验、跨实例同步锁和后台循环。
@@ -119,17 +120,20 @@ type SyncState struct {
 	Sources       []SourceResult `json:"sources,omitempty"`
 	// Categories 是上游分类码的中文名（来源 → 分类码 → 名称）；某个来源本次失败时沿用上次的。
 	Categories map[string]map[string]string `json:"categories,omitempty"`
+	VideoLinks *VideoLinks                  `json:"videoLinks,omitempty"`
 }
 
 // SourceResult 是单个来源在一次同步里的结果。
 type SourceResult struct {
 	SourceID string `json:"sourceId"`
 	// Upstream 是上游可用的条目数，Accepted 是其中正文为中文、予以收录的条目数。
-	Upstream int    `json:"upstream"`
-	Accepted int    `json:"accepted"`
-	Created  int    `json:"created"`
-	Updated  int    `json:"updated"`
-	Error    string `json:"error,omitempty"`
+	Upstream      int    `json:"upstream"`
+	Accepted      int    `json:"accepted"`
+	Created       int    `json:"created"`
+	Updated       int    `json:"updated"`
+	Error         string `json:"error,omitempty"`
+	VideoAccepted int    `json:"videoAccepted"`
+	VideoRejected int    `json:"videoRejected,omitempty"`
 }
 
 func (state *SyncState) allFailed() bool {

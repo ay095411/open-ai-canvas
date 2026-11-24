@@ -7,6 +7,12 @@ description: 影策后端核心持久化表与状态边界
 
 本分支保留历史迁移 78 `video_remake`，上游 78–104 对应本地 79–105；fork 自有的 106 之外，上游 105–109 顺延为本地 107–111。已应用迁移的名称、校验值和执行记录保持不变。下文使用本地编号。升级由迁移服务执行，回退代码时不要删除迁移记录或业务表。
 
+## 灵感上新视频元数据（不新增迁移）
+
+视频地址随现有六小时上新流程提取，继续使用 `system_settings.value_json` 的 `inspiration_feed_sync` 同步记录。新增 JSON 成员 `videoLinks={version:1,entries:[{id,sourceId,sourceUrl,videoUrl}],syncedAt?}`，来源状态新增 `videoAccepted` 与可选 `videoRejected`。最多 5000 个公开链接，不保存第三方密钥或带签名地址，不下载媒体实体；同 ID 与原始出处匹配后仅补充视频能力，不写人工审核库。
+
+没有新增表、列、迁移版本或修改迁移账本；账号、资源、账务和提示词表结构不变。失败保留旧有效地址。旧记录没有 `videoLinks` 时，后台首次检查执行一次引导同步并持久化版本标记，重启后沿用该状态而非重复初始化。回退二进制不需要删除字段或回滚数据库结构；需要撤回同步元数据时单独恢复该设置行，不覆盖整个活库。
+
 ## 模型请求插件发行版（本地 Schema 111 / 上游 Schema 109）
 
 `model_protocol_releases` 增加 `channel_models.protocol_release` 及索引，保存模型绑定的请求包 SHA-256。`tasks.protocol_binding_json` 和 `route_attempts.protocol_binding_json` 在新任务入队、路由尝试时记录版本、上游型号、能力与报价修订，以及渠道连接的 HMAC。快照仅在服务端使用。历史记录的新增列保持空值。
@@ -217,7 +223,7 @@ SQLite 写事务与 PostgreSQL 行锁串行化同一对话的修订检查；读�
 | `published_at` | 上游发布时间，可为空 |
 | `first_seen_at` | 本站首次收录时间，只在新增时写入；前台据此标记「新」和排序 |
 
-历史开关与同步记录仍存在 `system_settings`：`inspiration_feed` 为 `{enabled}`，`inspiration_feed_sync` 保存最近一次同步的时间、触发方式、各来源结果和上游分类名。这些保留记录不控制当前双来源目录，也不恢复旧同步任务。
+上新开关与同步记录保存在 `system_settings`：`inspiration_feed` 为 `{enabled}`，控制后台六小时上新流程；`inspiration_feed_sync` 保存最近一次同步的时间、触发方式、各来源结果、上游分类名和已校验的视频地址。关闭上新只停止后续同步，不隐藏随前端发布的官方静态目录；已保存的上新条目仍保留。
 
 ## 方舟素材组（Schema 87）
 

@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { Window } from "happy-dom";
 import type { CreationInspiration } from "@/lib/inspirations/catalog";
+import { invalidateInspirationCatalog } from "@/services/inspiration-catalog";
 import { authorizedEntry } from "./fixtures/authorized-inspirations";
 const dom = new Window({ url: "http://localhost/create" });
 const originals = new Map<string, PropertyDescriptor | undefined>();
@@ -18,6 +19,8 @@ const originalStorage = useInspirationStore.persist.getOptions().storage;
 const originalUser = useUserStore.getState();
 const originalScope = getActiveUserScope();
 const originalAdapter = apiClient.defaults.adapter;
+const originalFetch = globalThis.fetch;
+let staticEntries: unknown[];
 const emptyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 let records: Map<string, string>;
 let writes: Array<{ key: string; value: string }>;
@@ -30,9 +33,9 @@ const keyFor = (scope = "current-user") => `open_ai_canvas:inspirations:user:${s
 const archive = (state: Record<string, unknown> = {}, version = 1) => JSON.stringify({ state: { favorites: [], externalFavorites: [], ...state }, version });
 function onlineEntry(slug: string): CreationInspiration & { id: string; slug: string } {
     return {
-        id: `zzai-gallery:${slug}`,
+        id: `seedance:${slug}`,
         slug,
-        sourceId: "zzai-gallery",
+        sourceId: "seedance",
         title: `社区示例 ${slug}`,
         description: "在线详情收藏测试",
         image: `https://cdn.example.com/${slug}.webp`,
@@ -44,11 +47,11 @@ function onlineEntry(slug: string): CreationInspiration & { id: string; slug: st
         promptZh: `${slug} 的当前在线中文提示词。`,
         credit: `在线作者 ${slug}`,
         sourceUrl: `https://example.com/works/${slug}`,
-        galleryUrl: `https://api.seedance.nz/prompt-gallery/${slug}`,
+        galleryUrl: `https://example.com/works/${slug}`,
         category: "portrait",
     };
 }
-const favoriteSources = ["authorized-library", "zzai-gallery"] as const;
+const favoriteSources = ["authorized-library", "seedance"] as const;
 const entryFor = (source: (typeof favoriteSources)[number], slug: string) => (source === "authorized-library" ? authorizedEntry(slug) : onlineEntry(slug));
 function signIn(id: string) {
     setActiveUserScope(id);
@@ -62,6 +65,9 @@ beforeEach(async () => {
     writes = [];
     failWrite = false;
     detailRequests = [];
+    invalidateInspirationCatalog();
+    staticEntries = ["fresh-online", "removable", "invalid-online", "different-online", "first", "retry", "late", "old-write"].map((slug) => onlineEntry(slug));
+    globalThis.fetch = (async (input) => new Response(JSON.stringify(String(input).includes("manifest") ? { sources: {} } : { entries: String(input).includes("/seedance.json") ? staticEntries : [] }))) as typeof globalThis.fetch;
     readSpy = spyOn(localforage, "getItem").mockImplementation(async <T,>(key: string) => (records.get(key) ?? null) as T | null);
     writeSpy = spyOn(localforage, "setItem").mockImplementation(async <T,>(key: string, value: T) => {
         writes.push({ key, value: value as string });
@@ -73,7 +79,7 @@ beforeEach(async () => {
     apiClient.defaults.adapter = async (config) => {
         detailRequests.push(config.url!);
         const slug = decodeURIComponent(config.url!.split("/").at(-1)!);
-        const data = config.url!.startsWith("/public/inspirations/zzai-gallery/prompts/") ? onlineEntry(slug) : config.url!.startsWith("/public/inspirations/library/prompts/") ? authorizedEntry(slug) : undefined;
+        const data = config.url === "/public/inspirations/feed" ? { enabled: false, entries: [] } : config.url!.startsWith("/public/inspirations/library/prompts/") ? authorizedEntry(slug) : undefined;
         if (!data) throw new Error(`Unexpected detail request: ${config.url}`);
         return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data, msg: "" } };
     };
@@ -87,6 +93,8 @@ afterEach(async () => {
     useUserStore.setState(originalUser);
     setActiveUserScope(originalScope);
     apiClient.defaults.adapter = originalAdapter;
+    globalThis.fetch = originalFetch;
+    invalidateInspirationCatalog();
     readSpy.mockRestore();
     writeSpy.mockRestore();
     warningSpy.mockRestore();
@@ -164,12 +172,12 @@ test("社区收藏实时读取真实来源并保留无授权声明的完整快�
     await useInspirationStore.persist.rehydrate();
     const item = onlineEntry("fresh-online");
     await useInspirationStore.getState().toggleFavorite(item.id, { ...item, prompt: "FORGED", sourceUrl: "https://forged.example.com" });
-    expect(detailRequests).toEqual(["/public/inspirations/zzai-gallery/prompts/fresh-online"]);
+    expect(detailRequests).toEqual(["/public/inspirations/feed"]);
     expect(writes).toHaveLength(1);
     expect(writes[0].key).toBe(keyFor());
     const saved = JSON.parse(records.get(keyFor())!);
     expect(saved.state.favorites).toEqual([item.id, "custom:legacy"]);
-    expect(saved.state.externalFavorites[0]).toMatchObject({ id: item.id, sourceId: "zzai-gallery", prompt: item.prompt, promptZh: item.promptZh, sourceUrl: item.sourceUrl, galleryUrl: item.galleryUrl });
+    expect(saved.state.externalFavorites[0]).toMatchObject({ id: item.id, sourceId: "seedance", prompt: item.prompt, promptZh: item.promptZh, sourceUrl: item.sourceUrl, galleryUrl: item.galleryUrl });
     expect(saved.state.externalFavorites[0].authorization).toBeUndefined();
     expect(saved.state.externalFavorites.slice(1)).toEqual([unknown, null]);
     expect(saved.state.custom).toEqual([{ title: "旧草稿" }]);
@@ -185,12 +193,12 @@ test("新收藏的社区示例取消无需访问上游，保留其他来源与�
     const licensed = authorizedEntry("existing-approved");
     records.set(keyFor(), archive({ favorites: [licensed.id], externalFavorites: [licensed, unknown], projectMetadata: { keep: true } }));
     await useInspirationStore.persist.rehydrate();
-    await useInspirationStore.getState().toggleFavorite("zzai-gallery:removable");
+    await useInspirationStore.getState().toggleFavorite("seedance:removable");
     expect(detailRequests).toHaveLength(1);
     apiClient.defaults.adapter = async () => {
         throw new Error("Offline: no request should be needed to remove a favorite");
     };
-    await useInspirationStore.getState().toggleFavorite("zzai-gallery:removable");
+    await useInspirationStore.getState().toggleFavorite("seedance:removable");
     expect(writes).toHaveLength(2);
     const saved = JSON.parse(records.get(keyFor())!);
     expect(saved.state.favorites).toEqual([licensed.id]);
@@ -198,26 +206,30 @@ test("新收藏的社区示例取消无需访问上游，保留其他来源与�
     expect(saved.state.projectMetadata).toEqual({ keep: true });
 });
 
-test("社区详情失败或非法正文、媒体和身份不能被传入快照替代，也不能伪装授权库", async () => {
+test("官方目录缺正文、危险媒体或身份混淆不能被传入快照替代，也不能伪装授权库", async () => {
     await useInspirationStore.persist.rehydrate();
     const item = onlineEntry("invalid-online");
-    for (const data of [
-        { ...item, prompt: "", promptZh: "" },
-        { ...item, image: "http://cdn.example.com/unsafe.webp" },
-        { ...item, authorization: authorizedEntry("proof").authorization },
-        onlineEntry("different-online"),
-        authorizedEntry("invalid-online"),
-    ]) {
-        apiClient.defaults.adapter = async (config) => ({ config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data, msg: "" } });
+    for (const data of [{ ...item, prompt: "", promptZh: "" }, { ...item, image: "javascript:alert(1)" }, { ...item, authorization: authorizedEntry("proof").authorization }, onlineEntry("different-online"), authorizedEntry("invalid-online")]) {
+        staticEntries = [data];
+        invalidateInspirationCatalog();
         await expect(useInspirationStore.getState().toggleFavorite(item.id, item)).rejects.toThrow();
     }
-    apiClient.defaults.adapter = async () => {
-        throw new Error("Online detail unavailable");
-    };
-    await expect(useInspirationStore.getState().toggleFavorite(item.id, item)).rejects.toThrow("Online detail unavailable");
+    invalidateInspirationCatalog();
+    globalThis.fetch = (async () => new Response("Unavailable", { status: 503 })) as typeof globalThis.fetch;
+    await expect(useInspirationStore.getState().toggleFavorite(item.id, item)).rejects.toThrow("HTTP 503");
     expect(writes).toEqual([]);
     expect(useInspirationStore.getState().favorites).toEqual([]);
     expect(useInspirationStore.getState().externalFavorites).toEqual([]);
+});
+
+test("旧ZZAI来源新增拒绝且零网络请求，原归档保留不改来源身份", async () => {
+    const raw = archive({ favorites: ["zzai-gallery:old"], externalFavorites: [{ id: "zzai-gallery:old", sourceId: "zzai-gallery", prompt: "旧正文" }], extra: { keep: true } }, 0);
+    records.set(keyFor(), raw);
+    await useInspirationStore.persist.rehydrate();
+    await expect(useInspirationStore.getState().toggleFavorite("zzai-gallery:new", onlineEntry("fresh-online"))).rejects.toThrow("停用");
+    expect(detailRequests).toEqual([]);
+    expect(writes).toEqual([]);
+    expect(records.get(keyFor())).toBe(raw);
 });
 
 test("未知收藏来源新增被拒绝，但读取和移除历史未知ID仍受支持", async () => {
@@ -254,7 +266,7 @@ test.each(favoriteSources)("%s GET阶段即锁定并发收藏，无乱序写入"
     apiClient.defaults.adapter = async (config) => {
         start();
         await gate;
-        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: entryFor(source, "first"), msg: "" } };
+        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: config.url === "/public/inspirations/feed" ? { enabled: false, entries: [] } : entryFor(source, "first"), msg: "" } };
     };
     const pending = useInspirationStore.getState().toggleFavorite(`${source}:first`);
     await started;
@@ -275,7 +287,7 @@ test.each(favoriteSources)("%s 写入失败撤销书签与快照，不重复写�
     failWrite = false;
     await useInspirationStore.getState().toggleFavorite(`${source}:retry`);
     expect(writes).toHaveLength(2);
-    expect(detailRequests).toHaveLength(2);
+    expect(detailRequests).toHaveLength(source === "authorized-library" ? 2 : 1);
 });
 test.each(favoriteSources)("%s 详情GET期间切账号，旧响应不写给新账号", async (source) => {
     await useInspirationStore.persist.rehydrate();
@@ -290,7 +302,7 @@ test.each(favoriteSources)("%s 详情GET期间切账号，旧响应不写给新�
     apiClient.defaults.adapter = async (config) => {
         start();
         await gate;
-        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: entryFor(source, "late"), msg: "" } };
+        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: config.url === "/public/inspirations/feed" ? { enabled: false, entries: [] } : entryFor(source, "late"), msg: "" } };
     };
     const pending = useInspirationStore
         .getState()

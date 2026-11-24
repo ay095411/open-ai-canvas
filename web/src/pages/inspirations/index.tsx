@@ -19,7 +19,7 @@ type InspirationsPageProps = {
     onPreview?: (item: CreationInspiration) => void;
 };
 
-export default function InspirationsPage({ embedded = false, onUse, onPreview, initialSource = "zzai-gallery" }: InspirationsPageProps = {}) {
+export default function InspirationsPage({ embedded = false, onUse, onPreview, initialSource = "official-catalog" }: InspirationsPageProps = {}) {
     const navigate = useNavigate();
     const userScope = useUserStore((state) => state.user?.id ?? "guest");
     const hydrationError = useInspirationStore((state) => state.hydrationError);
@@ -38,7 +38,7 @@ export default function InspirationsPage({ embedded = false, onUse, onPreview, i
 
     return (
         <WorkspacePage className={embedded ? "inspiration-library-embedded" : undefined}>
-            {!embedded ? <PageHeader title="灵感大厅" description="浏览在线示例与本站审核素材，收藏到当前账号的浏览器本地。" /> : null}
+            {!embedded ? <PageHeader title="灵感大厅" description="浏览官方开源目录与本站审核素材，收藏到当前账号的浏览器本地。" /> : null}
             {hydrationError ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground" role="alert">
                     <span>{hydrationError}</span>

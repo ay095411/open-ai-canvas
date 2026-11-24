@@ -1,7 +1,8 @@
 import type { CreationInspiration } from "./catalog";
-import { isIgnoredOnlineInspiration, normalizeAuthorizedSummary, normalizeExternalFavorite, normalizeOnlineSummary } from "./external-favorites";
-import type { InspirationGalleryDetail, InspirationGallerySummary } from "@/services/api/online-gallery";
-import type { ZzaiGalleryQuery } from "@/services/api/zzai-gallery";
+import { isOfficialInspirationSource } from "./catalog";
+import { normalizeAuthorizedSummary, normalizeExternalFavorite } from "./external-favorites";
+import { normalizeOfficialInspiration } from "./official-catalog";
+import type { InspirationGalleryDetail, InspirationGallerySummary, InspirationGalleryQuery } from "@/services/api/online-gallery";
 
 const categoryLabels: Record<string, string> = {
     character: "角色设定",
@@ -36,23 +37,26 @@ export function toZzaiGalleryInspiration(detail: InspirationGalleryDetail): Crea
     if (!detail || !detail.slug?.trim() || detail.id !== `${detail.sourceId}:${detail.slug}`) {
         throw new Error("画廊详情不完整，无法收藏或带入创作区");
     }
+    if (isOfficialInspirationSource(detail.sourceId)) return normalizeOfficialInspiration(detail);
+    if (detail.sourceId !== "authorized-library") throw new Error("旧在线图库来源已停用");
     return normalizeExternalFavorite(detail);
 }
 
 /** 授权收藏来自当前 resolve，在线收藏保留来源身份；正文均不参与摘要筛选。 */
-export function filterZzaiGalleryFavorites<T extends InspirationGallerySummary | CreationInspiration>(entries: readonly T[], query: ZzaiGalleryQuery): T[] {
+export function filterZzaiGalleryFavorites<T extends InspirationGallerySummary | CreationInspiration>(entries: readonly T[], query: InspirationGalleryQuery): T[] {
     const keyword = query.search?.trim().toLocaleLowerCase();
     const filtered = entries.filter((item) => {
         try {
             if (item.sourceId === "authorized-library") normalizeAuthorizedSummary(item);
-            else if (item.sourceId === "zzai-gallery") {
-                if (isIgnoredOnlineInspiration(normalizeOnlineSummary(item))) return false;
-            } else return false;
+            else if (isOfficialInspirationSource(item.sourceId)) normalizeOfficialInspiration(item);
+            else return false;
         } catch {
             // 本地历史快照可能缺失来源元数据；展示筛选不能将其当作可用条目。
             return false;
         }
         if (query.mediaType && item.mode !== query.mediaType) return false;
+        if (query.mediaTypes && !query.mediaTypes.includes(item.mode)) return false;
+        if (query.sourceId && item.sourceId !== query.sourceId) return false;
         if (query.category && item.category !== query.category) return false;
         if (query.model && item.model !== query.model) return false;
         if (query.sort === "featured" && !item.featured) return false;

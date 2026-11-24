@@ -1,15 +1,121 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AgentWelcome } from "@/components/canvas/canvas-agent-welcome";
-import { AgentConversation } from "@/components/canvas/canvas-cloud-agent-panel-parts";
+import { AgentContextRing, AgentConversation, AgentHeader } from "@/components/canvas/canvas-cloud-agent-panel-parts";
 import { AgentChatComposer } from "@/components/canvas/canvas-cloud-agent-chat-ui";
 import { agentPermissionVisual } from "@/components/canvas/canvas-cloud-agent-settings";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { DEFAULT_CANVAS_APPEARANCE, agentCopy } from "@/lib/canvas/agent-appearance";
+import { emptyAgentContextUsage, presentAgentContextUsage, reduceAgentContextUsage, type AgentContextUsage } from "@/lib/canvas/agent-context-usage";
 
 const noop = () => {};
 
 const conversationProps = { theme: canvasThemes.light, references: [], approval: null, approvalSubmitting: false, onApprovalReasonChange: noop, onApprove: noop, onReject: noop };
+const renderContextUsage = (usage: AgentContextUsage) => renderToStaticMarkup(<AgentContextRing view={presentAgentContextUsage(usage)} theme={canvasThemes.light} />);
+
+test("new Agent conversation uses a message icon in the history title button", () => {
+    const html = renderToStaticMarkup(
+        <AgentHeader theme={canvasThemes.light} hasMessages={false} statusLabel="就绪" statusColor={canvasThemes.light.node.muted} onNew={noop} onHistory={noop} onSettings={noop} onResetLayout={noop} onCollapse={noop} onExport={noop} exporting={false} />,
+    );
+    const mark = html.match(/<span\b[^>]*class="agent-panel-mark"[^>]*>([\s\S]*?)<\/span>/)?.[1];
+    expect(html).toContain("新对话");
+    expect(mark).toBeDefined();
+    expect(mark).toMatch(/\blucide-message-square(?:\s|")/);
+    expect(mark).not.toContain("lucide-message-square-plus");
+    expect(mark).not.toContain("lucide-clapperboard");
+    expect(mark).not.toContain("lucide-sparkles");
+    expect(mark).not.toContain("lucide-bot");
+    expect(html).toContain("lucide-message-square-plus");
+});
+
+test("Agent history title icon has no colored background", async () => {
+    const css = await Bun.file(new URL("../src/components/canvas/canvas-cloud-agent.css", import.meta.url)).text();
+    const mark = css.match(/\.agent-panel-mark\s*\{([^}]*)\}/)?.[1];
+    expect(mark).toBeDefined();
+    expect(mark).not.toMatch(/\bbackground(?:-color)?\s*:/);
+    expect(mark).not.toContain("--palette-node-image");
+    expect(mark).toContain("color: var(--agent-ink)");
+    expect(mark).toContain("width: 28px");
+    expect(mark).toContain("height: 28px");
+});
+
+test("Agent context control is absent before measurement", () => {
+    expect(renderContextUsage(emptyAgentContextUsage(""))).toBe("");
+});
+
+test("Agent context control is absent after switching to an unread run", () => {
+    const measured = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), {
+        runId: "run-1",
+        type: "context_pressure",
+        seq: 1,
+        payload: { tokenSource: "pi", modelLimitConfigured: true, contextWindowTokens: 128_000, estimatedInputTokens: 32_000, pressureRatio: 0.25 },
+    });
+    const reset = reduceAgentContextUsage(measured, { runId: "run-2", type: "assistant_message", seq: 1, payload: {} });
+    expect(reset.runId).toBe("run-2");
+    expect(reset.reading).toBeNull();
+    expect(renderContextUsage(reset)).toBe("");
+});
+
+test("Agent context control preserves a real zero-token reading", () => {
+    const usage = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), {
+        runId: "run-1",
+        type: "context_pressure",
+        seq: 1,
+        payload: { tokenSource: "pi", modelLimitConfigured: true, contextWindowTokens: 128_000, estimatedInputTokens: 0, pressureRatio: 0 },
+    });
+    const view = presentAgentContextUsage(usage);
+    expect(view.inputTokens).toBe(0);
+    expect(view.ratio).toBe(0);
+    const html = renderContextUsage(usage);
+    expect(html).toContain("agent-context-ring is-ok");
+    expect(html).toContain("<strong>0%</strong>");
+});
+
+test("Agent context control displays the measured model-window percentage", () => {
+    const usage = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), {
+        runId: "run-1",
+        type: "context_pressure",
+        seq: 1,
+        payload: { tokenSource: "pi", modelLimitConfigured: true, contextWindowTokens: 128_000, estimatedInputTokens: 32_000, pressureRatio: 0.25 },
+    });
+    const html = renderContextUsage(usage);
+    expect(html).toContain("agent-context-ring is-ok");
+    expect(html).toContain("上下文已用 25%");
+    expect(html).toContain("<strong>25%</strong>");
+});
+
+test("Agent context control preserves measured usage when the model window is unknown", () => {
+    const usage = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), { runId: "run-1", type: "context_pressure", seq: 1, payload: { tokenSource: "pi", modelLimitConfigured: false, estimatedInputTokens: 12_000 } });
+    const view = presentAgentContextUsage(usage);
+    expect(view.inputTokens).toBe(12_000);
+    expect(view.ratio).toBeUndefined();
+    const html = renderContextUsage(usage);
+    expect(html).toContain("agent-context-ring is-unknown");
+    expect(html).toContain("上下文窗口未知");
+    expect(html).not.toContain("<strong>0%</strong>");
+});
+
+test("Agent context control remains available during compaction without a token reading", () => {
+    const usage = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), { runId: "run-1", type: "context_compaction_requested", seq: 1, payload: { basis: "bytes", compactionId: "compact-1" } });
+    expect(usage.reading).toBeNull();
+    const html = renderContextUsage(usage);
+    expect(html).toContain("agent-context-ring is-compacting");
+    expect(html).toContain("正在压缩");
+});
+
+test("Agent context control retains completed compaction information without a token reading", () => {
+    const usage = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), { runId: "run-1", type: "context_compacted", seq: 1, payload: { mode: "checkpoint", compactionId: "compact-1", resume: true } });
+    expect(usage.reading).toBeNull();
+    expect(presentAgentContextUsage(usage).lastCompaction).toEqual({ mode: "checkpoint", compactionId: "compact-1", resume: true });
+    expect(renderContextUsage(usage)).toContain("agent-context-ring");
+});
+
+test("Agent context control retains compaction failure information without a token reading", () => {
+    const usage = reduceAgentContextUsage(emptyAgentContextUsage("run-1"), { runId: "run-1", type: "context_compaction_failed", seq: 1, payload: { compactionId: "compact-1", errorMessage: "上下文压缩失败，原有对话历史已保留" } });
+    expect(usage.reading).toBeNull();
+    expect(presentAgentContextUsage(usage).compactionError).toBe("上下文压缩失败，原有对话历史已保留");
+    expect(renderContextUsage(usage)).toContain("agent-context-ring");
+});
 
 test("empty Agent conversation hides skill actions before the administrator session loads", () => {
     const html = renderToStaticMarkup(<AgentConversation {...conversationProps} messages={[]} busy={false} nodeCount={0} onChooseSkill={noop} onDraftPrompt={noop} />);

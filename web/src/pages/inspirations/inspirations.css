@@ -35,21 +35,25 @@
     outline-offset: 2px;
 }
 
-/* 上游宽高/比例预占位；缺尺寸使用稳定展示框，图片加载或失败都不改卡片高度。 */
+/* 图片留在文档流中：已知宽高由 img 属性预占位，未知尺寸在加载后按原图自然撑高。 */
 .inspiration-card-cover {
     position: relative;
-    aspect-ratio: 1;
     overflow: hidden;
     background: var(--user-surface-muted);
 }
 
 .inspiration-card-cover img {
-    position: absolute;
-    inset: 0;
     display: block;
     width: 100%;
-    height: 100%;
-    object-fit: contain;
+    height: auto;
+}
+
+.inspiration-card-cover-error {
+    padding: var(--space-6, 24px) var(--space-3, 12px);
+    color: var(--user-ink-soft);
+    font-size: var(--fs-caption, 12px);
+    line-height: 1.5;
+    text-align: center;
 }
 
 /* 封面底部压一层暗角，让源标签始终读得清。
@@ -144,23 +148,20 @@
 }
 
 .inspiration-card-title {
-    overflow: hidden;
     color: var(--user-ink);
     font-size: var(--fs-body, 14px);
     font-weight: 600;
     line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .inspiration-card-desc {
-    display: -webkit-box;
-    overflow: hidden;
     color: var(--user-ink-soft);
     font-size: var(--fs-caption, 12px);
     line-height: 1.5;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
 }
 
 .inspiration-card-tags {
@@ -215,6 +216,9 @@
 
 /* 卡片上的分类/署名标签是纯展示，不参与点击，去掉指针与悬停反馈。 */
 .inspiration-card-tags .inspiration-chip {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
     padding: 1px var(--space-2, 8px);
     font-size: var(--fs-tiny, 10px);
     background: var(--user-surface-muted, #f1f1f3);

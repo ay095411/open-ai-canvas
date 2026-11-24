@@ -41,6 +41,7 @@ export function InspirationMasonry<T extends MasonryItem>({ items, busy, classNa
     const layout = useMemo(() => {
         const heights = items.map((item) => {
             const measured = measurements[catalogIdOf(item)];
+            // Only an initial estimate; rendered cards are never assigned this height or ratio.
             return measured && Math.abs(measured.width - columnWidth) < 0.25 ? measured.height : columnWidth / inspirationCoverRatio(item) + 200;
         });
         return layoutInspirationMasonry(heights, geometry.width, geometry.minColumnWidth, geometry.gap);
@@ -48,6 +49,8 @@ export function InspirationMasonry<T extends MasonryItem>({ items, busy, classNa
 
     useLayoutEffect(() => {
         if (geometry.width <= 0) return;
+        const container = containerRef.current;
+        if (!container) return;
         const measure = () => {
             if (!containerRef.current || containerRef.current.clientWidth <= 0) return;
             const next = new Map<string, CardMeasurement>();
@@ -73,7 +76,24 @@ export function InspirationMasonry<T extends MasonryItem>({ items, busy, classNa
         measure();
         const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(measure);
         for (const element of cells.current.values()) observer?.observe(element);
-        return () => observer?.disconnect();
+        let frame: number | undefined;
+        const mediaChanged = () => {
+            measure();
+            if (frame !== undefined) window.cancelAnimationFrame(frame);
+            // An error handler may replace the image with text after the capture event.
+            frame = window.requestAnimationFrame(() => {
+                frame = undefined;
+                measure();
+            });
+        };
+        container.addEventListener("load", mediaChanged, true);
+        container.addEventListener("error", mediaChanged, true);
+        return () => {
+            observer?.disconnect();
+            container.removeEventListener("load", mediaChanged, true);
+            container.removeEventListener("error", mediaChanged, true);
+            if (frame !== undefined) window.cancelAnimationFrame(frame);
+        };
     }, [geometry.width, items, columnWidth]);
 
     return (

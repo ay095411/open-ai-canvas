@@ -119,9 +119,7 @@
     height: 28px;
     flex: none;
     place-items: center;
-    border-radius: var(--r-md);
-    background: color-mix(in srgb, var(--palette-node-image) 24%, var(--agent-material-solid));
-    color: color-mix(in srgb, var(--palette-node-image) 35%, var(--agent-ink));
+    color: var(--agent-ink);
 }
 
 .agent-panel-title {

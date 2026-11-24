@@ -1,12 +1,11 @@
 import { create, type StoreApi } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 
-import { catalogIdOf, type CreationInspiration } from "@/lib/inspirations/catalog";
-import { isExternalInspiration, normalizeExternalFavorite } from "@/lib/inspirations/external-favorites";
+import { catalogIdOf, isOfficialInspirationId, type CreationInspiration } from "@/lib/inspirations/catalog";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
 import { assertCurrentUserSession, captureUserSession, getActiveUserScope, isUserScopedPersistenceSuppressed, type UserSessionSnapshot } from "@/lib/user-scope";
 import { useUserStore } from "@/stores/use-user-store";
-import { getInspirationPrompt } from "@/services/api/online-gallery";
+import { getInspirationPrompt, normalizeInspirationDetail } from "@/services/api/online-gallery";
 
 export const INSPIRATION_STORE_KEY = "open_ai_canvas:inspirations";
 /** 写入版本 1；旧版本只在内存适配，历史记录不因读取被改写或删除。 */
@@ -103,13 +102,13 @@ const createPersistedInspirationStore = persist<InspirationStore, [], [], Online
             const previous = get().favorites;
             const previousExternal = get().externalFavorites;
             const removing = previous.includes(id);
-            if (!removing && !isExternalInspiration(id)) throw new Error("仅支持收藏在线示例或已核验授权素材");
+            if (!removing && !isOfficialInspirationId(id) && !id.startsWith("authorized-library:")) throw new Error("仅支持收藏官方目录或已核验授权素材；旧在线来源已停用");
             favoriteWrites.add(scope);
             let next: string[] | undefined;
             let nextExternal: CreationInspiration[] | undefined;
             try {
-                // 每次新增收藏重新向当前服务核验，不能信任浏览器快照或传入的授权属性。
-                const snapshot = removing ? undefined : normalizeExternalFavorite(await getInspirationPrompt(id, session.signal));
+                // Official IDs resolve from the current pinned catalog; licensed IDs still require server verification.
+                const snapshot = removing ? undefined : normalizeInspirationDetail(await getInspirationPrompt(id, session.signal));
                 if (snapshot && catalogIdOf(snapshot) !== id) throw new Error("收藏条目与 ID 不一致");
                 assertCurrentUserSession(session);
                 next = removing ? previous.filter((value) => value !== id) : [id, ...previous];

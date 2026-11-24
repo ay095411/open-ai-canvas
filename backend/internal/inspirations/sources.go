@@ -69,9 +69,12 @@ type fetchFunc func(ctx context.Context, rawURL string, maxBytes int64) ([]byte,
 
 // batch 是一个来源本次解析的结果：upstream 是上游可用条目数，entries 只含正文为中文的条目。
 type batch struct {
-	upstream   int
-	entries    []model.InspirationFeedEntry
-	categories map[string]string
+	upstream      int
+	entries       []model.InspirationFeedEntry
+	categories    map[string]string
+	videoLinks    []VideoLink
+	videoError    error
+	videoRejected int
 }
 
 type source struct {
@@ -99,6 +102,8 @@ type seedanceCase struct {
 	Creator           string   `json:"creator"`
 	SourceURL         string   `json:"sourceUrl"`
 	SourcePublishedAt string   `json:"sourcePublishedAt"`
+	MediaType         string   `json:"mediaType"`
+	MediaURL          string   `json:"mediaUrl"`
 }
 
 func loadSeedance(ctx context.Context, fetch fetchFunc) (batch, error) {
@@ -141,6 +146,7 @@ func decodeSeedanceCases(data []byte) ([]seedanceCase, error) {
 // 描述只用中文摘要；英文摘要里常混着样板文字，留空后由前端按静态目录的做法补上分类名。
 func buildSeedanceBatch(cases []seedanceCase, assignments map[string]string) (batch, error) {
 	result := batch{}
+	result.videoLinks, result.videoRejected, result.videoError = extractSeedanceVideoLinks(cases)
 	seen := map[string]bool{}
 	for _, item := range cases {
 		slug := strings.TrimSpace(item.Slug)
@@ -174,7 +180,7 @@ func buildSeedanceBatch(cases []seedanceCase, assignments map[string]string) (ba
 		}
 		result.entries = append(result.entries, withContentHash(entry))
 	}
-	if result.upstream == 0 {
+	if result.upstream == 0 && len(result.videoLinks) == 0 {
 		return batch{}, errors.New("cases.json 没有可用条目，上游格式可能已变化")
 	}
 	return result, nil

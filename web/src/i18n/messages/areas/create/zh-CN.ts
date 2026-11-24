@@ -12,7 +12,7 @@ export const zhCN = {
         preview: "查看 {{count}} 条消息",
         mediaMessage: "媒体消息（完整数据见下载副本）",
         restoredTitle: "{{title}}（恢复副本）",
-        restoredNotice: "已在本机恢复为新对话，正在尝试同步；同步结果以上方状态为准。原对话和副本均已保留。",
+        restoredNotice: "已在本机恢复为新对话，正在尝试同步，尚不代表已保存到云端。原对话和副本均已保留。",
         keptNotice: "已保留当前版本，原始副本仍可查看、恢复和下载。",
         resolveFailed: "处理失败，原始副本已保留，请重试。",
         conflict: "历史已同步，有冲突副本",

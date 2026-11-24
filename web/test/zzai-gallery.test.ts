@@ -134,16 +134,20 @@ describe("授权发布库业务API", () => {
     });
 });
 
-test("公共端不直连聚合站，授权notice由真实卡片保留", () => {
+test("公共端不直连聚合站，列表不展示来源区块且详情保留结构化出处与许可", () => {
     const gallery = readFileSync(new URL("../src/pages/inspirations/zzai-gallery.tsx", import.meta.url), "utf8");
     const showcase = readFileSync(new URL("../src/pages/create/creation-showcase-band.tsx", import.meta.url), "utf8");
     const dialog = readFileSync(new URL("../src/pages/create/creation-inspiration-dialog.tsx", import.meta.url), "utf8");
     const card = readFileSync(new URL("../src/pages/create/creation-showcase-card.tsx", import.meta.url), "utf8");
+    const detail = readFileSync(new URL("../src/pages/inspirations/inspiration-detail-modal.tsx", import.meta.url), "utf8");
     expect(gallery).toContain("resolveInspirationFavorites(authorizedFavorites, signal)");
     expect(dialog).toContain("getInspirationPrompt(pending.id");
     expect(gallery).toContain('refetchOnWindowFocus: "always"');
     expect(showcase).toContain("refetchInterval: 60_000");
     expect(showcase).not.toContain("detailCache");
-    expect(card).toContain("<InspirationAuthorizationNotice item={entry} />");
+    expect(card).not.toContain("InspirationAuthorizationNotice");
+    expect(gallery).not.toContain("InspirationAuthorizationNotice");
+    expect(detail).not.toContain("InspirationAuthorizationNotice");
+    for (const label of ["来源", "原页", "提示词许可", "媒体许可"]) expect(detail).toContain(`"${label}"`);
     expect(gallery + showcase + dialog).not.toContain("https://api.seedance.nz/");
 });

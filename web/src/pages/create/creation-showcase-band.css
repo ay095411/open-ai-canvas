@@ -328,7 +328,13 @@
     background: var(--user-surface-muted);
 }
 
-.creation-showcase-cover :is(img, video) {
+.creation-showcase-cover img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.creation-showcase-cover video {
     position: absolute;
     inset: 0;
     display: block;
@@ -394,10 +400,8 @@
 }
 
 .creation-showcase-copy strong {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    display: block;
+    white-space: normal;
     color: var(--user-ink);
     font-size: var(--fs-caption);
     font-weight: 600;
@@ -406,21 +410,20 @@
 }
 
 .creation-showcase-copy > span {
-    overflow: hidden;
     color: var(--user-ink-muted);
     font-size: var(--fs-label);
     line-height: 1.6;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .creation-showcase-unavailable {
     display: flex;
-    height: 100%;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
+    padding: var(--space-6) var(--space-3);
     color: var(--user-ink-muted);
     font-size: var(--fs-caption);
 }

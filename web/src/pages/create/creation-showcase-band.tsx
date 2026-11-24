@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Button, Input, Popover } from "antd";
+import { Button, Input } from "antd";
 import { ArrowUpRight, Images, Info, RefreshCw, Search, SearchX, WifiOff, X } from "lucide-react";
 
 import { InspirationMasonry } from "@/components/inspirations/inspiration-masonry";
 import { SegmentedControl } from "@/components/ui/base/segmented-control";
 import { Select } from "@/components/ui/base/select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { inspirationSources, type InspirationGallerySource } from "@/lib/inspirations/catalog";
+import { gallerySourceInfo, type InspirationGallerySource } from "@/lib/inspirations/catalog";
 import { mergeZzaiGalleryPages, zzaiCategoryLabel } from "@/lib/inspirations/zzai-gallery";
 import { ApiError } from "@/services/api/request";
-import { INSPIRATION_POLICY_VERSION, getZzaiGalleryFacets, getZzaiGalleryPrompts, type ZzaiGalleryQuery, type ZzaiGallerySort } from "@/services/api/zzai-gallery";
-import { getOnlineGalleryFacets, getOnlineGalleryPrompts, type InspirationGalleryFacets, type InspirationGalleryPage, type InspirationGallerySummary } from "@/services/api/online-gallery";
+import { invalidateInspirationCatalog } from "@/services/inspiration-catalog";
+import { INSPIRATION_POLICY_VERSION, type ZzaiGallerySort } from "@/services/api/zzai-gallery";
+import { getInspirationGalleryFacets, getInspirationGalleryPrompts, type InspirationGalleryFacets, type InspirationGalleryPage, type InspirationGalleryQuery, type InspirationGallerySummary } from "@/services/api/online-gallery";
 import { useUserStore } from "@/stores/use-user-store";
 
 import CreationInspirationDialog from "./creation-inspiration-dialog";
@@ -21,6 +22,7 @@ import "./creation-showcase-band.css";
 
 type ShowcaseFilters = { search: string; media: "all" | "image" | "video"; category: string; model: string; sort: ZzaiGallerySort };
 const DEFAULT_FILTERS: ShowcaseFilters = { search: "", media: "all", category: "", model: "", sort: "latest" };
+const SHOWCASE_MEDIA_TYPES = ["image", "video"] as const;
 
 function showcaseFailureMessage(error: unknown, nextPage: boolean): string {
     if (error instanceof ApiError) {
@@ -32,12 +34,12 @@ function showcaseFailureMessage(error: unknown, nextPage: boolean): string {
     return nextPage ? "更多示例加载失败，已暂时隐藏旧内容；请从第一页重新核验。" : "在线示例暂不可用或未通过内容核验，请重新加载。";
 }
 
-/** 首页只读摘要；弹窗负责唯一一次首次详情请求，复制与使用前仍分别核验。 */
-export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, initialSource = "zzai-gallery" }: { onStartPrompt: (mode: CreationMode, prompt: string) => void; sourcesVisible?: boolean; initialSource?: InspirationGallerySource }) {
+/** 官方目录在浏览器内筛选分页；本站审核库仍在详情和使用前核验授权。 */
+export function CreationShowcaseBand({ onStartPrompt, initialSource = "official-catalog" }: { onStartPrompt: (mode: CreationMode, prompt: string) => void; sourcesVisible?: boolean; initialSource?: InspirationGallerySource }) {
     const userScope = useUserStore((state) => state.user?.id ?? "guest");
     const [source, setSource] = useState<InspirationGallerySource>(initialSource);
     const licensed = source === "authorized-library";
-    const catalogVersion = licensed ? INSPIRATION_POLICY_VERSION : "online-v1";
+    const catalogVersion = licensed ? INSPIRATION_POLICY_VERSION : "official-catalog-v1";
     const [reloadRevision, setReloadRevision] = useState(0);
     const [filters, setFilters] = useState(DEFAULT_FILTERS);
     const { search, media, category, model, sort } = filters;
@@ -45,9 +47,17 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
     const appliedSearch = search.trim() ? debouncedSearch : "";
     const searchPending = search.trim() !== appliedSearch;
     const hasFilters = Boolean(search.trim() || media !== "all" || category || model || sort !== "latest");
-    const query = useMemo<ZzaiGalleryQuery>(
-        () => ({ search: appliedSearch || undefined, mediaType: media === "all" ? undefined : media, category: category || undefined, model: model || undefined, sort, limit: 21 }),
-        [appliedSearch, category, media, model, sort],
+    const query = useMemo<InspirationGalleryQuery>(
+        () => ({
+            search: appliedSearch || undefined,
+            mediaType: media === "all" ? undefined : media,
+            ...(!licensed && media === "all" ? { mediaTypes: SHOWCASE_MEDIA_TYPES } : {}),
+            category: category || undefined,
+            model: model || undefined,
+            sort,
+            limit: 21,
+        }),
+        [appliedSearch, category, licensed, media, model, sort],
     );
     const [dialog, setDialog] = useState<{ item?: Pick<InspirationGallerySummary, "id" | "sourceId"> } | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -69,7 +79,7 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
     const galleryKey = ["public", "inspirations", source, catalogVersion, "showcase", userScope, query, reloadRevision];
     const gallery = useInfiniteQuery({
         queryKey: galleryKey,
-        queryFn: ({ pageParam, signal }): Promise<InspirationGalleryPage> => (licensed ? getZzaiGalleryPrompts : getOnlineGalleryPrompts)({ ...query, cursor: pageParam || undefined }, signal),
+        queryFn: ({ pageParam, signal }): Promise<InspirationGalleryPage> => getInspirationGalleryPrompts(source, { ...query, cursor: pageParam || undefined }, signal),
         initialPageParam: "",
         getNextPageParam: (page, _pages, _lastPageParam, pageParams) => (page.nextCursor && !pageParams.includes(page.nextCursor) ? page.nextCursor : undefined),
         // 换回缓存 key 也需重新读取，才能满足 isFetchedAfterMount 的核验门槛。
@@ -80,8 +90,8 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
         retry: false,
     });
     const facets = useQuery({
-        queryKey: ["public", "inspirations", `${source}-facets`, catalogVersion, userScope, query.mediaType],
-        queryFn: ({ signal }): Promise<InspirationGalleryFacets> => (licensed ? getZzaiGalleryFacets : getOnlineGalleryFacets)(query.mediaType, signal),
+        queryKey: ["public", "inspirations", `${source}-facets`, catalogVersion, userScope, query.mediaType, query.mediaTypes],
+        queryFn: ({ signal }): Promise<InspirationGalleryFacets> => getInspirationGalleryFacets(source, { mediaType: query.mediaType, mediaTypes: query.mediaTypes }, signal),
         staleTime: 60_000,
         refetchOnWindowFocus: "always",
         refetchOnMount: "always",
@@ -117,6 +127,7 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
     }, [canLoadMore, galleryReady, loadNextPage]);
 
     const reloadGallery = () => {
+        if (!licensed) invalidateInspirationCatalog();
         // 新查询从首屏核验；不 reset 旧查询的更新计数，否则缓存回访时无法判定核验完成。
         setReloadRevision((revision) => revision + 1);
         if (facets.isError) void facets.refetch();
@@ -137,7 +148,6 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
                 <div className="creation-showcase-heading">
                     <div className="creation-showcase-title-row">
                         <h2 id="creation-showcase-title">看看能拍成什么样</h2>
-                        {sourcesVisible ? <ShowcaseSources entries={entries} /> : null}
                     </div>
                 </div>
                 <button type="button" className="creation-showcase-hall-entry" onClick={openHall}>
@@ -168,7 +178,7 @@ export function CreationShowcaseBand({ onStartPrompt, sourcesVisible = false, in
             <div className="creation-showcase-context">
                 <p className="creation-showcase-license-note">
                     <Info size={14} aria-hidden="true" />
-                    <span>{inspirationSources[source].notice}</span>
+                    <span>{gallerySourceInfo(source).notice}</span>
                 </p>
                 <p className="creation-showcase-query-status" role="status" aria-atomic="true">
                     {searchPending ? "正在应用关键词筛选…" : galleryReady ? `共 ${gallery.data.pages[0].total} 个${hasFilters ? "匹配" : "在线"}示例` : ""}
@@ -308,7 +318,7 @@ function CreationShowcaseFilters({
                     popupMatchSelectWidth={false}
                     className="creation-showcase-filter-select creation-showcase-filter-source"
                     options={[
-                        { value: "zzai-gallery", label: "在线图库" },
+                        { value: "official-catalog", label: gallerySourceInfo("official-catalog").label },
                         { value: "authorized-library", label: "本站审核库" },
                     ]}
                 />
@@ -323,7 +333,7 @@ function CreationShowcaseFilters({
                     disabled={!facets}
                     showSearch
                     optionFilterProp="label"
-                    options={[{ value: "", label: "全部分类" }, ...(facets?.categories ?? []).map((value) => ({ value, label: zzaiCategoryLabel(value) }))]}
+                    options={[{ value: "", label: "全部分类" }, ...(facets?.categories ?? []).map((value) => ({ value, label: facets?.categoryLabels?.[value] ?? zzaiCategoryLabel(value) }))]}
                 />
                 <Select
                     value={filters.model}
@@ -355,76 +365,5 @@ function CreationShowcaseFilters({
                 </Button>
             </div>
         </div>
-    );
-}
-
-function ShowcaseSources({ entries }: { entries: InspirationGallerySummary[] }) {
-    const [open, setOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const close = () => {
-        setOpen(false);
-        triggerRef.current?.focus();
-    };
-
-    return (
-        <span
-            className="creation-inspiration-credit"
-            onKeyDown={(event) => {
-                if (event.key === "Escape" && open) {
-                    event.stopPropagation();
-                    close();
-                }
-            }}
-        >
-            <Popover
-                open={open}
-                onOpenChange={setOpen}
-                trigger="click"
-                placement="bottomLeft"
-                align={{ overflow: { adjustX: true, adjustY: true, shiftX: true, shiftY: true } }}
-                arrow={false}
-                autoAdjustOverflow
-                destroyOnHidden
-                classNames={{ root: "creation-inspiration-credit-popover", container: "creation-inspiration-credit-surface" }}
-                content={
-                    <section className="creation-inspiration-credit-panel" role="dialog" aria-label="素材来源">
-                        <header>
-                            <strong>素材来源</strong>
-                            <button type="button" aria-label="关闭素材来源" onClick={close}>
-                                <X size={16} aria-hidden="true" />
-                            </button>
-                        </header>
-                        <div className="creation-inspiration-credit-scroll">
-                            <p>保留每条示例的原始出处与署名；外部在线示例不等于已获授权，本站审核库另行标注已核验许可。</p>
-                            {entries.length ? (
-                                <section className="creation-inspiration-credit-works" aria-label="当前作品署名">
-                                    <h3>当前作品署名</h3>
-                                    <ul>
-                                        {entries.map((entry) => (
-                                            <li key={entry.id}>
-                                                {entry.sourceUrl ? (
-                                                    <a href={entry.sourceUrl} target="_blank" rel="noreferrer">
-                                                        {entry.title}
-                                                    </a>
-                                                ) : (
-                                                    <span>{entry.title}</span>
-                                                )}
-                                                <span>{entry.credit || (entry.sourceUrl ? "原始出处未标注署名" : "原始出处未标注")}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </section>
-                            ) : (
-                                <p>当前没有在线条目。</p>
-                            )}
-                        </div>
-                    </section>
-                }
-            >
-                <button ref={triggerRef} type="button" className="creation-inspiration-credit-trigger" aria-expanded={open} aria-haspopup="dialog">
-                    素材来源
-                </button>
-            </Popover>
-        </span>
     );
 }

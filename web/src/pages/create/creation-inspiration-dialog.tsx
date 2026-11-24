@@ -20,7 +20,7 @@ const InspirationLibrary = lazy(() => import("@/pages/inspirations"));
 export default function CreationInspirationDialog({
     open,
     initialItem = null,
-    initialSource = "zzai-gallery",
+    initialSource = "official-catalog",
     onClose,
     afterClose,
     onUse,
@@ -54,7 +54,7 @@ export default function CreationInspirationDialog({
     const title = selectedId ? "灵感详情" : "灵感大厅";
     const licensed = selectedId?.startsWith("authorized-library:") ?? false;
     const detailQuery = useQuery({
-        queryKey: ["public", "inspirations", licensed ? "authorized-library" : "zzai-gallery", licensed ? INSPIRATION_POLICY_VERSION : "online-v1", "detail", userScope, selectedId],
+        queryKey: ["public", "inspirations", selectedId?.split(":")[0] ?? "official-catalog", licensed ? INSPIRATION_POLICY_VERSION : "official-catalog-v1", "detail", userScope, selectedId],
         queryFn: ({ signal }) => getInspirationPrompt(selectedId!, signal),
         enabled: open && Boolean(selectedId),
         retry: false,
@@ -202,12 +202,12 @@ export default function CreationInspirationDialog({
                     ) : null}
                     {selectedId && !detail && !detailQuery.isError && !actionError ? (
                         <p className="creation-inspiration-dialog-loading" role="status">
-                            {licensed ? "正在核验授权素材…" : "正在读取在线示例…"}
+                            {licensed ? "正在核验授权素材…" : "正在读取官方目录示例…"}
                         </p>
                     ) : null}
                     {selectedId && (detailQuery.isError || actionError) ? (
                         <p className="creation-inspiration-dialog-loading" role="alert">
-                            {licensed ? "当前素材未通过授权核验或暂不可用，正文和媒体已隐藏。" : "在线示例暂不可用，正文和媒体已隐藏。"}
+                            {licensed ? "当前素材未通过授权核验或暂不可用，正文和媒体已隐藏。" : "官方目录示例暂不可用，正文和媒体已隐藏。"}
                             <Button disabled={detailQuery.isFetching} onClick={() => void detailQuery.refetch()}>
                                 重试核验
                             </Button>

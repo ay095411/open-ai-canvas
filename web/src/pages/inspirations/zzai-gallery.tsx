@@ -1,6 +1,6 @@
 import { App, Button, Input } from "antd";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Copy, ExternalLink, Heart, LoaderCircle, Search, Wand2 } from "lucide-react";
+import { Copy, Heart, LoaderCircle, Search, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { WorkspaceErrorState, WorkspaceLoadingState, WorkspaceNoResultsState, WorkspaceState } from "@/components/layout/workspace-state";
@@ -9,25 +9,44 @@ import { SegmentedControl } from "@/components/ui/base/segmented-control";
 import { Select } from "@/components/ui/base/select";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { catalogIdOf, inspirationSources, type CreationInspiration, type InspirationGallerySource } from "@/lib/inspirations/catalog";
-import { isIgnoredOnlineInspiration, normalizeOnlineFavorite } from "@/lib/inspirations/external-favorites";
+import { catalogIdOf, gallerySourceInfo, inspirationSources, isOfficialInspirationId, OFFICIAL_INSPIRATION_SOURCES, type OfficialInspirationSourceId, type CreationInspiration, type InspirationGallerySource } from "@/lib/inspirations/catalog";
 import { fillablePrompt } from "@/lib/inspirations/resolve";
 import { filterZzaiGalleryFavorites, mergeZzaiGalleryPages, toZzaiGalleryInspiration, zzaiCategoryLabel } from "@/lib/inspirations/zzai-gallery";
-import { inspirationCoverRatio } from "@/lib/inspirations/masonry";
 import { assertCurrentUserSession, captureUserSession } from "@/lib/user-scope";
-import { INSPIRATION_POLICY_VERSION, resolveInspirationFavorites, getZzaiGalleryFacets, getZzaiGalleryPrompts, type ZzaiGalleryQuery, type ZzaiGallerySort } from "@/services/api/zzai-gallery";
-import { getOnlineGalleryFacets, getOnlineGalleryPrompts, getInspirationPrompt, type InspirationGallerySummary, type InspirationGalleryPage, type InspirationGalleryFacets } from "@/services/api/online-gallery";
+import { INSPIRATION_POLICY_VERSION, resolveInspirationFavorites, type ZzaiGallerySort } from "@/services/api/zzai-gallery";
+import { getInspirationGalleryFacets, getInspirationGalleryPrompts, getInspirationPrompt, type InspirationGalleryQuery, type InspirationGallerySummary, type InspirationGalleryPage, type InspirationGalleryFacets } from "@/services/api/online-gallery";
+import { inspirationCatalogForSignal } from "@/services/inspiration-catalog";
 import { useInspirationStore } from "@/stores/use-inspiration-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { InspirationDetailModal } from "./inspiration-detail-modal";
-import { InspirationAuthorizationNotice } from "./inspiration-authorization-notice";
 import "./inspirations.css";
 
 type GalleryItem = InspirationGallerySummary | CreationInspiration;
 type GalleryAction = "preview" | "use" | "copy" | "favorite";
 const noFavorites: string[] = [];
 
-export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai-gallery" }: { onUse: (item: CreationInspiration) => void; onPreview?: (item: CreationInspiration) => void; userScope?: string; initialSource?: InspirationGallerySource }) {
+function GalleryCoverImage({ item }: { item: Pick<CreationInspiration, "image" | "title" | "width" | "height"> }) {
+    const [failed, setFailed] = useState(false);
+    if (failed)
+        return (
+            <div className="inspiration-card-cover-error" role="img" aria-label={`${item.title}：封面暂不可用`}>
+                封面暂不可用
+            </div>
+        );
+    return <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} onError={() => setFailed(true)} />;
+}
+
+export function ZzaiGallery({
+    onUse,
+    onPreview,
+    userScope,
+    initialSource = "official-catalog",
+}: {
+    onUse: (item: CreationInspiration) => void;
+    onPreview?: (item: CreationInspiration) => void;
+    userScope?: string;
+    initialSource?: InspirationGallerySource;
+}) {
     const { message } = App.useApp();
     const user = useUserStore((state) => state.user);
     const scope = userScope ?? user?.id ?? "guest";
@@ -35,27 +54,21 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
     const hydrationScope = useInspirationStore((state) => state.hydrationScope);
     const hydrationError = useInspirationStore((state) => state.hydrationError);
     const storedFavorites = useInspirationStore((state) => state.favorites);
-    const storedSnapshots = useInspirationStore((state) => state.externalFavorites);
     const toggleFavorite = useInspirationStore((state) => state.toggleFavorite);
     const ready = hydrated && hydrationScope === scope;
     const canFavorite = ready && Boolean(user?.id);
     const favorites = ready ? storedFavorites : noFavorites;
     const authorizedFavorites = useMemo(() => favorites.filter((id) => id.startsWith("authorized-library:")), [favorites]);
     const requiresResolution = authorizedFavorites.length > 0;
-    const localOnlineSnapshots = useMemo(() => {
-        if (!ready) return [];
-        const current = new Map<string, CreationInspiration>();
-        for (const raw of storedSnapshots) {
-            // 外部收藏可读本地快照；旧格式或损坏数据只隐藏，不删除原记录。
-            try {
-                const item = normalizeOnlineFavorite(raw);
-                if (item.id && favorites.includes(item.id) && !isIgnoredOnlineInspiration(item)) current.set(item.id, item);
-            } catch {
-                /* 授权库记录由服务端 resolve 单独核验。 */
-            }
-        }
-        return [...current.values()];
-    }, [favorites, ready, storedSnapshots]);
+    const officialFavorites = useMemo(() => favorites.filter(isOfficialInspirationId), [favorites]);
+    const officialResolved = useQuery({
+        queryKey: ["public", "inspirations", "official-catalog", "favorites", scope, officialFavorites],
+        queryFn: async ({ signal }) => (await inspirationCatalogForSignal(signal)).entries.filter((item) => officialFavorites.includes(item.id)),
+        enabled: ready && officialFavorites.length > 0,
+        retry: false,
+        staleTime: 0,
+        refetchOnMount: "always",
+    });
     const resolved = useQuery({
         queryKey: ["public", "inspirations", "authorized-library", INSPIRATION_POLICY_VERSION, "favorites", scope, authorizedFavorites],
         queryFn: ({ signal }) => resolveInspirationFavorites(authorizedFavorites, signal),
@@ -67,19 +80,23 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
         refetchInterval: 60_000,
     });
     const snapshots: GalleryItem[] = useMemo(
-        () => [...localOnlineSnapshots, ...(ready && resolved.isSuccess && resolved.isFetchedAfterMount ? resolved.data.items.filter((item) => favorites.includes(item.id)) : [])],
-        [localOnlineSnapshots, ready, resolved.isSuccess, resolved.isFetchedAfterMount, resolved.data, favorites],
+        () => [
+            ...(ready && officialResolved.isSuccess && officialResolved.isFetchedAfterMount ? officialResolved.data : []),
+            ...(ready && resolved.isSuccess && resolved.isFetchedAfterMount ? resolved.data.items.filter((item) => favorites.includes(item.id)) : []),
+        ],
+        [ready, officialResolved.data, officialResolved.isSuccess, officialResolved.isFetchedAfterMount, resolved.isSuccess, resolved.isFetchedAfterMount, resolved.data, favorites],
     );
     const favoriteSet = useMemo(() => new Set(favorites), [favorites]);
 
     const [view, setView] = useState<"online" | "favorites">("online");
     const [source, setSource] = useState<InspirationGallerySource>(initialSource);
     const licensed = source === "authorized-library";
-    const catalogVersion = licensed ? INSPIRATION_POLICY_VERSION : "online-v1";
+    const catalogVersion = licensed ? INSPIRATION_POLICY_VERSION : "official-v1";
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebouncedValue(search, 300);
     const searchPending = search.trim() !== debouncedSearch.trim();
-    const [media, setMedia] = useState<"all" | "image" | "video">("all");
+    const [media, setMedia] = useState<"all" | "image" | "video" | "text">("all");
+    const [officialSource, setOfficialSource] = useState<"" | OfficialInspirationSourceId>("");
     const [category, setCategory] = useState("");
     const [model, setModel] = useState("");
     const [sort, setSort] = useState<ZzaiGallerySort>("latest");
@@ -89,7 +106,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
     const currentScope = useRef(scope);
     currentScope.current = scope;
     const currentIntent = useRef("");
-    currentIntent.current = JSON.stringify([scope, view, source, search, media, category, model, sort]);
+    currentIntent.current = JSON.stringify([scope, view, source, officialSource, search, media, category, model, sort]);
     const cancelAction = () => {
         actionController.current?.abort();
         actionController.current = null;
@@ -107,10 +124,13 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
         };
     }, [scope, view, source]);
 
-    const query = useMemo<ZzaiGalleryQuery>(() => ({ search: debouncedSearch, mediaType: media === "all" ? undefined : media, category: category || undefined, model: model || undefined, sort, limit: 24 }), [category, debouncedSearch, media, model, sort]);
+    const query = useMemo<InspirationGalleryQuery>(
+        () => ({ search: debouncedSearch, mediaType: media === "all" ? undefined : media, sourceId: !licensed && officialSource ? officialSource : undefined, category: category || undefined, model: model || undefined, sort, limit: 24 }),
+        [category, debouncedSearch, media, model, sort, licensed, officialSource],
+    );
     const online = useInfiniteQuery({
         queryKey: ["public", "inspirations", source, catalogVersion, scope, query],
-        queryFn: ({ pageParam, signal }): Promise<InspirationGalleryPage> => (licensed ? getZzaiGalleryPrompts : getOnlineGalleryPrompts)({ ...query, cursor: pageParam || undefined }, signal),
+        queryFn: ({ pageParam, signal }): Promise<InspirationGalleryPage> => getInspirationGalleryPrompts(source, { ...query, cursor: pageParam || undefined }, signal),
         initialPageParam: "",
         getNextPageParam: (page, _pages, _lastPageParam, pageParams) => (page.nextCursor && !pageParams.includes(page.nextCursor) ? page.nextCursor : undefined),
         enabled: view === "online",
@@ -123,7 +143,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
     });
     const facets = useQuery({
         queryKey: ["public", "inspirations", `${source}-facets`, catalogVersion, scope, query.mediaType],
-        queryFn: ({ signal }): Promise<InspirationGalleryFacets> => (licensed ? getZzaiGalleryFacets : getOnlineGalleryFacets)(query.mediaType, signal),
+        queryFn: ({ signal }): Promise<InspirationGalleryFacets> => getInspirationGalleryFacets(source, query.mediaType, signal),
         enabled: view === "online",
         retry: false,
         staleTime: 60_000,
@@ -191,6 +211,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
     );
 
     const clearFilters = () => {
+        setOfficialSource("");
         cancelAction();
         setSearch("");
         setMedia("all");
@@ -203,7 +224,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
     return (
         <section className="mt-4 min-w-0" aria-label="在线提示词画廊">
             <div className="mb-4 flex flex-col gap-2 rounded-lg bg-surface-tertiary p-3 text-xs leading-5 text-muted-foreground">
-                <p>{view === "online" ? inspirationSources[source].notice : "外部收藏保留本地提示词快照，本站审核素材仍需服务端复核；来源与许可不能相互替代。"}</p>
+                <p>{view === "online" ? gallerySourceInfo(source).notice : "官方目录收藏从当前目录读取，本站审核素材仍需服务端复核；旧在线收藏只保留记录，不再回源。"}</p>
                 <p>这里只浏览、复制和填入提示词，不会自动生成或切换项目模型。使用与新增收藏前重新读取所选来源的详情，原记录不会自动删除。</p>
             </div>
 
@@ -240,15 +261,30 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                         ariaLabel="画廊素材来源"
                         className="min-w-32"
                         options={[
-                            { value: "zzai-gallery", label: "在线图库" },
+                            { value: "official-catalog", label: gallerySourceInfo("official-catalog").label },
                             { value: "authorized-library", label: "本站审核库" },
                         ]}
                         onChange={(next) => {
                             cancelAction();
                             setSource(next);
+                            setOfficialSource("");
+                            if (next === "authorized-library" && media === "text") setMedia("all");
                             setCategory("");
                             setModel("");
                             setSort("latest");
+                        }}
+                    />
+                ) : null}
+                {!licensed ? (
+                    <Select
+                        value={officialSource}
+                        ariaLabel="官方目录来源"
+                        className="min-w-32"
+                        options={[{ value: "", label: "全部目录来源" }, ...OFFICIAL_INSPIRATION_SOURCES.map((value) => ({ value, label: inspirationSources[value].name ?? inspirationSources[value].label }))]}
+                        onChange={(next) => {
+                            cancelAction();
+                            setOfficialSource(next);
+                            setCategory("");
                         }}
                     />
                 ) : null}
@@ -262,11 +298,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                     }}
                     ariaLabel="画廊媒体类型"
                     size="sm"
-                    options={[
-                        { value: "all", label: "全部类型" },
-                        { value: "image", label: "图片" },
-                        { value: "video", label: "视频" },
-                    ]}
+                    options={[{ value: "all", label: "全部类型" }, { value: "image", label: "图片" }, { value: "video", label: "视频" }, ...(!licensed ? [{ value: "text", label: "文本" } as const] : [])]}
                 />
                 <Select
                     value={category}
@@ -276,7 +308,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                     }}
                     ariaLabel="画廊分类"
                     className="min-w-32"
-                    options={[{ value: "", label: "全部分类" }, ...categories.map((value) => ({ value, label: zzaiCategoryLabel(value) }))]}
+                    options={[{ value: "", label: "全部分类" }, ...categories.map((value) => ({ value, label: facets.data?.categoryLabels?.[value] ?? zzaiCategoryLabel(value) }))]}
                 />
                 <Select
                     value={model}
@@ -306,15 +338,24 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
 
             {view === "online" ? (
                 <p className="mb-3 text-xs text-muted-foreground" role="status">
-                    {total === undefined ? (online.isError ? "在线画廊读取失败，未获得条目总数。" : "正在读取当前筛选的条目数量…") : `当前筛选共 ${total.toLocaleString()} 条，已加载 ${onlineItems.length} 条。完整提示词在打开详情时加载。`}
+                    {total === undefined
+                        ? online.isError
+                            ? "灵感目录读取失败，未获得条目总数。"
+                            : "正在读取当前筛选的条目数量…"
+                        : `当前筛选共 ${total.toLocaleString()} 条，已加载 ${onlineItems.length} 条。${licensed ? "完整提示词在打开详情时核验。" : "目录已包含完整提示词，筛选与分页在本地进行。"}`}
                 </p>
             ) : (
-                <p className="mb-3 text-xs text-muted-foreground">当前筛选显示 {savedItems.length} 条收藏；外部收藏为本地快照，审核库素材经当前服务复核。详情、复制与使用会重新读取当前内容。</p>
+                <p className="mb-3 text-xs text-muted-foreground">当前筛选显示 {savedItems.length} 条收藏；官方条目从当前目录读取，审核库素材经服务端复核。本地保存不代表跨设备保存。</p>
             )}
             {view === "favorites" && (!requiresResolution || !resolved.isPending) && favorites.length > snapshots.length ? <p role="status">部分历史收藏暂不可展示，已隐藏，原记录未删除（{favorites.length - snapshots.length} 条）。</p> : null}
             {view === "favorites" && requiresResolution && resolved.isError ? (
                 <p role="alert">
                     当前无法复核本站审核库收藏，相关内容已隐藏，原记录未删除。<Button onClick={() => void resolved.refetch()}>重试核验</Button>
+                </p>
+            ) : null}
+            {view === "favorites" && officialFavorites.length > 0 && officialResolved.isError ? (
+                <p role="alert">
+                    官方目录暂不可用，收藏记录保留。<Button onClick={() => void officialResolved.refetch()}>重试官方目录</Button>
                 </p>
             ) : null}
             {!canFavorite ? (
@@ -331,16 +372,21 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                 </div>
             ) : null}
 
-            {view === "online" && (online.isPending || (!online.isFetchedAfterMount && online.isFetching)) ? <WorkspaceLoadingState label="正在加载在线画廊" detail="按需读取公开条目，不下载整库" rows={3} /> : null}
+            {view === "online" && (online.isPending || (!online.isFetchedAfterMount && online.isFetching)) ? (
+                <WorkspaceLoadingState label={licensed ? "正在读取本站审核库" : "正在加载官方灵感目录"} detail={licensed ? "按当前筛选读取已发布素材" : "读取官方静态目录和上新，加载后在本地筛选"} rows={3} />
+            ) : null}
             {view === "online" && online.isError && !onlineItems.length ? <WorkspaceErrorState compact title="在线画廊暂不可用" description={online.error instanceof Error ? online.error.message : undefined} onRetry={() => void online.refetch()} /> : null}
             {view === "favorites" && !ready ? <WorkspaceState compact icon="loading" title="本地收藏暂不可用" description={hydrationError || "正在读取当前账号的本地收藏。"} /> : null}
             {view === "favorites" && ready && requiresResolution && resolved.isPending ? <WorkspaceLoadingState label="正在复核收藏授权" rows={2} /> : null}
-            {!items.length && ((view === "online" && online.isSuccess && online.isFetchedAfterMount) || (view === "favorites" && ready && (!requiresResolution || resolved.isSuccess))) ? (
+            {view === "favorites" && ready && officialFavorites.length > 0 && officialResolved.isPending ? <WorkspaceLoadingState label="正在读取官方目录收藏" rows={2} /> : null}
+            {!items.length &&
+            ((view === "online" && online.isSuccess && online.isFetchedAfterMount) ||
+                (view === "favorites" && ready && (!requiresResolution || resolved.isSuccess) && (officialFavorites.length === 0 || (officialResolved.isSuccess && officialResolved.isFetchedAfterMount)))) ? (
                 <WorkspaceNoResultsState
                     compact
                     query={debouncedSearch}
-                    title={view === "favorites" && !snapshots.length ? "没有可展示的收藏" : !query.search && !query.category && !query.model && !query.mediaType ? (licensed ? "尚未发布已核验素材" : "在线图库暂未返回示例") : undefined}
-                    description={view === "favorites" && !snapshots.length ? "原收藏记录不会删除；可以从在线图库重新打开并收藏示例。" : undefined}
+                    title={view === "favorites" && !snapshots.length ? "没有可展示的收藏" : !query.search && !query.category && !query.model && !query.mediaType ? (licensed ? "尚未发布已核验素材" : "官方目录暂无条目") : undefined}
+                    description={view === "favorites" && !snapshots.length ? "原收藏记录不会删除；可以从官方目录或本站审核库重新打开并收藏示例。" : undefined}
                     onClear={clearFilters}
                 />
             ) : null}
@@ -367,9 +413,9 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                                 }
                             }}
                         >
-                            <div className="inspiration-card-cover" style={{ aspectRatio: inspirationCoverRatio(item) }}>
-                                <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} />
-                                <span className="inspiration-card-source">{item.mode === "video" ? "视频案例" : "图片案例"}</span>
+                            <div className="inspiration-card-cover">
+                                <GalleryCoverImage key={item.image} item={item} />
+                                <span className="inspiration-card-source">{item.mode === "video" ? "视频案例" : item.mode === "text" ? "文本模板" : "图片案例"}</span>
                                 {busyId === id ? (
                                     <span className="inspiration-card-new" role="status">
                                         正在读取详情…
@@ -401,16 +447,9 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                                 </h3>
                                 {item.description ? <p className="inspiration-card-desc">{item.description}</p> : null}
                                 <div className="inspiration-card-tags">
-                                    <span className="inspiration-chip">{zzaiCategoryLabel(item.category)}</span>
+                                    <span className="inspiration-chip">{item.category ? (facets.data?.categoryLabels?.[item.category] ?? zzaiCategoryLabel(item.category)) : "未分类"}</span>
                                     {item.model ? <span className="inspiration-chip">{item.model}</span> : null}
                                 </div>
-                                <p className="text-xs leading-5 text-muted-foreground">{item.credit ? `来源署名：${item.credit}` : item.sourceUrl ? "原始出处未标注署名" : "原始出处未标注"}</p>
-                                <InspirationAuthorizationNotice item={item} />
-                                {item.sourceUrl ? (
-                                    <a className="inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline" href={item.sourceUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-                                        查看原始出处 <ExternalLink className="size-3" />
-                                    </a>
-                                ) : null}
                                 <div className="mt-1 flex flex-wrap items-center gap-2">
                                     <Button
                                         size="small"
@@ -452,7 +491,7 @@ export function ZzaiGallery({ onUse, onPreview, userScope, initialSource = "zzai
                 <InspirationDetailModal
                     item={detail}
                     videoUrl={detail?.videoUrl}
-                    categoryLabel={(item) => zzaiCategoryLabel(item.category)}
+                    categoryLabel={(item) => (item.category ? (facets.data?.categoryLabels?.[item.category] ?? zzaiCategoryLabel(item.category)) : "未分类")}
                     favorite={detail ? favoriteSet.has(catalogIdOf(detail)) : false}
                     favoriteDisabled={Boolean(busyId)}
                     onClose={() => setDetail(null)}

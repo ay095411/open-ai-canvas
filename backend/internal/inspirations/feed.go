@@ -1,6 +1,8 @@
 package inspirations
 
 import (
+	"maps"
+	"slices"
 	"time"
 
 	"yingce/backend/internal/kernel"
@@ -22,6 +24,7 @@ type FeedEntry struct {
 	SourceURL   string     `json:"sourceUrl,omitempty"`
 	AddedAt     time.Time  `json:"addedAt"`
 	PublishedAt *time.Time `json:"publishedAt,omitempty"`
+	VideoURL    string     `json:"videoUrl,omitempty"`
 }
 
 // Feed 是灵感大厅的上新数据。Enabled 为 false 时 Entries 为空，前台只展示静态目录。
@@ -30,6 +33,7 @@ type Feed struct {
 	Entries    []FeedEntry                  `json:"entries"`
 	Categories map[string]map[string]string `json:"categories"`
 	SyncedAt   *time.Time                   `json:"syncedAt,omitempty"`
+	VideoLinks *VideoLinks                  `json:"videoLinks,omitempty"`
 }
 
 // AdminStatus 是后台展示的上新状态：开关、最近一次同步的结果与已收录数量。
@@ -52,8 +56,9 @@ func (s *Service) Feed() (*Feed, error) {
 	if s.cached != nil && s.now().Sub(s.cachedAt) < feedCacheTTL {
 		feed := s.cached
 		s.cacheMu.Unlock()
-		return feed, nil
+		return cloneFeedSnapshot(feed), nil
 	}
+	generation := s.cacheGeneration
 	s.cacheMu.Unlock()
 
 	feed, err := s.loadFeed()
@@ -61,9 +66,11 @@ func (s *Service) Feed() (*Feed, error) {
 		return nil, err
 	}
 	s.cacheMu.Lock()
-	s.cached, s.cachedAt = feed, s.now()
+	if generation == s.cacheGeneration {
+		s.cached, s.cachedAt = feed, s.now()
+	}
 	s.cacheMu.Unlock()
-	return feed, nil
+	return cloneFeedSnapshot(feed), nil
 }
 
 func (s *Service) loadFeed() (*Feed, error) {
@@ -84,12 +91,25 @@ func (s *Service) loadFeed() (*Feed, error) {
 		return nil, err
 	}
 	feed.Entries = make([]FeedEntry, 0, len(rows))
+	if state.VideoLinks != nil {
+		feed.VideoLinks = retainedVideoLinks(state.VideoLinks)
+	}
+	videoByID := map[string]VideoLink{}
+	if feed.VideoLinks != nil {
+		for _, link := range feed.VideoLinks.Entries {
+			videoByID[link.ID] = link
+		}
+	}
 	for _, row := range rows {
-		feed.Entries = append(feed.Entries, FeedEntry{
+		entry := FeedEntry{
 			ID: row.ID, Title: row.Title, Description: row.Description, Image: row.Image, Mode: row.Mode, Prompt: row.Prompt,
 			Category: row.Category, Tags: row.Tags, SourceID: row.SourceID, Credit: row.Credit, SourceURL: row.SourceURL,
 			AddedAt: row.FirstSeenAt, PublishedAt: row.PublishedAt,
-		})
+		}
+		if link, exists := videoByID[row.ID]; exists && row.SourceID == link.SourceID && row.Mode == "video" && row.SourceURL == link.SourceURL {
+			entry.VideoURL = link.VideoURL
+		}
+		feed.Entries = append(feed.Entries, entry)
 	}
 	if state.Categories != nil {
 		feed.Categories = state.Categories
@@ -101,7 +121,30 @@ func (s *Service) loadFeed() (*Feed, error) {
 func (s *Service) invalidateFeed() {
 	s.cacheMu.Lock()
 	s.cached = nil
+	s.cacheGeneration++
 	s.cacheMu.Unlock()
+}
+
+func cloneFeedSnapshot(feed *Feed) *Feed {
+	copy := *feed
+	copy.Entries = slices.Clone(feed.Entries)
+	for index := range copy.Entries {
+		copy.Entries[index].Tags = slices.Clone(copy.Entries[index].Tags)
+		if copy.Entries[index].PublishedAt != nil {
+			at := *copy.Entries[index].PublishedAt
+			copy.Entries[index].PublishedAt = &at
+		}
+	}
+	copy.Categories = make(map[string]map[string]string, len(feed.Categories))
+	for source, labels := range feed.Categories {
+		copy.Categories[source] = maps.Clone(labels)
+	}
+	if feed.SyncedAt != nil {
+		at := *feed.SyncedAt
+		copy.SyncedAt = &at
+	}
+	copy.VideoLinks = cloneVideoLinks(feed.VideoLinks)
+	return &copy
 }
 
 func (s *Service) AdminStatus(actor *model.User) (*AdminStatus, error) {

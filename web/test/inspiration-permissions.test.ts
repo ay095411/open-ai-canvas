@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { Window } from "happy-dom";
-import type { OnlineInspirationDetail } from "../src/lib/inspirations/external-favorites";
+import type { OfficialCatalogEntry } from "../src/lib/inspirations/official-catalog";
+import { invalidateInspirationCatalog } from "../src/services/inspiration-catalog";
 
 const dom = new Window({ url: "http://localhost/create" });
 const originals = new Map<string, PropertyDescriptor | undefined>();
@@ -19,14 +20,15 @@ const originalStorage = useInspirationStore.persist.getOptions().storage;
 const originalUser = useUserStore.getState();
 const originalScope = getActiveUserScope();
 const originalAdapter = apiClient.defaults.adapter;
+const originalFetch = globalThis.fetch;
 const emptyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 let records: Map<string, string>;
 let readSpy: ReturnType<typeof spyOn<typeof localforage, "getItem">>;
 let writeSpy: ReturnType<typeof spyOn<typeof localforage, "setItem">>;
-const item: OnlineInspirationDetail = {
-    id: "zzai-gallery:permission-probe",
+const item: OfficialCatalogEntry = {
+    id: "seedance:permission-probe",
     slug: "permission-probe",
-    sourceId: "zzai-gallery",
+    sourceId: "seedance",
     title: "权限探针",
     description: "",
     image: "https://example.com/cover.png",
@@ -34,7 +36,7 @@ const item: OnlineInspirationDetail = {
     model: "权限测试模型",
     prompt: "A complete original prompt for permission checks.",
     sourceUrl: "https://example.com/works/permission-probe",
-    galleryUrl: "https://api.seedance.nz/prompt-gallery/permission-probe",
+    galleryUrl: "https://example.com/works/permission-probe",
 };
 
 function signIn(role: "user" | "admin", id = "current-user") {
@@ -43,6 +45,8 @@ function signIn(role: "user" | "admin", id = "current-user") {
 }
 
 beforeEach(async () => {
+    invalidateInspirationCatalog();
+    globalThis.fetch = (async (input) => new Response(JSON.stringify(String(input).includes("manifest") ? { sources: {} } : { entries: String(input).includes("/seedance.json") ? [item] : [] }))) as typeof globalThis.fetch;
     useInspirationStore.persist.setOptions({ storage: emptyStorage });
     records = new Map();
     readSpy = spyOn(localforage, "getItem").mockImplementation(async <T>(key: string) => (records.get(key) ?? null) as T | null);
@@ -51,8 +55,8 @@ beforeEach(async () => {
         return value;
     });
     apiClient.defaults.adapter = async (config) => {
-        if (config.method !== "get" || config.url !== "/public/inspirations/zzai-gallery/prompts/permission-probe") throw new Error(`Unexpected detail request: ${config.method} ${config.url}`);
-        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: item, msg: "" } };
+        if (config.method !== "get" || config.url !== "/public/inspirations/feed") throw new Error(`Unexpected detail request: ${config.method} ${config.url}`);
+        return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { enabled: false, entries: [] }, msg: "" } };
     };
     signIn("user");
     useInspirationStore.persist.setOptions({ storage: originalStorage });
@@ -67,6 +71,8 @@ afterEach(async () => {
     useUserStore.setState(originalUser);
     setActiveUserScope(originalScope);
     apiClient.defaults.adapter = originalAdapter;
+    globalThis.fetch = originalFetch;
+    invalidateInspirationCatalog();
     readSpy.mockRestore();
     writeSpy.mockRestore();
 });
@@ -79,8 +85,8 @@ afterAll(() => {
     }
 });
 
-describe("仅在线画廊的个人收藏权限", () => {
-    test("已登录普通用户能收藏完整在线详情", async () => {
+describe("官方目录的个人收藏权限", () => {
+    test("已登录普通用户能收藏完整官方条目", async () => {
         await useInspirationStore.getState().toggleFavorite(item.id!, item);
         expect(useInspirationStore.getState().favorites).toEqual([item.id!]);
         expect(useInspirationStore.getState().externalFavorites).toEqual([item]);
@@ -94,8 +100,8 @@ describe("仅在线画廊的个人收藏权限", () => {
         for (const key of ["createEntry", "updateEntry", "removeEntry", "restoreEntry", "importPayload", "exportPayload", "resetCustomizations", "custom", "overrides", "hidden"]) expect(useInspirationStore.getState()).not.toHaveProperty(key);
     });
 
-    test("旧精选来源以及自建ID都不能再收藏", async () => {
-        for (const id of ["seedance:probe", "youmind:probe", "original:probe", "custom:probe", ""]) await expect(useInspirationStore.getState().toggleFavorite(id, item)).rejects.toThrow();
+    test("不存在的官方ID、旧ZZAI及自建ID不能凭传入快照收藏", async () => {
+        for (const id of ["seedance:probe", "youmind:probe", "original:probe", "zzai-gallery:probe", "custom:probe", ""]) await expect(useInspirationStore.getState().toggleFavorite(id, item)).rejects.toThrow();
         expect(useInspirationStore.getState().favorites).toEqual([]);
     });
 

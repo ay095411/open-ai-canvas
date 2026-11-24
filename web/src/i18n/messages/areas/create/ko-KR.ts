@@ -14,7 +14,7 @@ export const koKR: DeepStringRecord<typeof zhCN> = {
         preview: "메시지 {{count}}개 보기",
         mediaMessage: "미디어 메시지 (전체 데이터는 다운로드)",
         restoredTitle: "{{title}} (복원 사본)",
-        restoredNotice: "이 기기에 복원되었으며 동기화를 시도합니다. 위의 상태를 확인하세요. 원래 대화와 사본은 유지됩니다.",
+        restoredNotice: "이 기기에 복원되었으며 동기화를 시도합니다. 클라우드 저장은 아직 확인되지 않았습니다. 원래 대화와 사본은 유지됩니다.",
         keptNotice: "현재 버전을 유지했습니다. 원본 사본은 계속 확인, 복원 및 다운로드할 수 있습니다.",
         resolveFailed: "처리하지 못했습니다. 사본이 보관되어 있으니 다시 시도하세요.",
         conflict: "기록 동기화 완료 · 충돌 백업 있음",

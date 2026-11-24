@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { Window } from "happy-dom";
 import type { AxiosAdapter } from "axios";
 import type { CreationMode } from "@/lib/creation-mode";
+import type { CreationInspiration } from "@/lib/inspirations/catalog";
 import type { OnlineGalleryDetail, OnlineGallerySummary } from "@/services/api/online-gallery";
 import type { ZzaiGalleryDetail, ZzaiGalleryPage, ZzaiGallerySummary } from "@/services/api/zzai-gallery";
 import { authorizedEntry, authorizedMedia, authorizedSummary, policyVersion } from "./authorized-inspirations";
@@ -70,6 +71,7 @@ const { useInspirationStore } = await import("@/stores/use-inspiration-store");
 const { useUserStore } = await import("@/stores/use-user-store");
 const { getActiveUserScope, setActiveUserScope } = await import("@/lib/user-scope");
 const { CreationShowcaseBand } = await import("@/pages/create/creation-showcase-band");
+const { invalidateInspirationCatalog } = await import("@/services/inspiration-catalog");
 const originalAdapter = apiClient.defaults.adapter;
 const originalFetch = globalThis.fetch;
 const originalStore = useInspirationStore.getState();
@@ -88,6 +90,9 @@ let failCopy = false;
 let copied: string[] = [];
 let calls: Array<{ url: string; mediaType?: string; category?: string; model?: string; sort?: string; search?: string; cursor?: string; limit?: number }>;
 let staticRequests: string[];
+let failStatic = false;
+let failFeed = false;
+let feedEntries: CreationInspiration[];
 let clipboardSpy: ReturnType<typeof spyOn<typeof navigator.clipboard, "writeText">> | undefined;
 let view: Awaited<ReturnType<typeof mount>> | undefined;
 const previewCleanups: Array<() => void> = [];
@@ -105,11 +110,11 @@ function summary(item: ZzaiGalleryDetail): ZzaiGallerySummary {
 
 function onlineEntry(slug: string, patch: Partial<OnlineGalleryDetail> = {}): OnlineGalleryDetail {
     return {
-        id: `zzai-gallery:${slug}`,
+        id: `seedance:${slug}`,
         slug,
-        sourceId: "zzai-gallery",
+        sourceId: "seedance",
         title: `社区 ${slug}`,
-        description: "真实在线协议测试条目",
+        description: "官方静态目录协议测试条目",
         mode: "image",
         image: `https://cdn.example.com/${slug}.webp`,
         width: 800,
@@ -118,16 +123,11 @@ function onlineEntry(slug: string, patch: Partial<OnlineGalleryDetail> = {}): On
         category: "portrait",
         credit: `社区作者 ${slug}`,
         sourceUrl: `https://example.com/works/${slug}`,
-        galleryUrl: `https://api.seedance.nz/prompt-gallery/${slug}`,
+        galleryUrl: `https://example.com/works/${slug}`,
         prompt: `Current online prompt for ${slug}.`,
         promptZh: `${slug} 的在线中文提示词。`,
         ...patch,
     };
-}
-
-function onlineSummary(item: OnlineGalleryDetail): OnlineGallerySummary {
-    const { prompt: _prompt, promptZh: _promptZh, ...result } = item;
-    return result;
 }
 
 function signIn(scope: string) {
@@ -148,6 +148,10 @@ beforeEach(async () => {
     copied = [];
     calls = [];
     staticRequests = [];
+    failStatic = false;
+    failFeed = false;
+    feedEntries = [];
+    invalidateInspirationCatalog();
     useInspirationStore.persist.setOptions({ storage: emptyStorage });
     await useInspirationStore.persist.rehydrate();
     signIn("showcase-user");
@@ -156,8 +160,15 @@ beforeEach(async () => {
         copied.push(text);
     });
     globalThis.fetch = (async (input) => {
-        staticRequests.push(String(input));
-        throw new Error("Legacy static catalogs must not load");
+        const path = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+        staticRequests.push(path);
+        if (path === "/inspiration-video-urls.json") return Response.json({ version: 1, entries: [] });
+        if (path === "/inspirations/manifest.json") return Response.json({ sources: { seedance: { categories: { story: "故事", portrait: "人像" } }, haohaoxue: { categories: { poster: "海报" } }, youmind: { categories: { illustration: "插画" } } } });
+        const staticSources: Record<string, string> = { "/inspirations/seedance.json": "seedance", "/inspirations/haohaoxue.json": "haohaoxue", "/inspirations/youmind.json": "youmind" };
+        const source = staticSources[path];
+        if (!source) throw new Error(`Forbidden non-static network request: ${path}`);
+        if (failStatic) throw new Error("Official static pack unavailable");
+        return Response.json({ entries: onlineItems.filter((item) => item.sourceId === source) });
     }) as typeof fetch;
     apiClient.defaults.adapter = async (config) => {
         calls.push({
@@ -171,27 +182,11 @@ beforeEach(async () => {
             limit: config.params?.limit,
         });
         let data: unknown;
-        if (config.url?.includes("/zzai-gallery/")) {
-            if (config.url.endsWith("/facets")) {
-                if (failFacets) throw new Error("Online facets unavailable");
-                const selected = onlineItems.filter((item) => !config.params?.media_type || item.mode === config.params.media_type);
-                data = { categories: [...new Set(selected.map((item) => item.category).filter(Boolean))], models: [...new Set(selected.map((item) => item.model).filter(Boolean))], tags: [], total: selected.length };
-            } else if (config.url.endsWith("/prompts")) {
-                if (failList) throw listFailure ?? new Error("Online list unavailable");
-                const selected = onlineItems.filter(
-                    (item) =>
-                        (!config.params?.media_type || item.mode === config.params.media_type) &&
-                        (!config.params?.category || item.category === config.params.category) &&
-                        (!config.params?.model || item.model === config.params.model) &&
-                        (!config.params?.search || [item.title, item.description, item.prompt, item.promptZh].join(" ").toLowerCase().includes(String(config.params.search).toLowerCase())),
-                );
-                const offset = Number(config.params?.cursor || 0);
-                const limit = config.params?.limit ?? 24;
-                data = { items: selected.slice(offset, offset + limit).map(onlineSummary), total: selected.length, nextCursor: offset + limit < selected.length ? String(offset + limit) : "" };
-            } else {
-                if (failDetail) throw new Error("Online detail unavailable");
-                data = onlineItems.find((item) => item.slug === config.url!.split("/").at(-1));
-            }
+        if (config.url?.includes("/zzai-gallery/") || config.url?.includes("/collected-gallery/")) {
+            throw new Error(`Retired network gallery must never be requested: ${config.url}`);
+        } else if (config.url === "/public/inspirations/feed") {
+            if (failFeed) throw new Error("Optional inspiration feed unavailable");
+            data = { enabled: feedEntries.length > 0, entries: feedEntries, categories: {} };
         } else if (config.url?.endsWith("/library/facets")) {
             if (failFacets) throw new Error("Online facets unavailable");
             const selected = items.filter((item) => !config.params?.media_type || item.mode === config.params.media_type);
@@ -228,6 +223,7 @@ afterEach(async () => {
     for (const restore of previewCleanups.splice(0).reverse()) restore();
     apiClient.defaults.adapter = originalAdapter;
     globalThis.fetch = originalFetch;
+    invalidateInspirationCatalog();
     clipboardSpy?.mockRestore();
     clipboardSpy = undefined;
     useInspirationStore.persist.setOptions({ storage: emptyStorage });
@@ -236,6 +232,7 @@ afterEach(async () => {
     useInspirationStore.persist.setOptions({ storage: originalStorage });
     useUserStore.setState({ user: originalUser });
     setActiveUserScope(originalScope);
+    expect(calls.some((call) => call.url.includes("/zzai-gallery/") || call.url.includes("/collected-gallery/"))).toBe(false);
 });
 
 afterAll(() => {
@@ -367,7 +364,7 @@ function lastListCall() {
     expect(request).toBeDefined();
     return request!;
 }
-async function chooseMedia(label: "全部" | "图片" | "视频") {
+async function chooseMedia(label: "全部" | "图片" | "视频" | "文本") {
     const group = view!.host.querySelector<HTMLElement>('[aria-label="首页示例媒体类型"]');
     expect(group).not.toBeNull();
     await click(buttonNamed(group!, label));
@@ -431,95 +428,246 @@ async function videoEvent(video: HTMLVideoElement, type: "playing" | "error") {
     await act(async () => video.dispatchEvent(new dom.Event(type)));
 }
 
-test("the default homepage browses the live online source with real filter parameters and cursor pagination", async () => {
+test("the default homepage browses official static packs with browser filters and local cursor pagination", async () => {
     onlineItems = [
-        ...Array.from({ length: 24 }, (_, index) => onlineEntry(`community-video-${index}`, { title: `电影关键词 ${index}`, mode: "video", category: "story", model: "社区视频模型", videoUrl: `https://cdn.example.com/community-video-${index}.mp4` })),
+        ...Array.from({ length: 24 }, (_, index) =>
+            onlineEntry(`community-video-${index}`, { title: `电影关键词 ${index}`, mode: "video", category: "story", model: "社区视频模型", featured: true, videoUrl: `https://cdn.example.com/community-video-${index}.mp4` }),
+        ),
         onlineEntry("excluded-image"),
     ];
     view = await mount("image", false, true);
     expect(cards()).toHaveLength(21);
-    expect(calls.every((call) => call.url.includes("/zzai-gallery/"))).toBe(true);
-    expect(view.host.querySelector('[aria-label="首页示例来源"]')?.closest(".ant-select")?.textContent).toContain("在线图库");
-    expect(view.host.querySelectorAll('[aria-label="示例来源与授权提示"]')).toHaveLength(21);
+    expect(calls.map((call) => call.url)).toEqual(["/public/inspirations/feed"]);
+    expect(view.host.querySelector('[aria-label="首页示例来源"]')?.closest(".ant-select")?.textContent).toContain("在线素材");
+    expect(view.host.textContent).not.toContain("目录固定为影策官方上游版本");
+    expect(view.host.querySelectorAll('[aria-label="示例来源与授权提示"]')).toHaveLength(0);
+    expect(view.host.querySelectorAll('[aria-label="官方目录来源与许可"]')).toHaveLength(0);
     expect(view.host.querySelector('[aria-label="素材署名与许可"]')).toBeNull();
-    expect(view.host.textContent).toContain("本站未核验其转载或商用授权");
+    expect(view.host.querySelectorAll(".creation-showcase-item a")).toHaveLength(0);
+    expect(view.host.textContent).not.toContain(onlineItems[0].credit!);
+    expect(view.host.querySelector('[data-inspiration-id^="zzai-gallery:"]')).toBeNull();
     await chooseMedia("视频");
     await chooseSelect("首页示例分类", "故事");
     await chooseSelect("首页示例模型标注", "社区视频模型");
     await chooseSelect("首页示例排序", "精选");
     await enterSearch("  电影关键词  ");
     expect(cards().every((card) => card.disabled)).toBe(true);
-    await until(() => calls.at(-1)?.search === "电影关键词" && cards().length === 21);
-    const expected = { url: "/public/inspirations/zzai-gallery/prompts", mediaType: "video", category: "story", model: "社区视频模型", sort: "featured", search: "电影关键词", limit: 21 };
-    expect(calls.at(-1)).toMatchObject(expected);
+    await until(() => cards().length === 21 && Boolean(view!.host.textContent?.includes("共 24 个匹配示例")));
+    const query = view.client
+        .getQueryCache()
+        .getAll()
+        .find((query) => query.queryKey.includes("showcase") && query.queryKey.some((part) => part && typeof part === "object" && "search" in part && part.search === "电影关键词"))!;
+    expect(query).toBeDefined();
+    expect(query.queryKey).toContainEqual({ search: "电影关键词", mediaType: "video", category: "story", model: "社区视频模型", sort: "featured", limit: 21 });
     const firstPage = cards();
     await loadMore();
     await until(() => cards().length === 24);
-    expect(calls.at(-1)).toMatchObject({ ...expected, cursor: "21" });
+    expect((query.state.data as { pageParams: string[] }).pageParams).toEqual(["", "catalog_21"]);
     expect(cards().slice(0, 21)).toEqual(firstPage);
     expect(view.host.textContent).not.toContain("excluded-image");
     expect(view.host.textContent).toContain("已展示 24 个示例");
-    expect(staticRequests).toEqual([]);
+    expect(staticRequests.toSorted()).toEqual(["/inspiration-video-urls.json", "/inspirations/haohaoxue.json", "/inspirations/manifest.json", "/inspirations/seedance.json", "/inspirations/youmind.json"]);
+    expect(calls.map((call) => call.url)).toEqual(["/public/inspirations/feed"]);
 });
 
-test("default online preview preserves provenance and copies then uses freshly fetched details", async () => {
+test("首页与灵感大厅弹窗同步显示在线素材，删除固定版本前缀但保留来源授权说明", async () => {
+    view = await mount("image", false, true);
+    expect(view.host.querySelector('[aria-label="首页示例来源"]')?.closest(".ant-select")?.textContent).toContain("在线素材");
+    expect(view.host.textContent).not.toContain("官方上游目录");
+    expect(view.host.textContent).not.toContain("目录固定为影策官方上游版本");
+    expect(view.host.textContent).toContain("不代表本站审核授权或本平台生成结果");
+    await openHall();
+    expect(dialog().querySelector('[aria-label="画廊素材来源"]')?.closest(".ant-select")?.textContent).toContain("在线素材");
+    expect(dialog().querySelector('[aria-label="画廊素材来源"]')?.closest(".ant-select")?.textContent).not.toContain("官方开源目录");
+    expect(dialog().textContent).not.toContain("目录固定为影策官方上游版本");
+    expect(dialog().textContent).toContain("不代表本站审核授权或本平台生成结果");
+    expect(dialog().querySelector('[data-inspiration-id^="seedance:"]')).not.toBeNull();
+    expect(calls.filter((call) => call.url.startsWith("/public/")).every((call) => call.url === "/public/inspirations/feed")).toBe(true);
+});
+
+test("default official preview preserves source identity and copies then uses the complete static prompt", async () => {
     onlineItems = [onlineEntry("online-preview", { mode: "video", videoUrl: "https://cdn.example.com/online-preview.mp4" })];
     view = await mount("image", false, true);
-    const detailRequests = () => calls.filter((call) => call.url === "/public/inspirations/zzai-gallery/prompts/online-preview");
-    expect(detailRequests()).toHaveLength(0);
+    await enterSearch("online-preview");
+    await until(() => cards().length === 1 && Boolean(cards()[0].textContent?.includes("online-preview")));
+    expect(view.host.querySelector('[data-inspiration-id="seedance:online-preview"]')).not.toBeNull();
     await previewFirst();
-    expect(detailRequests()).toHaveLength(1);
     expect(dialog().textContent).toContain(onlineItems[0].promptZh!);
-    expect(dialog().textContent).toContain("授权未核验");
-    expect(dialog().querySelector(`a[href="${onlineItems[0].sourceUrl}"]`)).not.toBeNull();
+    expect(dialog().querySelector('[aria-label="素材署名与许可"]')).toBeNull();
+    expect(dialog().querySelector('[aria-label="官方目录来源与许可"]')).toBeNull();
+    expect(dialog().textContent).toContain(onlineItems[0].credit!);
+    expect(dialog().querySelectorAll(`a[href="${onlineItems[0].sourceUrl}"]`)).toHaveLength(1);
+    expect(dialog().querySelector(`a[href="${onlineItems[0].sourceUrl}"]`)?.textContent).toContain("查看上游内容");
     expect(dialog().querySelector("video")?.getAttribute("src")).toBe(onlineItems[0].videoUrl!);
-    onlineItems[0] = { ...onlineItems[0], promptZh: "复制时重新读取的在线版本。" };
     await click(buttonNamed(dialog(), "复制提示词"));
-    expect(detailRequests()).toHaveLength(2);
-    expect(copied).toEqual(["复制时重新读取的在线版本。"]);
-    onlineItems[0] = { ...onlineItems[0], promptZh: "弹窗关闭后重新读取的带入版本。" };
+    expect(copied).toEqual([onlineItems[0].promptZh!]);
     await usePreview();
-    expect(detailRequests()).toHaveLength(3);
     expect(view.started).toEqual([{ mode: "video", prompt: onlineItems[0].promptZh! }]);
-    expect(calls.some((call) => call.url.includes("/library/"))).toBe(false);
+    expect(calls.map((call) => call.url)).toEqual(["/public/inspirations/feed"]);
+    expect(staticRequests).toHaveLength(5);
 });
 
 test("switching homepage sources keeps the approved library available without mixing identities or old cursors", async () => {
     onlineItems = Array.from({ length: 24 }, (_, index) => onlineEntry(`same-slug-${index}`));
     items = [entry("same-slug-0", { title: "本站核验作品" })];
     view = await mount("image", false, true);
+    await enterSearch("same-slug");
+    await until(() => cards().length === 21 && Boolean(view!.host.textContent?.includes("共 24 个匹配示例")));
     await loadMore();
     await until(() => cards().length === 24);
+    await enterSearch("");
     await chooseSelect("首页示例来源", "本站审核库");
     await until(() => cards().length === 1 && Boolean(cards()[0].textContent?.includes("本站核验作品")));
     expect(lastListCall().cursor).toBeUndefined();
     expect(view.host.querySelector('[data-inspiration-id="authorized-library:same-slug-0"]')).not.toBeNull();
-    expect(view.host.querySelector('[data-inspiration-id^="zzai-gallery:"]')).toBeNull();
-    expect(view.host.textContent).toContain("CC BY 4.0");
+    expect(view.host.querySelector('[data-inspiration-id^="seedance:"]')).toBeNull();
+    expect(view.host.querySelectorAll(".creation-showcase-item a")).toHaveLength(0);
+    expect(view.host.textContent).not.toContain("CC BY 4.0");
     await previewFirst();
+    expect(dialog().textContent).toContain("CC BY 4.0");
     expect(calls.some((call) => call.url === "/public/inspirations/library/prompts/same-slug-0")).toBe(true);
     await click(buttonNamed(dialog(), "关闭灵感弹窗"));
     await until(() => visibleDialogs().length === 0);
-    await chooseSelect("首页示例来源", "在线图库");
-    await until(() => cards().length > 0 && Boolean(view!.host.querySelector('[data-inspiration-id="zzai-gallery:same-slug-0"]')));
+    await chooseSelect("首页示例来源", "在线素材");
+    await enterSearch("same-slug");
+    await until(() => cards().length > 0 && Boolean(view!.host.querySelector('[data-inspiration-id^="seedance:same-slug-"]')));
     expect(view.host.querySelector('[data-inspiration-id^="authorized-library:"]')).toBeNull();
     expect(view.host.querySelector('[aria-label="素材署名与许可"]')).toBeNull();
-    expect(view.host.textContent).toContain("授权未核验");
+    expect(calls.every((call) => !call.url.includes("/zzai-gallery/"))).toBe(true);
+});
+
+test("official packs preserve all three upstream identities and an optional feed cannot overwrite static content", async () => {
+    onlineItems = [
+        onlineEntry("static-seedance", { title: "唯一静态 Seedance", promptZh: "静态 Seedance 正文。" }),
+        onlineEntry("static-haohaoxue", { id: "haohaoxue:static-haohaoxue", sourceId: "haohaoxue", title: "唯一静态 好好学" }),
+        onlineEntry("static-youmind", { id: "youmind:static-youmind", sourceId: "youmind", title: "唯一静态 YouMind" }),
+    ];
+    feedEntries = [{ ...onlineItems[0], title: "不应覆盖的上新版本", promptZh: "不应覆盖静态正文。" }, onlineEntry("new-feed", { title: "唯一新增上新" })];
+    view = await mount("image", false, true);
+    for (const item of onlineItems) {
+        await enterSearch(item.title);
+        await until(() => cards().length === 1 && Boolean(view!.host.querySelector(`[data-inspiration-id="${item.id}"]`)));
+        expect(view.host.querySelector('[aria-label="素材署名与许可"]')).toBeNull();
+    }
+    await enterSearch("唯一新增上新");
+    await until(() => cards().length === 1 && Boolean(view!.host.querySelector('[data-inspiration-id="seedance:new-feed"]')));
+    await enterSearch("唯一静态 Seedance");
+    await until(() => cards().length === 1 && Boolean(view!.host.querySelector('[data-inspiration-id="seedance:static-seedance"]')));
+    await previewFirst();
+    expect(dialog().textContent).toContain("静态 Seedance 正文。");
+    expect(dialog().textContent).not.toContain("不应覆盖静态正文。");
+    expect(calls.map((call) => call.url)).toEqual(["/public/inspirations/feed"]);
+    expect(staticRequests).toHaveLength(5);
+});
+
+test("failed optional feed still exposes the complete official static packs without a false empty result", async () => {
+    failFeed = true;
+    onlineItems = [onlineEntry("static-without-feed", { title: "上新失败仍可读取的静态作品" })];
+    view = await mount("image", false, true);
+    expect(cards()).toHaveLength(14);
+    expect(view.host.textContent).not.toContain("在线示例暂不可用");
+    await enterSearch("上新失败仍可读取的静态作品");
+    await until(() => cards().length === 1 && Boolean(view!.host.querySelector('[data-inspiration-id="seedance:static-without-feed"]')));
+    expect(staticRequests).toHaveLength(5);
+    expect(calls.map((call) => call.url)).toEqual(["/public/inspirations/feed"]);
+});
+
+test("homepage excludes text while hall templates still copy and enter text creation independently of the approved library", async () => {
+    onlineItems = [];
+    items = [entry("approved-image", { title: "独立本站审核作品" })];
+    view = await mount("image", false, true);
+    expect(cards()).toHaveLength(13);
+    expect(view.host.querySelector('[aria-label="首页示例媒体类型"]')?.textContent).not.toContain("文本");
+    expect(view.host.textContent).not.toContain("温暖室内对话");
+    await openHall();
+    await click(buttonNamed(dialog().querySelector('[aria-label="画廊媒体类型"]')!, "文本"));
+    await until(() => dialog().querySelectorAll(".inspiration-gallery article").length === 9);
+    expect([...dialog().querySelectorAll(".inspiration-gallery article")].every((card) => /^(original|chatgpt-prompts):/.test(card.closest("[data-inspiration-id]")?.getAttribute("data-inspiration-id") ?? ""))).toBe(true);
+    await click(dialog().querySelector<HTMLElement>(".inspiration-gallery article")!);
+    await until(() => Boolean(dialog().querySelector(".inspiration-detail")));
+    expect(dialog().textContent).toContain("文本");
+    expect(dialog().querySelector('[aria-label="素材署名与许可"]')).toBeNull();
+    await click(buttonNamed(dialog(), "复制提示词"));
+    expect(copied).toHaveLength(1);
+    expect(copied[0].trim().length).toBeGreaterThan(0);
+    await usePreview();
+    expect(view.started).toEqual([{ mode: "text", prompt: copied[0] }]);
+    expect(listCalls()).toEqual([]);
+    await chooseSelect("首页示例来源", "本站审核库");
+    await until(() => cards().length === 1 && Boolean(view!.host.querySelector('[data-inspiration-id="authorized-library:approved-image"]')));
+    expect(lastListCall().mediaType).toBeUndefined();
+    expect(buttonNamed(view.host.querySelector('[aria-label="首页示例媒体类型"]')!, "图片")).toBeDefined();
+    expect(view.host.querySelector('[aria-label="首页示例媒体类型"]')?.textContent).not.toContain("文本");
+    expect(view.host.textContent).not.toContain("CC BY 4.0");
+    await previewFirst();
+    expect(dialog().textContent).toContain("CC BY 4.0");
+    expect(dialog().textContent).toContain("提示词作者 approved-image");
+    expect(calls.some((call) => call.url === "/public/inspirations/library/prompts/approved-image")).toBe(true);
+    expect(calls.every((call) => !call.url.includes("/zzai-gallery/") && !call.url.includes("/collected-gallery/"))).toBe(true);
+});
+
+test("homepage all pages, facets, search and clear retain only images and videos even in text creation mode", async () => {
+    onlineItems = [
+        ...Array.from({ length: 24 }, (_, index) => onlineEntry(`visual-${index}`, { mode: index % 2 ? "image" : "video" })),
+        ...Array.from({ length: 5 }, (_, index) => onlineEntry(`text-only-${index}`, { title: `首页文本独有 ${index}`, mode: "text", category: "text-only-category", model: "文本独有模型" })),
+    ];
+    view = await mount("text", false, true);
+    expect(view.host.querySelector('[aria-label="首页示例媒体类型"]')?.textContent).not.toContain("文本");
+    expect(cards()).toHaveLength(21);
+    expect(view.host.textContent).toContain("共 37 个在线示例");
+    const facets = view.client
+        .getQueryCache()
+        .getAll()
+        .find((query) => query.queryKey.includes("official-catalog-facets"))!;
+    expect(facets.queryKey).toContainEqual(["image", "video"]);
+    expect(facets.state.data as { categories: string[]; models: string[]; total: number }).toMatchObject({ total: 37 });
+    expect((facets.state.data as { categories: string[] }).categories).not.toContain("text-only-category");
+    expect((facets.state.data as { models: string[] }).models).not.toContain("文本独有模型");
+    await loadMore();
+    await until(() => cards().length === 37);
+    expect(view.host.querySelector('[data-inspiration-id^="seedance:text-only-"]')).toBeNull();
+    expect(view.host.textContent).not.toContain("温暖室内对话");
+    expect(view.host.querySelector(".creation-showcase-sentinel")).toBeNull();
+    await chooseMedia("图片");
+    await until(() => cards().length === 18);
+    await chooseMedia("全部");
+    await until(() => cards().length === 21);
+    expect(view.host.textContent).toContain("共 37 个在线示例");
+    await enterSearch("首页文本独有");
+    await until(() => cards().length === 0 && Boolean(view!.host.textContent?.includes("没有找到匹配的示例")));
+    expect(view.host.textContent).toContain("共 0 个匹配示例");
+    await click(buttonNamed(view.host, "清除筛选"));
+    await until(() => cards().length === 21);
+    expect(view.host.textContent).toContain("共 37 个在线示例");
+    expect(view.host.querySelector('[data-creation-mode="text"]')).not.toBeNull();
+    expect(view.started).toEqual([]);
+});
+
+test("a missing official static pack is a visible retryable error rather than an empty catalog or approved fallback", async () => {
+    failStatic = true;
+    view = await mount("image", false, true);
+    expect(cards()).toHaveLength(0);
+    expect(view.host.textContent).toContain("在线示例暂不可用");
+    expect(listCalls()).toEqual([]);
+    failStatic = false;
+    await click(buttonNamed(view.host, "重新加载"));
+    await until(() => cards().length === 14);
+    expect(staticRequests.filter((path) => path === "/inspirations/seedance.json")).toHaveLength(2);
+    expect(listCalls()).toEqual([]);
 });
 
 test.each(["source", "media"] as const)("homepage cached %s revisit fetches again and hides the previous revision until verification finishes", async (dimension) => {
     items = [entry("cached-source-image"), entry("cached-source-video", { mode: "video", videoUrl: authorizedMedia("cached-source-video", "video") })];
     onlineItems = [onlineEntry("cached-online-image"), onlineEntry("cached-online-video", { mode: "video", videoUrl: "https://cdn.example.com/cached-online-video.mp4" })];
-    const onlineSource = dimension === "media";
-    const endpoint = `/public/inspirations/${onlineSource ? "zzai-gallery" : "library"}/prompts`;
-    view = await mount("image", false, onlineSource, 60_000);
+    const endpoint = "/public/inspirations/library/prompts";
+    view = await mount("image", false, false, 60_000);
     const originalQuery = view.client
         .getQueryCache()
         .getAll()
         .find((query) => query.queryKey.includes("showcase"))!;
     expect(originalQuery.state.data).toBeDefined();
     const originalTitle = cards()[0].querySelector("strong")!.textContent!;
-    if (dimension === "source") await chooseSelect("首页示例来源", "在线图库");
+    if (dimension === "source") await chooseSelect("首页示例来源", "在线素材");
     else await chooseMedia("视频");
     await until(() => view!.client.isFetching() === 0);
     expect(view.client.getQueryData(originalQuery.queryKey)).toBeDefined();
@@ -835,22 +983,26 @@ test("the source-panel setting is honored and the waterfall renders each card on
     expect(view.host.querySelector(".creation-showcase-track")).toBeNull();
     expect(cards()[0].tabIndex).toBe(0);
     expect(view.host.textContent).toContain("提示词与展示媒体分别经过发布授权核验");
-    expect(view.host.textContent).toContain("CC BY 4.0");
+    expect(view.host.textContent).not.toContain("CC BY 4.0");
+    expect(view.host.querySelectorAll(".creation-showcase-item a")).toHaveLength(0);
 });
 
-test("source popover lists original authors and links without claiming old library licenses", async () => {
+test("even the old source-panel setting keeps homepage attribution hidden until actual detail preview", async () => {
     items = [entry("credited"), entry("unmarked", { credit: undefined, sourceUrl: undefined })];
     view = await mount();
-    await click(buttonNamed(view.host, "素材来源"));
-    const popup = [...document.querySelectorAll<HTMLElement>(".ant-popover")].find((node) => !node.classList.contains("ant-popover-hidden"));
-    expect(popup?.textContent).toContain("作者 credited");
-    expect(popup?.textContent).toContain("原始出处未标注");
-    expect(popup?.querySelector('a[href="https://example.com/works/credited"]')).not.toBeNull();
-    expect(popup?.textContent).not.toContain("CC BY 4.0");
-    expect(popup?.textContent).not.toContain("ZZAI");
-    await act(async () => popup!.dispatchEvent(new dom.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-    await settle();
-    expect(view.host.querySelector('[aria-expanded="true"]')).toBeNull();
+    expect(view.host.querySelector(".creation-inspiration-credit-panel")).toBeNull();
+    expect([...view.host.querySelectorAll("button")].some((button) => button.textContent?.trim() === "素材来源")).toBe(false);
+    expect(view.host.textContent).not.toContain("作者 credited");
+    expect(view.host.querySelectorAll(".creation-showcase-item a")).toHaveLength(0);
+    await click(buttonNamed(view.host, "预览灵感：在线 credited"));
+    await until(() => Boolean(dialog().querySelector(".inspiration-detail")));
+    expect(dialog().textContent).toContain("作者 credited");
+    expect(dialog().textContent).toContain("提示词作者 credited");
+    expect(dialog().textContent).toContain("媒体作者 credited");
+    expect(dialog().querySelector(".inspiration-authorization-notice")).toBeNull();
+    expect(dialog().querySelectorAll('a[href="https://example.com/works/credited"]')).toHaveLength(1);
+    expect(dialog().querySelector('a[href="https://example.com/works/credited"]')?.textContent).toContain("查看上游内容");
+    expect(dialog().textContent).not.toContain("ZZAI");
 });
 
 test("creation mode changes preserve the mixed waterfall without refetching or remounting cards", async () => {
@@ -885,14 +1037,20 @@ test("creation mode changes do not close an open inspiration preview", async () 
     expect(view.started).toEqual([{ mode: "image", prompt: items[0].promptZh! }]);
 });
 
-test("waterfall covers reserve their own dimensions and keep the frame after an image error", async () => {
+test("waterfall covers use intrinsic image dimensions without fixed-height frames", async () => {
     items = [entry("portrait", { width: 600, height: 900 }), entry("landscape", { width: 1200, height: 800 }), entry("ratio", { width: undefined, height: undefined, ratio: "3:4" }), entry("video", { width: undefined, height: undefined, mode: "video" })];
     view = await mount();
     const covers = cards().map((card) => card.querySelector<HTMLElement>(".creation-showcase-cover")!);
-    expect(covers.map((cover) => Number.parseFloat(cover.style.aspectRatio))).toEqual([600 / 900, 1200 / 800, 3 / 4, 16 / 9]);
+    expect(covers.map((cover) => cover.style.aspectRatio)).toEqual(["", "", "", ""]);
+    expect(covers.map((cover) => cover.style.height)).toEqual(["", "", "", ""]);
+    expect(covers[0].querySelector("img")!.getAttribute("width")).toBe("600");
+    expect(covers[0].querySelector("img")!.getAttribute("height")).toBe("900");
+    expect(covers[1].querySelector("img")!.getAttribute("width")).toBe("1200");
+    expect(covers[1].querySelector("img")!.getAttribute("height")).toBe("800");
     await act(async () => covers[0].querySelector("img")!.dispatchEvent(new dom.Event("error")));
     expect(covers[0].textContent).toContain("封面暂不可用");
-    expect(Number.parseFloat(covers[0].style.aspectRatio)).toBe(600 / 900);
+    expect(covers[0].style.aspectRatio).toBe("");
+    expect(covers[0].style.height).toBe("");
     expect(cards()).toHaveLength(4);
 });
 
@@ -1030,7 +1188,9 @@ test("overlapping pages keep first-seen covers and a repeated cursor never claim
     await until(() => cards().length === 2);
     expect(cards()[0]).toBe(first);
     expect(first.textContent).not.toContain("Changed duplicate");
-    expect(Number.parseFloat(first.querySelector<HTMLElement>(".creation-showcase-cover")!.style.aspectRatio)).toBe(500 / 900);
+    expect(first.querySelector<HTMLElement>(".creation-showcase-cover")!.style.aspectRatio).toBe("");
+    expect(first.querySelector("img")!.getAttribute("width")).toBe("500");
+    expect(first.querySelector("img")!.getAttribute("height")).toBe("900");
     expect(view.host.textContent).toContain("已停止重复加载");
     expect(view.host.textContent).not.toContain("已展示全部示例");
     expect(view.host.querySelector(".creation-showcase-sentinel")).toBeNull();

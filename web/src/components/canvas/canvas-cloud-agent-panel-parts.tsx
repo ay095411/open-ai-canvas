@@ -21,7 +21,7 @@ import { agentAvatarBundleFileURL, live2DModelURL } from "@/services/api/appeara
 import { AgentAvatarVideo } from "@/components/canvas/agent-avatar-video";
 import { AgentAvatarMark } from "./agent-avatar-mark";
 import { agentOrbStateForAvatar } from "@/components/ui/agent-orb";
-import { ArrowDown, Brain, Check, ChevronDown, Clapperboard, Download, Ellipsis, LoaderCircle, Maximize2, MessageSquarePlus, Minus, PanelRight, PictureInPicture2, Scaling, Settings2, ShieldCheck, X, Blocks } from "lucide-react";
+import { ArrowDown, Brain, Check, ChevronDown, Download, Ellipsis, LoaderCircle, Maximize2, MessageSquare, MessageSquarePlus, Minus, PanelRight, PictureInPicture2, Scaling, Settings2, ShieldCheck, X, Blocks } from "lucide-react";
 import { agentModifierShortcut } from "@/lib/canvas/agent-outbox";
 import { Button, Input, Popover } from "antd";
 import { CanvasAnchoredDropdown as Dropdown } from "./canvas-anchored-dropdown";
@@ -331,7 +331,7 @@ export function AgentHeader({
             <div className="min-w-0 flex-1">
                 <button type="button" className="agent-panel-title-button" onClick={onHistory} aria-label={`历史对话，当前：${title}`} title="切换历史对话">
                     <span className="agent-panel-mark" aria-hidden="true">
-                        <Clapperboard className="size-4" />
+                        <MessageSquare className="size-4" />
                     </span>
                     <span className="agent-panel-title">{title}</span>
                     <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
@@ -380,6 +380,7 @@ export function formatContextBytes(bytes: number | undefined) {
 export function AgentContextRing({ view, theme }: { view: AgentContextUsageView; theme: CanvasTheme }) {
     const [open, setOpen] = useState(false);
     const popoverRef = usePopoverAnchorAlign(open);
+    if (view.phase === "idle" && !view.lastCompaction && !view.compactionError) return null;
     const marker = view.compactRatio && view.compactRatio > 0 && view.compactRatio < 1 ? view.compactRatio : undefined;
     const percent = view.ratio === undefined ? view.label : `${Math.round(view.ratio * 100)}%`;
     const meterLabel = view.ratio === undefined ? "—" : percent;

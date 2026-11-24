@@ -93,7 +93,7 @@ description: 信封、错误码与 OpenAPI
 
 同步与附件上传携带 `X-Canvas-Expected-User`；该值必须匹配 Cookie 身份，否则返回 403，不能用 Header 代替身份认证。单条消息删除清空正文、保留永久标记；整段对话删除清空消息及资源索引，均不取消任务或删除素材。相同正文的重试幂等；过期修订不会覆盖新正文，已完成消息不会退回等待状态。
 
-浏览器在同一个账号缓存信封中保存正文、已确认修订、待删记录和冲突副本；恢复旧本地历史时保留旧键。断网失败显示未同步，可重试；在线、窗口聚焦及可见时定期拉取。多端冲突保留服务端版本，在“历史对话”抽屉内的“查看历史副本”中查看消息、下载原始备份、保留当前版本或恢复为独立新对话；副本数量不再常驻页面顶部，同步失败提示与重试入口仍保留。处理状态在本机成功落盘后更新，已处理副本继续保留，不再使同步状态持续报警；同一对话的新冲突仍独立提示。恢复不覆盖原对话或删除标记，也不重新生成内容或扣费；恢复后仍需检查同步结果。副本及其处理状态属于当前账号、当前浏览器缓存，不随服务端历史跨设备分发。游客记录仅在本机保存。
+浏览器在同一个账号缓存信封中保存正文、已确认修订、待删记录和冲突副本；恢复旧本地历史时保留旧键。断网失败保留未同步记录和真实失败状态；在线、窗口聚焦、页面恢复可见及可见期间每 15 秒自动尝试同步。多端冲突保留服务端版本，在“历史对话”抽屉内的“查看历史副本”中查看消息、下载原始备份、保留当前版本或恢复为独立新对话；页面顶部不显示副本数量、同步失败提示、具体错误或手动重试入口。处理状态在本机成功落盘后更新，已处理副本继续保留，不再使同步状态持续报警；同一对话的新冲突仍独立保留为待处理副本。恢复不覆盖原对话或删除标记，也不重新生成内容或扣费；恢复后仍需检查同步结果。副本及其处理状态属于当前账号、当前浏览器缓存，不随服务端历史跨设备分发。游客记录仅在本机保存。
 
 ## Agent MCP
 
@@ -184,29 +184,30 @@ Agent 通过 `mcp_list_tools` 分三步读取连接目录、指定连接的工�
 
 使用说明见[渠道、模板与批量配置](/docs/backend/channel-configuration)，迁移见[后端数据库](/docs/backend/backend-database)。
 
-## 旧灵感上新接口退役
+## 官方灵感目录与上新
 
-旧 `/api/public/inspirations/feed`、`/api/admin/settings/inspiration-feed` 及其 `/sync` 产品路由已停用（404），旧 GitHub 中文同步 worker 不再启动。灵感大厅与首页使用下方社区在线提示词接口，并保留独立的人工审核素材库；不再混入静态精选或旧上新。历史表与迁移保留，不自动清除数据库记录。
+首页和灵感大厅默认使用 `ddcat-ai/open-ai-canvas` 提交 `c8262a2594277f1d75fe300e5aeac698ee8bdb6e` 的官方静态目录：Seedance 767 条、好好学 AI 297 条、YouMind 255 条，以及 22 条项目内置模板。三份来源 JSON、manifest、首页精选池和本地缩略图随前端静态文件发布，不导入人工审核库。
 
-## 社区在线提示词
-
-灵感大厅和首页恢复使用这个只读在线目录，不写入数据库。它与下方人工审核素材库分开，不把社区条目标记为本站已核验授权。浏览器只调用本站业务 API；后端固定读取 `https://api.seedance.nz/api/prompt-gallery/v1`，不接受客户端指定上游 URL，不转发登录 Cookie、API Key，也不调用上游浏览计数、收藏或发布接口。
+官方目录在浏览器内加载、搜索、筛选、分页和读取完整正文；条目保留 `original/chatgpt-prompts/seedance/haohaoxue/youmind` 的真实来源。公开上新接口仅补充静态目录没有的 Seedance、YouMind 条目，按稳定 ID 去重且静态目录优先。上新失败可降级为静态目录；主来源 JSON 失败必须显示真实加载错误，不能包装为空列表成功。
 
 | 接口 | 入参与结果 |
 | --- | --- |
-| `GET /api/public/inspirations/zzai-gallery/prompts` | 匿名可读；查询 `media_type`（all/image/video）、`category`、`search`、`model`、`tag`、`sort`（latest/popular/featured/random/relevance）、`seed`、`cursor`、`limit`（默认 20，最大 50）。返回 `data={items,total,nextCursor?}`；列表不含完整提示词 |
-| `GET /api/public/inspirations/zzai-gallery/prompts/:slug` | 返回完整条目与 `prompt`、可选 `promptZh/usageNotes/requiresReference`。不接受查询参数，slug 限定为 1–191 个 ASCII 字母、数字或 `._-`，首字符必须是字母或数字 |
-| `GET /api/public/inspirations/zzai-gallery/facets` | 仅接受 `media_type`，返回 `data={categories,models,tags,total}` |
+| `GET /api/public/inspirations/feed` | 匿名只读，返回 `data={enabled,entries,categories,syncedAt?,videoLinks?}`；每 IP 每分钟 120 次。启用时读取最多 3000 条持久上新，条目可含 `videoUrl`；关闭时 entries 为空且不返回动态视频映射，既有数据不删除 |
+| `GET /api/admin/settings/inspiration-feed` | 管理员读取同步状态与来源统计，返回 `data={status}` |
+| `PATCH /api/admin/settings/inspiration-feed` | 管理员以 `{enabled:boolean}` 设置开关，写路径失败向上返回，不用默认权限兜底 |
+| `POST /api/admin/settings/inspiration-feed/sync` | 管理员立即同步；返回真实成功、部分失败、关闭或同步冲突，不伪造空结果 |
 
-拒绝未知和重复查询参数；`seed` 仅用于 random，取 1–2147483646 的整数。详情保留原文，有中文正文时同时提供中文；只存在中文时仍返回可用的 `prompt`。条目带稳定 `id=zzai-gallery:<slug>`、中文优先标题、`image/mode/category/tags/width/height/ratio/model/credit/sourceUrl/galleryUrl/videoUrl/publishedAt/featured` 等元数据，空的可选字段省略。`sourceUrl` 是上游标注的原始出处；`galleryUrl` 单独保留实际收录页供更新和追溯，前台不显示聚合站品牌。模型仅为上游标注，不自动选择本站收费渠道。
+上新采用官方固定 GitHub 来源：`LearnPrompt/awesome-seedance` 的 cases/taxonomy JSON、YouMind 两个图片提示词仓库的中文 README。默认开启，正常间隔 6 小时；失败后 1 小时重试，每 10 分钟检查到期状态。中文提示词落入既有 `inspiration_feed_entries`，图片只保存公开链接；已有数据库结构和迁移版本不变。
 
-三个公开接口共用每 IP 每分钟 60 次的限流；浏览器响应 `Cache-Control: no-store`。服务端复用出站 SSRF 检查、20 秒请求超时、4 MiB 响应上限、有界读取缓存（128 键、16 MiB、最多 8 个并发回源、2 分钟 TTL），同 key 请求合并，失败不包装为空列表成功。外部不可用返回真实失败并支持重试；本地已收藏快照不依赖上游详情接口。
+同一轮 Seedance cases 下载还提取原案例 `mediaType=video` 的 `mediaUrl`，不使用其他模型复测媒体。所有合法案例视频元数据都参与提取，独立于中文提示词收录；`videoLinks={version:1,entries:[{id,sourceId,sourceUrl,videoUrl}],syncedAt?}` 以最多 5000 条保存在既有 `system_settings` 的 `inspiration_feed_sync` JSON，不新增表或列。来源失败、空地址、非法地址或数量超限时保留旧有效映射并记录错误；管理员来源状态包含 `videoAccepted` 与可选 `videoRejected`。旧同步记录尚无视频映射时，启动后首次两分钟检查执行一次引导同步，之后继续六小时成功周期或一小时失败重试。
 
-社区条目的署名和出处是上游元数据，不代表本站已取得转载或商用许可。前端保留作者、原始出处与收录页；使用前需自行核实原作者许可，不伪造 `licensed-v1` 凭据。列表、详情和筛选接口只读，不能据此触发导入、审核或自动发布。
+前端仅给同 ID、同原始出处的案例补充地址，合法动态映射优先于静态视频补充；正文、封面、署名和官方目录数量不变，关闭上新或动态失败仍可使用原静态视频文件。只接受已知公开视频 CDN 的无凭据、无签名 HTTPS MP4；不下载整段视频、不接受浏览器提交任意媒体 URL。前后端读取缓存均为五分钟，详情回访或现有刷新查询在缓存到期后读取新映射，不需要重新发布前端。
+
+`/api/public/inspirations/zzai-gallery/*` 与自行采集的 `/api/public/inspirations/collected-gallery/*` 不再注册，返回 404；页面不再调用聚合站接口。旧收藏 ID 和本地记录保留，不重新标记为官方来源，也不使用它们回源或补充官方目录。官方开源案例不自动获得 `licensed-v1` 发布授权。
 
 ## 人工审核素材库
 
-人工库继续保留在 `/api/public/inspirations/library`，与社区在线目录的 ID、查询和媒体来源独立。公开列表仅返回数据库中 `approved` 的当前条目；没有已发布条目时正常返回 `items=[]、total=0`，不自动用外部数据补位。
+人工库继续保留在 `/api/public/inspirations/library`，与官方静态目录的 ID、查询和媒体来源独立。公开列表仅返回数据库中 `approved` 的当前条目；没有已发布条目时正常返回 `items=[]、total=0`，不自动用外部数据补位。
 
 | 接口 | 入参与结果 |
 | --- | --- |
@@ -216,7 +217,7 @@ Agent 通过 `mcp_list_tools` 分三步读取连接目录、指定连接的工�
 | `POST /api/public/inspirations/library/resolve` | 只读解析 `{ids:["authorized-library:<slug>",...]}`，返回仍有效的已发布摘要；不读取社区目录 |
 | `GET /api/public/inspirations/library/prompts/:slug/media` | 必须提交 `kind/hash/revision`，仅返回与当前审核版本匹配的本站媒体，支持 Range；不代理任意外部 URL |
 
-管理员通过 `/api/admin/inspirations/library` 列表/详情、`POST /import` 和 `POST /:slug/review` 管理真实素材与审核；权限在 service 校验。导入默认 `pending`，审核发布绑定内容哈希、媒体哈希、版本和提示词/媒体各自的许可及署名，不自动批准。恢复社区在线目录不修改此库、审核记录、媒体或数据库迁移。公开读取仍使用 `Cache-Control: no-store`，每 IP 每分钟 60 次，限流桶与社区目录分开。
+管理员通过 `/api/admin/inspirations/library` 列表/详情、`POST /import` 和 `POST /:slug/review` 管理真实素材与审核；权限在 service 校验。导入默认 `pending`，审核发布绑定内容哈希、媒体哈希、版本和提示词/媒体各自的许可及署名，不自动批准。切换官方目录不修改此库、审核记录、媒体或数据库迁移。公开读取仍使用 `Cache-Control: no-store`，每 IP 每分钟 60 次，限流桶与官方上新分开。
 
 `GET /api/admin/inspirations/library/:slug/media` 提供管理员候选媒体预览，同样要求 `kind/hash/revision` 并校验当前媒体字节，可查看尚未发布的候选版本；不绕过管理员身份校验，不代理任意外部地址。完整请求、响应与校验范围见 `GET /api/openapi.yaml`。
 

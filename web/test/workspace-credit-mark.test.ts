@@ -5,6 +5,13 @@ import { resolve } from "node:path";
 const read = (path: string) => readFileSync(resolve(import.meta.dir, path), "utf8");
 
 describe("workspace credit mark", () => {
+    test("topbar credit backgrounds remain opaque at rest and on hover", () => {
+        const css = read("../src/styles/globals.css");
+        const backgrounds = Array.from(css.matchAll(/\.app-user-workspace \.app-workspace-topbar-credit(?::hover)?\s*\{([^}]*)\}/g), (match) => match[1].match(/background:\s*([^;]+);/)?.[1]);
+
+        expect(backgrounds).toEqual(["var(--user-surface)", "var(--user-surface-hover)"]);
+    });
+
     test("top-bar credit entries share one coin mark", () => {
         const topBar = read("../src/components/layout/workspace-top-bar.tsx");
         const actions = read("../src/components/layout/workspace-topbar-actions.tsx");

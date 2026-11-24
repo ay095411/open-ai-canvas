@@ -24123,15 +24123,6 @@ html:not(.dark) .app-user-workspace .app-workspace-topbar {
         transform var(--user-motion);
 }
 
-/* 日间主题下积分胶囊融进页面背景（点阵）：底色透明只留描边，不要白色块；夜间保持原深色胶囊。 */
-html:not(.dark) .app-user-workspace .app-workspace-topbar-credit {
-    background: transparent;
-}
-
-html:not(.dark) .app-user-workspace .app-workspace-topbar-credit:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-}
-
 .app-user-workspace .app-workspace-topbar-credit:hover {
     border-color: var(--user-border-strong);
     background: var(--user-surface-hover);

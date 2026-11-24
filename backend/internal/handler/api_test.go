@@ -67,21 +67,24 @@ func TestRegisterCanvasAPIExposesOpenAPIAndProjects(t *testing.T) {
 	}
 }
 
-func TestRegisterCanvasAPIRetiresLegacyInspirationFeed(t *testing.T) {
+func TestRegisterCanvasAPIExposesOfficialInspirationFeed(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	RegisterCanvasAPI(router.Group("/api"), &service.Service{})
 
 	legacy := map[string]bool{
-		"GET /api/public/inspirations/feed":              true,
-		"GET /api/admin/settings/inspiration-feed":       true,
-		"PATCH /api/admin/settings/inspiration-feed":     true,
-		"POST /api/admin/settings/inspiration-feed/sync": true,
+		"GET /api/public/inspirations/zzai-gallery/prompts":            true,
+		"GET /api/public/inspirations/zzai-gallery/prompts/:slug":      true,
+		"GET /api/public/inspirations/zzai-gallery/facets":             true,
+		"GET /api/public/inspirations/collected-gallery/prompts":       true,
+		"GET /api/public/inspirations/collected-gallery/prompts/:slug": true,
+		"GET /api/public/inspirations/collected-gallery/facets":        true,
 	}
 	wanted := map[string]bool{
-		"GET /api/public/inspirations/zzai-gallery/prompts":        false,
-		"GET /api/public/inspirations/zzai-gallery/prompts/:slug":  false,
-		"GET /api/public/inspirations/zzai-gallery/facets":         false,
+		"GET /api/public/inspirations/feed":                        false,
+		"GET /api/admin/settings/inspiration-feed":                 false,
+		"PATCH /api/admin/settings/inspiration-feed":               false,
+		"POST /api/admin/settings/inspiration-feed/sync":           false,
 		"GET /api/public/inspirations/library/prompts":             false,
 		"GET /api/public/inspirations/library/prompts/:slug":       false,
 		"GET /api/public/inspirations/library/prompts/:slug/media": false,
@@ -96,7 +99,7 @@ func TestRegisterCanvasAPIRetiresLegacyInspirationFeed(t *testing.T) {
 	for _, route := range router.Routes() {
 		key := route.Method + " " + route.Path
 		if legacy[key] {
-			t.Fatalf("retired inspiration feed route is still registered: %s", key)
+			t.Fatalf("retired inspiration gallery route is still registered: %s", key)
 		}
 		if _, exists := wanted[key]; exists {
 			wanted[key] = true
@@ -115,9 +118,14 @@ func TestRegisterCanvasAPIRetiresLegacyInspirationFeed(t *testing.T) {
 			t.Errorf("retired route %s returned %d, want 404", route, response.Code)
 		}
 	}
-	for _, path := range []string{"/public/inspirations/feed:", "/admin/settings/inspiration-feed:", "/admin/settings/inspiration-feed/sync:"} {
+	for _, path := range []string{"/public/inspirations/zzai-gallery/", "/public/inspirations/collected-gallery/"} {
 		if strings.Contains(string(openAPISpec), path) {
-			t.Errorf("retired inspiration feed path remains in OpenAPI: %s", path)
+			t.Errorf("retired inspiration gallery path remains in OpenAPI: %s", path)
+		}
+	}
+	for _, path := range []string{"/public/inspirations/feed:", "/admin/settings/inspiration-feed:", "/admin/settings/inspiration-feed/sync:"} {
+		if !strings.Contains(string(openAPISpec), path) {
+			t.Errorf("official inspiration feed path is missing from OpenAPI: %s", path)
 		}
 	}
 }
