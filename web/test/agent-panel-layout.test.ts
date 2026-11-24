@@ -78,10 +78,13 @@ describe("Agent dock layout", () => {
         expect(restoreAgentPanelLayout(JSON.stringify(start), viewport)).toEqual(start);
     });
 
-    it("preserves the local Agent availability switch with the canvas dock gutter", () => {
+    it("preserves the personal Agent switch and dock gutter while isolating team spaces", () => {
         const source = readFileSync(resolve(import.meta.dir, "../src/layouts/user-layout.tsx"), "utf8");
         expect(source).toContain("state.features.globalAgentEnabled");
-        expect(source).toContain("userId && (canvasEditor || globalAgentEnabled)");
+        expect(source).toContain('const teamWorkspace = pathname.startsWith("/teams/");');
+        expect(source).toContain("userId && !teamWorkspace && (canvasEditor || globalAgentEnabled)");
+        expect(source).toMatch(/if \(teamWorkspace\) useGlobalAgentStore\.getState\(\)\.reset\(\);\s*\}, \[teamWorkspace\]\);/);
+        expect(source).toContain("<GlobalAgentPanel key={userId} />");
         expect(source).toContain("Boolean(userId) && canvasEditor && agentDock.active");
         expect(source).toContain("paddingRight: agentDock.width");
     });

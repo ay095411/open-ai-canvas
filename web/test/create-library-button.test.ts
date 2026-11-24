@@ -51,8 +51,12 @@ describe("creation library button", () => {
         expect(source.slice(uploadStart, uploadEnd)).not.toContain("setAttachments");
         expect(source).toContain("onUpload: uploadLibraryAssets");
         expect(source).not.toContain("onUpload={() => fileInputRef.current?.click()}");
-        expect(source).toContain("上传后保存到素材库");
-        expect(pickerSource).toContain("保存完成后会自动选中");
+        for (const key of ["uploadHintText", "uploadHintVideo", "uploadHintImage"] as const) {
+            expect(source).toContain(`t("create.page.${key}")`);
+            expect(createZh.page[key]).toContain("保存到素材库");
+        }
+        expect(pickerSource).toContain(libraryZh.picker.uploadingHint);
+        expect(libraryZh.picker.uploadingHint).toBe("保存完成后会自动选中");
         expect(source.slice(uploadStart, uploadEnd)).not.toContain("toast.success");
     });
 

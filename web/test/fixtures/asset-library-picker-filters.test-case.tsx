@@ -211,7 +211,7 @@ describe("素材库选择器筛选与统计", () => {
         expect(badge("回收站")).toBe("2");
     });
 
-    test("回收站清除隐藏筛选，侧栏稳定且归档选择不会带回正常库", async () => {
+    test("回收站清除隐藏筛选，保留分类且归档选择不会带回正常库", async () => {
         currentView = await mount();
         await choose("图片");
         await choose("道具");
@@ -221,7 +221,7 @@ describe("素材库选择器筛选与统计", () => {
         expect(searchInput().value).toBe("");
         expect(displayedTitles()).toEqual(["归档图片", "归档视频"]);
         expect(header()).toContain("已选 0");
-        expect(sidebarButton("全部类型").getAttribute("aria-pressed")).toBe("false");
+        expect([...document.querySelectorAll(".asset-picker-categories .assets-filter-item-label")].some((element) => element.textContent === "全部类型")).toBe(false);
         expect(sidebarButton("全部素材").getAttribute("aria-pressed")).toBe("false");
         expect(sidebarButton("回收站").getAttribute("aria-pressed")).toBe("true");
         expect(badge("全部素材")).toBe("4");
@@ -259,7 +259,7 @@ describe("素材库选择器筛选与统计", () => {
         expect(header()).toContain("43 个素材");
         expect(badge("回收站")).toBe("43");
         expect(badge("全部素材")).toBe("90");
-        expect(badge("视频")).toBe("45");
+        expect([...document.querySelectorAll(".asset-picker-categories .assets-filter-item-label")].some((element) => element.textContent === "视频")).toBe(false);
         const archivedRequest = requests.findLast((request) => request.status === "archived" && request.pageSize === 40)!;
         expect(archivedRequest.page).toBe(1);
         expect(archivedRequest.kind).toBeUndefined();
@@ -272,9 +272,12 @@ describe("素材库选择器筛选与统计", () => {
         const deletePage = [...document.querySelectorAll<HTMLButtonElement>(".asset-picker-actions button")].find((button) => button.textContent === "删除当前页");
         expect(deletePage).toBeDefined();
         expect(deletePage!.disabled).toBe(true);
+        await choose("道具");
+        expect(badge("全部类型")).toBe("90");
+        expect(badge("视频")).toBe("45");
     });
 
-    test("空回收站不会让媒体和分类导航消失或重置计数", async () => {
+    test("空回收站保留分类计数，离开后恢复媒体导航", async () => {
         remoteAssets = remoteAssets.filter((item) => item.status !== "archived");
         currentView = await mount({ remoteLibrary: true, acceptRemoteItems: true, items: [] });
         await choose("视频");
@@ -282,6 +285,8 @@ describe("素材库选择器筛选与统计", () => {
         expect(document.querySelector(".asset-picker-empty strong")?.textContent).toBe("回收站是空的");
         expect(badge("回收站")).toBe("0");
         expect(badge("全部素材")).toBe("90");
+        expect([...document.querySelectorAll(".asset-picker-categories .assets-filter-item-label")].some((element) => element.textContent === "视频")).toBe(false);
+        await choose("道具");
         expect(badge("视频")).toBe("45");
         await choose("图片");
         expect(displayedTitles()).toHaveLength(40);

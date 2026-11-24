@@ -12,9 +12,13 @@ test("工作台真实登录表单覆盖机器人令牌、自动注册与验证�
 
 test("机器人验证组件自行加载样式，不依赖旧认证面板", () => {
     const read = (path: string) => readFileSync(new URL(`../src/${path}`, import.meta.url), "utf8");
-    expect(read("components/auth/turnstile-widget.tsx")).toContain('import "./turnstile-widget.css"');
-    expect(read("components/auth/turnstile-widget.css")).toContain(".auth-turnstile {");
-    expect(read("components/auth/auth-panel.css")).not.toContain(".auth-turnstile");
+    const widget = read("components/auth/turnstile-widget.tsx");
+    expect(widget).toContain('import "./turnstile-widget.css"');
+    expect(widget).toContain('className="auth-turnstile"');
+    for (const source of [widget, read("components/auth/login-form.tsx")]) expect(source).not.toMatch(/import\s+["'][^"']*auth-panel\.css["']/);
+    const frame = read("components/auth/turnstile-widget.css").match(/\.auth-turnstile\s*\{([^}]+)\}/)?.[1];
+    expect(frame).toBeDefined();
+    for (const rule of ["display: flex;", "min-height: 65px;", "justify-content: center;", "overflow: hidden;"]) expect(frame).toContain(rule);
 });
 
 test("站点外观合并保留本地轮播和 QQ 交流群，同时呈现机器人保护", () => {

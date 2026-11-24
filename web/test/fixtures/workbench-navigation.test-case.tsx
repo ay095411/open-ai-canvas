@@ -200,8 +200,8 @@ for (const imageWorkbenchEnabled of [false, true]) {
                 expect(Boolean(paletteButton("创作影棚"))).toBe(hasStudio);
                 expect(Boolean(sidebarLink("ecommerce"))).toBe(ecommerceEnabled);
                 expect(Boolean(paletteButton("电商Agent"))).toBe(ecommerceEnabled);
-                expect(sidebarLink("skills")).toBeNull();
-                expect(paletteButton("技能库")).toBeUndefined();
+                expect(sidebarLink("skills")?.getAttribute("href")).toBe("/skills");
+                expect(Boolean(paletteButton("技能库"))).toBe(true);
 
                 for (const [id, title, path] of [
                     ["canvas", "自由画布", "/canvas"],

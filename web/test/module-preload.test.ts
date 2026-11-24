@@ -93,13 +93,8 @@ test("后台最多三路，打开预取中的页面时提升排队资源优先�
 });
 
 test("真实 Vite helper 的预热失败沿用可取消的恢复事件，不执行原生 import", async () => {
-    const vite = readFileSync(resolve(import.meta.dir, "../node_modules/vite/dist/node/chunks/node.js"), "utf8");
-    const start = vite.indexOf("function preload(baseModule, deps, importerUrl) {");
-    const end = vite.indexOf("\nfunction getPreloadCode", start);
-    expect(start).toBeGreaterThan(0);
-    expect(end).toBeGreaterThan(start);
     const transform = resilientPreload().transform as Function;
-    const transformed = transform(vite.slice(start, end), "\0vite/preload-helper.js").code.replace('import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";', "").replaceAll("import.meta", "importMeta");
+    const transformed = transform(installedVitePreloadHelper(), "\0vite/preload-helper.js").code.replace('import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";', "").replaceAll("import.meta", "importMeta");
     const events: Event[] = [];
     const failure = new Error("asset 404");
     let cancel = true;
@@ -130,4 +125,90 @@ test("真实 Vite helper 的预热失败沿用可取消的恢复事件，不执�
     cancel = false;
     await expect(preload(nativeImport, ["./missing.js"])).rejects.toThrow("asset 404");
     expect(imported).toBe(false);
+});
+
+function installedVitePreloadHelper() {
+    const vite = readFileSync(resolve(import.meta.dir, "../node_modules/vite/dist/node/chunks/node.js"), "utf8");
+    const start = vite.indexOf("function preloadOnce(seen, href, preload) {");
+    const end = vite.indexOf("\nfunction getPreloadCode", start);
+    expect(start).toBeGreaterThan(0);
+    expect(end).toBeGreaterThan(start);
+    return vite.slice(start, end);
+}
+
+for (const runtime of ["Node", "Bun"] as const) {
+    test(`${runtime} 序列化的真实 Vite helper 合并 CSS 等待，失败移除链接后允许重试`, async () => {
+        const original = installedVitePreloadHelper();
+        const source = runtime === "Bun" ? new Bun.Transpiler({ loader: "js", target: "bun" }).transformSync(original) : original;
+        const transform = resilientPreload().transform as Function;
+        const transformed = transform(source, "\0vite/preload-helper.js").code.replace('import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";', "").replaceAll("import.meta", "importMeta");
+        const links: { href: string; rel: string; removed: boolean; handlers: Map<string, () => void> }[] = [];
+        const seen: Record<string, unknown> = {};
+        const events: Event[] = [];
+        const warmed: string[][] = [];
+        const preload = runInNewContext(`${transformed}; preload`, {
+            Event,
+            Promise,
+            PageResourceError,
+            URL,
+            seen,
+            scriptRel: "modulepreload",
+            __VITE_IS_MODERN__: true,
+            importMeta: { url: "https://assets.example/entry.js" },
+            assetsURL: (dep: string) => dep,
+            isCssPreloadUrl: (dep: URL) => dep.pathname.endsWith(".css"),
+            warmPreloadResources: async (urls: string[]) => warmed.push([...urls]),
+            document: {
+                querySelector: () => null,
+                getElementsByTagName: () => links.filter((link) => !link.removed),
+                createElement: () => {
+                    const link = { href: "", rel: "", removed: false, handlers: new Map<string, () => void>() };
+                    return Object.assign(link, {
+                        addEventListener: (name: string, handler: () => void) => link.handlers.set(name, handler),
+                        remove: () => {
+                            link.removed = true;
+                        },
+                    });
+                },
+                head: { appendChild: (link: (typeof links)[number]) => links.push(link) },
+            },
+            window: { dispatchEvent: (event: Event) => events.push(event) },
+        });
+        let imported = 0;
+        const nativeImport = async () => {
+            imported += 1;
+        };
+        const dependencies = ["./retry.css"];
+        const failed = Promise.all([preload(nativeImport, dependencies), preload(nativeImport, dependencies)]);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(links).toHaveLength(1);
+        links[0].handlers.get("error")!();
+        await expect(failed).rejects.toBeInstanceOf(PageResourceError);
+        expect(links[0].removed).toBe(true);
+        expect(Object.hasOwn(seen, "https://assets.example/retry.css")).toBe(false);
+        expect(imported).toBe(0);
+        expect(events).toHaveLength(2);
+        expect(events.every((event) => event.type === "vite:preloadError")).toBe(true);
+        const retried = preload(nativeImport, dependencies);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(links).toHaveLength(2);
+        links[1].handlers.get("load")!();
+        await retried;
+        expect(imported).toBe(1);
+        expect(warmed).toEqual(Array.from({ length: 3 }, () => ["https://assets.example/retry.css"]));
+    });
+}
+
+test("Vite helper 的未知 CSS 或失败清理结构仍明确阻断构建", () => {
+    const source = installedVitePreloadHelper();
+    const transform = resilientPreload().transform as Function;
+    for (const changed of [
+        source.replace("seen[href] = void 0;\n\t\tthrow err;", "seen[href] = true;\n\t\tthrow err;"),
+        source.replace("Unable to preload CSS for", "Unknown CSS error for"),
+        source.replace("if (isCss) return new Promise", "if (isCss) return anotherPromise"),
+    ]) {
+        expect(changed).not.toBe(source);
+        expect(() => transform(changed, "\0vite/preload-helper.js")).toThrow("Vite preload helper changed; update the resource preload adapter");
+    }
+    expect(transform(source, "unrelated-module.js")).toBeUndefined();
 });

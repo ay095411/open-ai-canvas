@@ -21,8 +21,16 @@ test("home retains Agent collaboration without creation chooser or resource tool
     for (const removed of ["选择创作方式", "资源与工具", 'href="/toolbox/image"', 'href="/projects"', 'href="/assets"', 'href="/skills"', 'href="/plugins"', "<video", "<img"]) expect(html).not.toContain(removed);
     const page = readFileSync(new URL("../src/pages/create/index.tsx", import.meta.url), "utf8");
     expect(page).toContain("<CreationHomeAgentEntry");
-    expect(page).not.toContain("CreationRecentProjects");
-    expect(page).not.toContain("creation-recent-canvases");
+    const emptyStart = page.indexOf("{isEmpty ? (");
+    const threadStart = page.indexOf('<div className="creation-thread-workbench">', emptyStart);
+    expect(emptyStart).toBeGreaterThanOrEqual(0);
+    expect(threadStart).toBeGreaterThan(emptyStart);
+    const emptyHome = page.slice(emptyStart, threadStart);
+    expect(emptyHome).toContain("{!workspaceTeamId && <CreationHomeAgentEntry");
+    expect(emptyHome).toContain("{!workspaceTeamId && <CreationShowcaseBand");
+    expect(emptyHome).toContain("{workspaceTeamId && <CreationRecentProjects />}");
+    expect(emptyHome.match(/<CreationRecentProjects\b/g)).toHaveLength(1);
+    expect(emptyHome).not.toContain('className="creation-recent-canvases');
     const sidebar = readFileSync(new URL("../src/components/layout/workspace-sidebar-nav.tsx", import.meta.url), "utf8");
     const recordsIndex = sidebar.indexOf("<WorkspaceCreationRecords");
     expect(recordsIndex).toBeGreaterThan(sidebar.indexOf("{groups.map"));
