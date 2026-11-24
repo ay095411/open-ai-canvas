@@ -35,6 +35,24 @@ const ALLOWED_NOISE = ["Warning: [antd: InputNumber] `addonAfter` is deprecated.
 
 const results = [];
 let failures = 0;
+const viteLogs = new WeakMap();
+
+function diagnosticText(value, limit = 4000) {
+    return String(value ?? "")
+        .replace(/\b(?:https?|wss?):\/\/[^\s"'`]+/g, (value) => {
+            try {
+                const url = new URL(value);
+                return `${url.protocol}//${url.host}${url.pathname}`;
+            } catch {
+                return "[invalid URL omitted]";
+            }
+        })
+        .replace(/\b(?:authorization|set-cookie|cookie)\s*[:=]\s*[^\r\n]*/gi, "[credential header omitted]")
+        .replace(/["']?\b(?:api[-_]?key|token|secret|password|signature)["']?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi, "[credential value omitted]")
+        .replace(/\b(?:sk-|ghp_|github_pat_)[A-Za-z0-9_-]{12,}/g, "[credential omitted]")
+        .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email omitted]")
+        .slice(-limit);
+}
 
 function pass(name, detail = "") {
     results.push({ ok: true, name, detail });
@@ -91,6 +109,7 @@ async function launchVite(port) {
     child.stderr.on("data", (d) => {
         log += d.toString();
     });
+    viteLogs.set(child, () => log);
 
     const deadline = Date.now() + 120000;
     while (Date.now() < deadline) {
@@ -149,7 +168,7 @@ async function launchChrome(chromePath, cdpPort, profileDir) {
  * CDP 客户端：id/pending map + 事件收集。
  * 只放行 ALLOWED_NOISE 精确匹配，其他异常/console error/网络失败全部记入 problems。
  */
-async function connectCdp(cdpPort) {
+async function connectCdp(cdpPort, getViteLog = () => "") {
     const list = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json();
     const target = list.find((t) => t.type === "page");
     if (!target) throw new Error("No CDP page target found");
@@ -344,7 +363,29 @@ async function connectCdp(cdpPort) {
         problems.length = 0;
         await send("Page.navigate", { url });
         const ok = await poll(`!!document.querySelector('[data-testid="inject-local-model"]')`, "lab mounted", 60000);
-        if (!ok) throw new Error("Repro lab did not mount within 60s");
+        if (!ok) {
+            let page;
+            try {
+                page = await evaluate(`(() => {
+                    const overlays = [...document.querySelectorAll('vite-error-overlay')];
+                    return {
+                        readyState: document.readyState,
+                        pathname: location.pathname,
+                        rootChildCount: document.querySelector('#root')?.childElementCount ?? 0,
+                        labMarkerCount: document.querySelectorAll('[data-testid="inject-local-model"]').length,
+                        viteOverlayCount: overlays.length,
+                        viteOverlayMessages: overlays.slice(0, 3).map(overlay => overlay.shadowRoot?.querySelector('.message-body')?.textContent ?? '')
+                    };
+                })()`);
+                page.viteOverlayMessages = page.viteOverlayMessages.map((message) => diagnosticText(message, 1000));
+            } catch (error) {
+                page = { diagnosticError: diagnosticText(error?.message || error, 1000) };
+            }
+            // Capture bootstrap failures before the next scenario clears the buffer; never dump page content or storage.
+            console.log(`      lab bootstrap diagnostics: ${JSON.stringify({ page, problemCount: problems.length, problems: problems.slice(-20).map((problem) => ({ kind: problem.kind, text: diagnosticText(problem.text, 1000) })) })}`);
+            console.log(`      Vite log tail: ${diagnosticText(getViteLog())}`);
+            throw new Error("Repro lab did not mount within 60s");
+        }
         return true;
     };
 
@@ -936,7 +977,7 @@ async function main() {
         chrome = await launchChrome(chromePath, cdpPort, profileDir);
         console.log(`      chrome pid=${chrome.pid}, profile=${profileDir}`);
 
-        cdp = await connectCdp(cdpPort);
+        cdp = await connectCdp(cdpPort, () => viteLogs.get(vite)?.() || "");
         console.log("      CDP connected (Runtime, Page, Log, Network enabled)");
 
         // 故意保存失败的场景最后运行：它保留 beforeunload 保护，后续导航会被浏览器拦住。
