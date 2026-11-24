@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -142,4 +143,49 @@ func resetOutboundDNSCache(t *testing.T) {
 	outboundDNSCacheMu.Lock()
 	outboundDNSCache = map[string]outboundDNSEntry{}
 	outboundDNSCacheMu.Unlock()
+}
+
+func TestValidateOutboundURLWithProxyDefersTargetDNS(t *testing.T) {
+	t.Setenv("CANVAS_ALLOW_PRIVATE_UPSTREAMS", "false")
+	t.Setenv("CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS", "")
+	previous := net.DefaultResolver
+	var lookups atomic.Int32
+	net.DefaultResolver = &net.Resolver{PreferGo: true, Dial: func(context.Context, string, string) (net.Conn, error) {
+		lookups.Add(1)
+		return nil, errors.New("target DNS unavailable")
+	}}
+	t.Cleanup(func() { net.DefaultResolver = previous })
+
+	const destination = "https://proxy-target-unresolvable.invalid/v1"
+	const proxy = "http://127.0.0.1:8080"
+	if _, err := ValidateOutboundURLWithProxy(destination, proxy); err != nil {
+		t.Fatalf("proxy target should not require local DNS: %v", err)
+	}
+	if lookups.Load() != 0 {
+		t.Fatalf("proxied target performed %d local DNS lookups", lookups.Load())
+	}
+	for _, blocked := range []string{
+		"https://localhost/v1", "https://worker.localhost/v1", "http://127.0.0.1/v1",
+		"http://10.0.0.1/v1", "https://169.254.169.254/latest", "https://[::1]/v1",
+		"https://user:pass@example.com/v1", "file://example.com/v1",
+	} {
+		if _, err := ValidateOutboundURLWithProxy(blocked, proxy); err == nil {
+			t.Fatalf("proxy target policy accepted %q", blocked)
+		}
+	}
+	if _, err := ValidateOutboundURLWithProxy(destination, "ftp://127.0.0.1:8080"); err == nil {
+		t.Fatal("invalid configured proxy must fail closed")
+	}
+	_, err := ValidateOutboundURLWithProxy(destination, "")
+	var appErr *kernel.AppError
+	if !errors.As(err, &appErr) || appErr.Reason != kernel.ReasonUpstreamDNSFailed {
+		t.Fatalf("direct target must retain local DNS validation: %v", err)
+	}
+	t.Setenv("CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS", "127.0.0.1")
+	if _, err := ValidateOutboundURLWithProxy("http://127.0.0.1/v1", proxy); err != nil {
+		t.Fatalf("exactly allowed development target was rejected: %v", err)
+	}
+	if _, err := ValidateOutboundURLWithProxy("http://127.0.0.2/v1", proxy); err == nil {
+		t.Fatal("exact target allowlist must not open unrelated private hosts")
+	}
 }

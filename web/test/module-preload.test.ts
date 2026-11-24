@@ -136,18 +136,23 @@ function installedVitePreloadHelper() {
     return vite.slice(start, end);
 }
 
-for (const runtime of ["Node", "Bun"] as const) {
-    test(`${runtime} 序列化的真实 Vite helper 合并 CSS 等待，失败移除链接后允许重试`, async () => {
+for (const runtime of ["Node", "Bun", "Unknown CSS"] as const) {
+    test(runtime === "Unknown CSS" ? "未知 CSS helper 告警并保留预热与原生失败事件" : `${runtime} 序列化的真实 Vite helper 合并 CSS 等待，失败移除链接后允许重试`, async () => {
         const original = installedVitePreloadHelper();
-        const source = runtime === "Bun" ? new Bun.Transpiler({ loader: "js", target: "bun" }).transformSync(original) : original;
+        const source = runtime === "Bun" ? new Bun.Transpiler({ loader: "js", target: "bun" }).transformSync(original) : runtime === "Unknown CSS" ? original.replace("Unable to preload CSS for", "Unknown CSS error for") : original;
+        const warnings: string[] = [];
         const transform = resilientPreload().transform as Function;
-        const transformed = transform(source, "\0vite/preload-helper.js").code.replace('import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";', "").replaceAll("import.meta", "importMeta");
+        const transformed = transform
+            .call({ warn: (message: string) => warnings.push(message) }, source, "\0vite/preload-helper.js")
+            .code.replace('import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";', "")
+            .replaceAll("import.meta", "importMeta");
         const links: { href: string; rel: string; removed: boolean; handlers: Map<string, () => void> }[] = [];
         const seen: Record<string, unknown> = {};
         const events: Event[] = [];
         const warmed: string[][] = [];
         const preload = runInNewContext(`${transformed}; preload`, {
             Event,
+            Error,
             Promise,
             PageResourceError,
             URL,
@@ -183,6 +188,17 @@ for (const runtime of ["Node", "Bun"] as const) {
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(links).toHaveLength(1);
         links[0].handlers.get("error")!();
+        if (runtime === "Unknown CSS") {
+            await expect(failed).rejects.toThrow("Unknown CSS error for");
+            expect(warnings).toEqual(["Vite preload CSS helper changed; keeping native CSS preload behavior with resource prewarming."]);
+            expect(links[0].removed).toBe(false);
+            expect(imported).toBe(0);
+            expect(events).toHaveLength(2);
+            expect(events.every((event) => event.type === "vite:preloadError")).toBe(true);
+            expect(warmed).toEqual(Array.from({ length: 2 }, () => ["https://assets.example/retry.css"]));
+            return;
+        }
+        expect(warnings).toHaveLength(0);
         await expect(failed).rejects.toBeInstanceOf(PageResourceError);
         expect(links[0].removed).toBe(true);
         expect(Object.hasOwn(seen, "https://assets.example/retry.css")).toBe(false);
@@ -199,7 +215,7 @@ for (const runtime of ["Node", "Bun"] as const) {
     });
 }
 
-test("Vite helper 的未知 CSS 或失败清理结构仍明确阻断构建", () => {
+test("Vite helper 的未知 CSS 或失败清理结构不作部分改写", () => {
     const source = installedVitePreloadHelper();
     const transform = resilientPreload().transform as Function;
     for (const changed of [
@@ -208,7 +224,43 @@ test("Vite helper 的未知 CSS 或失败清理结构仍明确阻断构建", () 
         source.replace("if (isCss) return new Promise", "if (isCss) return anotherPromise"),
     ]) {
         expect(changed).not.toBe(source);
-        expect(() => transform(changed, "\0vite/preload-helper.js")).toThrow("Vite preload helper changed; update the resource preload adapter");
+        const warnings: string[] = [];
+        const result = transform.call({ warn: (message: string) => warnings.push(message) }, changed, "\0vite/preload-helper.js");
+        expect(warnings).toHaveLength(1);
+        const entry = "function preload(baseModule, deps, importerUrl) {";
+        const warmedEntry =
+            "async function preload(baseModule, deps, importerUrl) {\ntry {\nawait warmPreloadResources((deps || []).map(dep => new URL(assetsURL(dep, importerUrl), importerUrl || import.meta.url).href));\n} catch (error) { return handlePreloadError(error); }\n";
+        expect(result.code).toBe('import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";\n' + changed.replace(entry, warmedEntry));
     }
     expect(transform(source, "unrelated-module.js")).toBeUndefined();
 });
+
+test("Vite helper 的缺失或重复入口仍拒绝不安全注入", () => {
+    const source = installedVitePreloadHelper();
+    const transform = resilientPreload().transform as Function;
+    for (const changed of [source.replace("function preload(baseModule", "function anotherPreload(baseModule"), source + source])
+        expect(() => transform(changed, "\0vite/preload-helper.js")).toThrow("Vite preload helper changed; update the resource preload adapter");
+});
+
+for (const hasLoadListener of [false, true]) {
+    test(`旧 Vite ${hasLoadListener ? "包含" : "省略"} load 监听时仍生成完整 CSS 重试分支`, () => {
+        const source = [
+            "function preload ( baseModule , deps , importerUrl ) {",
+            "if ( dep in seen ) return;",
+            "if ( isCss ) return new Promise ( ( res , rej ) => {",
+            hasLoadListener ? "link.addEventListener('load',res);" : "",
+            "link.addEventListener('error',()=>rej(Error(`Unable to preload CSS for ${dep}`)));",
+            "} );",
+            "}",
+        ].join("\n");
+        const warnings: string[] = [];
+        const transform = resilientPreload().transform as Function;
+        const result = transform.call({ warn: (message: string) => warnings.push(message) }, source, "\0vite/preload-helper.js");
+        expect(warnings).toHaveLength(0);
+        expect(result.code).toContain("if (dep in seen) return seen[dep] === true ? undefined : seen[dep];");
+        expect(result.code).toContain("if (isCss) return (seen[dep] = new Promise");
+        expect(result.code.match(/link\.addEventListener\("load", res\);/g)).toHaveLength(1);
+        expect(result.code).toContain("delete seen[dep]; link.remove(); rej(new PageResourceError");
+        expect(() => new Bun.Transpiler({ loader: "js" }).transformSync(result.code)).not.toThrow();
+    });
+}

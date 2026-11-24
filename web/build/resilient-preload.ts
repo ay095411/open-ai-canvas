@@ -12,19 +12,21 @@ export function resilientPreload(): Plugin {
                 return matches?.length === 1 ? matches[0] : undefined;
             };
             // Vite serializes functions with toString; Bun rewrites whitespace and pure Error constructors.
-            const entry = matchOnce(/function preload\(baseModule,\s*deps,\s*importerUrl\) \{/g);
-            const seenCheck = matchOnce(/if \(dep in seen\)\s*return;/g);
-            const preloadOnceCall = matchOnce(/return preloadOnce\(seen,\s*dep\.href,\s*\(\) => \{/g);
-            const cssLoad = matchOnce(/if \(isCss\)\s*return new Promise\(\(res,\s*rej\) => \{/g);
-            const cssErrorPattern = /link\.addEventListener\("error", \(\) => rej\((?:\/\* @__PURE__ \*\/\s*)?(?:new\s+)?Error\(`Unable to preload CSS for \$\{dep\}`\)\)\);/g;
+            const entry = matchOnce(/function\s+preload\s*\(\s*baseModule\s*,\s*deps\s*,\s*importerUrl\s*\)\s*\{/g);
+            if (!entry) throw new Error("Vite preload helper changed; update the resource preload adapter");
+            const seenCheck = matchOnce(/if\s*\(\s*dep\s+in\s+seen\s*\)\s*return\s*;/g);
+            const preloadOnceCall = matchOnce(/return\s+preloadOnce\s*\(\s*seen\s*,\s*dep\.href\s*,\s*\(\s*\)\s*=>\s*\{/g);
+            const cssErrorPattern = /link\.addEventListener\(\s*["']error["']\s*,\s*\(\s*\)\s*=>\s*rej\(\s*(?:\/\*\s*@__PURE__\s*\*\/\s*)?(?:new\s+)?Error\(`Unable to preload CSS for \$\{dep\}`\)\s*\)\s*\)\s*;/g;
             const cssErrorCall = matchOnce(cssErrorPattern);
-            const cssErrorLegacy = matchOnce(new RegExp(`${cssErrorPattern.source}\\s*\\}\\);`, "g"));
-            const preloadOnceReject = matchOnce(/\},\s*\(err\) => \{\s*seen\[href\] = void 0;\s*throw err;\s*\}\);/g);
-            const legacyHelper = seenCheck && cssErrorLegacy;
-            const preloadOnceHelper = preloadOnceCall && cssErrorCall && preloadOnceReject;
-            if (!entry || !cssLoad || (!legacyHelper && !preloadOnceHelper) || (legacyHelper && preloadOnceHelper)) {
-                throw new Error("Vite preload helper changed; update the resource preload adapter");
-            }
+            const cssBlock = matchOnce(
+                new RegExp(
+                    `if\\s*\\(\\s*isCss\\s*\\)\\s*return\\s+new\\s+Promise\\s*\\(\\s*\\(\\s*res\\s*,\\s*rej\\s*\\)\\s*=>\\s*\\{\\s*(?:link\\.addEventListener\\(\\s*["']load["']\\s*,\\s*res\\s*\\);\\s*)?${cssErrorPattern.source}\\s*\\}\\s*\\)\\s*;`,
+                    "g",
+                ),
+            );
+            const preloadOnceReject = matchOnce(/\},\s*\(\s*err\s*\)\s*=>\s*\{\s*seen\[href\]\s*=\s*void\s+0;\s*throw\s+err;\s*\}\s*\);/g);
+            const legacyHelper = seenCheck && cssBlock && !preloadOnceCall && !preloadOnceReject;
+            const preloadOnceHelper = preloadOnceCall && cssBlock && cssErrorCall && preloadOnceReject && !seenCheck;
             let transformed =
                 'import { PageResourceError, warmPreloadResources } from "@/lib/module-preload";\n' +
                 code.replace(
@@ -34,17 +36,22 @@ export function resilientPreload(): Plugin {
                         "await warmPreloadResources((deps || []).map(dep => new URL(assetsURL(dep, importerUrl), importerUrl || import.meta.url).href));\n" +
                         "} catch (error) { return handlePreloadError(error); }\n",
                 );
-            if (seenCheck && cssErrorLegacy) {
-                // When two imports need the same CSS, both wait for it. A failed link can be recreated on retry.
+            if (legacyHelper && seenCheck && cssBlock) {
+                // Old Vite helpers must share the CSS promise, not merely mark a link as seen.
                 transformed = transformed
                     .replace(seenCheck, "if (dep in seen) return seen[dep] === true ? undefined : seen[dep];")
-                    .replace(cssLoad, "if (isCss) return (seen[dep] = new Promise((res, rej) => {")
-                    .replace(cssErrorLegacy, 'link.addEventListener("error", () => { delete seen[dep]; link.remove(); rej(new PageResourceError(dep, "页面样式加载失败")); });\n\t\t\t}));');
-            } else if (preloadOnceReject && cssErrorCall) {
+                    .replace(
+                        cssBlock,
+                        'if (isCss) return (seen[dep] = new Promise((res, rej) => {\nlink.addEventListener("load", res);\nlink.addEventListener("error", () => { delete seen[dep]; link.remove(); rej(new PageResourceError(dep, "页面样式加载失败")); });\n}));',
+                    );
+            } else if (preloadOnceHelper && preloadOnceReject && cssErrorCall) {
                 // Vite 8.3+ already deduplicates concurrent CSS loads via preloadOnce; clear seen and remove the failed link so retries can recreate it.
                 transformed = transformed
                     .replace(preloadOnceReject, "}, (err) => {\n\t\tdelete seen[href];\n\t\tthrow err;\n\t});")
                     .replace(cssErrorCall, 'link.addEventListener("error", () => { delete seen[dep.href]; link.remove(); rej(new PageResourceError(dep.href, "页面样式加载失败")); });');
+            } else {
+                // Keep unknown CSS implementations untouched; partial rewriting could suppress real failures.
+                this?.warn("Vite preload CSS helper changed; keeping native CSS preload behavior with resource prewarming.");
             }
             return {
                 code: transformed,

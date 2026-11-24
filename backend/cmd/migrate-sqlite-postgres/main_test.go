@@ -46,6 +46,50 @@ func TestMigrationListIncludesInspirationLibrary(t *testing.T) {
 	t.Fatal("migration list must include inspiration_library_entries")
 }
 
+func TestMigrationListIncludesCloudAgentHistoryArchive(t *testing.T) {
+	for _, migration := range migrations() {
+		if migration.name == "cloud_agent_history_archives" {
+			return
+		}
+	}
+	t.Fatal("migration list must include cloud_agent_history_archives")
+}
+
+func TestCloudAgentHistoryArchiveRowsCopyAndVerify(t *testing.T) {
+	source, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:agent-archive-copy-source?mode=memory&cache=shared"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:agent-archive-copy-target?mode=memory&cache=shared"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, db := range []*gorm.DB{source, target} {
+		sqlDB, err := db.DB()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = sqlDB.Close() })
+		if err := db.AutoMigrate(&model.CloudAgentHistoryArchive{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	archive := model.CloudAgentHistoryArchive{
+		RunID: "archive-run", UserID: "owner", OriginalBytes: 1024,
+		CompressedBytes: 5, PayloadGZIP: []byte{0x1f, 0x8b, 0, 0xff, 0x80},
+	}
+	if err := source.Create(&archive).Error; err != nil {
+		t.Fatal(err)
+	}
+	count, err := migrateTable[model.CloudAgentHistoryArchive]("cloud_agent_history_archives").run(source, target, true)
+	if err != nil || count != 1 {
+		t.Fatalf("archive was not copied and verified: count=%d err=%v", count, err)
+	}
+	if count, err := migrateTable[model.CloudAgentHistoryArchive]("cloud_agent_history_archives").run(source, target, false); err != nil || count != 1 {
+		t.Fatalf("archive verification must not duplicate rows: count=%d err=%v", count, err)
+	}
+}
+
 func TestCanvasHistoryCompositeKeyMigration(t *testing.T) {
 	source, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:history-migration-source?mode=memory&cache=shared"})
 	if err != nil {

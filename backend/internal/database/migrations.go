@@ -15,8 +15,8 @@ import (
 
 // 本地 78 号迁移是 fork 自有 video_remake，上游同号是 drama_cast_voice_looks，
 // 因此上游 78-104 顺延为 79-105；fork 自有的 inspiration_library 已经占了 106，
-// 上游 105-109 顺延到 107-111。保留既有迁移的名称、校验值和执行记录。
-const CurrentSchemaVersion int64 = 111
+// 上游 105-110 顺延到 107-112。保留既有迁移的名称、校验值和执行记录。
+const CurrentSchemaVersion int64 = 112
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -398,6 +398,12 @@ var schemaMigrations = []migration{
 			return nil
 		}
 		return tx.Migrator().CreateIndex(&model.ChannelModel{}, "ProtocolRelease")
+	}},
+	{version: 112, name: "cloud_agent_history_archives", checksum: "sha256:cloud-agent-history-archives-v110-20261123", apply: func(tx *gorm.DB) error {
+		if err := tx.AutoMigrate(&model.CloudAgentExecution{}, &model.CloudAgentHistoryArchive{}); err != nil {
+			return err
+		}
+		return reconcileAgentStorageUsage(tx)
 	}},
 }
 

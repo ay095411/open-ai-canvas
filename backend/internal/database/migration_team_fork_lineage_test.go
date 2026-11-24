@@ -6,8 +6,8 @@ import (
 )
 
 func TestForkMigrationPlanAppendsTeamSchema(t *testing.T) {
-	if CurrentSchemaVersion != 111 {
-		t.Fatalf("fork schema version = %d, want 111", CurrentSchemaVersion)
+	if CurrentSchemaVersion != 112 {
+		t.Fatalf("fork schema version = %d, want 112", CurrentSchemaVersion)
 	}
 	// These identities have already been published by the fork. New upstream
 	// migrations must append after them, never replace the same version.
@@ -22,6 +22,7 @@ func TestForkMigrationPlanAppendsTeamSchema(t *testing.T) {
 		{Version: 109, Name: "company_workgroups", Checksum: "sha256:company-workgroups-v107"},
 		{Version: 110, Name: "shared_workspace_content", Checksum: "sha256:shared-workspace-content-v108"},
 		{Version: 111, Name: "model_protocol_releases", Checksum: "sha256:model-protocol-releases-v109"},
+		{Version: 112, Name: "cloud_agent_history_archives", Checksum: "sha256:cloud-agent-history-archives-v110-20261123"},
 	}
 	byVersion := make(map[int64]migration, len(schemaMigrations))
 	for _, step := range schemaMigrations {
@@ -42,7 +43,7 @@ func TestModelsIncludeTeamAndForkDomains(t *testing.T) {
 	want := map[string]bool{
 		"Team": false, "TeamMembership": false, "TeamInvitation": false,
 		"CreditTransfer": false, "TeamAssetPublication": false,
-		"InspirationLibraryEntry": false, "RemakeProject": false,
+		"InspirationLibraryEntry": false, "CloudAgentHistoryArchive": false, "RemakeProject": false,
 		"RemakeRevision": false, "RemakeRun": false, "RemakeStep": false,
 		"RemakeTake": false, "RemakeExport": false, "RemakeResourceReference": false,
 	}
