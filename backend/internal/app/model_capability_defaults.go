@@ -35,6 +35,9 @@ var videoModelPresets = func() map[[2]string]VideoCapabilityConfig {
 
 func officialVideoPreset(provider, modelName string) *VideoCapabilityConfig {
 	profile, ok := videoModelPresets[[2]string{provider, strings.TrimSpace(modelName)}]
+	if !ok && provider == "volcengine-ark-seedance-25" {
+		profile, ok = videoModelPresets[[2]string{provider, ""}]
+	}
 	if !ok {
 		return nil
 	}
@@ -42,6 +45,12 @@ func officialVideoPreset(provider, modelName string) *VideoCapabilityConfig {
 	profile.Resolutions = slices.Clone(profile.Resolutions)
 	profile.Operations = slices.Clone(profile.Operations)
 	profile.Duration.Values = slices.Clone(profile.Duration.Values)
+	if profile.References.MaxTotalVideoDuration != nil {
+		profile.References.MaxTotalVideoDuration = ptr(*profile.References.MaxTotalVideoDuration)
+	}
+	if profile.References.MaxTotalAudioDuration != nil {
+		profile.References.MaxTotalAudioDuration = ptr(*profile.References.MaxTotalAudioDuration)
+	}
 	return &profile
 }
 
@@ -207,7 +216,7 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		return &ModelCapabilityConfig{Version: 1, Text: text, Image: DefaultImageCapabilityConfig(protocol, modelName), Video: profile}
 	}
 	video := &VideoCapabilityConfig{
-		References:        VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MinImages: 0, MaxImages: 9, MaxImageBytes: 30 * 1024 * 1024, MaxVideos: 0, MaxVideoBytes: 0, MaxVideoDuration: 0, MaxAudios: 0, MaxAudioBytes: 0, MaxAudioDuration: 0},
+		References:        VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MaxImages: 9, MaxImageBytes: 30 * 1024 * 1024},
 		Duration:          VideoDurationConfig{Selection: "range", Min: 1, Max: 15, Step: 1, Default: 6},
 		Ratios:            []string{"16:9", "9:16", "1:1", "4:3", "3:4", "21:9"},
 		DefaultRatio:      "16:9",
@@ -230,7 +239,7 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.References.MaxImages = 9
 		video.References.MaxAudios = 3
 		video.References.MaxAudioBytes = 15 * 1024 * 1024
-		video.References.MaxAudioDuration = 15
+		video.References.MaxTotalAudioDuration = ptr(15)
 		video.Duration = VideoDurationConfig{Selection: "range", Min: 4, Max: 15, Step: 1, Default: 5}
 		video.Ratios = []string{"21:9", "16:9", "4:3", "1:1", "3:4", "9:16"}
 		video.DefaultRatio = "16:9"
@@ -243,16 +252,12 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
 		video.References.MaxVideos, video.References.MaxAudios = 3, 3
 		video.References.MaxVideoBytes, video.References.MaxAudioBytes = 200*1024*1024, 15*1024*1024
-		video.References.MaxVideoDuration, video.References.MaxAudioDuration = 15, 15
 		video.GenerateAudio = VideoBooleanConfig{Supported: true, Default: true}
 		video.Watermark = VideoBooleanConfig{Supported: true, Default: false}
 		video.Resolutions = []string{"480p", "720p", "1080p"}
-	case model.ChannelInterfaceType("volcengine-ark-seedance-25"):
-		video = officialVideoPreset(protocol, "")
 	case model.ChannelInterfaceNewAPIChannel1, model.ChannelInterfaceNewAPIChannel2:
 		video.References.MaxVideos, video.References.MaxAudios = 3, 3
 		video.References.MaxVideoBytes, video.References.MaxAudioBytes = 200*1024*1024, 15*1024*1024
-		video.References.MaxVideoDuration, video.References.MaxAudioDuration = 15, 15
 		video.GenerateAudio = VideoBooleanConfig{Supported: true, Default: true}
 		if model.ChannelInterfaceType(protocol) == model.ChannelInterfaceNewAPIChannel1 {
 			video.Resolutions = []string{"480p", "720p", "1080p"}
@@ -273,10 +278,8 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.References.MaxImageBytes = 30 * 1024 * 1024
 		video.References.MaxVideos = 3
 		video.References.MaxVideoBytes = 50 * 1024 * 1024
-		video.References.MaxVideoDuration = 15
 		video.References.MaxAudios = 3
 		video.References.MaxAudioBytes = 15 * 1024 * 1024
-		video.References.MaxAudioDuration = 15
 		video.Duration = VideoDurationConfig{Selection: "enum", Values: []int{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}, Default: 5}
 		video.Ratios = []string{"adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"}
 		video.DefaultRatio = "16:9"
@@ -284,23 +287,23 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.DefaultResolution = "768P"
 		video.Watermark = VideoBooleanConfig{Supported: true, Default: false}
 	case model.ChannelInterfaceType("grsai-video"):
-		// MiniMax H3：1~15 秒（1080p 下最多 10 秒），9 张参考图、3 段参考音频（单段 ≤15 秒），不支持参考视频。
+		// MiniMax H3：1~15 秒（1080p 下最多 10 秒），9 张参考图、3 段参考音频（总时长 ≤15 秒），不支持参考视频。
 		// 上游 aspectRatio 只收 portrait / landscape，画布比例由协议侧换算，这里仍按画布口径配置。
 		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
 		video.References.MaxImages = 9
 		video.References.MaxAudios = 3
 		video.References.MaxAudioBytes = 15 * 1024 * 1024
-		video.References.MaxAudioDuration = 15
+		video.References.MaxTotalAudioDuration = ptr(15)
 		video.Ratios = []string{"16:9", "9:16", "4:3", "3:4", "21:9"}
 		video.DefaultRatio = "16:9"
 		video.Resolutions = []string{"480p", "768p", "1080p"}
 	case model.ChannelInterfaceType("grsai-wan-video"):
-		// Wan 3.0：2~30 秒，10 张参考图、5 段参考音频（单段 ≤15 秒），不支持参考视频。
+		// Wan 3.0：2~30 秒，10 张参考图、5 段参考音频（总时长 ≤15 秒），不支持参考视频。
 		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
 		video.References.MaxImages = 10
 		video.References.MaxAudios = 5
 		video.References.MaxAudioBytes = 15 * 1024 * 1024
-		video.References.MaxAudioDuration = 15
+		video.References.MaxTotalAudioDuration = ptr(15)
 		video.Duration = VideoDurationConfig{Selection: "range", Min: 2, Max: 30, Step: 1, Default: 5}
 		video.Resolutions = []string{"480p", "720p", "1080p"}
 	case model.ChannelInterfaceType("grsai-agnes-video"):
@@ -309,24 +312,21 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.References.MaxImages = 5
 		video.References.MaxAudios = 3
 		video.References.MaxAudioBytes = 15 * 1024 * 1024
-		video.References.MaxAudioDuration = 15
 		video.Duration = VideoDurationConfig{Selection: "range", Min: 4, Max: 12, Step: 1, Default: 5}
 		video.Resolutions = []string{"720p", "1080p", "2k"}
 	case model.ChannelInterfaceAgnesVideo:
 		video = applyModelSpecificVideoCapability(video, protocol, modelName)
 	case model.ChannelInterfaceType("suanliai-video"):
 		// 算力AI 把站内全部视频模型收在同一个 /v1/videos 后面，并按模型自动收敛分辨率与时长，
-		// 所以默认值取全站最宽档（30 图 / 10 视频 / 10 音频、2~30 秒、最高 4K）。
+		// 所以默认值取全站最宽档（30 图 / 10 视频 / 10 音频、2~30 秒、最高 4K），不设本地参考合计时长上限。
 		// 单个模型更窄的限制（3 图、9 图、不支持参考视频、音频 ≤15.2 秒等）由网关在提交阶段
 		// 返回中文提示且不扣费；确实要卡死的模型，在渠道模型的能力配置里按模型收紧即可。
 		video.Operations = append(video.Operations, "reference_to_video", "audio_to_video")
 		video.References.MaxImages = 30
 		video.References.MaxVideos = 10
 		video.References.MaxVideoBytes = 200 * 1024 * 1024
-		video.References.MaxVideoDuration = 30
 		video.References.MaxAudios = 10
 		video.References.MaxAudioBytes = 15 * 1024 * 1024
-		video.References.MaxAudioDuration = 15
 		video.Duration = VideoDurationConfig{Selection: "range", Min: 2, Max: 30, Step: 1, Default: 5}
 		video.Ratios = []string{"16:9", "9:16", "1:1", "4:3", "3:4", "21:9"}
 		video.DefaultRatio = "16:9"
@@ -336,7 +336,7 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.Watermark = VideoBooleanConfig{Supported: true, Default: false}
 	case model.ChannelInterfaceType(VolcengineMediaKitEnhanceVideoProtocol):
 		// 画质增强：只接收一个源视频，时长由服务端按源资源测得，帧率默认保持原片。
-		video.References = VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MaxVideos: 1, MaxVideoDuration: DefaultVideoProcessingMaxSourceSeconds}
+		video.References = VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MaxVideos: 1}
 		video.Duration = VideoDurationConfig{Selection: "range", Min: 1, Max: DefaultVideoProcessingMaxSourceSeconds, Step: 1, Default: 5}
 		video.Ratios, video.DefaultRatio = []string{}, ""
 		video.Resolutions, video.DefaultResolution = []string{"720p", "1080p", "2k", "4k"}, "1080p"
@@ -345,7 +345,7 @@ func DefaultModelCapabilityConfigForModel(protocol string, modelName string) *Mo
 		video.Operations, video.DefaultOperation = []string{VideoProcessingOperationEnhance}, VideoProcessingOperationEnhance
 		video.Processing = &VideoProcessingConfig{FPSPolicy: VideoProcessingFPSKeepSource, MaxSourceSeconds: DefaultVideoProcessingMaxSourceSeconds}
 	case model.ChannelInterfaceType(VolcengineMediaKitVideoDepthProtocol):
-		video.References = VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MaxVideos: 1, MaxVideoDuration: MediaKitDepthMaxSourceSeconds}
+		video.References = VideoReferenceConfig{PromptMaxChars: DefaultVideoPromptMaxChars, MaxVideos: 1}
 		video.Duration = VideoDurationConfig{Selection: "range", Min: 1, Max: MediaKitDepthMaxSourceSeconds, Step: 1, Default: 5}
 		video.Ratios, video.DefaultRatio = []string{}, ""
 		video.Resolutions, video.DefaultResolution = []string{}, ""

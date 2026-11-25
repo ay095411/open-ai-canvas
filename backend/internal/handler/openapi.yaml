@@ -5539,6 +5539,35 @@ components:
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/InspirationLibrarySummary" } }
         policyVersion: { type: string, enum: [licensed-v1] }
+    EcommerceAgentRequest:
+      type: object
+      properties:
+        fileInfoList:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+        query: { type: string }
+        platform: { type: string }
+        language: { type: string }
+        panelType: { type: string }
+        generateType: { type: integer }
+        imageCount: { type: integer }
+        aspectRatio: { type: string }
+        selectedRecommendationId: { type: string }
+        modelKey: { type: string }
+        channel: { type: string }
+        needText: { type: boolean, nullable: true }
+        userSellingPoints: { type: string }
+        brand:
+          type: object
+          properties:
+            brandName: { type: string }
+            styleDesc: { type: string }
+            themeColors: { type: string }
+        projectId: { type: string }
+        idempotencyKey: { type: string }
     SystemUpdateSources:
       type: object
       required: [githubSource, imageSource]

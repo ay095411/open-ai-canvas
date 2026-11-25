@@ -18,7 +18,7 @@ func TestGrsaiVideoCapabilityDefaults(t *testing.T) {
 	}{
 		{protocol: "grsai-video", label: "MiniMax H3", maxImages: 9, maxAudios: 3, maxVideos: 0, audioSeconds: 15, durationMin: 1, durationMax: 15, resolutions: []string{"480p", "768p", "1080p"}},
 		{protocol: "grsai-wan-video", label: "Wan 3.0", maxImages: 10, maxAudios: 5, maxVideos: 0, audioSeconds: 15, durationMin: 2, durationMax: 30, resolutions: []string{"480p", "720p", "1080p"}},
-		{protocol: "grsai-agnes-video", label: "Agnes 2.5", maxImages: 5, maxAudios: 3, maxVideos: 0, audioSeconds: 15, durationMin: 4, durationMax: 12, resolutions: []string{"720p", "1080p", "2k"}},
+		{protocol: "grsai-agnes-video", label: "Agnes 2.5", maxImages: 5, maxAudios: 3, maxVideos: 0, audioSeconds: 0, durationMin: 4, durationMax: 12, resolutions: []string{"720p", "1080p", "2k"}},
 	}
 	for _, tt := range cases {
 		t.Run(tt.label, func(t *testing.T) {
@@ -35,8 +35,12 @@ func TestGrsaiVideoCapabilityDefaults(t *testing.T) {
 			if video.References.MaxVideos != tt.maxVideos {
 				t.Fatalf("maxVideos = %d, want %d (grsai has no reference video)", video.References.MaxVideos, tt.maxVideos)
 			}
-			if video.References.MaxAudioDuration != tt.audioSeconds {
-				t.Fatalf("maxAudioDuration = %d, want %d", video.References.MaxAudioDuration, tt.audioSeconds)
+			gotAudio := 0
+			if video.References.MaxTotalAudioDuration != nil {
+				gotAudio = *video.References.MaxTotalAudioDuration
+			}
+			if gotAudio != tt.audioSeconds {
+				t.Fatalf("maxTotalAudioDuration = %d, want %d", gotAudio, tt.audioSeconds)
 			}
 			if video.Duration.Min != tt.durationMin || video.Duration.Max != tt.durationMax {
 				t.Fatalf("duration = %d~%d, want %d~%d", video.Duration.Min, video.Duration.Max, tt.durationMin, tt.durationMax)
